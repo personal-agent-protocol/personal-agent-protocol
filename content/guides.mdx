@@ -247,6 +247,59 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
 
 ## For companies {#companies}
 
+### Hosting several companies {#company-hosting}
+
+A platform can host the protocol for several independent companies. Keep each company's identity
+separate even when they use the same software and authorization infrastructure. The protocol
+identifies a company by its full `auth.issuer` URL, not by its hosting provider
+([3.2](/docs/spec#oauth-server)). Domains that name the same issuer are one company: they share the
+same user IDs, sessions, and account tokens.
+
+For example, a commerce platform hosts two independent merchants. Example Outfitters has two
+country storefronts; Example Books has one. Each storefront publishes its own `poppy.json`:
+
+| Storefront domain       | `auth.issuer`                              | Company            |
+| ----------------------- | ------------------------------------------ | ------------------ |
+| `outfitters.example`    | `https://auth.platform.example/outfitters` | Example Outfitters |
+| `outfitters-uk.example` | `https://auth.platform.example/outfitters` | Example Outfitters |
+| `books.example`         | `https://auth.platform.example/books`      | Example Books      |
+
+The two Outfitters domains intentionally share one company identity and account access. Books has
+a separate issuer. Sharing a platform, a token endpoint, or signing keys doesn't make two issuers
+the same company; the platform still enforces each company's access separately.
+
+An issuer can include a path. Fetch its metadata using the URL construction in
+[RFC 8414, section 3.1](https://www.rfc-editor.org/rfc/rfc8414.html#section-3.1), which places the
+well-known suffix before the issuer's path:
+
+```json label="GET https://auth.platform.example/.well-known/oauth-authorization-server/outfitters"
+{
+  "issuer": "https://auth.platform.example/outfitters",
+  "token_endpoint": "https://auth.platform.example/outfitters/oauth/token",
+  "revocation_endpoint": "https://auth.platform.example/outfitters/oauth/revoke",
+  "authorization_endpoint": "https://auth.platform.example/outfitters/oauth/authorize",
+  "poppy_domains": ["outfitters.example", "outfitters-uk.example"]
+}
+```
+
+Books publishes separate metadata for `https://auth.platform.example/books`, with that exact
+`issuer` and only `books.example` in `poppy_domains`. An HTTPS redirect of a storefront's
+`poppy.json` to the platform doesn't change its `organization.domain`: it still matches the
+storefront domain the personal agent requested ([3.1](/docs/spec#fields)).
+
+Before enabling a hosted company, check that:
+
+- The metadata's `issuer` exactly matches the full `auth.issuer`, including its path, and
+  `poppy_domains` includes the requested storefront's `organization.domain`.
+- A personal agent gives the same user different opaque user IDs at Outfitters and Books
+  ([4.2](/docs/spec#starting-sessions)). Its company and account records use the full issuer, not
+  just `auth.platform.example`.
+- The platform rejects use of an Outfitters session or account token at Books, even when both
+  companies use the same infrastructure. Check the company as well as the account, scopes, and
+  any resource restriction on every request.
+- Both Outfitters domains use the same company identity only because they intentionally share
+  sessions and account access. Use separate issuers if they need separate company boundaries.
+
 ### Verifying personal agents {#company-agents}
 
 - Fetch the `client_id` URL without following redirects. Its `client_id` MUST equal the URL you
