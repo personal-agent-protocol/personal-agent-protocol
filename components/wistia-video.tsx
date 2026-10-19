@@ -17,8 +17,7 @@ declare module "react" {
 const PRIVACY_MODE =
     "window._wq = window._wq || []; window._wq.push(function (W) { W.consent(false); });";
 
-// A Wistia video. Until Wistia's scripts define the player, globals.css shows a blurred thumbnail
-// in its place.
+// A Wistia video.
 export function WistiaVideo({ mediaId, autoplay }: { mediaId: string; autoplay?: boolean }) {
     return (
         <>
@@ -35,11 +34,6 @@ export function WistiaVideo({ mediaId, autoplay }: { mediaId: string; autoplay?:
                 media-id={mediaId}
                 aspect="1.7777777777777777"
                 autoplay={autoplay ? "" : undefined}
-                style={
-                    {
-                        "--swatch": `url('https://fast.wistia.com/embed/medias/${mediaId}/swatch')`,
-                    } as React.CSSProperties
-                }
             />
         </>
     );

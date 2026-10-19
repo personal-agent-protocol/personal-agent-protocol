@@ -36,11 +36,22 @@ async function videoDetails(mediaId: string): Promise<{ thumbnail: string; lengt
 }
 
 // A Wistia video in a <VideoGallery>: a thumbnail that opens the video, then its heading and
-// description, which are the children. The heading's id links to the video.
-export async function Video({ mediaId, children }: { mediaId: string; children?: ReactNode }) {
+// description, which are the children. In the docs, remarkVideoNames sets `id` and `title` from
+// the heading; elsewhere, such as the home page, they're set by hand.
+export async function Video({
+    mediaId,
+    id,
+    title,
+    children,
+}: {
+    mediaId: string;
+    id: string;
+    title: string;
+    children?: ReactNode;
+}) {
     const { thumbnail, length } = await videoDetails(mediaId);
     return (
-        <VideoCard mediaId={mediaId} thumbnail={thumbnail} length={length}>
+        <VideoCard mediaId={mediaId} thumbnail={thumbnail} length={length} id={id} title={title}>
             {children}
         </VideoCard>
     );

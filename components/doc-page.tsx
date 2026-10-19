@@ -6,7 +6,13 @@ import remarkGfm from "remark-gfm";
 import { counterpart, LATEST, versionOf } from "../content/docs";
 import { docsOutline, docsPage, linkResolver, pageSource, tabOutline } from "../lib/docs-content";
 import { remarkChanges } from "../lib/changelog";
-import { escapeHeadingIds, rehypeDocs, remarkHeadingIds, remarkVersionLinks } from "../lib/mdx";
+import {
+    escapeHeadingIds,
+    rehypeDocs,
+    remarkHeadingIds,
+    remarkVersionLinks,
+    remarkVideoNames,
+} from "../lib/mdx";
 import { NEW_ISSUE_URL } from "../lib/site";
 import { CodeBlock } from "./code-block";
 import { CopyMarkdownButton } from "./copy-markdown-button";
@@ -96,6 +102,7 @@ export async function DocPage({ href }: { href: string }) {
         remarkPlugins: [
             remarkGfm,
             remarkHeadingIds,
+            remarkVideoNames,
             remarkChanges(page.file),
             remarkVersionLinks(linkResolver(page)),
         ],

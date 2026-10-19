@@ -1,7 +1,7 @@
 import { ButtonLink } from "../components/button";
 import { SectionViews } from "../components/section-views";
+import { Video } from "../components/video-gallery";
 import { Walkthroughs } from "../components/walkthroughs";
-import { WistiaVideo } from "../components/wistia-video";
 
 const SPECTRUM = [
     { title: "Blocked", detail: "No agents allowed.", end: true },
@@ -39,9 +39,11 @@ export function HomeContent() {
                             </ButtonLink>
                         </div>
                     </div>
-                    <div className="hero-video">
-                        <WistiaVideo mediaId="dkxdtin9uz" />
-                    </div>
+                    <Video
+                        mediaId="dkxdtin9uz"
+                        id="overview"
+                        title="What is the Personal Agent Protocol?"
+                    />
                 </div>
             </section>
             <section className="block" id="why">

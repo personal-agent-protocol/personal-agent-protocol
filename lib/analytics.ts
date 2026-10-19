@@ -10,7 +10,7 @@ type Events = {
     example_sign_in: { example: string; step: number };
     spec_section_click: { section: string; from: string };
     cta_click: { cta: string; location: string };
-    video_open: { video: string; from: "card" | "link" };
+    video_open: { video: string; from: "card" | "home" | "link" };
 };
 
 export function trackEvent<Name extends keyof Events>(name: Name, properties: Events[Name]) {

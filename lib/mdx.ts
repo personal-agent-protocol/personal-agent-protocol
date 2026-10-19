@@ -75,6 +75,33 @@ export function remarkHeadingIds() {
     };
 }
 
+// Gives each <Video> its heading's id and text as `id` and `title`, which name the video on its
+// card. Runs after remarkHeadingIds.
+export function remarkVideoNames() {
+    return (tree: Root) => {
+        visit(tree, (node) => {
+            const jsx = node as unknown as {
+                type: string;
+                name?: string;
+                attributes: { type: string; name: string; value: string }[];
+                children: Nodes[];
+            };
+            if (jsx.type !== "mdxJsxFlowElement" || jsx.name !== "Video") {
+                return;
+            }
+            const heading = jsx.children.find((c) => c.type === "heading");
+            const id = heading?.type === "heading" ? headingId(heading) : undefined;
+            if (!heading || !id) {
+                throw new Error("A <Video> needs a heading with an id");
+            }
+            jsx.attributes.push(
+                { type: "mdxJsxAttribute", name: "id", value: id },
+                { type: "mdxJsxAttribute", name: "title", value: textOf(heading).trim() },
+            );
+        });
+    };
+}
+
 // Rewrites each link with `resolve`, such as resolveDocsLink, which points links to the docs at a
 // page's version.
 export function remarkVersionLinks(resolve: (url: string) => string = (url) => url) {

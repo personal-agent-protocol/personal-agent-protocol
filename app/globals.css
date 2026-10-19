@@ -574,25 +574,12 @@ code {
     flex-wrap: wrap;
 }
 
-/* The home page puts the video beside the hero text, and under it at 860px and below. */
+/* The home page puts the video's thumbnail beside the hero text, and under it at 860px and below. */
 #hero .wrap {
     display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 48px;
     align-items: center;
-}
-
-.hero-video wistia-player {
-    display: block;
-    border-radius: var(--radius);
-    overflow: hidden;
-}
-
-/* A blurred thumbnail holds the space until Wistia's scripts load. */
-.hero-video wistia-player:not(:defined) {
-    background: center / contain no-repeat var(--swatch);
-    filter: blur(5px);
-    padding-top: 56.25%;
 }
 
 /* ---------- Sections ---------- */

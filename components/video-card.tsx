@@ -39,21 +39,23 @@ function morph(name: string, from: HTMLElement | null, to: HTMLElement | null, u
 
 // A video's card: its thumbnail, then its heading and description. Clicking the thumbnail opens
 // the video in a lightbox, which closes with Escape, the close button, or a click outside the
-// video. A link to the heading's id, such as /docs/videos#overview, opens the video on load.
+// video. A link to the video's id, such as /docs/videos#overview, opens the video on load.
 export function VideoCard({
     mediaId,
     thumbnail,
     length,
+    id,
+    title,
     children,
 }: {
     mediaId: string;
     thumbnail: string;
     length?: string;
+    id: string;
+    title: string;
     children?: ReactNode;
 }) {
     const [open, setOpen] = useState(false);
-    const [heading, setHeading] = useState<{ id: string; title: string }>();
-    const cardRef = useRef<HTMLDivElement>(null);
     const thumbRef = useRef<HTMLButtonElement>(null);
     const frameRef = useRef<HTMLDivElement>(null);
     const dialogRef = useRef<HTMLDialogElement>(null);
@@ -64,9 +66,8 @@ export function VideoCard({
             flushSync(() => setOpen(true));
             dialogRef.current?.showModal();
         });
-        if (heading) {
-            trackEvent("video_open", { video: heading.id, from: "card" });
-        }
+        const from = window.location.pathname === "/" ? "home" : "card";
+        trackEvent("video_open", { video: id, from });
     }
 
     // Closing returns focus to the thumbnail and drops a link's hash, so a reload doesn't reopen
@@ -77,31 +78,26 @@ export function VideoCard({
             flushSync(() => setOpen(false));
             thumbRef.current?.focus();
         });
-        if (heading && decodeURIComponent(window.location.hash.slice(1)) === heading.id) {
+        if (decodeURIComponent(window.location.hash.slice(1)) === id) {
             history.replaceState(null, "", window.location.pathname + window.location.search);
         }
     }
 
     useEffect(() => {
-        const h = cardRef.current?.querySelector("h2");
-        if (!h?.id) {
-            return;
-        }
-        setHeading({ id: h.id, title: h.textContent ?? "" });
-        if (decodeURIComponent(window.location.hash.slice(1)) === h.id) {
+        if (decodeURIComponent(window.location.hash.slice(1)) === id) {
             flushSync(() => setOpen(true));
             dialogRef.current?.showModal();
-            trackEvent("video_open", { video: h.id, from: "link" });
+            trackEvent("video_open", { video: id, from: "link" });
         }
-    }, []);
+    }, [id]);
 
     return (
-        <div className="video-card" ref={cardRef}>
+        <div className="video-card">
             <button
                 ref={thumbRef}
                 type="button"
                 className="video-thumb"
-                aria-label={heading ? `Play “${heading.title}”` : "Play video"}
+                aria-label={`Play “${title}”`}
                 onClick={show}
             >
                 <img src={thumbnail} alt="" width={960} height={540} loading="lazy" />
@@ -114,7 +110,7 @@ export function VideoCard({
             <dialog
                 ref={dialogRef}
                 className="video-lightbox"
-                aria-labelledby={heading?.id}
+                aria-label={title}
                 onCancel={(e) => {
                     e.preventDefault();
                     hide();
