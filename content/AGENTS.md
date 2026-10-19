@@ -51,11 +51,37 @@ draft's section, in the same change: requirements, fields, errors, examples, and
 removed, or moved. Only edits that change no meaning, such as typos and rewording, can leave it
 out. When reviewing a change to the draft, check that the changelog has it.
 
-The draft's section is one list in spec section order, then extensions, then guides. Each entry
-starts with a short bold title, links the sections it changed, and starts with "Breaking:" when an
-implementation of the last published version has to change. Link a public issue as
-`[Issue #N](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/N)` when
-there is one. Don't link to pull requests or other private repositories.
+The draft's section has three groups, each in spec section order, then extensions: Major changes
+(`### Major changes {#v0-2-major}`), Minor changes (`{#v0-2-minor}`), and Guides
+(`{#v0-2-guides}`), with the draft's version in the ids. A change is major when it's a design decision
+a reasonable implementer could disagree with, such as a new requirement that trades one goal for
+another or a new section. It's minor when it fills a gap, makes the text consistent with itself or
+its examples, or follows an RFC, even when it breaks implementations. Leave out a group that has no
+entries.
+
+Each entry is a `<Change>`:
+
+```mdx
+<Change title="DPoP at MCP servers" breaking sections="4.3, 6" issue="6">
+
+An MCP server supports DPoP by listing…
+
+</Change>
+```
+
+- `title` is short and can put code in backticks. It becomes the entry's heading and id, such as
+  `v0-2-dpop-at-mcp-servers`, so titles in a version are unique.
+- `breaking` marks a change that can require an implementation of the last published version to
+  change.
+- `sections` lists what it changed: spec section numbers such as `4.3`, an extension's name and
+  section such as `Operations 3.2`, `Guides`, or a guide heading by id, such as
+  `guides#both-key-rotation`. The build fails when the version doesn't have one.
+- `issue` is the number of a public issue on
+  [personal-agent-protocol](https://github.com/personal-agent-protocol/personal-agent-protocol),
+  when there is one. Don't link to pull requests or other private repositories.
+
+The text says what changed without repeating the tags. `lib/changelog.ts` turns the attributes into
+the heading and tags.
 
 ## The version number
 

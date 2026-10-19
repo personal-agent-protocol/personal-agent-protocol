@@ -5,16 +5,31 @@ import * as runtime from "react/jsx-runtime";
 import remarkGfm from "remark-gfm";
 import { counterpart, LATEST, versionOf } from "../content/docs";
 import { docsOutline, docsPage, linkResolver, pageSource, tabOutline } from "../lib/docs-content";
+import { remarkChanges } from "../lib/changelog";
 import { escapeHeadingIds, rehypeDocs, remarkHeadingIds, remarkVersionLinks } from "../lib/mdx";
 import { NEW_ISSUE_URL } from "../lib/site";
 import { CodeBlock } from "./code-block";
 import { CopyMarkdownButton } from "./copy-markdown-button";
 import { DocsNav } from "./docs-nav";
 import { CommentingButton } from "./feedback-actions";
+import { PermalinkButton } from "./permalink-button";
 import { PronounceButton } from "./pronounce-button";
 import { SpecTable } from "./spec-table";
 import { VersionMenu } from "./version-menu";
 import { Video, VideoGallery } from "./video-gallery";
+
+// A changelog entry, and one of its tags: "Breaking", a section, or an issue (lib/changelog.ts).
+function Change({ children }: { children?: ReactNode }) {
+    return <div className="change">{children}</div>;
+}
+
+function Tag({ kind, tip, children }: { kind: string; tip?: string; children?: ReactNode }) {
+    return (
+        <span className={`tag tag-${kind}`} data-tip={tip}>
+            {children}
+        </span>
+    );
+}
 
 // A list of partner names, shown in columns.
 function PartnerList({ children }: { children?: ReactNode }) {
@@ -61,11 +76,14 @@ function VersionBanner({ href }: { href: string }) {
 // The components content files can use, and the ones Markdown maps to.
 const COMPONENTS: MDXComponents = {
     table: SpecTable,
+    Change,
     CodeBlock,
     CommentingButton,
     IssueLink,
     PartnerList,
+    PermalinkButton,
     PronounceButton,
+    Tag,
     Video,
     VideoGallery,
 };
@@ -75,7 +93,12 @@ export async function DocPage({ href }: { href: string }) {
     const page = docsPage(href);
     const { default: Content } = await evaluate(escapeHeadingIds(pageSource(page).source), {
         ...runtime,
-        remarkPlugins: [remarkGfm, remarkHeadingIds, remarkVersionLinks(linkResolver(page))],
+        remarkPlugins: [
+            remarkGfm,
+            remarkHeadingIds,
+            remarkChanges(page.file),
+            remarkVersionLinks(linkResolver(page)),
+        ],
         rehypePlugins: [rehypeDocs],
     });
     const components: MDXComponents = {

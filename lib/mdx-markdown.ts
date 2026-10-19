@@ -9,7 +9,7 @@ import { NEW_ISSUE_URL, SITE_URL } from "./site";
 // or are dropped, heading ids are dropped, and each paragraph is one line.
 
 // Components with no Markdown form.
-const DROP = new Set(["PronounceButton", "CommentingButton"]);
+const DROP = new Set(["PronounceButton", "CommentingButton", "PermalinkButton"]);
 
 type Jsx = {
     type: "mdxJsxFlowElement" | "mdxJsxTextElement";
@@ -66,6 +66,14 @@ function lower(node: RootContent): RootContent[] {
         const code = { type: "code" as const, value: node.value };
         // The label is written as is: as text, a URL in it would be escaped.
         return label === undefined ? [code] : [{ type: "html", value: `*${label}*` }, code];
+    }
+    if (node.type === "paragraph" && (node.data as { changeTags?: boolean })?.changeTags) {
+        // A changelog entry's tags (lib/changelog.ts), as "Breaking · 4.3 · Issue #6".
+        const children = node.children.flatMap((tag, i) => [
+            ...(i ? [{ type: "text" as const, value: " · " }] : []),
+            ...lower(tag),
+        ]);
+        return [{ type: "paragraph", children: children as PhrasingContent[] }];
     }
     if ("children" in node) {
         const children = (node.children as RootContent[]).flatMap(lower);

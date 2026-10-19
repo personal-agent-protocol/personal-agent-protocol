@@ -2,6 +2,7 @@ import { createProcessor } from "@mdx-js/mdx";
 import type { Element, ElementContent, Root as HastRoot, RootContent, Text } from "hast";
 import type { Heading, Nodes, Root, RootContent as MdastContent } from "mdast";
 import remarkGfm from "remark-gfm";
+import { remarkChanges } from "./changelog";
 import type { OutlineSection } from "./docs-outline";
 
 // The docs' Markdown syntax, shared by the pages, their outline, and their .md versions. Content
@@ -109,6 +110,7 @@ const parser = createProcessor({ remarkPlugins: [remarkGfm] });
 export function parseMdx(source: string, resolve?: (url: string) => string): Root {
     const tree = parser.parse(escapeHeadingIds(source)) as Root;
     remarkHeadingIds()(tree);
+    remarkChanges()()(tree);
     remarkVersionLinks(resolve)()(tree);
     return tree;
 }
