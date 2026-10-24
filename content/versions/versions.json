@@ -1,7 +1,13 @@
 [
     {
         "id": "0.2",
-        "pages": ["spec", "extensions", "extensions/operations", "guides"]
+        "published": "2026-10-24",
+        "pages": {
+            "spec": "5f6ac40cb2c2114fe85ebe3f1c2fec8a2cbfc90f2a92a2bf44e6ce0e518e0a26",
+            "extensions": "f7b71b97f3151337a6ce67f015b0fe8fdf28234df2700335aca47dd5afad2eff",
+            "extensions/operations": "2daa248b43d2ae91a89c66f73de95a4a8e4db090773b6e88bb35e18ce88aed87",
+            "guides": "70ca417b8cd323485792db5652b4686d9cbf5059f9e9c6f1843ace6d15697e8c"
+        }
     },
     {
         "id": "0.1",
