@@ -19,7 +19,8 @@ serves it.
 their own endpoints and issuer.
 
 - Fits: Companies with several environments or several country domains.
-- Watch for: every domain that names an issuer must appear in that issuer's `poppy_domains`
+- Watch for: every domain that names an issuer must appear, as exactly `https://{domain}` with no
+  path or trailing slash, in that issuer's `protected_resources`
   ([3.2](https://personalagentprotocol.org/docs/spec#oauth-server)).
 
 **Served by a provider on the Company's domain.** A provider that runs part of the Company's

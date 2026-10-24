@@ -17,7 +17,7 @@ The extension is optional, and a Company can use it for some actions and not oth
 | Confirm (5.2) | Personal Agent | The Personal Agent confirms that revision at the operations endpoint, and the Company performs the action. |
 | Track (section 6) | Personal Agent | The Personal Agent reads the operation until it has a final result. |
 
-This page defines version 1 of the `operations` extension, for the Personal Agent Protocol draft. It uses the terms, Sessions, and tokens defined in the [specification](https://personalagentprotocol.org/docs/0.2/spec), and the examples continue the specification's jacket exchange.
+This page defines version 1 of the `operations` extension, for the Personal Agent Protocol draft. It uses the terms, Sessions, and tokens defined in the [specification](https://personalagentprotocol.org/docs/0.3/spec), and the examples continue the specification's jacket exchange.
 
 ## 2. Advertising support
 
@@ -168,7 +168,7 @@ A tool that would perform the action returns the operation in `operation` in the
 
 ### 4.3 Conversations
 
-A Company message carries the operation in `operation`, next to `text` and `data` ([spec 7.4](https://personalagentprotocol.org/docs/0.2/spec#message-fields)):
+A Company message carries the operation in `operation`, next to `text` and `data` ([spec 7.4](https://personalagentprotocol.org/docs/0.3/spec#message-fields)):
 
 *Event: Company → Personal Agent*
 

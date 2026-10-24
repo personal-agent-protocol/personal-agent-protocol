@@ -18,11 +18,19 @@ Write a table in the design that maps each Poppy scope to the Company's existing
 - Start from what the Company already lets a signed-in customer do, and decide what a Personal Agent
   shouldn't do even with `poppy:write`, such as changing sign-in credentials or closing the
   account.
-- Use custom scopes for access that needs separate consent, such as `addresses`. Describe each in
-  `auth.custom_scopes`. Names starting with `poppy:` are reserved (4.4).
+- Use custom scopes for access that needs separate consent, such as `addresses`. List every scope in
+  `scopes_supported` in the OAuth metadata. Describe each custom scope in the OAuth security scheme
+  of an OpenAPI description you list, or in `auth.scopes`, a map from
+  scope name to description. Names starting with `poppy:` are
+  reserved (4.4).
 - A Company MAY leave out `poppy:read` and `poppy:write` and offer only narrower custom scopes
   (4.4).
-- Decide which scopes each sign-in type can grant. Mediated Sign-In often grants less.
+- If the issuer also serves other OAuth clients, leave scopes you don't offer Personal Agents out of
+  `scopes_supported`, and limit the scopes you grant by client (3.2, 4.4). Keeping Direct or Device
+  Sign-In from Personal Agents needs an issuer only for them, chosen before launch, because changing
+  `auth.issuer` later breaks every existing Session (guides#company-agent-issuer).
+- Direct and Device Sign-In can grant any scope in `scopes_supported`. Decide which Mediated Sign-In
+  can grant, in `auth.mediated.scopes`. It often grants less.
 
 ## One shared check
 

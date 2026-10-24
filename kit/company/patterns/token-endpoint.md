@@ -14,10 +14,11 @@ What Poppy adds to standard OAuth:
   `private_key_jwt` using keys from their `jwks_uri`
   ([4.1](https://personalagentprotocol.org/docs/spec#agent-identity)).
 - The JWT bearer grant to start a signed-out Session, with the User ID in `sub`.
-- `session_id` in requests and in responses, and `signed_in` in responses.
+- `session_id` in requests and in responses.
 - DPoP-bound tokens ([4.3](https://personalagentprotocol.org/docs/spec#sending-tokens)), and Bearer
   tokens for MCP only. A token for an MCP server, DPoP or Bearer, is issued for its `resource`.
-- `poppy_domains` in the metadata ([3.2](https://personalagentprotocol.org/docs/spec#oauth-server)).
+- `protected_resources` (RFC 9728), `grant_types_supported`, and `scopes_supported` in the metadata
+  ([3.2](https://personalagentprotocol.org/docs/spec#oauth-server)).
 - The error codes in 4.2, including `invalid_session` and `account_mismatch`.
 
 ## A. Add Poppy to the existing OAuth server

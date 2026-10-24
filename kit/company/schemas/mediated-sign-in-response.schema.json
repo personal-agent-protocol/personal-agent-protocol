@@ -29,8 +29,8 @@
                     },
                     {
                         "properties": {
-                            "signed_in": {
-                                "const": true
+                            "scope": {
+                                "minLength": 1
                             }
                         }
                     }

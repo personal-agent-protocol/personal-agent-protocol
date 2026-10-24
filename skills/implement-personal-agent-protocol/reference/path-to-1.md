@@ -1,6 +1,6 @@
 # Path to 1.0
 
-The [specification](https://personalagentprotocol.org/docs/0.2/spec) is a draft. Before 1.0, we want to learn what works and what doesn't by implementing it, and refine the spec based on what we learn.
+The [specification](https://personalagentprotocol.org/docs/0.3/spec) is a draft. Before 1.0, we want to learn what works and what doesn't by implementing it, and refine the spec based on what we learn.
 
 ## How we get there
 

@@ -4,7 +4,7 @@
 
 // The version of the spec this validator checks: the latest. The site build fails when it isn't,
 // and `pnpm docs:draft` changes it.
-export const PROTOCOL_VERSION = "0.2";
+export const PROTOCOL_VERSION = "0.3";
 
 export type Milestone = "foundation" | "interfaces" | "sign-in" | "extensions";
 
@@ -160,10 +160,10 @@ export const CATALOG: CheckInfo[] = [
         "MUST check that its issuer exactly matches auth.issuer",
     ),
     foundation(
-        "metadata.poppy-domains",
-        "poppy_domains includes organization.domain",
+        "metadata.protected-resources",
+        "protected_resources includes https://{organization.domain}",
         "spec#oauth-server",
-        "poppy_domains in it MUST list every domain whose poppy.json names the issuer",
+        "MUST list https://{domain} for every domain whose poppy.json names the issuer",
     ),
     foundation(
         "metadata.token-endpoint",
@@ -184,16 +184,28 @@ export const CATALOG: CheckInfo[] = [
         "the list MUST then include ES256.",
     ),
     foundation(
-        "metadata.authorization-endpoint",
-        "The metadata has an authorization_endpoint when auth.direct is present",
+        "metadata.grant-types",
+        "grant_types_supported includes the JWT bearer and refresh token grants",
         "spec#oauth-server",
-        "authorization_endpoint starts Direct Sign-In (4.5). Required if auth.direct is present.",
+        "Required, and it MUST include urn:ietf:params:oauth:grant-type:jwt-bearer (4.2) and refresh_token (4.8).",
+    ),
+    foundation(
+        "metadata.authorization-endpoint",
+        "The metadata has an authorization_endpoint when it offers Direct Sign-In",
+        "spec#oauth-server",
+        "authorization_endpoint starts Direct Sign-In (4.5). Required if grant_types_supported includes authorization_code.",
     ),
     foundation(
         "metadata.device-authorization-endpoint",
-        "The metadata has a device_authorization_endpoint when auth.device is present",
+        "The metadata has a device_authorization_endpoint when it offers Device Sign-In",
         "spec#oauth-server",
-        "device_authorization_endpoint starts Device Sign-In (4.6). Required if auth.device is present.",
+        "device_authorization_endpoint starts Device Sign-In (4.6). Required if grant_types_supported includes urn:ietf:params:oauth:grant-type:device_code.",
+    ),
+    foundation(
+        "metadata.scopes-supported",
+        "scopes_supported lists every scope a sign-in can grant",
+        "spec#oauth-server",
+        "Required if the Company offers any type of sign-in, and it MUST then include every account scope a Personal Agent can request (4.4).",
     ),
 
     // Milestone 1: starting and renewing Sessions (4.2).
@@ -232,7 +244,7 @@ export const CATALOG: CheckInfo[] = [
         "session.signed-out",
         "A new Session is signed out, with no scopes",
         "spec#starting-sessions",
-        "scope is a space-separated string of the account scopes granted (4.4). A signed-out token has none.",
+        "scope is a space-separated string of the account scopes granted (4.4). It is always present. A signed-out token has none",
     ),
     foundation(
         "session.no-store",

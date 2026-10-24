@@ -98,8 +98,7 @@ Content-Type: application/json
     "domain": "manzanitasupply.example"
   },
   "auth": {
-    "issuer": "https://auth.manzanitasupply.example",
-    "direct": { "scopes": ["poppy:read", "poppy:write"] }
+    "issuer": "https://auth.manzanitasupply.example"
   },
   "agent": {
     "protocols": [
@@ -124,11 +123,18 @@ Content-Type: application/json
   "token_endpoint": "https://auth.manzanitasupply.example/oauth/token",
   "revocation_endpoint": "https://auth.manzanitasupply.example/oauth/revoke",
   "authorization_endpoint": "https://auth.manzanitasupply.example/oauth/authorize",
-  "poppy_domains": ["manzanitasupply.example"]
+  "grant_types_supported": [
+    "urn:ietf:params:oauth:grant-type:jwt-bearer",
+    "refresh_token",
+    "authorization_code"
+  ],
+  "scopes_supported": ["poppy:read", "poppy:write"],
+  "protected_resources": ["https://manzanitasupply.example"]
 }
 
 // Atlas checks that issuer matches auth.issuer and that
-// poppy_domains includes manzanitasupply.example.`,
+// protected_resources includes https://manzanitasupply.example.
+// authorization_code means Direct Sign-In is offered.`,
                     },
                 ],
             },
@@ -186,8 +192,7 @@ Cache-Control: no-store
   "token_type": "DPoP",
   "expires_in": 3600,
   "scope": "",
-  "session_id": "ses_M4zq",
-  "signed_in": false
+  "session_id": "ses_M4zq"
 }`,
                     },
                     {
@@ -325,8 +330,7 @@ Cache-Control: no-store
   "refresh_token": "pat_M8xk…Rf2",
   "refresh_token_expires_in": 2592000,
   "scope": "poppy:read poppy:write",
-  "session_id": "ses_M4zq",
-  "signed_in": true
+  "session_id": "ses_M4zq"
 }
 
 // refresh_token is the Account Token. Atlas keeps it
@@ -628,8 +632,7 @@ Content-Type: application/json
   "expires_in": 3600,
   "refresh_token": "pat_L5wd…Hn8",
   "scope": "poppy:read poppy:write",
-  "session_id": "ses_L2v9",
-  "signed_in": true
+  "session_id": "ses_L2v9"
 }`,
                     },
                 ],
@@ -1004,8 +1007,7 @@ Cache-Control: no-store
   "token_type": "DPoP",
   "expires_in": 3600,
   "scope": "poppy:read",
-  "session_id": "ses_P8t1",
-  "signed_in": true
+  "session_id": "ses_P8t1"
 }`,
                     },
                     {

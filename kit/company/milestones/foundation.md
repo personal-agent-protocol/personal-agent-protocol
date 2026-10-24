@@ -43,8 +43,12 @@ with `protocol_version`, `organization`, and `web`, and no `auth`
 
 **2. OAuth server metadata** at the issuer's RFC 8414 well-known URL
 ([3.2](https://personalagentprotocol.org/docs/spec#oauth-server)), with `issuer` exactly equal to
-`auth.issuer`, `token_endpoint`, `revocation_endpoint`, and `poppy_domains` listing every domain whose `poppy.json` names this issuer. `authorization_endpoint` and `device_authorization_endpoint`
-come in the sign-in milestone.
+`auth.issuer`, `token_endpoint`, `revocation_endpoint`, `grant_types_supported` with
+`urn:ietf:params:oauth:grant-type:jwt-bearer` and `refresh_token`, and `protected_resources` listing
+`https://{domain}` for every domain whose `poppy.json` names this issuer, exactly in that form, with
+no path or trailing slash. `scopes_supported`, the
+sign-in grant types, `authorization_endpoint`, and `device_authorization_endpoint` come in the
+sign-in milestone.
 
 **3. Verifying Personal Agents** ([4.1](https://personalagentprotocol.org/docs/spec#agent-identity)).
 
@@ -65,7 +69,7 @@ come in the sign-in milestone.
   and `exp` are short-lived, and `jti` hasn't been seen.
 - Treat `sub` as the User ID: opaque, never shown, stored with the Session.
 - Return `access_token`, `token_type: "DPoP"`, `expires_in` (greater than 0; hours, not days),
-  `scope: ""`, `session_id`, and `signed_in: false`, with `Cache-Control: no-store`.
+  `scope: ""`, and `session_id`, with `Cache-Control: no-store`.
 - Renewal: the same request with `session_id`. Check the Session belongs to the same `client_id`
   and User ID. Return `invalid_session` if it has ended or doesn't match.
 - Accept `scope` and `resource` on token requests
@@ -118,7 +122,8 @@ is remembered" in [4.4](https://personalagentprotocol.org/docs/spec#sign-in)). S
 - `organization.domain` names the apex domain while the document is served from `www.` after a
   redirect, or the other way round.
 - `issuer` in the metadata differs from `auth.issuer` by a trailing slash.
-- `poppy_domains` is missing a domain whose `poppy.json` names the issuer.
+- `protected_resources` is missing `https://{domain}` for a domain whose `poppy.json` names the
+  issuer, or lists it with a path or trailing slash.
 - Following redirects when fetching the `client_id` URL, or trusting `jku`, `x5u`, or keys embedded
   in an assertion ([guides](https://personalagentprotocol.org/docs/guides#both-signing)).
 - A token endpoint replay cache per server or per process, so a proof accepted by one is accepted

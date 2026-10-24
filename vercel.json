@@ -58,42 +58,42 @@
         },
         {
             "source": "/docs/spec",
-            "destination": "/docs/0.2/spec",
+            "destination": "/docs/0.3/spec",
             "permanent": false
         },
         {
             "source": "/docs/spec.md",
-            "destination": "/docs/0.2/spec.md",
+            "destination": "/docs/0.3/spec.md",
             "permanent": false
         },
         {
             "source": "/docs/extensions",
-            "destination": "/docs/0.2/extensions",
+            "destination": "/docs/0.3/extensions",
             "permanent": false
         },
         {
             "source": "/docs/extensions.md",
-            "destination": "/docs/0.2/extensions.md",
+            "destination": "/docs/0.3/extensions.md",
             "permanent": false
         },
         {
             "source": "/docs/extensions/operations",
-            "destination": "/docs/0.2/extensions/operations",
+            "destination": "/docs/0.3/extensions/operations",
             "permanent": false
         },
         {
             "source": "/docs/extensions/operations.md",
-            "destination": "/docs/0.2/extensions/operations.md",
+            "destination": "/docs/0.3/extensions/operations.md",
             "permanent": false
         },
         {
             "source": "/docs/guides",
-            "destination": "/docs/0.2/guides",
+            "destination": "/docs/0.3/guides",
             "permanent": false
         },
         {
             "source": "/docs/guides.md",
-            "destination": "/docs/0.2/guides.md",
+            "destination": "/docs/0.3/guides.md",
             "permanent": false
         },
         {
@@ -168,6 +168,15 @@
         }
     ],
     "headers": [
+        {
+            "source": "/docs/0.2/(.*)",
+            "headers": [
+                {
+                    "key": "X-Robots-Tag",
+                    "value": "noindex"
+                }
+            ]
+        },
         {
             "source": "/docs/0.1/(.*)",
             "headers": [

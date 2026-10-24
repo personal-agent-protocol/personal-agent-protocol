@@ -23,8 +23,6 @@
             "required": ["issuer"],
             "properties": {
                 "issuer": { "$ref": "#/$defs/https_url" },
-                "direct": { "$ref": "#/$defs/sign_in_type" },
-                "device": { "$ref": "#/$defs/sign_in_type" },
                 "mediated": {
                     "type": "object",
                     "required": ["endpoint", "fields", "scopes"],
@@ -46,7 +44,7 @@
                         "scopes": { "$ref": "#/$defs/scopes" }
                     }
                 },
-                "custom_scopes": {
+                "scopes": {
                     "type": "object",
                     "additionalProperties": { "type": "string" }
                 }
@@ -140,11 +138,6 @@
             "type": "array",
             "minItems": 1,
             "items": { "type": "string", "pattern": "^[\\x21\\x23-\\x5B\\x5D-\\x7E]+$" }
-        },
-        "sign_in_type": {
-            "type": "object",
-            "required": ["scopes"],
-            "properties": { "scopes": { "$ref": "#/$defs/scopes" } }
         }
     }
 }

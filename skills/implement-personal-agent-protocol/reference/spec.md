@@ -9,9 +9,9 @@ Personal Agent Protocol (Poppy for short) defines how a Personal Agent, acting f
 3. **Web browsing:** how the Personal Agent browses the Company's website in the same Session.
 4. **APIs:** how the Personal Agent uses the Company's APIs, which can be more efficient than web browsing.
 5. **Conversations:** how the Personal Agent starts a conversation with the Company Agent, and how either side can bring in a person: the User on the Personal Agent's side, or a person at the Company.
-6. **Extensions:** how Companies and Personal Agents add capabilities beyond this specification, described on the [Extensions page](https://personalagentprotocol.org/docs/0.2/extensions).
+6. **Extensions:** how Companies and Personal Agents add capabilities beyond this specification, described on the [Extensions page](https://personalagentprotocol.org/docs/0.3/extensions).
 
-This is draft version 0.2. Any part of it can change before a stable version, including in ways that aren't backward compatible. Areas it doesn't cover yet are listed in [Path to 1.0](https://personalagentprotocol.org/docs/path-to-1#open-topics).
+This is draft version 0.3. Any part of it can change before a stable version, including in ways that aren't backward compatible. Areas it doesn't cover yet are listed in [Path to 1.0](https://personalagentprotocol.org/docs/path-to-1#open-topics).
 
 The examples use `example.com` for the Company and `agent.example` for the Personal Agent. Tokens, keys, and codes in the examples are shortened placeholders, not real values.
 
@@ -50,7 +50,7 @@ The well-known URL MAY redirect, for example from `www.example.com` to `example.
 **Which Company a document speaks for.** A `poppy.json` speaks for the host that serves it, after any redirects, so a Company that uses a provider has the provider serve it on the Company's own domain. The document names the Company's OAuth issuer in `auth.issuer`, and the issuer identifies the Company (3.2). The issuer confirms the link from its side by listing, in its metadata, the domains whose documents name it. Before using a document, the Personal Agent checks both directions:
 
 1. `organization.domain` is the host that served the document (3.1). This stops a document copied to another domain from speaking for the Company.
-2. The issuer's metadata has the same `issuer`, and its `poppy_domains` lists `organization.domain` (3.2). This stops a domain from claiming another Company's issuer and receiving its tokens.
+2. The issuer's metadata has the same `issuer`, and its `protected_resources` lists `https://{organization.domain}` (3.2). This stops a domain from claiming another Company's issuer and receiving its tokens.
 
 **HTTPS.** Every URL this protocol defines or exchanges MUST be an HTTPS URL: in `poppy.json`, in authorization server and protected resource metadata, in client metadata documents (4.1), in extensions, and in assertions, proofs, and responses. Personal Agents MUST NOT use a URL from a Company that has another scheme, and Companies MUST reject one from a Personal Agent. This doesn't cover the pages of a Company's website, which Personal Agents browse as any visitor would (section 5).
 
@@ -62,19 +62,13 @@ An example document:
 
 ```
 {
-  "protocol_version": "0.2",
+  "protocol_version": "0.3",
   "organization": {
     "name": "Example Company",
     "domain": "example.com"
   },
   "auth": {
     "issuer": "https://auth.example.com",
-    "direct": {
-      "scopes": ["poppy:read", "poppy:write", "addresses"]
-    },
-    "device": {
-      "scopes": ["poppy:read", "poppy:write"]
-    },
     "mediated": {
       "endpoint": "https://auth.example.com/poppy/sign-in",
       "fields": [
@@ -83,7 +77,7 @@ An example document:
       ],
       "scopes": ["poppy:read"]
     },
-    "custom_scopes": {
+    "scopes": {
       "addresses": "Manage saved shipping addresses"
     }
   },
@@ -120,13 +114,11 @@ An example document:
 
 | Field | Req. | Description |
 | --- | --- | --- |
-| `protocol_version` | Yes | The protocol version the document follows, as `major.minor`. This draft is `0.2`. Before 1.0, each version can change the protocol in ways that aren't backward compatible, so a Personal Agent MUST NOT use a document whose `major.minor` version it doesn't support. From 1.0, a newer minor version won't break older Personal Agents, which use the document and ignore fields they don't recognize. |
+| `protocol_version` | Yes | The protocol version the document follows, as `major.minor`. This draft is `0.3`. Before 1.0, each version can change the protocol in ways that aren't backward compatible, so a Personal Agent MUST NOT use a document whose `major.minor` version it doesn't support. From 1.0, a newer minor version won't break older Personal Agents, which use the document and ignore fields they don't recognize. |
 | `organization` | Yes | Display name and domain. `domain` MUST be the host that serves the document, after any redirects. Domains are compared ignoring case, with no other normalization. |
-| `auth` | If `agent`, `apis`, `feedback`, or `web.browser_session_endpoint` is present | `issuer` is the Company's OAuth issuer identifier, an HTTPS URL. It identifies the Company, and the Personal Agent finds the Company's OAuth endpoints from it (3.2). It also contains `direct`, `device`, and `mediated` for the types of sign-in the Company supports (4.4), if any. With none, it offers only signed-out Sessions. Sessions need `auth`, so a Company without it can only be browsed as an ordinary website (section 5). |
-| `auth.direct` | If supported | `scopes` lists the scopes Direct Sign-In can grant (4.5). |
-| `auth.device` | If supported | `scopes` lists the scopes Device Sign-In can grant (4.6). |
+| `auth` | If `agent`, `apis`, `feedback`, or `web.browser_session_endpoint` is present | `issuer` is the Company's OAuth issuer identifier, an HTTPS URL. It identifies the Company, and the Personal Agent finds the Company's OAuth endpoints, scopes, and Direct and Device Sign-In from it (3.2). Sessions need `auth`, so a Company without it can only be browsed as an ordinary website (section 5). |
 | `auth.mediated` | If supported | `endpoint` is where the Personal Agent sends credentials, and `fields` lists them (4.7). `scopes` lists the scopes Mediated Sign-In can grant. |
-| `auth.custom_scopes` | No | A description of each scope the Company defines beyond `poppy:read` and `poppy:write` (4.4). |
+| `auth.scopes` | No | A description of each scope the Company defines beyond `poppy:read` and `poppy:write` that no OpenAPI description it lists describes, keyed by scope name, in the same form as the `scopes` of an OAuth 2.0 security scheme in OpenAPI (4.4). |
 | `agent` | One of `agent`, `apis`, or `web` | The Company Agent. `protocols` lists its supported conversation protocols, each with a `type` and HTTPS `endpoint` (section 7). An entry MAY include a `resource` to require tokens issued for it (4.3). |
 | `apis` | One of `agent`, `apis`, or `web` | A list of APIs. Each has a `type` from section 6, a `url`, and a short `description` that helps the Personal Agent pick the right one. An entry MAY include a `resource` to require tokens issued for it (4.3). |
 | `web` | One of `agent`, `apis`, or `web` | The Company's website. The optional `browser_session_endpoint` is where the Personal Agent's browser joins a Session (section 5). Without it, Personal Agents browse the site as ordinary signed-out visitors. |
@@ -139,7 +131,7 @@ A Company is identified by its `auth.issuer`. Several domains MAY name the same 
 
 An issuer MUST represent exactly one Company. A provider that hosts several Companies MUST give each its own issuer, such as `https://auth.provider.example/shop-a`, even when they share servers. Otherwise the Companies would be one Company under this protocol: Personal Agents would send each of them the same User IDs, and an Account Token from one would be valid at the others.
 
-The issuer MUST publish OAuth Authorization Server Metadata ([RFC 8414](https://www.rfc-editor.org/rfc/rfc8414)), and `poppy_domains` in it MUST list every domain whose `poppy.json` names the issuer. The metadata is at the URL RFC 8414 (section 3.1) defines, which puts `/.well-known/oauth-authorization-server` between the issuer's host and its path, if it has one, such as `https://auth.provider.example/.well-known/oauth-authorization-server/shop-a`. Before using a Company's `poppy.json`, the Personal Agent fetches the metadata and MUST check that its `issuer` exactly matches `auth.issuer`, character for character. It MUST also check that `poppy_domains` includes `organization.domain`, comparing domains ignoring case. Otherwise any domain could claim another Company's issuer and receive its tokens.
+The issuer MUST publish OAuth Authorization Server Metadata ([RFC 8414](https://www.rfc-editor.org/rfc/rfc8414)), and `protected_resources` in it ([RFC 9728](https://www.rfc-editor.org/rfc/rfc9728) §4) MUST list `https://{domain}` for every domain whose `poppy.json` names the issuer, exactly in that form: the scheme and host only, with no path, port, or trailing slash, like the canonical server URI of the MCP authorization specification. It MAY list other resources too, such as the Company's MCP servers. The metadata is at the URL RFC 8414 (section 3.1) defines, which puts `/.well-known/oauth-authorization-server` between the issuer's host and its path, if it has one, such as `https://auth.provider.example/.well-known/oauth-authorization-server/shop-a`. Before using a Company's `poppy.json`, the Personal Agent fetches the metadata and MUST check that its `issuer` exactly matches `auth.issuer`, character for character. It MUST also check that `protected_resources` includes `https://{organization.domain}`, comparing the strings exactly except that the host is compared ignoring case, as for `organization.domain` (3.1). An entry with a path or a trailing slash doesn't match. Resource identifiers are compared as exact strings, as in [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728) §3.3, and `https://{domain}` is a resource identifier in the form [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707) §2 recommends. Otherwise any domain could claim another Company's issuer and receive its tokens.
 
 *GET https://auth.example.com/.well-known/oauth-authorization-server*
 
@@ -150,22 +142,31 @@ The issuer MUST publish OAuth Authorization Server Metadata ([RFC 8414](https://
   "revocation_endpoint": "https://auth.example.com/oauth/revoke",
   "authorization_endpoint": "https://auth.example.com/oauth/authorize",
   "device_authorization_endpoint": "https://auth.example.com/oauth/device",
+  "grant_types_supported": [
+    "urn:ietf:params:oauth:grant-type:jwt-bearer",
+    "refresh_token",
+    "authorization_code",
+    "urn:ietf:params:oauth:grant-type:device_code"
+  ],
+  "scopes_supported": ["poppy:read", "poppy:write", "addresses"],
   "dpop_signing_alg_values_supported": ["ES256", "RS256"],
-  "poppy_domains": ["example.com", "example.co.uk"]
+  "protected_resources": [
+    "https://example.com",
+    "https://example.co.uk",
+    "https://mcp.example.com/mcp"
+  ]
 }
 ```
 
 The Personal Agent uses these fields of the metadata:
 
-- `issuer` and `poppy_domains`, which it checks against `poppy.json` (above). Required.
-
+- `issuer` and `protected_resources`, which it checks against `poppy.json` (above). Required.
 - `token_endpoint` issues Session and Account Tokens (4.2, 4.8). Required.
-
 - `revocation_endpoint` revokes Account Tokens (4.9). Required.
-
-- `authorization_endpoint` starts Direct Sign-In (4.5). Required if `auth.direct` is present.
-
-- `device_authorization_endpoint` starts Device Sign-In (4.6). Required if `auth.device` is present.
+- `grant_types_supported` lists the grant types the token endpoint accepts. Required, and it MUST include `urn:ietf:params:oauth:grant-type:jwt-bearer` (4.2) and `refresh_token` (4.8). It also says which of Direct and Device Sign-In the Company offers (4.4): `authorization_code` for Direct Sign-In and `urn:ietf:params:oauth:grant-type:device_code` for Device Sign-In.
+- `authorization_endpoint` starts Direct Sign-In (4.5). Required if `grant_types_supported` includes `authorization_code`.
+- `device_authorization_endpoint` starts Device Sign-In (4.6). Required if `grant_types_supported` includes `urn:ietf:params:oauth:grant-type:device_code`.
+- `scopes_supported` lists the scopes the issuer supports. Required if the Company offers any type of sign-in, and it MUST then include every account scope a Personal Agent can request (4.4). It MAY leave out scopes the Company doesn't offer Personal Agents, as RFC 8414 §2 allows ("Servers MAY choose not to advertise some supported scope values"), so an issuer that serves other clients doesn't need a separate issuer for Personal Agents to limit their scopes.
 
 Companies MUST accept DPoP Proofs (4.3) signed with `ES256`, so every Personal Agent has an algorithm that works at every Company. A Company MAY list the algorithms it accepts in `dpop_signing_alg_values_supported`, as [RFC 9449](https://www.rfc-editor.org/rfc/rfc9449) §5.1 defines, and the list MUST then include `ES256`. Personal Agents MUST sign DPoP Proofs with `ES256` or with an algorithm from that list, except at an MCP server, where the list in the server's protected resource metadata applies (4.3). The field also tells every other OAuth client of the issuer that it supports DPoP, so a Company whose issuer serves other clients, such as MCP clients that use Bearer tokens (section 6), can leave it out.
 
@@ -173,7 +174,7 @@ The metadata MAY have other fields, which Personal Agents ignore. Personal Agent
 
 ### 3.3 Extensions
 
-Extensions add optional features on top of this protocol, such as [operations](https://personalagentprotocol.org/docs/0.2/extensions/operations). A Company lists the ones it supports in `extensions`:
+Extensions add optional features on top of this protocol, such as [operations](https://personalagentprotocol.org/docs/0.3/extensions/operations). A Company lists the ones it supports in `extensions`:
 
 *Excerpt from poppy.json*
 
@@ -257,7 +258,7 @@ Companies MAY keep allowlists or blocklists of Personal Agents by `client_id`, a
 
 ### 4.2 Starting a Session
 
-The Personal Agent MUST give each of its Users a User ID for each Company, where a Company is identified by its `auth.issuer` (3.2). The ID is stable, so the Company sees the same User across Sessions. It is opaque and different for each Company, so Companies can't match Users with each other. Because the ID is scoped by issuer, this depends on each Company having its own issuer (3.2). It MUST NOT contain or be derived from personal information, such as an email address, phone number, or name, even with a keyed hash.
+The Personal Agent MUST give each of its Users a User ID for each Company, where a Company is identified by its `auth.issuer` (3.2). The ID is stable, so the Company sees the same User across Sessions. It is opaque and different for each Company, so Companies can't match Users with each other. Because the ID is scoped by issuer, this depends on each Company having its own issuer (3.2). It MUST NOT contain or be derived from personal information, such as an email address, phone number, or name, even with a keyed hash. User IDs are pairwise subject identifiers, as in [OpenID Connect Core](https://openid.net/specs/openid-connect-core-1_0.html#SubjectIDTypes) §8, except that the Personal Agent assigns them, one for each pair of User and Company.
 
 A Personal Agent MAY instead give a User a new User ID for each anonymous browsing session, like a private browser window. The Company sees a new User each time. The Personal Agent uses the ID for nothing else, discards it when the browsing session ends, and MUST NOT sign in with a Session that uses it (4.4).
 
@@ -312,16 +313,14 @@ Cache-Control: no-store
   "token_type": "DPoP",
   "expires_in": 3600,
   "scope": "",
-  "session_id": "ses_2Lm0",
-  "signed_in": false
+  "session_id": "ses_2Lm0"
 }
 ```
 
 - `access_token` is the Session Token. `token_type` is `DPoP`, or `Bearer` for a token for an MCP server that doesn't support DPoP (4.3).
 - `expires_in` is the token's lifetime in seconds. The Company chooses the value, and it MUST be greater than 0. Session Tokens SHOULD last hours, not days.
 - `session_id` identifies the Session. It is not a credential.
-- `signed_in` says whether the Session is signed in to a Company account.
-- `scope` is a space-separated string of the account scopes granted (4.4). A signed-out token has none.
+- `scope` is a space-separated string of the account scopes granted (4.4). It is always present. A signed-out token has none, and a signed-in token has at least one, so `scope` also says whether the Session is signed in to a Company account.
 
 **Renewing.** When a signed-out Session Token expires, the Personal Agent sends the same request with fresh assertions and the `session_id`:
 
@@ -449,8 +448,7 @@ grant_type=refresh_token
   "token_type": "Bearer",
   "expires_in": 3600,
   "scope": "poppy:read",
-  "session_id": "ses_2Lm0",
-  "signed_in": true
+  "session_id": "ses_2Lm0"
 }
 ```
 
@@ -465,7 +463,7 @@ grant_type=refresh_token
 
 ### 4.4 Signing in
 
-A Session does not require sign-in. When a task needs account access and the Personal Agent has no Account Token that covers it (4.8), the User signs in using one of the types the Company supports. The Company describes each type it supports in `auth.direct`, `auth.device`, and `auth.mediated`. A Company that lists none offers only signed-out Sessions.
+A Session does not require sign-in. When a task needs account access and the Personal Agent has no Account Token that covers it (4.8), the User signs in using one of the types the Company supports. The Company's OAuth server metadata says whether it offers Direct and Device Sign-In, in `grant_types_supported` (3.2), and `auth.mediated` in its `poppy.json` describes Mediated Sign-In. A Company that offers none offers only signed-out Sessions. A Company whose issuer supports the authorization code or device grant for other clients offers Direct or Device Sign-In to Personal Agents too. A Company that wants to keep one of them from Personal Agents can use an issuer only for Personal Agents ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-agent-issuer)).
 
 | Type | Who signs in | How |
 | --- | --- | --- |
@@ -485,13 +483,14 @@ Scopes say what account access a sign-in grants. The protocol defines two broad 
 | `poppy:write` | Make changes, such as exchanging an item or updating a booking. |
 
 - The scopes are independent: request `poppy:read poppy:write` when both are needed. Companies decide which operations require each scope and enforce them across web browsing, APIs, and actions performed by the Company Agent.
-- Companies MAY define their own scopes, such as `addresses`, and describe each one in `auth.custom_scopes`. Names starting with `poppy:` are reserved for this protocol, so a Company's existing OAuth scopes can't clash with them.
+- The Company lists the scopes it supports in `scopes_supported` in its OAuth server metadata (3.2). The Personal Agent requests only scopes from that list. The list MAY leave out scopes the Company offers only to its other clients, and the Company MAY limit the scopes it grants by client, as [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749#section-3.3) §3.3 allows.
+- Companies MAY define their own scopes, such as `addresses`. Names starting with `poppy:` are reserved for this protocol, so a Company's existing OAuth scopes can't clash with them. The Company describes each of its own scopes so the Personal Agent can choose the ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it lists (section 6), or otherwise in `auth.scopes`, a map from scope name to description in the same form as the `scopes` of an OAuth 2.0 security scheme in OpenAPI.
 - A Company MAY leave out `poppy:read` and `poppy:write` and offer only its own, narrower scopes, if broad access doesn't meet its security needs. The Personal Agent then requests the scopes the task needs from those the Company lists.
-- Each type lists the scopes it can grant in its `scopes`. In the discovery example, Mediated Sign-In can grant only `poppy:read`, while Direct Sign-In can grant all three. The Company MUST NOT grant scopes beyond those requested and allowed for the type used.
+- Direct and Device Sign-In can grant any scope in `scopes_supported`. Mediated Sign-In can grant only the scopes in `auth.mediated.scopes`: in the discovery example, only `poppy:read`. The Company MUST NOT grant scopes beyond those requested and allowed for the type used.
 - Each sign-in request MUST include `scope` as a space-separated string, following [OAuth scope syntax](https://www.rfc-editor.org/rfc/rfc6749#section-3.3). Missing, unknown, or unavailable scopes are rejected with `invalid_scope`.
 - If a task needs more access than the Account Token allows, the User signs in again, through a type that allows the required scopes, and the Personal Agent requests all the scopes it needs. The new Account Token replaces the old one, which the Personal Agent SHOULD revoke (4.9). A pending or failed sign-in leaves existing tokens unchanged.
 
-All three types end the same way: the Company returns an Account Token as `refresh_token`, and a signed-in Session Token for the current Session. The User may have approved fewer scopes than requested, so the Personal Agent checks `scope` before continuing.
+All three types end the same way: the Company returns an Account Token as `refresh_token`, and a signed-in Session Token for the current Session. The User may have approved fewer scopes than requested, so the Personal Agent checks `scope` before continuing. A sign-in grants at least one scope: if the User approves none, it ends as a decline.
 
 *Response: Company → Personal Agent*
 
@@ -503,8 +502,7 @@ All three types end the same way: the Company returns an Account Token as `refre
   "refresh_token": "pat_8Hk2…Wq1",
   "refresh_token_expires_in": 2592000,
   "scope": "poppy:read poppy:write",
-  "session_id": "ses_2Lm0",
-  "signed_in": true
+  "session_id": "ses_2Lm0"
 }
 ```
 
@@ -594,7 +592,7 @@ scope=poppy%3Aread%20poppy%3Awrite
 }
 ```
 
-**2. The User signs in and approves.** The Personal Agent shows the User `verification_uri` and `user_code`, or `verification_uri_complete` as a link or QR code. It keeps `device_code` private. Before showing them, the Personal Agent MUST check that the link's host is the host of `auth.issuer` or a domain in the issuer's `poppy_domains` (3.2), or a subdomain of either, and MUST show the Company's `organization.name` and domain with them. Otherwise a Company could pass off another Company's sign-in page as its own, and the User would approve a sign-in there for the Company that asked. The Company's page shows which Personal Agent is asking and the requested scopes, as in Direct Sign-In, and the User approves some or all of them, or declines. Opening the link MUST NOT approve the request by itself.
+**2. The User signs in and approves.** The Personal Agent shows the User `verification_uri` and `user_code`, or `verification_uri_complete` as a link or QR code. It keeps `device_code` private. Before showing them, the Personal Agent MUST check that the link's host is the host of `auth.issuer` or of a URL in the issuer's `protected_resources` (3.2), or a subdomain of either, and MUST show the Company's `organization.name` and domain with them. Otherwise a Company could pass off another Company's sign-in page as its own, and the User would approve a sign-in there for the Company that asked. The Company's page shows which Personal Agent is asking and the requested scopes, as in Direct Sign-In, and the User approves some or all of them, or declines. Opening the link MUST NOT approve the request by itself.
 
 **3. The Personal Agent waits.** Every `interval` seconds, the Personal Agent asks the `token_endpoint` whether the User has finished:
 
@@ -662,8 +660,7 @@ If the credentials are correct and nothing else is needed, the Company signs in 
   "expires_in": 3600,
   "refresh_token": "pat_3Vn7…Lk2",
   "scope": "poppy:read",
-  "session_id": "ses_2Lm0",
-  "signed_in": true
+  "session_id": "ses_2Lm0"
 }
 ```
 
@@ -775,7 +772,7 @@ The User can also disconnect the Personal Agent from the Company's account setti
 **After sign-out.** When a Session continues signed out, after the User signs out or disconnects the Personal Agent:
 
 - What doesn't need the account carries on, such as a cart or a conversation that hasn't used the account.
-- Anything that used the account, such as a conversation (7.11) or an operation ([Operations extension](https://personalagentprotocol.org/docs/0.2/extensions/operations#ownership)), stays as it is, but the Company answers a request on it with a signed-out token with `sign_in_required`. A conversation stays open, so the User can sign in again and continue it.
+- Anything that used the account, such as a conversation (7.11) or an operation ([Operations extension](https://personalagentprotocol.org/docs/0.3/extensions/operations#ownership)), stays as it is, but the Company answers a request on it with a signed-out token with `sign_in_required`. A conversation stays open, so the User can sign in again and continue it.
 - The Personal Agent SHOULD NOT sign in to that account again unless the User asks, even when a request gets `sign_in_required`.
 
 ## 5. Web browsing
@@ -1053,7 +1050,7 @@ Any message can carry `context`, and fields it leaves out keep their previous va
 }
 ```
 
-Company messages have `id`, `role`, `sender`, `text`, and `data`, with an ID the Company chooses. Only the Personal Agent sends `context`. Extensions can add fields, such as `operation` in the [Operations extension](https://personalagentprotocol.org/docs/0.2/extensions/operations#binding-conversations).
+Company messages have `id`, `role`, `sender`, `text`, and `data`, with an ID the Company chooses. Only the Personal Agent sends `context`. Extensions can add fields, such as `operation` in the [Operations extension](https://personalagentprotocol.org/docs/0.3/extensions/operations#binding-conversations).
 
 ### 7.5 Reading events
 
@@ -1358,15 +1355,15 @@ A Personal Agent passes what a Company returns to its model: conversation messag
 - Personal Agents MUST treat content from a Company as data, not as instructions. Only the User decides what the Personal Agent does.
 - A Personal Agent MUST NOT act at one Company, or send it information, because content from another Company asked it to. It acts at a Company only when the User's task needs it.
 - A Personal Agent SHOULD send a Company only information relevant to the User's task. That includes context that helps the Company handle it, such as the reason for a return or a deadline the User has. It doesn't include unrelated details from the User's context or from other Companies.
-- Text from a Company is never the User's approval or consent. The Operations extension states this for approving an operation ([Operations 5.1](https://personalagentprotocol.org/docs/0.2/extensions/operations#approval)).
+- Text from a Company is never the User's approval or consent. The Operations extension states this for approving an operation ([Operations 5.1](https://personalagentprotocol.org/docs/0.3/extensions/operations#approval)).
 
 ### 9.2 Secrets and the model
 
-A model can be led to repeat what is in its context, so a secret in context can leak through any message the Personal Agent sends. Account Tokens MUST NOT go in model context (4.8). Credentials from Mediated Sign-In are never shown back or sent anywhere except the Company, and once a sign-in ends they are discarded or kept only in a credential store the User chose (4.7). Personal Agents SHOULD keep every other secret out of model context too, including Session Tokens, private keys, device codes, and one-time codes, and sign and send requests in code the model can't read. The [guides](https://personalagentprotocol.org/docs/0.2/guides#both-secrets) list these secrets and how to handle them.
+A model can be led to repeat what is in its context, so a secret in context can leak through any message the Personal Agent sends. Account Tokens MUST NOT go in model context (4.8). Credentials from Mediated Sign-In are never shown back or sent anywhere except the Company, and once a sign-in ends they are discarded or kept only in a credential store the User chose (4.7). Personal Agents SHOULD keep every other secret out of model context too, including Session Tokens, private keys, device codes, and one-time codes, and sign and send requests in code the model can't read. The [guides](https://personalagentprotocol.org/docs/0.3/guides#both-secrets) list these secrets and how to handle them.
 
 ### 9.3 What a domain vouches for
 
-A Company's `poppy.json` is where the Personal Agent learns everything about the Company: its issuer, its sign-in types, the Mediated Sign-In endpoint, its APIs, and its Company Agent. Whoever controls that document speaks for the Company at the host that serves it, as whoever controls its website does today. The document's endpoints can be on any host. The checks in section 3 cover both directions of the link between domain and issuer, which stops a domain from claiming another Company's issuer and receiving its tokens. They don't make the issuer metadata more trustworthy than `poppy.json`, because the document chooses the issuer.
+A Company's `poppy.json` is where the Personal Agent learns everything about the Company: its issuer, and through it the Company's sign-in types and scopes, the Mediated Sign-In endpoint, its APIs, and its Company Agent. Whoever controls that document speaks for the Company at the host that serves it, as whoever controls its website does today. The document's endpoints can be on any host. The checks in section 3 cover both directions of the link between domain and issuer, which stops a domain from claiming another Company's issuer and receiving its tokens. They don't make the issuer metadata more trustworthy than `poppy.json`, because the document chooses the issuer.
 
 ### 9.4 Assertions
 
@@ -1379,8 +1376,8 @@ This draft uses these standards and versions:
 | Subject | References |
 | --- | --- |
 | Requirement words | [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119), [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174) |
-| OAuth | [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749), [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750), [RFC 7009](https://www.rfc-editor.org/rfc/rfc7009), [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414) |
-| Agent identity and assertions | [OAuth Client ID Metadata Document](https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/), [RFC 7519](https://www.rfc-editor.org/rfc/rfc7519), [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523), [draft-ietf-oauth-rfc7523bis](https://datatracker.ietf.org/doc/draft-ietf-oauth-rfc7523bis/) |
+| OAuth | [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749), [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750), [RFC 7009](https://www.rfc-editor.org/rfc/rfc7009), [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414), [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728) |
+| Agent identity and assertions | [OAuth Client ID Metadata Document](https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/), [RFC 7519](https://www.rfc-editor.org/rfc/rfc7519), [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523), [draft-ietf-oauth-rfc7523bis](https://datatracker.ietf.org/doc/draft-ietf-oauth-rfc7523bis/), [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html) |
 | Sign-in | [RFC 7636](https://www.rfc-editor.org/rfc/rfc7636), [RFC 8628](https://www.rfc-editor.org/rfc/rfc8628), [RFC 9207](https://www.rfc-editor.org/rfc/rfc9207) |
 | Token binding and audience | [RFC 9449](https://www.rfc-editor.org/rfc/rfc9449), [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707) |
 | APIs | [OpenAPI Specification 3.1](https://spec.openapis.org/oas/v3.1.1.html), [Model Context Protocol 2025-06-18](https://modelcontextprotocol.io/specification/2025-06-18), [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728) |

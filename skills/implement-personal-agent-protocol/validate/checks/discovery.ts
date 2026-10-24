@@ -9,6 +9,8 @@ import {
     describeSent,
     skipRest,
     type Context,
+    offersGrant,
+    SIGN_IN_GRANTS,
     type Metadata,
     type Poppy,
     type Recorder,
@@ -30,12 +32,14 @@ export const METADATA_IDS = [
     "metadata.published",
     "metadata.schema",
     "metadata.issuer-matches",
-    "metadata.poppy-domains",
+    "metadata.protected-resources",
     "metadata.token-endpoint",
     "metadata.revocation-endpoint",
     "metadata.dpop-algs",
+    "metadata.grant-types",
     "metadata.authorization-endpoint",
     "metadata.device-authorization-endpoint",
+    "metadata.scopes-supported",
 ];
 
 // The origin to check, from a URL or a bare domain.
@@ -341,7 +345,7 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
                     ? `For an issuer with a path, RFC 8414 puts /.well-known/oauth-authorization-server between the host and the path, so the URL is ${url}, not ${issuer.replace(/\/+$/, "")}/.well-known/oauth-authorization-server.`
                     : "",
                 hasOidc
-                    ? `${oidcUrl} exists, but Personal Agents look only for RFC 8414 metadata. Publish the same fields, plus poppy_domains, at ${url}.`
+                    ? `${oidcUrl} exists, but Personal Agents look only for RFC 8414 metadata. Publish the same fields, plus protected_resources, at ${url}.`
                     : "",
             ]
                 .filter(Boolean)
@@ -358,11 +362,13 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
     ctx.discovered.metadata = json;
 
     const errors = check("authorization-server-metadata.schema.json", json).filter(
-        // Missing required endpoints and poppy_domains have their own checks.
+        // Missing required endpoints, grant types, and protected_resources have their own checks.
         (e) =>
             !(
                 e.message === "is required" &&
-                /^\/(token_endpoint|revocation_endpoint|poppy_domains)$/.test(e.path)
+                /^\/(token_endpoint|revocation_endpoint|grant_types_supported|protected_resources)$/.test(
+                    e.path,
+                )
             ),
     );
     if (errors.length) {
@@ -394,29 +400,34 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
     }
 
     const domain = poppy.organization?.domain;
-    const domains = Array.isArray(json.poppy_domains) ? json.poppy_domains : undefined;
-    if (!domains) {
-        r.fail("metadata.poppy-domains", {
+    const resources = Array.isArray(json.protected_resources)
+        ? json.protected_resources
+        : undefined;
+    const resource = `https://${domain}`;
+    if (!resources) {
+        r.fail("metadata.protected-resources", {
             exchange: ex,
             got:
-                json.poppy_domains === undefined
-                    ? "no poppy_domains"
-                    : `poppy_domains ${JSON.stringify(json.poppy_domains)}`,
-            expected: `poppy_domains, an array that includes "${domain}"`,
-            cause: "poppy_domains is a Poppy addition to the RFC 8414 metadata. If your OAuth server can't add custom fields, serve this document from a small handler or a gateway in front of it.",
+                json.protected_resources === undefined
+                    ? "no protected_resources"
+                    : `protected_resources ${JSON.stringify(json.protected_resources)}`,
+            expected: `protected_resources, an array that includes "${resource}"`,
+            cause: "protected_resources is the RFC 9728 field that lists the resources an authorization server serves. If your OAuth server can't publish it, serve this document from a small handler or a gateway in front of it.",
         });
     } else if (
         typeof domain === "string" &&
-        !domains.some((d) => typeof d === "string" && d.toLowerCase() === domain.toLowerCase())
+        !resources.some(
+            (u: unknown) => typeof u === "string" && u.toLowerCase() === resource.toLowerCase(),
+        )
     ) {
-        r.fail("metadata.poppy-domains", {
+        r.fail("metadata.protected-resources", {
             exchange: ex,
-            got: `poppy_domains ${JSON.stringify(domains)}`,
-            expected: `poppy_domains including "${domain}" (organization.domain)`,
-            cause: `Add "${domain}" to poppy_domains. It must list every domain whose poppy.json names this issuer, exactly as organization.domain says (case doesn't matter, www. does).`,
+            got: `protected_resources ${JSON.stringify(resources)}`,
+            expected: `protected_resources including "${resource}" (https:// and organization.domain)`,
+            cause: `Add "${resource}" to protected_resources. It must list https://{domain} for every domain whose poppy.json names this issuer, exactly as organization.domain says, with no path or trailing slash (case doesn't matter, www. does).`,
         });
     } else {
-        r.pass("metadata.poppy-domains");
+        r.pass("metadata.protected-resources");
     }
 
     for (const [id, field] of [
@@ -452,21 +463,77 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
         });
     } else r.pass("metadata.dpop-algs");
 
+    const grants = json.grant_types_supported;
+    const missingGrants = Array.isArray(grants)
+        ? ["urn:ietf:params:oauth:grant-type:jwt-bearer", "refresh_token"].filter(
+              (g) => !grants.includes(g),
+          )
+        : undefined;
+    if (missingGrants?.length === 0) {
+        r.pass("metadata.grant-types");
+    } else {
+        r.fail("metadata.grant-types", {
+            exchange: ex,
+            got:
+                grants === undefined
+                    ? "no grant_types_supported"
+                    : `grant_types_supported ${JSON.stringify(grants)}`,
+            expected:
+                "grant_types_supported including urn:ietf:params:oauth:grant-type:jwt-bearer and refresh_token",
+            cause: missingGrants
+                ? `Add ${missingGrants.join(" and ")}. Personal Agents start Sessions with the JWT bearer grant and use Account Tokens with the refresh token grant.`
+                : "Personal Agents read grant_types_supported to learn which grants, and which of Direct and Device Sign-In, the Company offers. RFC 8414's default when it's missing doesn't include the grants Poppy uses.",
+        });
+    }
+
     for (const [id, field, type] of [
         ["metadata.authorization-endpoint", "authorization_endpoint", "direct"],
         ["metadata.device-authorization-endpoint", "device_authorization_endpoint", "device"],
     ] as const) {
-        if (poppy.auth?.[type] === undefined) {
-            r.skip(id, `poppy.json doesn't list auth.${type}.`);
+        const grant = SIGN_IN_GRANTS[type];
+        if (!offersGrant(json, grant)) {
+            r.skip(id, `grant_types_supported doesn't include ${grant}.`);
         } else if (typeof json[field] === "string") {
             r.pass(id);
         } else {
             r.fail(id, {
                 exchange: ex,
-                got: `auth.${type} in poppy.json, but no ${field} in the metadata`,
+                got: `${grant} in grant_types_supported, but no ${field}`,
                 expected: `${field}, an HTTPS URL`,
-                cause: `Add ${field}, or remove auth.${type} from poppy.json until it's ready.`,
+                cause: `Add ${field}, or remove ${grant} from grant_types_supported until it's ready.`,
             });
         }
+    }
+
+    const mediated = poppy.auth?.mediated?.scopes;
+    const signsIn =
+        offersGrant(json, SIGN_IN_GRANTS.direct) ||
+        offersGrant(json, SIGN_IN_GRANTS.device) ||
+        poppy.auth?.mediated !== undefined;
+    const supported = json.scopes_supported;
+    if (!signsIn) {
+        r.skip("metadata.scopes-supported", "The Company offers no type of sign-in.");
+    } else if (!Array.isArray(supported) || supported.length === 0) {
+        r.fail("metadata.scopes-supported", {
+            exchange: ex,
+            got:
+                supported === undefined
+                    ? "no scopes_supported"
+                    : `scopes_supported ${JSON.stringify(supported)}`,
+            expected: "scopes_supported, listing every scope a Personal Agent can request",
+            cause: "Personal Agents request only scopes from scopes_supported, such as poppy:read and poppy:write.",
+        });
+    } else {
+        const missing = Array.isArray(mediated)
+            ? mediated.filter((scope) => !supported.includes(scope))
+            : [];
+        if (missing.length) {
+            r.fail("metadata.scopes-supported", {
+                exchange: ex,
+                got: `scopes_supported ${JSON.stringify(supported)}`,
+                expected: `scopes_supported including ${missing.join(", ")}`,
+                cause: "auth.mediated.scopes lists scopes that scopes_supported doesn't. Add them, so Personal Agents can request them.",
+            });
+        } else r.pass("metadata.scopes-supported");
     }
 }

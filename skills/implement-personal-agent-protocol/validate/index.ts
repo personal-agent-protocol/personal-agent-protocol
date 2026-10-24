@@ -138,7 +138,9 @@ async function main(argv: string[]): Promise<number> {
         const results = await runChecks(ctx, { fileText });
         const notices = [...ctx.notes];
         for (const m of milestones) if (UNAVAILABLE[m] && !fileText) notices.push(UNAVAILABLE[m]!);
-        const items = design ? progress(design, ctx.discovered.poppy, results) : undefined;
+        const items = design
+            ? progress(design, ctx.discovered.poppy, results, ctx.discovered.metadata)
+            : undefined;
         const summary = summarize(results);
         saveResults(
             origin,

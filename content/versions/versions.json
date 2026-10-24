@@ -1,5 +1,9 @@
 [
     {
+        "id": "0.3",
+        "pages": ["spec", "extensions", "extensions/operations", "guides"]
+    },
+    {
         "id": "0.2",
         "published": "2026-10-24",
         "pages": {

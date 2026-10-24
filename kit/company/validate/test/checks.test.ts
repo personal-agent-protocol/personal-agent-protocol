@@ -179,7 +179,7 @@ test("a retried first message that starts a new conversation fails", async () =>
 test("organization.domain that doesn't match the host fails discovery and metadata", async () => {
     const { byId } = await run({ domain: "other.test" }, "foundation", ["discovery.", "metadata."]);
     assert.equal(byId("discovery.domain-matches-host").status, "fail");
-    assert.equal(byId("metadata.poppy-domains").status, "fail");
+    assert.equal(byId("metadata.protected-resources").status, "fail");
 });
 
 test("a redirect to plain HTTP fails", async () => {

@@ -27,14 +27,17 @@ Patterns: `patterns/sign-in.md`, `patterns/scopes.md`, `patterns/session-records
 
 ## What to build
 
-**Scopes** ([4.4](https://personalagentprotocol.org/docs/spec#sign-in)). Each type's `scopes` in
-`poppy.json`, and `auth.custom_scopes` with a description for each custom scope. Every sign-in
-request must include `scope`. Reject missing, unknown, or unavailable scopes with `invalid_scope`.
-Never grant more than was requested and allowed for the type. The User may approve fewer.
+**Scopes** ([4.4](https://personalagentprotocol.org/docs/spec#sign-in)). Every scope a Personal
+Agent can request in `scopes_supported` in the OAuth metadata. A description of each custom scope,
+in the OAuth security scheme of an OpenAPI description you list or in `auth.scopes`.
+`auth.mediated.scopes` if you offer Mediated Sign-In. Every sign-in request must include `scope`.
+Reject missing, unknown, or unavailable scopes with `invalid_scope`. Never grant more than was
+requested and allowed for the type. The User may approve fewer, but at least one: approving none is
+a decline.
 
 **The sign-in response** (4.4). All types end with `refresh_token` (the Account Token), optionally
 `refresh_token_expires_in`, a signed-in Session Token for the current Session, the granted `scope`,
-`session_id`, and `signed_in: true`.
+and `session_id`.
 
 **One account per Session** (4.4). A Session signed in to one account can't switch to another. If
 the User signs in to a different account, the code exchange, device poll, or Mediated Sign-In
@@ -43,7 +46,8 @@ unchanged.
 
 **Direct Sign-In** ([4.5](https://personalagentprotocol.org/docs/spec#direct-sign-in)).
 
-- `authorization_endpoint` in the OAuth metadata and `auth.direct` in `poppy.json`.
+- `authorization_endpoint` in the OAuth metadata, and `authorization_code` in its
+  `grant_types_supported`.
 - The authorization code flow with PKCE. Accept `S256` only
   ([guides](https://personalagentprotocol.org/docs/guides#company-consent)).
 - `redirect_uri` exactly matches an entry in the Personal Agent's `redirect_uris`.
@@ -56,7 +60,8 @@ unchanged.
 
 **Device Sign-In** ([4.6](https://personalagentprotocol.org/docs/spec#device-sign-in)).
 
-- `device_authorization_endpoint` in the metadata and `auth.device` in `poppy.json`.
+- `device_authorization_endpoint` in the metadata, and
+  `urn:ietf:params:oauth:grant-type:device_code` in its `grant_types_supported`.
 - The device authorization request with the client assertion. The poll at `token_endpoint` with
   `session_id` and a DPoP Proof.
 - The verification page shows the Personal Agent and scopes. Opening the link or scanning the code

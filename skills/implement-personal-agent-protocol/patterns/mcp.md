@@ -3,10 +3,10 @@
 A listed MCP server uses Streamable HTTP and MCP 2025-06-18 or later, accepts Session Tokens as its
 access tokens, accepts only tokens issued for its `url`, enforces their scopes, and publishes RFC
 9728 protected resource metadata whose `authorization_servers` includes `auth.issuer`
-([section 6](https://personalagentprotocol.org/docs/0.2/spec#apis)). MCP uses Bearer tokens. A new MCP
+([section 6](https://personalagentprotocol.org/docs/0.3/spec#apis)). MCP uses Bearer tokens. A new MCP
 server should also support DPoP by listing `dpop_signing_alg_values_supported` in its protected
 resource metadata, and Personal Agents then use DPoP there
-([4.3](https://personalagentprotocol.org/docs/0.2/spec#sending-tokens)). Bearer-only is for existing
+([4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)). Bearer-only is for existing
 servers that can't verify DPoP Proofs yet.
 
 ## A. The existing MCP server accepts Session Tokens
@@ -30,7 +30,7 @@ A new MCP server whose tools call the existing APIs with the verified identity.
   issues Personal Agents only DPoP Session Tokens for it, and answers a request without a proof with
   `invalid_dpop_proof`.
 - Watch for: the tools' calls to existing APIs must not allow more than the Session Token does
-  ([guides](https://personalagentprotocol.org/docs/0.2/guides#company-internal)).
+  ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-internal)).
 
 ## What to watch for
 

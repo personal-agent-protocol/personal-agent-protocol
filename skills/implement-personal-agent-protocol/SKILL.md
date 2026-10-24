@@ -38,7 +38,7 @@ repository first, and use the `implement-personal-agent-protocol` folder in it a
 | `validate/`             | The validator. Run it, don't edit it.                                                                           |
 
 The spec on the site is the same text as `reference/spec.md`. Links in this skill point to the site,
-such as [4.3](https://personalagentprotocol.org/docs/0.2/spec#sending-tokens). Read the local copy when
+such as [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens). Read the local copy when
 you can't fetch the site.
 
 ## The validator
@@ -72,7 +72,7 @@ node <skill-dir>/validate/index.ts report
 
 **The test identity.** The validator signs requests as a Personal Agent, so the Company's servers
 must be able to fetch its client metadata and keys over HTTPS, as for any Personal Agent
-([4.1](https://personalagentprotocol.org/docs/0.2/spec#agent-identity)). In the foundation milestone you
+([4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)). In the foundation milestone you
 run `keygen` with a base URL the Company controls. It writes `.poppy/` with a private key,
 `agent.json`, and `jwks.json`, and adds `.poppy/` to `.gitignore`. The engineer hosts `agent.json`
 and `jwks.json` at that base URL, for example in a staging static bucket. `check` then uses
@@ -125,7 +125,7 @@ For each milestone in the design's plan, in order:
 | `milestones/extensions.md` | Optional. Extensions the design chose, such as Operations.                                                                         | 3.3, extension pages |
 
 A Company that offers only its website stops after publishing `poppy.json` without `auth`
-([3.1](https://personalagentprotocol.org/docs/0.2/spec#fields)).
+([3.1](https://personalagentprotocol.org/docs/0.3/spec#fields)).
 
 ### 4. Verify
 
@@ -157,7 +157,7 @@ in step 5 is built from it.
   Company has.
 - Keep secrets out of code, logs, test output, plan files, and the report: tokens, keys, client
   assertions, DPoP Proofs, credentials, and one-time codes
-  ([guides](https://personalagentprotocol.org/docs/0.2/guides#both-secrets)).
+  ([guides](https://personalagentprotocol.org/docs/0.3/guides#both-secrets)).
 - Ask before changing anything in production, shared infrastructure, or a vendor's configuration.
 - Don't modify the validator to make a check pass. If you think a check is wrong, log it and tell
   the engineer.

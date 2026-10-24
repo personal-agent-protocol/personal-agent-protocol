@@ -152,14 +152,14 @@ export async function checkSessions(ctx: Context, r: Recorder): Promise<void> {
         });
         r.skip("session.token-lifetime", "No usable expires_in.");
     }
-    if (json.signed_in === false && (json.scope === "" || json.scope === undefined)) {
+    if (json.scope === "") {
         r.pass("session.signed-out");
     } else {
         r.fail("session.signed-out", {
             exchange: start.ex,
-            got: `signed_in ${JSON.stringify(json.signed_in)}, scope ${JSON.stringify(json.scope)}`,
-            expected: 'signed_in false and scope ""',
-            cause: "A Session started with the JWT bearer grant is signed out and has no account scopes.",
+            got: json.scope === undefined ? "no scope" : `scope ${JSON.stringify(json.scope)}`,
+            expected: 'scope ""',
+            cause: "A Session started with the JWT bearer grant is signed out and has no account scopes. Include scope even when it's empty: an empty scope is how Personal Agents tell a signed-out token.",
         });
     }
     if (/\bno-store\b/i.test(header(start.ex, "cache-control") ?? "")) r.pass("session.no-store");

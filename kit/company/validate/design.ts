@@ -1,6 +1,12 @@
 // Reads the ```json poppy-design block in plan/design.md, and reports progress against it.
 
-import type { CheckResult, Poppy } from "./checks/types.ts";
+import {
+    offersGrant,
+    SIGN_IN_GRANTS,
+    type CheckResult,
+    type Metadata,
+    type Poppy,
+} from "./checks/types.ts";
 
 export type Design = {
     domain?: string;
@@ -63,6 +69,7 @@ export function progress(
     design: Design,
     poppy: Poppy | undefined,
     results: CheckResult[],
+    metadata?: Metadata,
 ): ProgressItem[] {
     const live = {
         interface: {
@@ -72,8 +79,8 @@ export function progress(
             web: poppy?.web !== undefined,
         } as Record<string, boolean>,
         "sign-in": {
-            direct: poppy?.auth?.direct !== undefined,
-            device: poppy?.auth?.device !== undefined,
+            direct: offersGrant(metadata, SIGN_IN_GRANTS.direct),
+            device: offersGrant(metadata, SIGN_IN_GRANTS.device),
             mediated: poppy?.auth?.mediated !== undefined,
         } as Record<string, boolean>,
         extension: Object.fromEntries(

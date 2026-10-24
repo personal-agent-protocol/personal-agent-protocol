@@ -2,7 +2,7 @@
 
 ## About the guides
 
-The [specification](https://personalagentprotocol.org/docs/0.2/spec) covers only what a company and a personal agent need to work together. These guides cover the rest: recommended practices for a secure, reliable implementation, and advice for each party.
+The [specification](https://personalagentprotocol.org/docs/0.3/spec) covers only what a company and a personal agent need to work together. These guides cover the rest: recommended practices for a secure, reliable implementation, and advice for each party.
 
 Following the guides is not required to comply with the protocol. Each item is a recommendation, in the sense of SHOULD: do it unless you have a good reason not to. Where a guide repeats something the specification requires, it says MUST and links to the section that requires it.
 
@@ -20,7 +20,7 @@ These are secrets:
 
 To handle them:
 
-- Keep them out of logs, telemetry, error reports, model context, conversation messages, and URLs. Tokens MUST NOT be sent in a URL ([4.3](https://personalagentprotocol.org/docs/0.2/spec#sending-tokens)), and account tokens MUST NOT go in model context, messages, logs, or URLs ([4.8](https://personalagentprotocol.org/docs/0.2/spec#account-tokens)).
+- Keep them out of logs, telemetry, error reports, model context, conversation messages, and URLs. Tokens MUST NOT be sent in a URL ([4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)), and account tokens MUST NOT go in model context, messages, logs, or URLs ([4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)).
 - Redact the `Authorization`, `DPoP`, and `Cookie` headers and credential fields before a request reaches a logger or tracer.
 - Send `Cache-Control: no-store` on every response that carries a token or code.
 
@@ -28,10 +28,10 @@ To handle them:
 
 Assertions and DPoP proofs are JWTs. To sign and verify them consistently:
 
-- Personal agents: sign assertions and DPoP proofs with ES256. Every company accepts it in proofs (MUST, [3.2](https://personalagentprotocol.org/docs/0.2/spec#oauth-server)). Companies: accept ES256 and RS256 in assertions. Use RSA keys of at least 2048 bits.
+- Personal agents: sign assertions and DPoP proofs with ES256. Every company accepts it in proofs (MUST, [3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)). Companies: accept ES256 and RS256 in assertions. Use RSA keys of at least 2048 bits.
 - Reject `alg: none` and symmetric algorithms such as HS256.
-- Verify assertions only with keys from the personal agent's verified `jwks_uri` ([4.1](https://personalagentprotocol.org/docs/0.2/spec#agent-identity)). Ignore `jku`, `x5u`, and any key embedded in an assertion. DPoP proofs are the one exception: the public key in their `jwk` header is how they work ([4.3](https://personalagentprotocol.org/docs/0.2/spec#sending-tokens)).
-- Check `aud`, `exp`, and `iat`. A client assertion or Session assertion has the company's `auth.issuer` as its `aud`, never an endpoint URL ([4.1](https://personalagentprotocol.org/docs/0.2/spec#agent-identity)). Allow a small clock skew, such as 30 seconds, and reject assertions that claim a long lifetime.
+- Verify assertions only with keys from the personal agent's verified `jwks_uri` ([4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)). Ignore `jku`, `x5u`, and any key embedded in an assertion. DPoP proofs are the one exception: the public key in their `jwk` header is how they work ([4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)).
+- Check `aud`, `exp`, and `iat`. A client assertion or Session assertion has the company's `auth.issuer` as its `aud`, never an endpoint URL ([4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)). Allow a small clock skew, such as 30 seconds, and reject assertions that claim a long lifetime.
 - Make each `jti` at least 128 random bits.
 
 ### Rotating keys
@@ -40,14 +40,14 @@ Assertions and DPoP proofs are JWTs. To sign and verify them consistently:
 - Publish a new key in `jwks_uri` before signing with it, early enough for companies' caches to pick it up.
 - Keep an old public key published until everything signed with it has expired.
 - Companies refetch `jwks_uri` when they see an unknown `kid`. The refetch happens before any signature is checked, so anyone can trigger it by naming a real personal agent and a made-up `kid`. Refetch each `jwks_uri` at most once per interval, such as 30 seconds, and count failed fetches too. Otherwise a stream of bad assertions can flood the personal agent's server.
-- Rotating signing keys doesn't affect account tokens. They are tied to the `client_id`, not a key ([4.8](https://personalagentprotocol.org/docs/0.2/spec#account-tokens)).
+- Rotating signing keys doesn't affect account tokens. They are tied to the `client_id`, not a key ([4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)).
 
 ### Fetching metadata safely
 
 Personal agents fetch `poppy.json` files and API descriptions. Companies fetch client metadata documents and key sets. Each fetch goes to a URL the other party controls, so:
 
 - Set limits: a few redirects at most, a response size such as 100 KB, and a timeout of a few seconds.
-- Validate HTTPS certificates. Personal agents MUST follow discovery redirects only to HTTPS URLs ([section 3](https://personalagentprotocol.org/docs/0.2/spec#discovery)).
+- Validate HTTPS certificates. Personal agents MUST follow discovery redirects only to HTTPS URLs ([section 3](https://personalagentprotocol.org/docs/0.3/spec#discovery)).
 - Never send cookies, tokens, or other credentials on these fetches.
 - Reject loopback, private, and link-local addresses unless you've configured them on purpose. Check the address you actually connect to, not only the one DNS returned first.
 - Cache according to HTTP caching headers, within bounds you set, such as at least a minute and at most a day. The upper bound means a removed key stops being trusted.
@@ -55,9 +55,9 @@ Personal agents fetch `poppy.json` files and API descriptions. Companies fetch c
 ### Retries
 
 - Send an `Idempotency-Key` on API writes that accept one. Use a random UUID (version 4), and reuse the same key when you retry the same request.
-- Give each conversation message an `id` with at least 128 random bits, and reuse it when you retry the message ([7.3](https://personalagentprotocol.org/docs/0.2/spec#sending-messages)).
+- Give each conversation message an `id` with at least 128 random bits, and reuse it when you retry the message ([7.3](https://personalagentprotocol.org/docs/0.3/spec#sending-messages)).
 - Each retry needs a new DPoP proof, and a retried token request needs a new assertion. The company may reject a `jti` it has already seen.
-- Wait at least as long as `Retry-After` says on a 429 (MUST, [4.3](https://personalagentprotocol.org/docs/0.2/spec#sending-tokens)) or a 503.
+- Wait at least as long as `Retry-After` says on a 429 (MUST, [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)) or a 503.
 - Otherwise, back off exponentially with jitter, cap the delay, and limit the number of attempts.
 - Companies keep idempotency records for a set time, such as a day, scoped to the session. They return the original response for a repeated key, and reject a repeated key with a different body.
 
@@ -82,36 +82,36 @@ Personal agents change the shape of web traffic: one user's request can turn int
 
 ### Finding a company
 
-When the company you reach is on a different domain from the one the user asked for, tell the user which company you're dealing with, its `organization.name` and domain, before you sign in or act for them. A well-known URL can redirect anywhere ([section 3](https://personalagentprotocol.org/docs/0.2/spec#discovery)). A rebrand, such as `thefacebook.com` redirecting to `facebook.com`, then costs one line, and a domain that sends you to another company can't move the user's task there without them noticing.
+When the company you reach is on a different domain from the one the user asked for, tell the user which company you're dealing with, its `organization.name` and domain, before you sign in or act for them. A well-known URL can redirect anywhere ([section 3](https://personalagentprotocol.org/docs/0.3/spec#discovery)). A rebrand, such as `thefacebook.com` redirecting to `facebook.com`, then costs one line, and a domain that sends you to another company can't move the user's task there without them noticing.
 
 ### User IDs
 
-Each user needs a stable, opaque ID for each company ([4.2](https://personalagentprotocol.org/docs/0.2/spec#starting-sessions)). Two ways to make one:
+Each user needs a stable, opaque ID for each company ([4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions)). Two ways to make one:
 
 - **Store a random ID** for each user and company the first time they're needed. This is the simplest choice.
 - **Derive one with a keyed hash**, such as HMAC-SHA256 of your internal user ID and the company's `auth.issuer`, with a secret key. Changing the key changes every ID, so the company sees all your users as new.
 
-The ID MUST NOT contain or be derived from personal information, such as an email address, phone number, or name ([4.2](https://personalagentprotocol.org/docs/0.2/spec#starting-sessions)). This includes hashes of it, keyed or not. If you derive the ID, start from an internal ID that is itself random.
+The ID MUST NOT contain or be derived from personal information, such as an email address, phone number, or name ([4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions)). This includes hashes of it, keyed or not. If you derive the ID, start from an internal ID that is itself random.
 
-Key user IDs by the company's full `auth.issuer`, including any path, not by its host. A provider can host several companies on one host, such as `https://auth.platform.example/outfitters` and `https://auth.platform.example/books`, and each is a different company with its own user IDs ([3.2](https://personalagentprotocol.org/docs/0.2/spec#oauth-server)).
+Key user IDs by the company's full `auth.issuer`, including any path, not by its host. A provider can host several companies on one host, such as `https://auth.platform.example/outfitters` and `https://auth.platform.example/books`, and each is a different company with its own user IDs ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)).
 
 Tell your users, such as in your privacy notice, that each company recognizes them across visits through their user ID, even when they're signed out, and that signing in lets the company link those earlier visits to their account.
 
-You MAY offer anonymous browsing, like a private browser window, with a new user ID for each anonymous browsing session ([4.2](https://personalagentprotocol.org/docs/0.2/spec#starting-sessions)). The company sees a new user each time, and nothing in the protocol links that browsing to the user's regular ID, their account, or their other anonymous sessions. Other signals, such as IP addresses, still can.
+You MAY offer anonymous browsing, like a private browser window, with a new user ID for each anonymous browsing session ([4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions)). The company sees a new user each time, and nothing in the protocol links that browsing to the user's regular ID, their account, or their other anonymous sessions. Other signals, such as IP addresses, still can.
 
 - Create a random ID and a new DPoP key for each anonymous browsing session. Reusing a key would let the company link the sessions that share it.
 - Discard both when the browsing session ends. Carts and conversations from it end with it.
-- Never sign in with an anonymous ID (MUST NOT, [4.2](https://personalagentprotocol.org/docs/0.2/spec#starting-sessions)). If the user wants to sign in, switch to their regular ID in a new session.
+- Never sign in with an anonymous ID (MUST NOT, [4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions)). If the user wants to sign in, switch to their regular ID in a new session.
 
-Keep the mapping of each user's IDs across companies confidential (MUST, [4.2](https://personalagentprotocol.org/docs/0.2/spec#starting-sessions)). Don't publish it or share it with third parties, other than service providers that process it for you.
+Keep the mapping of each user's IDs across companies confidential (MUST, [4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions)). Don't publish it or share it with third parties, other than service providers that process it for you.
 
 ### DPoP keys and proofs
 
-- Generate a DPoP key pair for each user ID (MUST, [4.3](https://personalagentprotocol.org/docs/0.2/spec#sending-tokens)), so each user at each company has its own. Make it non-extractable where your platform allows, such as in a key management service or WebCrypto.
+- Generate a DPoP key pair for each user ID (MUST, [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)), so each user at each company has its own. Make it non-extractable where your platform allows, such as in a key management service or WebCrypto.
 - Never expose private keys to a model or to tools a model can call. Sign on the model's behalf in code it can't reach.
-- Sign proofs in an HTTP client hook that sees the final method and URL. Don't let the client follow redirects from protocol endpoints with the token or proof: you MUST NOT send either to the new URL ([section 3](https://personalagentprotocol.org/docs/0.2/spec#discovery)).
-- Sign proofs with ES256, which every company accepts ([3.2](https://personalagentprotocol.org/docs/0.2/spec#oauth-server)). Use another algorithm only if the company lists it in `dpop_signing_alg_values_supported`.
-- Personal agents MUST support nonces ([4.3](https://personalagentprotocol.org/docs/0.2/spec#sending-tokens)). On `use_dpop_nonce`, take the nonce from the `DPoP-Nonce` header, keep it for that server, and retry once with a new proof that includes it.
+- Sign proofs in an HTTP client hook that sees the final method and URL. Don't let the client follow redirects from protocol endpoints with the token or proof: you MUST NOT send either to the new URL ([section 3](https://personalagentprotocol.org/docs/0.3/spec#discovery)).
+- Sign proofs with ES256, which every company accepts ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)). Use another algorithm only if the company lists it in `dpop_signing_alg_values_supported`.
+- Personal agents MUST support nonces ([4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)). On `use_dpop_nonce`, take the nonce from the `DPoP-Nonce` header, keep it for that server, and retry once with a new proof that includes it.
 - To switch to a new DPoP key, request a new session token with a proof signed by the new key. The company binds the token to that key.
 
 *Response: company → personal agent*
@@ -133,36 +133,36 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
 
 ### Storing tokens
 
-- Account tokens MUST be stored as secrets ([4.8](https://personalagentprotocol.org/docs/0.2/spec#account-tokens)). Encrypt them at rest, apart from the model and its tools. Give tools a reference to the token, not the token.
+- Account tokens MUST be stored as secrets ([4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)). Encrypt them at rest, apart from the model and its tools. Give tools a reference to the token, not the token.
 - Keep session tokens in memory and drop them when they expire.
 - Store account tokens by the company's full `auth.issuer`, as for [user IDs](#agent-user-ids), so a token from one company hosted by a provider is never sent to another.
-- Include `resource` in every token request for an MCP server, and use the scheme `token_type` names (MUST, [4.3](https://personalagentprotocol.org/docs/0.2/spec#sending-tokens)). The company issues a Bearer token only for an MCP server whose protected resource metadata doesn't list `dpop_signing_alg_values_supported`. Bearer tokens can be used by anyone who copies them. Each one is limited to one MCP server by `resource`, and you can also narrow it with `scope`.
-- When the company returns a new account token, you MUST use it from then on ([4.8](https://personalagentprotocol.org/docs/0.2/spec#account-tokens)). Replace the stored one right away.
-- After the user signs in again for more scopes, revoke the old account token ([4.4](https://personalagentprotocol.org/docs/0.2/spec#sign-in)).
+- Include `resource` in every token request for an MCP server, and use the scheme `token_type` names (MUST, [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)). The company issues a Bearer token only for an MCP server whose protected resource metadata doesn't list `dpop_signing_alg_values_supported`. Bearer tokens can be used by anyone who copies them. Each one is limited to one MCP server by `resource`, and you can also narrow it with `scope`.
+- When the company returns a new account token, you MUST use it from then on ([4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)). Replace the stored one right away.
+- After the user signs in again for more scopes, revoke the old account token ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
 - On `invalid_grant` for an account token, delete it and continue signed out.
 
 ### Choosing how to sign in
 
-- Before asking the user to sign in, check whether an account token you hold already covers the task ([4.4](https://personalagentprotocol.org/docs/0.2/spec#sign-in)).
+- Before asking the user to sign in, check whether an account token you hold already covers the task ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
 - Prefer direct sign-in, then device sign-in, then mediated sign-in. With direct and device sign-in, the user's password stays with the company.
-- Ask for the fewest scopes the task needs. For a task that only looks things up, request a read-only session token from a broader account token ([4.8](https://personalagentprotocol.org/docs/0.2/spec#account-tokens)).
+- Ask for the fewest scopes the task needs. For a task that only looks things up, request a read-only session token from a broader account token ([4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)).
 - The user may approve fewer scopes than you asked for. Check `scope` in the response before continuing.
 
 ### Direct and device sign-in
 
-- Use direct or device sign-in only when the user signs in themselves (MUST, [4.4](https://personalagentprotocol.org/docs/0.2/spec#sign-in)). Never type the user's password, enter their one-time code, or click the company's approval controls for them.
+- Use direct or device sign-in only when the user signs in themselves (MUST, [4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). Never type the user's password, enter their one-time code, or click the company's approval controls for them.
 - Open the authorization URL in the user's own browser, not in a browser you automate.
-- Make `state` random and single-use. Record which company and session it belongs to, and exchange the code only at that company's `token_endpoint`. Check that the redirect's `iss` matches that company's `auth.issuer` (MUST, [4.5](https://personalagentprotocol.org/docs/0.2/spec#direct-sign-in)).
-- Use PKCE with `code_challenge_method=S256` ([4.5](https://personalagentprotocol.org/docs/0.2/spec#direct-sign-in)).
-- For device sign-in ([4.6](https://personalagentprotocol.org/docs/0.2/spec#device-sign-in)), show `verification_uri_complete` as a link or QR code, and show `user_code` too so the user can confirm it matches. Keep `device_code` private. Show the link only if its host is the company's issuer host or one of its `poppy_domains`, or a subdomain of either, and show the company's name and domain with it (MUST, [4.6](https://personalagentprotocol.org/docs/0.2/spec#device-sign-in)).
+- Make `state` random and single-use. Record which company and session it belongs to, and exchange the code only at that company's `token_endpoint`. Check that the redirect's `iss` matches that company's `auth.issuer` (MUST, [4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)).
+- Use PKCE with `code_challenge_method=S256` ([4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)).
+- For device sign-in ([4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)), show `verification_uri_complete` as a link or QR code, and show `user_code` too so the user can confirm it matches. Keep `device_code` private. Show the link only if its host is the company's issuer host or the host of a URL in its `protected_resources`, or a subdomain of either, and show the company's name and domain with it (MUST, [4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)).
 - Poll no faster than `interval`. On `slow_down`, add 5 seconds to the interval, as [RFC 8628](https://www.rfc-editor.org/rfc/rfc8628#section-3.5) describes.
 
 ### Mediated sign-in
 
 - Collect the fields in `auth.mediated.fields` in a form that sends them straight to your sign-in code, so secret values never pass through the model.
-- Look up stored credentials by the company's `auth.issuer`, and show the company's name and domain on the form and when asking for a code (MUST, [4.7](https://personalagentprotocol.org/docs/0.2/spec#mediated-sign-in)). Field labels come from the company and can name anything.
-- Secret fields MUST never be shown back to the user, logged, or sent anywhere other than the company's `auth.mediated.endpoint` ([4.7](https://personalagentprotocol.org/docs/0.2/spec#mediated-sign-in)).
-- After a sign-in ends, you MUST either discard the credentials or keep them only in a credential store the user chose, such as a password manager ([4.7](https://personalagentprotocol.org/docs/0.2/spec#mediated-sign-in)). If you discard them and the user needs to sign in again later, ask again.
+- Look up stored credentials by the company's `auth.issuer`, and show the company's name and domain on the form and when asking for a code (MUST, [4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in)). Field labels come from the company and can name anything.
+- Secret fields MUST never be shown back to the user, logged, or sent anywhere other than the company's `auth.mediated.endpoint` ([4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in)).
+- After a sign-in ends, you MUST either discard the credentials or keep them only in a credential store the user chose, such as a password manager ([4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in)). If you discard them and the user needs to sign in again later, ask again.
 - After the user disconnects you or the company revokes your access, don't sign in again with stored credentials unless the user asks you to.
 - When the company asks for a one-time code, ask the user for it and submit only the code.
 
@@ -170,81 +170,81 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
 
 - Don't put your signing private key in an app you distribute. Anyone could extract it and act as your personal agent. Keep the key on your server, and have the app ask the server to sign assertions for the signed-in user.
 - DPoP keys are per user, so the app can generate and keep them on the device, in its platform keystore.
-- Redirect URIs MUST be HTTPS URLs on your `client_id` domain ([4.1](https://personalagentprotocol.org/docs/0.2/spec#agent-identity)). To return the user to an app, use an HTTPS link the app claims, such as an iOS universal link or an Android app link, or use device sign-in.
+- Redirect URIs MUST be HTTPS URLs on your `client_id` domain ([4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)). To return the user to an app, use an HTTPS link the app claims, such as an iOS universal link or an Android app link, or use device sign-in.
 
 ### Web browsing
 
 - Use a separate browser storage context, with its own cookies and local storage, for each session. Never share one across users.
-- Don't type the user's password or other credentials into a company's website. Sign in with direct, device, or mediated sign-in, then join your browser to the session ([section 5](https://personalagentprotocol.org/docs/0.2/spec#web-browsing)).
+- Don't type the user's password or other credentials into a company's website. Sign in with direct, device, or mediated sign-in, then join your browser to the session ([section 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)).
 - Join the browser to the session right before you start browsing, and post a new browser assertion when the website stops recognizing the session.
 - Close the storage context when the session ends.
 
 ### Conversations
 
-- Read events with a long `wait`, such as 30 seconds, or a stream, rather than many short polls ([7.5](https://personalagentprotocol.org/docs/0.2/spec#reading-events)).
-- Before asking for a person, send a short message that sums up the problem, so they don't have to read the whole conversation ([7.9](https://personalagentprotocol.org/docs/0.2/spec#handoff)).
+- Read events with a long `wait`, such as 30 seconds, or a stream, rather than many short polls ([7.5](https://personalagentprotocol.org/docs/0.3/spec#reading-events)).
+- Before asking for a person, send a short message that sums up the problem, so they don't have to read the whole conversation ([7.9](https://personalagentprotocol.org/docs/0.3/spec#handoff)).
 - When a person takes over, write for them: concise, plain sentences, and time to reply.
-- Close a conversation when the task is done ([7.12](https://personalagentprotocol.org/docs/0.2/spec#closing)).
+- Close a conversation when the task is done ([7.12](https://personalagentprotocol.org/docs/0.3/spec#closing)).
 
 ### Choosing an interface
 
 - Prefer the company's APIs and company agent over browsing its website. They are faster and change less often.
 - Don't phone a company that publishes a `poppy.json`. Use the interfaces it lists instead.
-- Skip API types and conversation protocols you don't recognize ([section 6](https://personalagentprotocol.org/docs/0.2/spec#apis)).
+- Skip API types and conversation protocols you don't recognize ([section 6](https://personalagentprotocol.org/docs/0.3/spec#apis)).
 
 ## For companies
 
 ### Verifying personal agents
 
-- Fetch the `client_id` URL without following redirects. Its `client_id` MUST equal the URL you fetched ([4.1](https://personalagentprotocol.org/docs/0.2/spec#agent-identity)).
+- Fetch the `client_id` URL without following redirects. Its `client_id` MUST equal the URL you fetched ([4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)).
 - Cache client metadata and key sets, as described in [Fetching metadata safely](#both-fetching).
-- Keep allowlists or blocklists of `client_id` values, and rate-limit session creation and new `client_id` values ([4.1](https://personalagentprotocol.org/docs/0.2/spec#agent-identity)).
+- Keep allowlists or blocklists of `client_id` values, and rate-limit session creation and new `client_id` values ([4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)).
 
 ### Verifying DPoP
 
-Section [4.3](https://personalagentprotocol.org/docs/0.2/spec#sending-tokens) lists the checks you MUST make on every proof. To make them reliably:
+Section [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens) lists the checks you MUST make on every proof. To make them reliably:
 
-- Check that `typ` is `dpop+jwt`, that `alg` is ES256 or one you list in `dpop_signing_alg_values_supported` ([3.2](https://personalagentprotocol.org/docs/0.2/spec#oauth-server)), and that `jwk` holds only a public key.
-- Keep a replay cache keyed by `jti`, holding entries for the acceptance window. Your token endpoint MUST reject a reused `jti` ([4.3](https://personalagentprotocol.org/docs/0.2/spec#sending-tokens)), so share its cache across every server behind it. Your APIs and conversation endpoint can have one too, ideally shared the same way. Otherwise a proof accepted by one server can be replayed at another.
+- Check that `typ` is `dpop+jwt`, that `alg` is ES256 or one you list in `dpop_signing_alg_values_supported` ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)), and that `jwk` holds only a public key.
+- Keep a replay cache keyed by `jti`, holding entries for the acceptance window. Your token endpoint MUST reject a reused `jti` ([4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)), so share its cache across every server behind it. Your APIs and conversation endpoint can have one too, ideally shared the same way. Otherwise a proof accepted by one server can be replayed at another.
 - Behind proxies and load balancers, compare `htu` with the public URL the personal agent used. Build it from your configured public origin, not from the `Host` header your server receives.
 - Use an acceptance window of about one minute, plus a small clock skew.
 - Require nonces if you want proofs that can't be made in advance. A nonce stays valid for a while, so it doesn't stop a proof being replayed. It doesn't replace the replay cache.
 - Check whether your authorization server can issue DPoP-bound tokens. If it can't, put a gateway in front of both your token endpoint and your APIs and conversation endpoint. It checks the proof on each token request, records the key for the token it issues, and checks that key on every later request. Checking a proof's signature alone isn't enough.
-- Accept a Bearer session token only at the MCP server whose `url` is its `resource`, not at other paths on the same host (MUST, [4.3](https://personalagentprotocol.org/docs/0.2/spec#sending-tokens)).
-- Support DPoP on a new MCP server (SHOULD, [4.3](https://personalagentprotocol.org/docs/0.2/spec#sending-tokens)): list `dpop_signing_alg_values_supported` in its protected resource metadata, with ES256, and verify proofs as on your other APIs. Then issue personal agents only DPoP tokens for it. Keep accepting Bearer tokens from MCP clients that don't implement Poppy, and reject a DPoP token sent as a Bearer token.
-- Serve personal agent conversations only from your conversation endpoint ([7.2](https://personalagentprotocol.org/docs/0.2/spec#conversation-requests)). If your website chat or other channels can open the same conversations, they may not check DPoP, and anyone with a copied token could read them there.
+- Accept a Bearer session token only at the MCP server whose `url` is its `resource`, not at other paths on the same host (MUST, [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)).
+- Support DPoP on a new MCP server (SHOULD, [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)): list `dpop_signing_alg_values_supported` in its protected resource metadata, with ES256, and verify proofs as on your other APIs. Then issue personal agents only DPoP tokens for it. Keep accepting Bearer tokens from MCP clients that don't implement Poppy, and reject a DPoP token sent as a Bearer token.
+- Serve personal agent conversations only from your conversation endpoint ([7.2](https://personalagentprotocol.org/docs/0.3/spec#conversation-requests)). If your website chat or other channels can open the same conversations, they may not check DPoP, and anyone with a copied token could read them there.
 
 ### Token lifetimes and sign-out
 
-- Session tokens should last hours, not days ([4.2](https://personalagentprotocol.org/docs/0.2/spec#starting-sessions)).
-- Check on each request whether the session is still signed in, so sign-out takes effect right away. If you can't, keep session tokens to a few minutes ([4.9](https://personalagentprotocol.org/docs/0.2/spec#sign-out)).
-- Don't stop accepted work because the session token that started it expired. A job can outlast the token ([4.9](https://personalagentprotocol.org/docs/0.2/spec#sign-out)).
+- Session tokens should last hours, not days ([4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions)).
+- Check on each request whether the session is still signed in, so sign-out takes effect right away. If you can't, keep session tokens to a few minutes ([4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out)).
+- Don't stop accepted work because the session token that started it expired. A job can outlast the token ([4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out)).
 - Where work in progress can take consequential actions on the user's account, such as payments or changes that are hard to undo, tie it to the account token, so revoking access stops it right away.
 - Give account tokens a lifetime that fits the account, such as 90 days, and expire ones that go unused sooner.
 - Revoke a user's account tokens when they reset their password or you suspect the account is compromised.
 
 ### Consent pages
 
-The page where the user approves access, in direct and device sign-in ([4.5](https://personalagentprotocol.org/docs/0.2/spec#direct-sign-in), [4.6](https://personalagentprotocol.org/docs/0.2/spec#device-sign-in)):
+The page where the user approves access, in direct and device sign-in ([4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in), [4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)):
 
 - Show the personal agent's name and logo, and the domain of its `client_id`. The personal agent chooses its own name, so the domain is what the user can trust.
 - Show the account being connected, each requested scope in plain language, and how long access lasts.
 - Protect the page against cross-site request forgery, and against framing by other sites with `Content-Security-Policy: frame-ancestors`.
-- `redirect_uri` MUST exactly match an entry in the personal agent's `redirect_uris` ([4.5](https://personalagentprotocol.org/docs/0.2/spec#direct-sign-in)).
+- `redirect_uri` MUST exactly match an entry in the personal agent's `redirect_uris` ([4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)).
 - Accept PKCE with `S256` only, and reject `plain`.
-- Return `iss` in every redirect, success or error ([4.5](https://personalagentprotocol.org/docs/0.2/spec#direct-sign-in)). Personal agents reject a redirect without it.
+- Return `iss` in every redirect, success or error ([4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)). Personal agents reject a redirect without it.
 - For extra protection, support Pushed Authorization Requests ([RFC 9126](https://www.rfc-editor.org/rfc/rfc9126)).
 
 ### Device sign-in
 
-- Opening the link MUST NOT approve the request by itself ([4.6](https://personalagentprotocol.org/docs/0.2/spec#device-sign-in)). The same goes for scanning the QR code. The user signs in and approves on the page.
+- Opening the link MUST NOT approve the request by itself ([4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)). The same goes for scanning the QR code. The user signs in and approves on the page.
 - Ask the user to confirm that the code on the page matches the one the personal agent shows.
 - Return `slow_down` to personal agents that poll faster than `interval`, and limit wrong `user_code` entries.
 - Keep `expires_in` short, such as 10 minutes.
 
 ### Mediated sign-in
 
-If you offer mediated sign-in ([4.7](https://personalagentprotocol.org/docs/0.2/spec#mediated-sign-in)), you MUST rate-limit attempts and MUST NOT return credentials in any response. Also:
+If you offer mediated sign-in ([4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in)), you MUST rate-limit attempts and MUST NOT return credentials in any response. Also:
 
 - Rate-limit by account, by `client_id`, and by user ID, and cap wrong one-time codes.
 - Require a one-time code when a sign-in looks unusual, including a personal agent's first mediated sign-in after the user disconnected it.
@@ -255,11 +255,11 @@ If you offer mediated sign-in ([4.7](https://personalagentprotocol.org/docs/0.2/
 ### Account settings
 
 - In account settings, list each connected personal agent with its name, domain, scopes, and when it was last used.
-- Offer a control to disconnect each one. Disconnecting revokes its account tokens and signs out its sessions ([4.9](https://personalagentprotocol.org/docs/0.2/spec#sign-out)).
+- Offer a control to disconnect each one. Disconnecting revokes its account tokens and signs out its sessions ([4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out)).
 
 ### Browser sessions
 
-- Offer `web.browser_session_endpoint` if you want signed-in personal agents to use your website. Without it, they browse your website only as ordinary signed-out visitors ([section 5](https://personalagentprotocol.org/docs/0.2/spec#web-browsing)), and use your APIs and conversations for anything that needs the account.
+- Offer `web.browser_session_endpoint` if you want signed-in personal agents to use your website. Without it, they browse your website only as ordinary signed-out visitors ([section 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)), and use your APIs and conversations for anything that needs the account.
 - Don't log request bodies at the endpoint. They contain browser assertions.
 - Limit the cookie to the hosts personal agents need, such as your main site, rather than your whole domain.
 - Look up the session on each request, so sign-out and scope changes take effect on the website right away.
@@ -268,8 +268,8 @@ If you offer mediated sign-in ([4.7](https://personalagentprotocol.org/docs/0.2/
 
 - Apply the same scope rules on your website, APIs, company agent, and live agents. One shared check that every channel calls is easiest to keep consistent.
 - Have the company agent's tools check the token's scopes on every call. Don't rely on the model to decide.
-- Give live agents' tools the same checks, so a person can't make a change the token doesn't allow ([7.11](https://personalagentprotocol.org/docs/0.2/spec#conversation-sign-in)).
-- `poppy:write` doesn't include `poppy:read` ([4.4](https://personalagentprotocol.org/docs/0.2/spec#sign-in)). Check each one separately.
+- Give live agents' tools the same checks, so a person can't make a change the token doesn't allow ([7.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)).
+- `poppy:write` doesn't include `poppy:read` ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). Check each one separately.
 
 ### Internal services
 
@@ -279,7 +279,7 @@ If you offer mediated sign-in ([4.7](https://personalagentprotocol.org/docs/0.2/
 
 ### Hosting several companies
 
-A provider, such as a commerce platform, can run the protocol for several independent companies on the same servers. Each company needs its own issuer ([3.2](https://personalagentprotocol.org/docs/0.2/spec#oauth-server)). For example, a platform hosts two merchants. Example Outfitters has a storefront for each of two countries, and Example Books has one:
+A provider, such as a commerce platform, can run the protocol for several independent companies on the same servers. Each company needs its own issuer ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)). For example, a platform hosts two merchants. Example Outfitters has a storefront for each of two countries, and Example Books has one:
 
 | Storefront domain | `auth.issuer` | Company |
 | --- | --- | --- |
@@ -289,11 +289,22 @@ A provider, such as a commerce platform, can run the protocol for several indepe
 
 The two Outfitters storefronts share an issuer, so they are one company: a user has the same user ID, sessions, and account tokens at both. Books has its own issuer, so it's a separate company, even though it runs on the same servers.
 
-- Publish metadata for each issuer at its own URL, such as `https://auth.platform.example/.well-known/oauth-authorization-server/outfitters` ([3.2](https://personalagentprotocol.org/docs/0.2/spec#oauth-server)). Its `issuer` is the full issuer, and its `poppy_domains` lists only that company's storefronts.
-- Serve each storefront's `poppy.json` on the storefront's own domain. A document redirected to the platform's domain speaks for the platform, not the storefront ([3.1](https://personalagentprotocol.org/docs/0.2/spec#fields)).
+- Publish metadata for each issuer at its own URL, such as `https://auth.platform.example/.well-known/oauth-authorization-server/outfitters` ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)). Its `issuer` is the full issuer, and its `protected_resources` lists only that company's storefronts and resources, such as `https://outfitters.example`.
+- Serve each storefront's `poppy.json` on the storefront's own domain. A document redirected to the platform's domain speaks for the platform, not the storefront ([3.1](https://personalagentprotocol.org/docs/0.3/spec#fields)).
 - Companies can share a token endpoint, servers, and signing keys. Only the issuer decides which company a token belongs to.
 - Record the issuer with every session and account token, and check it on every request. A session token or account token from Outfitters must not work at Books, even when both are served by the same code.
 - Don't use one company's records for another. A user's sessions, user IDs, and accounts at one company are unknown to every other company the platform hosts.
+
+### An issuer for personal agents
+
+A company can offer personal agents less than its other OAuth clients get without a second issuer, in two ways:
+
+- Leave scopes it doesn't offer personal agents out of `scopes_supported`, which RFC 8414 allows ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)).
+- Limit the scopes it grants by client, as OAuth allows ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
+
+Sign-in types are different. `grant_types_supported` has no such allowance, and a company whose issuer offers the authorization code or device grant to other clients offers direct or device sign-in to personal agents too ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). To keep one of them from personal agents, use an issuer only for personal agents, such as `https://auth.example.com/agents`. It can share servers, signing keys, and user accounts with the main issuer.
+
+Choose the issuer before launch. User IDs and account tokens belong to the issuer ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)), so changing `auth.issuer` later makes the company a new company to every personal agent: existing sessions and account tokens stop working, and users sign in again.
 
 ### Guest access
 
@@ -302,19 +313,19 @@ Let a signed-out personal agent session do what a signed-out visitor can do on y
 ### Conversations
 
 - Let your company agent do everything customers can do by phone, as fully as you can, so personal agents have no reason to call.
-- Keep a conversation's events for at least 30 days, so a personal agent that reconnects rarely hits `cursor_expired` ([7.5](https://personalagentprotocol.org/docs/0.2/spec#reading-events)).
-- On a stream with nothing to send, send an SSE comment every 15 to 30 seconds, so proxies don't close it ([7.6](https://personalagentprotocol.org/docs/0.2/spec#streaming)).
-- When a session signs out, answer a signed-out token on its conversations that used the account with `sign_in_required`, including reads of their events, so their account details can't be read signed out ([4.9](https://personalagentprotocol.org/docs/0.2/spec#sign-out), [7.11](https://personalagentprotocol.org/docs/0.2/spec#conversation-sign-in)). Leave them open, so the user can sign in again and continue, or close them if your policy is to clear everything at sign-out.
-- Before closing an inactive conversation, say so in a message ([7.12](https://personalagentprotocol.org/docs/0.2/spec#closing)).
+- Keep a conversation's events for at least 30 days, so a personal agent that reconnects rarely hits `cursor_expired` ([7.5](https://personalagentprotocol.org/docs/0.3/spec#reading-events)).
+- On a stream with nothing to send, send an SSE comment every 15 to 30 seconds, so proxies don't close it ([7.6](https://personalagentprotocol.org/docs/0.3/spec#streaming)).
+- When a session signs out, answer a signed-out token on its conversations that used the account with `sign_in_required`, including reads of their events, so their account details can't be read signed out ([4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out), [7.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)). Leave them open, so the user can sign in again and continue, or close them if your policy is to clear everything at sign-out.
+- Before closing an inactive conversation, say so in a message ([7.12](https://personalagentprotocol.org/docs/0.3/spec#closing)).
 
 ### Error messages
 
 - Keep `error_description` and other error text free of account details and other users' data.
-- Return the same error for "doesn't exist" and "belongs to someone else", as `conversation_not_found` does ([7.13](https://personalagentprotocol.org/docs/0.2/spec#conversation-errors)).
+- Return the same error for "doesn't exist" and "belongs to someone else", as `conversation_not_found` does ([7.13](https://personalagentprotocol.org/docs/0.3/spec#conversation-errors)).
 
 ## For the Operations extension
 
-These apply only to companies and personal agents that support the [Operations extension](https://personalagentprotocol.org/docs/0.2/extensions/operations).
+These apply only to companies and personal agents that support the [Operations extension](https://personalagentprotocol.org/docs/0.3/extensions/operations).
 
 ### Personal agents
 

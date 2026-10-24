@@ -9,43 +9,43 @@ engineer's approval**. Build nothing before that.
 Scope decisions are the engineer's. For each one, recommend an option with your reasons, drawing on
 the survey, and record what the engineer chose.
 
-**Interfaces** ([3.1](https://personalagentprotocol.org/docs/0.2/spec#fields)). Which of these to
+**Interfaces** ([3.1](https://personalagentprotocol.org/docs/0.3/spec#fields)). Which of these to
 offer. A Company can start with one and add more later.
 
 - `openapi`: existing APIs, described in OpenAPI 3.0 or 3.1, accepting DPoP Session Tokens
-  ([section 6](https://personalagentprotocol.org/docs/0.2/spec#apis)).
+  ([section 6](https://personalagentprotocol.org/docs/0.3/spec#apis)).
 - `mcp`: an MCP server accepting Bearer Session Tokens, and DPoP ones if it's new (section 6).
 - `conversations`: the Company Agent, through Poppy conversations
-  ([section 7](https://personalagentprotocol.org/docs/0.2/spec#conversations)).
+  ([section 7](https://personalagentprotocol.org/docs/0.3/spec#conversations)).
 - `web`: a browser-session endpoint so the Personal Agent's browser joins the Session
-  ([section 5](https://personalagentprotocol.org/docs/0.2/spec#web-browsing)). Without it, Personal
+  ([section 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)). Without it, Personal
   Agents browse as ordinary signed-out visitors. A Company offering only `web` without the endpoint
   needs no `auth` at all.
 
-**Sign-in types** ([4.4](https://personalagentprotocol.org/docs/0.2/spec#sign-in)). None (signed-out
+**Sign-in types** ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). None (signed-out
 Sessions only), or any of Direct, Device, and Mediated Sign-In. Direct Sign-In keeps the User's
 password with the Company and suits most Companies. Device Sign-In suits Companies that already
 offer it. Mediated Sign-In means accepting credentials from Personal Agents, with the duties in
-[4.7](https://personalagentprotocol.org/docs/0.2/spec#mediated-sign-in) and the
-[guides](https://personalagentprotocol.org/docs/0.2/guides#company-mediated).
+[4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in) and the
+[guides](https://personalagentprotocol.org/docs/0.3/guides#company-mediated).
 
-**Scopes** ([4.4](https://personalagentprotocol.org/docs/0.2/spec#sign-in)). Whether to offer
+**Scopes** ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). Whether to offer
 `poppy:read` and `poppy:write`, which custom scopes to define (names can't start with `poppy:`),
 and which scopes each sign-in type can grant. A Company MAY offer only narrower custom scopes if
 broad access doesn't meet its security needs. See `patterns/scopes.md`.
 
-**Which Personal Agents** ([4.1](https://personalagentprotocol.org/docs/0.2/spec#agent-identity)).
+**Which Personal Agents** ([4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)).
 Accept any Personal Agent, keep an allowlist or blocklist by `client_id`, or require registration.
 Also rate limits on Session creation and on new `client_id` values.
 
 **Lifetimes.** Session Token lifetime (hours, not days, per
-[4.2](https://personalagentprotocol.org/docs/0.2/spec#starting-sessions); minutes if the Company can't
+[4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions); minutes if the Company can't
 check sign-in state on each request, per
-[4.9](https://personalagentprotocol.org/docs/0.2/spec#sign-out)), Account Token lifetime, and how long a
-Session lasts. See the [guides](https://personalagentprotocol.org/docs/0.2/guides#company-lifetimes).
+[4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out)), Account Token lifetime, and how long a
+Session lasts. See the [guides](https://personalagentprotocol.org/docs/0.3/guides#company-lifetimes).
 
 **Extensions.** Whether to support any, such as
-[Operations](https://personalagentprotocol.org/docs/0.2/extensions/operations#intro).
+[Operations](https://personalagentprotocol.org/docs/0.3/extensions/operations#intro).
 
 The architecture is yours to propose, with the engineer's review. Choose a pattern from
 `patterns/` for each component. If none fits, describe your own and say why, and add a **Kit** entry

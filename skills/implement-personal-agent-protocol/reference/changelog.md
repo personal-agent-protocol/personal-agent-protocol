@@ -2,6 +2,44 @@
 
 What changed in each version of the specification, extensions, and guides, newest first. Each published version stays at its own URL, such as [/docs/0.1/spec](https://personalagentprotocol.org/docs/0.1/spec).
 
+## Draft 0.3
+
+In progress, at [/docs/spec](https://personalagentprotocol.org/docs/0.3/spec). This list grows until 0.3 is published. Major changes are design decisions. Minor changes fill gaps, make the text consistent, or follow an RFC. A change tagged "Breaking" can require an implementation that followed the 0.2 text to change, whether it's major or minor.
+
+### Major changes
+
+#### Sign-in types from the OAuth server metadata
+
+Breaking · [Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)
+
+`auth.direct` and `auth.device` are removed from `poppy.json`. A Company offers Direct and Device Sign-In when `grant_types_supported` in its OAuth server metadata includes `authorization_code` or `urn:ietf:params:oauth:grant-type:device_code`, so there's no second list to drift out of sync with the issuer. `grant_types_supported` is now required, with the JWT bearer and refresh token grants. A Company whose issuer offers one of these grants to other clients offers it to Personal Agents too. Direct and Device Sign-In can grant any scope in `scopes_supported`. Only Mediated Sign-In keeps its own list, `auth.mediated.scopes`.
+
+### Minor changes
+
+#### `protected_resources` replaces `poppy_domains`
+
+Breaking · [Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in) · [Spec 9.3](https://personalagentprotocol.org/docs/0.3/spec#trust) · [Guides: Direct and device sign-in](https://personalagentprotocol.org/docs/0.3/guides#agent-direct-device) · [Guides: Hosting several companies](https://personalagentprotocol.org/docs/0.3/guides#company-hosting)
+
+The issuer confirms which domains name it with `protected_resources`, the field RFC 9728 registers in authorization server metadata, instead of the custom `poppy_domains`. It lists `https://{domain}` for each domain, exactly in that form with no path or trailing slash, and may list other resources, such as MCP servers. Personal Agents check that it includes `https://{organization.domain}` by exact string, ignoring case only in the host, and a device sign-in link's host is checked against the hosts of its entries.
+
+#### `scopes_supported` and `auth.scopes`
+
+Breaking · [Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Guides: An issuer for personal agents](https://personalagentprotocol.org/docs/0.3/guides#company-agent-issuer)
+
+A Company lists every scope a Personal Agent can request in `scopes_supported` in its OAuth server metadata, as RFC 8414 defines, and Personal Agents request only scopes from it. A Company describes its own scopes in the OAuth security scheme of an OpenAPI description it lists, or otherwise in `auth.scopes`, which replaces `auth.custom_scopes` and has the same form as the `scopes` of an OAuth 2.0 security scheme in OpenAPI. `scopes_supported` may leave out scopes the Company doesn't offer Personal Agents, and the Company may limit the scopes it grants by client, so an issuer that serves other clients doesn't need a separate one for Personal Agents. The guides explain when a separate issuer is still useful.
+
+#### User IDs as pairwise identifiers
+
+[Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 10](https://personalagentprotocol.org/docs/0.3/spec#references)
+
+Section 4.2 relates User IDs to OpenID Connect pairwise subject identifiers, which the Personal Agent assigns for each pair of User and Company. The rules for User IDs don't change.
+
+#### `signed_in` removed
+
+Breaking · [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Spec 4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in)
+
+Token responses no longer have `signed_in`. `scope` is always present: empty for a signed-out Session Token, and with at least one scope for a signed-in one. A sign-in where the User approves no scopes ends as a decline.
+
 ## Version 0.2
 
 Published October 24, 2026. It's frozen at [/docs/0.2/spec](https://personalagentprotocol.org/docs/0.2/spec). Major changes are design decisions. Minor changes fill gaps, make the text consistent, or follow an RFC. A change tagged "Breaking" can require an implementation that followed the 0.1 text to change, whether it's major or minor.

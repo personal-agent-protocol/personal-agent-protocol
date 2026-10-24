@@ -21,21 +21,21 @@ Start `plan/feedback.md` now (see `feedback.md`).
 **Domains.** The domains the Company serves customers on, and whether they redirect (for example
 `example.com` to `www.example.com`). `organization.domain` in `poppy.json` has to be the host that
 serves the document after redirects
-([3.1](https://personalagentprotocol.org/docs/0.2/spec#fields)). Countries or brands on other domains
+([3.1](https://personalagentprotocol.org/docs/0.3/spec#fields)). Countries or brands on other domains
 that should be one Company share one issuer
-([3.2](https://personalagentprotocol.org/docs/0.2/spec#oauth-server)).
+([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)).
 
 **The OAuth server or identity provider.** This decides the token endpoint pattern
 (`patterns/token-endpoint.md`). Find out whether it:
 
-- publishes OAuth Authorization Server Metadata (RFC 8414), and whether you can add a field
-  (`poppy_domains`) to it;
+- publishes OAuth Authorization Server Metadata (RFC 8414), and whether you can set
+  `grant_types_supported`, `scopes_supported`, and `protected_resources` (RFC 9728) in it;
 - authenticates clients with `private_key_jwt` (RFC 7523), and can fetch client keys from a
   `jwks_uri`;
 - accepts clients it hasn't registered, identified by a URL (Client ID Metadata Documents), or has a
   hook to resolve them;
-- supports the JWT bearer grant, custom grant types, or token hooks that can add `session_id` and
-  `signed_in` to the token response and read `session_id` from the request;
+- supports the JWT bearer grant, custom grant types, or token hooks that can add `session_id` to the
+  token response and read it from the request;
 - issues DPoP-bound tokens (RFC 9449), with nonces;
 - supports refresh tokens, their lifetimes, and rotation;
 - supports the device authorization grant (RFC 8628), PKCE with S256, `iss` in redirects (RFC 9207),

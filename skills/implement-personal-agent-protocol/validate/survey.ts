@@ -10,7 +10,14 @@ import {
 } from "./checks/discovery.ts";
 import { protectedResourceMetadataUrl } from "./checks/mcp.ts";
 import { loadOpenApi } from "./checks/openapi.ts";
-import { newContext, recorder, type Poppy } from "./checks/types.ts";
+import {
+    newContext,
+    offersGrant,
+    recorder,
+    SIGN_IN_GRANTS,
+    type Metadata,
+    type Poppy,
+} from "./checks/types.ts";
 import { getFollowing, type Http } from "./http.ts";
 
 export type SurveyReport = {
@@ -60,7 +67,7 @@ const INTERESTING = [
     "revocation_endpoint",
     "authorization_endpoint",
     "device_authorization_endpoint",
-    "poppy_domains",
+    "protected_resources",
     "grant_types_supported",
     "token_endpoint_auth_methods_supported",
     "token_endpoint_auth_signing_alg_values_supported",
@@ -198,17 +205,20 @@ export function formatSurvey(s: SurveyReport): string {
         out.push(`  organization      ${p?.organization?.name} (${p?.organization?.domain})`);
         if (p?.auth) {
             out.push(`  auth.issuer       ${p.auth.issuer}`);
-            for (const type of ["direct", "device", "mediated"] as const) {
-                const t = p.auth[type];
-                if (t)
-                    out.push(
-                        `  sign-in ${type.padEnd(9)} scopes ${JSON.stringify(t.scopes)}${type === "mediated" ? `, endpoint ${p.auth.mediated?.endpoint}` : ""}`,
-                    );
-            }
-            if (!p.auth.direct && !p.auth.device && !p.auth.mediated)
+            const meta = s.authorizationServer?.fields as Metadata | undefined;
+            const direct = offersGrant(meta, SIGN_IN_GRANTS.direct);
+            const device = offersGrant(meta, SIGN_IN_GRANTS.device);
+            if (direct)
+                out.push("  sign-in direct    authorization_code in the OAuth server metadata");
+            if (device) out.push("  sign-in device    device_code in the OAuth server metadata");
+            if (p.auth.mediated)
+                out.push(
+                    `  sign-in mediated  scopes ${JSON.stringify(p.auth.mediated.scopes)}, endpoint ${p.auth.mediated.endpoint}`,
+                );
+            if (!direct && !device && !p.auth.mediated)
                 out.push("  sign-in           none (signed-out Sessions only)");
-            if (p.auth.custom_scopes)
-                out.push(`  custom scopes     ${Object.keys(p.auth.custom_scopes).join(", ")}`);
+            if (p.auth.scopes)
+                out.push(`  scopes            ${Object.keys(p.auth.scopes).join(", ")}`);
         } else out.push("  auth              none");
         for (const proto of p?.agent?.protocols ?? [])
             out.push(

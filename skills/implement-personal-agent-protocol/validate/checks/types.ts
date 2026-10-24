@@ -46,10 +46,8 @@ export type Poppy = {
     organization?: { name?: string; domain?: string };
     auth?: {
         issuer?: string;
-        direct?: { scopes?: string[] };
-        device?: { scopes?: string[] };
         mediated?: { endpoint?: string; fields?: unknown[]; scopes?: string[] };
-        custom_scopes?: Record<string, string>;
+        scopes?: Record<string, string>;
     };
     agent?: { protocols?: { type?: string; endpoint?: string; resource?: string }[] };
     web?: { browser_session_endpoint?: string };
@@ -65,9 +63,22 @@ export type Metadata = {
     authorization_endpoint?: string;
     device_authorization_endpoint?: string;
     dpop_signing_alg_values_supported?: unknown;
-    poppy_domains?: string[];
+    grant_types_supported?: unknown;
+    scopes_supported?: unknown;
+    protected_resources?: unknown;
     [field: string]: unknown;
 };
+
+// The grant types that say a Company offers Direct and Device Sign-In (spec 3.2).
+export const SIGN_IN_GRANTS = {
+    direct: "authorization_code",
+    device: "urn:ietf:params:oauth:grant-type:device_code",
+} as const;
+
+export function offersGrant(metadata: Metadata | undefined, grant: string): boolean {
+    const grants = metadata?.grant_types_supported;
+    return Array.isArray(grants) && grants.includes(grant);
+}
 
 export type Discovered = {
     poppy?: Poppy;

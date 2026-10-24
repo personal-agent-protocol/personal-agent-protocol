@@ -3,6 +3,7 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { PROTOCOL_VERSION } from "../catalog.ts";
 import type { FetchLike } from "../http.ts";
 import { decodeJwt, randomId, sha256, thumbprint, verifyJwt, type EcPublicJwk } from "../jose.ts";
 
@@ -152,7 +153,6 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                 expires_in: 3600,
                 scope: "",
                 session_id: sessionId,
-                signed_in: false,
             },
             flaws.noStore ? {} : { "cache-control": "no-store" },
         );
@@ -291,9 +291,9 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
     }
 
     const poppy = () => ({
-        protocol_version: "0.2",
+        protocol_version: PROTOCOL_VERSION,
         organization: { name: "Shop", domain: flaws.domain ?? "shop.test" },
-        auth: { issuer: ORIGIN, direct: { scopes: ["poppy:read"] } },
+        auth: { issuer: ORIGIN },
         agent: { protocols: [{ type: "poppy", endpoint: CONV }] },
         apis: [
             { type: "openapi", url: `${ORIGIN}/openapi.json`, description: "Orders" },
@@ -340,7 +340,13 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                               : ["ES256"],
                       }),
                 authorization_endpoint: `${ORIGIN}/oauth/authorize`,
-                poppy_domains: ["shop.test"],
+                grant_types_supported: [
+                    "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                    "refresh_token",
+                    "authorization_code",
+                ],
+                scopes_supported: ["poppy:read"],
+                protected_resources: ["https://shop.test"],
             });
         }
         if (path === "/openapi.json")

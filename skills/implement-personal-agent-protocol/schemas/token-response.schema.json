@@ -2,16 +2,15 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "token-response.schema.json",
     "title": "Token response",
-    "description": "A successful response from the token endpoint: a new or renewed Session (spec 4.2), a sign-in (4.4), or an Account Token (4.8). refresh_token, the Account Token, is present after sign-in and when the Company rotates it. Unknown fields are allowed.",
+    "description": "A successful response from the token endpoint: a new or renewed Session (spec 4.2), a sign-in (4.4), or an Account Token (4.8). refresh_token, the Account Token, is present after sign-in and when the Company rotates it. scope is empty for a signed-out Session and has at least one scope for a signed-in one. Unknown fields are allowed.",
     "type": "object",
-    "required": ["access_token", "token_type", "expires_in", "scope", "session_id", "signed_in"],
+    "required": ["access_token", "token_type", "expires_in", "scope", "session_id"],
     "properties": {
         "access_token": { "type": "string", "minLength": 1 },
         "token_type": { "enum": ["DPoP", "Bearer"] },
         "expires_in": { "type": "integer", "minimum": 1 },
         "scope": { "type": "string" },
         "session_id": { "type": "string", "minLength": 1 },
-        "signed_in": { "type": "boolean" },
         "refresh_token": { "type": "string", "minLength": 1 },
         "refresh_token_expires_in": { "type": "integer", "minimum": 1 }
     }

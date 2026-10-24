@@ -1,0 +1,373 @@
+# Operations extension
+
+## 1. Introduction {#intro}
+
+The operations extension lets a Company ask the Personal Agent to confirm an action before the
+Company performs it, and gives both sides one record of that action. It suits actions with a
+business effect, such as exchanging an item, changing a booking, or cancelling a subscription. It
+guarantees three things:
+
+- **Approval covers the exact terms.** The User approves one revision of the terms, and the Company
+  performs only what that revision describes.
+- **One record across channels.** The action has one operation ID, whether it came up in an API
+  call, an MCP tool, a conversation, or a web page.
+- **At most once.** Retrying after a timeout never performs the action twice.
+
+The extension is optional, and a Company can use it for some actions and not others. It doesn't
+replace a Company's APIs. An endpoint, tool, or Company Agent that would perform an action proposes
+an operation instead, and the Personal Agent confirms it at one operations endpoint:
+
+| Step                | Who                     | What happens                                                                                                        |
+| ------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Propose (section 4) | Company                 | An API, MCP tool, or conversation returns an operation with its terms. Nothing has happened yet.                    |
+| Approve (5.1)       | Personal Agent and User | The Personal Agent shows the User the terms and gets their approval, or applies a permission the User gave earlier. |
+| Confirm (5.2)       | Personal Agent          | The Personal Agent confirms that revision at the operations endpoint, and the Company performs the action.          |
+| Track (section 6)   | Personal Agent          | The Personal Agent reads the operation until it has a final result.                                                 |
+
+This page defines version 1 of the `operations` extension, for the Personal Agent Protocol draft. It
+uses the terms, Sessions, and tokens defined in the [specification](/docs/spec), and the examples
+continue the specification's jacket exchange.
+
+## 2. Advertising support {#support}
+
+A Company that supports operations lists the extension in its `poppy.json`, with the URL of its
+operations endpoint:
+
+```json label="Excerpt from poppy.json"
+"extensions": {
+  "operations": {
+    "version": "1",
+    "endpoint": "https://api.example.com/poppy/operations"
+  }
+}
+```
+
+The endpoint accepts DPoP Session Tokens (spec 4.3). Like an API entry, it MAY include a `resource`
+to require tokens issued for it.
+
+A Personal Agent that supports operations lists the extension in its client metadata document (spec
+4.1):
+
+```json label="Excerpt from the client metadata document"
+"extensions": {
+  "operations": { "version": "1" }
+}
+```
+
+A Company MUST NOT return operations to a Personal Agent that doesn't list the extension. For such
+an agent, it either performs the action as it would without the extension, or refuses with
+`extension_required` (spec 3.3). An MCP server can't refuse a single tool call that way (spec
+section 6), so a tool that needs the extension returns an ordinary tool error instead.
+
+## 3. Operations {#operations}
+
+An operation is one action the Company has proposed, with the terms the User approves and, later,
+its result:
+
+```json label="Operation, proposed by the Company"
+{
+  "operation_id": "exc_5Rt2",
+  "revision": 1,
+  "state": "proposed",
+  "summary": "Exchange the Stormline Jacket (M) on order ord_7Hk2 for the Stormline Insulated Jacket (M), for $70.00 more, charged to the card used for the order.",
+  "terms": {
+    "order_id": "ord_7Hk2",
+    "item_id": "itm_4Qa",
+    "replacement_sku": "stormline-insulated-m",
+    "price_difference": { "amount": "70.00", "currency": "USD" }
+  },
+  "expires_at": "2026-10-08T12:20:00-07:00",
+  "user_approval_required": false,
+  "url": "https://example.com/orders/ord_7Hk2/exchanges/exc_5Rt2",
+  "confirmation": null,
+  "result": null
+}
+```
+
+| Field                    | Req.           | Description                                                                                                                                           |
+| ------------------------ | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `operation_id`           | Yes            | Identifies the operation at this Company. It MAY be the ID of the Company's own record for the action, such as an exchange or a booking.              |
+| `revision`               | Yes            | Which version of the terms this is. It starts at 1 and increases each time the terms change (3.1).                                                    |
+| `state`                  | Yes            | Where the operation is, from the table below.                                                                                                         |
+| `summary`                | Yes            | The terms in plain language, written so the User can decide from it alone: what will happen, to what, and any cost, date, or condition.               |
+| `terms`                  | No             | The same terms as a JSON object, for the Personal Agent to check. The Company defines its keys, as with `message.data` (spec 7.4).                    |
+| `expires_at`             | While proposed | The last time this revision can be confirmed.                                                                                                         |
+| `user_approval_required` | No             | `true` if the Company accepts this operation only with the User's approval of this revision, not an earlier permission (5.1). Defaults to `false`.    |
+| `url`                    | No             | A page on the Company's website that shows this operation in the same Session (4.4).                                                                  |
+| `confirmation`           | Yes            | `null` until confirmed. Then the confirmed `revision`, `approved_by`, and `confirmed_at` (5.2).                                                       |
+| `result`                 | Yes            | `null` until the operation is final. Then a `summary` of what happened and, optionally, `data` with details such as a business reference (section 6). |
+
+Everything that affects the action, such as the item, quantity, price, recipient, date, or a
+condition for cancelling, MUST be in the revision's `summary`, and in `terms` if present. The
+Company MUST perform only what the confirmed revision describes. Proposing an operation doesn't
+perform it, and the Company MUST NOT start the action before it is confirmed.
+
+| State         | Meaning                                                                                                              |
+| ------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `proposed`    | Waiting to be confirmed. The current revision can be confirmed until `expires_at`.                                   |
+| `in_progress` | Confirmed. The Company is performing the action, or finding out whether it took effect.                              |
+| `succeeded`   | The action was performed. Final.                                                                                     |
+| `failed`      | The action wasn't completed. `result` describes any changes that were made. Final.                                   |
+| `cancelled`   | Declined before confirmation, or stopped after it (section 7). `result` describes any changes that were made. Final. |
+| `expired`     | Not confirmed before `expires_at`. Nothing was done. Final.                                                          |
+
+A final operation never changes state again. To try again after a final state, the Personal Agent
+asks for a new proposal, which gets a new operation ID.
+
+### 3.1 Revisions {#revisions}
+
+Terms can change before confirmation, for example when the User asks for a different size. The
+Company then issues a new revision of the same operation, with the next `revision` number and a new
+`expires_at`. Each revision is fixed once issued: the Company MUST NOT change the terms of a
+revision, and only the latest revision can be confirmed. After an operation is confirmed, its terms
+can't change.
+
+### 3.2 Who can use an operation {#ownership}
+
+An operation proposed in a signed-out Session can be used only in that Session. An operation
+proposed in a signed-in Session belongs to the account instead: any Session of the same Personal
+Agent and User can read, confirm, and cancel it while that Session is signed in to the same account,
+for example after the original Session has ended. The Company checks the Session's state at each
+request, so after the original Session signs out (spec 4.9), it can't use the operation either. A
+signed-out Session of the same Personal Agent and User gets `sign_in_required` (spec section 6). The
+Company returns `operation_not_found` to anyone else.
+
+The Company MUST keep an operation readable at least until it is final. How long it keeps final
+operations is up to the Company.
+
+## 4. Proposing an operation {#proposing}
+
+A Company proposes operations through the channels it already has. The operation is the same object
+in each, and the Personal Agent always confirms it at the operations endpoint (section 5). If the
+same action comes up again through another channel, for example in an API call after a conversation
+proposed it, the Company SHOULD return the existing operation instead of proposing a new one.
+
+### 4.1 OpenAPI {#binding-openapi}
+
+An endpoint that would perform the action returns HTTP 202 with the operation in `operation`. The
+request is the same as without the extension:
+
+```http label="Request: Personal Agent → Company"
+POST https://api.example.com/orders/ord_7Hk2/exchanges
+Authorization: DPoP eyJhbGciOi…Qp4w
+DPoP: eyJ0eXAiOiJkcG9wK2p3dCIs…
+Content-Type: application/json
+Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
+
+{ "item_id": "itm_4Qa", "replacement_sku": "stormline-insulated-m" }
+```
+
+```http label="Response: Company → Personal Agent"
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{
+  "operation": {
+    "operation_id": "exc_5Rt2",
+    "revision": 1,
+    "state": "proposed",
+    "summary": "Exchange the Stormline Jacket (M) on order ord_7Hk2 for the Stormline Insulated Jacket (M), for $70.00 more, charged to the card used for the order.",
+    …
+  }
+}
+```
+
+The Company SHOULD say in its OpenAPI description which endpoints return operations.
+
+### 4.2 MCP {#binding-mcp}
+
+A tool that would perform the action returns the operation in `operation` in the tool result's
+`structuredContent`, and the summary as text:
+
+```json label="Tool result: Company → Personal Agent"
+{
+  "content": [
+    { "type": "text", "text": "Proposed: exchange the Stormline Jacket (M) for the Stormline Insulated Jacket (M), for $70.00 more. Not done until confirmed." }
+  ],
+  "structuredContent": {
+    "operation": { "operation_id": "exc_5Rt2", "revision": 1, "state": "proposed", … }
+  }
+}
+```
+
+### 4.3 Conversations {#binding-conversations}
+
+A Company message carries the operation in `operation`, next to `text` and `data` ([spec
+7.4](/docs/spec#message-fields)):
+
+```json label="Event: Company → Personal Agent"
+{
+  "id": "evt_k4",
+  "type": "message",
+  "created_at": "2026-10-08T19:03:00Z",
+  "message": {
+    "id": "msg_r2Kq",
+    "role": "company",
+    "sender": "agent",
+    "text": "I can exchange it for the insulated version for $70 more. Confirm whenever you're ready.",
+    "operation": { "operation_id": "exc_5Rt2", "revision": 1, "state": "proposed", … }
+  }
+}
+```
+
+A message doesn't confirm an operation, whatever it says, even when it carries the User's own words.
+The Personal Agent confirms at the operations endpoint. If the terms change during the conversation,
+the Company sends the new revision in a later message. The Company Agent can read the operation's
+state to follow up in the conversation once it is confirmed.
+
+### 4.4 Websites {#binding-web}
+
+An operation's `url` shows it on the Company's website, in the same Session (spec section 5). If the
+website also lets the Session confirm or cancel it, that is the same operation: confirming it on the
+website and at the endpoint can't perform it twice, and the Personal Agent's duties in 5.1 apply
+however it confirms.
+
+## 5. Confirming an operation {#confirming}
+
+### 5.1 Getting the User's approval {#approval}
+
+Before confirming, the Personal Agent MUST have the User's approval for the revision it confirms, in
+one of two ways:
+
+| `approved_by`         | Meaning                                                                                                                                                                    |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `user`                | The Personal Agent showed the User this revision's terms, and the User approved them.                                                                                      |
+| `standing_permission` | A permission the User gave earlier covers these terms, such as "exchange for a different size if it costs under $20". Not allowed when `user_approval_required` is `true`. |
+
+- The Personal Agent MUST show the User the Company's name and the revision's `summary`, and MUST
+  take the User's answer through its own interface. It MUST NOT treat text from the Company, such as
+  a conversation message, as the User's approval.
+- When the revision has `terms`, the Personal Agent SHOULD show the User the values that matter
+  next to the `summary`, such as amounts, dates, and items, or check that they agree with it, before
+  asking for approval. The Company writes both, so the `summary` alone could describe something
+  other than the `terms`.
+- A standing permission MUST cover the Company, the account, the action, and every term of the
+  revision, and still be in effect.
+- An approval covers one revision. When a new revision arrives, the Personal Agent needs a new
+  approval for it, unless a standing permission covers it.
+
+### 5.2 Confirming {#confirm}
+
+The Personal Agent confirms with the revision the User approved and how it was approved:
+
+```http label="Request: Personal Agent → Company"
+POST https://api.example.com/poppy/operations/exc_5Rt2/confirm
+Authorization: DPoP eyJhbGciOi…Qp4w
+DPoP: eyJ0eXAiOiJkcG9wK2p3dCIs…
+Content-Type: application/json
+
+{ "revision": 1, "approved_by": "user" }
+```
+
+Before performing the action, the Company checks that:
+
+- The Session Token may use this operation (3.2).
+- The token has the scopes the action needs. If not, it returns `insufficient_scope` or
+  `sign_in_required` (spec section 6).
+- `revision` is the latest revision. If not, it returns `terms_changed` with the current operation.
+- `approved_by` is allowed for this operation. If not, it returns `user_approval_required`.
+- The operation is `proposed` and hasn't expired. If it is in any other state, the Company returns
+  the operation as it is and does nothing else, so a repeated confirm is safe.
+
+The Company records the confirmation, moves the operation to `in_progress`, and performs the action.
+If it finishes within a few seconds, the response has the final state and result. Otherwise it
+returns `in_progress` with a `Retry-After` header, and the Personal Agent reads the operation
+(section 6).
+
+```http label="Response: Company → Personal Agent"
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "operation_id": "exc_5Rt2",
+  "revision": 1,
+  "state": "succeeded",
+  "summary": "Exchange the Stormline Jacket (M) on order ord_7Hk2 for …",
+  "terms": { … },
+  "user_approval_required": false,
+  "url": "https://example.com/orders/ord_7Hk2/exchanges/exc_5Rt2",
+  "confirmation": {
+    "revision": 1,
+    "approved_by": "user",
+    "confirmed_at": "2026-10-08T12:04:31-07:00"
+  },
+  "result": {
+    "summary": "Exchange placed. The insulated jacket ships today, and a return label for the original jacket was emailed. $70.00 was charged to the card ending in 4242.",
+    "data": { "exchange_id": "exc_5Rt2", "return_id": "rtn_8Lp3" }
+  }
+}
+```
+
+Once confirmed, the operation continues even if the Session Token expires or the User signs out. To
+stop it, the Personal Agent cancels it (section 7).
+
+## 6. Tracking and recovery {#tracking}
+
+The Personal Agent reads an operation at any time:
+
+```http label="Request: Personal Agent → Company"
+GET https://api.example.com/poppy/operations/exc_5Rt2
+Authorization: DPoP eyJhbGciOi…Qp4w
+DPoP: eyJ0eXAiOiJkcG9wK2p3dCIs…
+```
+
+The response is the operation, as in 5.2. While it is `in_progress`, the Company SHOULD include
+`Retry-After`, and the Personal Agent reads again after that time.
+
+These rules make sure an action happens at most once:
+
+- The Company MUST perform each operation at most once, however many times and through whichever
+  channels it is confirmed. The operation ID is what identifies a retry, so confirm needs no
+  `Idempotency-Key`.
+- The Company MUST NOT report `failed` while it doesn't know whether the action took effect, for
+  example after a timeout in one of its own systems. The operation stays `in_progress` until the
+  Company finds out.
+- If a confirm request fails or times out, the Personal Agent retries it or reads the operation,
+  with the same operation ID. It MUST NOT ask for a new proposal of the same action until the
+  operation is final.
+- In a final state, `result.summary` MUST describe every change that was made, including any made by
+  an operation that failed or was cancelled partway. The Personal Agent presents it to the User as
+  the Company's account of what happened.
+
+## 7. Cancelling {#cancelling}
+
+The Personal Agent cancels an operation to decline a proposal, or to ask the Company to stop one
+that is in progress:
+
+```http label="Request: Personal Agent → Company"
+POST https://api.example.com/poppy/operations/exc_5Rt2/cancel
+Authorization: DPoP eyJhbGciOi…Qp4w
+DPoP: eyJ0eXAiOiJkcG9wK2p3dCIs…
+```
+
+- A `proposed` operation becomes `cancelled`, and can't be confirmed.
+- For an `in_progress` operation, the Company stops it if it can. The response shows the current
+  state, which stays `in_progress` until the Company knows whether the action was stopped.
+- A final operation is returned as it is.
+
+If the User withdraws their approval before the Personal Agent has confirmed, the Personal Agent
+doesn't confirm. If it has already confirmed, it cancels.
+
+## 8. What a confirmation proves {#proof}
+
+A confirmation shows that a specific Personal Agent, holding the Session's key, in a specific
+Session and account, stated that the User approved a specific revision of the terms, when, and how.
+Because revisions can't change, the Company knows exactly which terms that statement covers.
+
+It doesn't prove that the User saw the terms or approved them. The Company can't see the Personal
+Agent's interface, so `approved_by` works on trust, like the sign-in types (spec 4.4). A Company MAY
+revoke the `client_id` of a Personal Agent that confirms without the approval it claims. A Company
+that needs proof of the User's approval for an action can ask the User to approve on its own
+website, signed in, the way Direct Sign-In works. This extension doesn't define that step.
+
+## 9. Errors {#errors}
+
+The operations endpoint returns errors as JSON with an `error` code, and the current operation in
+`operation` where noted. The token errors in spec section 6 also apply.
+
+| Error                    | Status | Meaning                                                                                                                            |
+| ------------------------ | ------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `operation_not_found`    | 404    | The operation is unknown, or the Session can't use it (3.2).                                                                       |
+| `terms_changed`          | 409    | The confirmed revision isn't the latest. Includes the current operation, so the Personal Agent can get approval for the new terms. |
+| `user_approval_required` | 403    | The operation needs the User's approval of this revision, not a standing permission.                                               |
+| `rate_limited`           | 429    | Too many requests. Retry after the time in the `Retry-After` header (spec 4.3).                                                    |

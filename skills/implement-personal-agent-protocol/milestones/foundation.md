@@ -5,17 +5,17 @@ DPoP-bound Session Tokens. Every later milestone builds on this one.
 
 ## Read first
 
-- [Section 3, Discovery](https://personalagentprotocol.org/docs/0.2/spec#discovery), with
-  [3.1](https://personalagentprotocol.org/docs/0.2/spec#fields) and
-  [3.2](https://personalagentprotocol.org/docs/0.2/spec#oauth-server)
-- [4.1 Agent identity](https://personalagentprotocol.org/docs/0.2/spec#agent-identity)
-- [4.2 Starting a Session](https://personalagentprotocol.org/docs/0.2/spec#starting-sessions)
-- [4.3 Using Session Tokens](https://personalagentprotocol.org/docs/0.2/spec#sending-tokens)
-- Guides: [Verifying personal agents](https://personalagentprotocol.org/docs/0.2/guides#company-agents),
-  [Verifying DPoP](https://personalagentprotocol.org/docs/0.2/guides#company-dpop),
-  [Signing and verifying JWTs](https://personalagentprotocol.org/docs/0.2/guides#both-signing),
-  [Fetching metadata safely](https://personalagentprotocol.org/docs/0.2/guides#both-fetching),
-  [Handling secrets](https://personalagentprotocol.org/docs/0.2/guides#both-secrets)
+- [Section 3, Discovery](https://personalagentprotocol.org/docs/0.3/spec#discovery), with
+  [3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) and
+  [3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)
+- [4.1 Agent identity](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)
+- [4.2 Starting a Session](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions)
+- [4.3 Using Session Tokens](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)
+- Guides: [Verifying personal agents](https://personalagentprotocol.org/docs/0.3/guides#company-agents),
+  [Verifying DPoP](https://personalagentprotocol.org/docs/0.3/guides#company-dpop),
+  [Signing and verifying JWTs](https://personalagentprotocol.org/docs/0.3/guides#both-signing),
+  [Fetching metadata safely](https://personalagentprotocol.org/docs/0.3/guides#both-fetching),
+  [Handling secrets](https://personalagentprotocol.org/docs/0.3/guides#both-secrets)
 
 Local copies: `reference/spec.md`, `reference/guides.md`. Patterns: `patterns/poppy-json.md`,
 `patterns/token-endpoint.md`, `patterns/dpop.md`, `patterns/session-records.md`.
@@ -24,7 +24,7 @@ Local copies: `reference/spec.md`, `reference/guides.md`. Patterns: `patterns/po
 
 If the design offers only the website, without a `browser_session_endpoint`, publish `poppy.json`
 with `protocol_version`, `organization`, and `web`, and no `auth`
-([3.1](https://personalagentprotocol.org/docs/0.2/spec#fields)). Check it with `check --file` and
+([3.1](https://personalagentprotocol.org/docs/0.3/spec#fields)). Check it with `check --file` and
 `check --milestone foundation`, and stop here.
 
 ## What to build
@@ -42,22 +42,26 @@ with `protocol_version`, `organization`, and `web`, and no `auth`
 - Check the file offline before deploying, with `check --file ./poppy.json` (below).
 
 **2. OAuth server metadata** at the issuer's RFC 8414 well-known URL
-([3.2](https://personalagentprotocol.org/docs/0.2/spec#oauth-server)), with `issuer` exactly equal to
-`auth.issuer`, `token_endpoint`, `revocation_endpoint`, and `poppy_domains` listing every domain whose `poppy.json` names this issuer. `authorization_endpoint` and `device_authorization_endpoint`
-come in the sign-in milestone.
+([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)), with `issuer` exactly equal to
+`auth.issuer`, `token_endpoint`, `revocation_endpoint`, `grant_types_supported` with
+`urn:ietf:params:oauth:grant-type:jwt-bearer` and `refresh_token`, and `protected_resources` listing
+`https://{domain}` for every domain whose `poppy.json` names this issuer, exactly in that form, with
+no path or trailing slash. `scopes_supported`, the
+sign-in grant types, `authorization_endpoint`, and `device_authorization_endpoint` come in the
+sign-in milestone.
 
-**3. Verifying Personal Agents** ([4.1](https://personalagentprotocol.org/docs/0.2/spec#agent-identity)).
+**3. Verifying Personal Agents** ([4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)).
 
 - Fetch the `client_id` URL without following redirects, and check that its `client_id` equals the
-  URL ([guides](https://personalagentprotocol.org/docs/0.2/guides#company-agents)).
+  URL ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-agents)).
 - Check that `jwks_uri` and every `redirect_uris` entry are HTTPS URLs on the `client_id`'s domain.
 - Cache metadata and key sets within bounds, refetch on an unknown `kid` with a rate limit, and
-  apply the fetch limits in [Fetching metadata safely](https://personalagentprotocol.org/docs/0.2/guides#both-fetching).
+  apply the fetch limits in [Fetching metadata safely](https://personalagentprotocol.org/docs/0.3/guides#both-fetching).
 - Apply the design's policy: registration (`invalid_client`, HTTP 401, for unregistered agents),
   allowlist or blocklist, and rate limits by `client_id`.
 
 **4. The token endpoint: starting and renewing Sessions**
-([4.2](https://personalagentprotocol.org/docs/0.2/spec#starting-sessions)).
+([4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions)).
 
 - Accept the JWT bearer grant with a `private_key_jwt` client assertion and a DPoP Proof.
 - Verify both assertions against the Personal Agent's `jwks_uri`. Check the Session assertion's
@@ -65,16 +69,16 @@ come in the sign-in milestone.
   and `exp` are short-lived, and `jti` hasn't been seen.
 - Treat `sub` as the User ID: opaque, never shown, stored with the Session.
 - Return `access_token`, `token_type: "DPoP"`, `expires_in` (greater than 0; hours, not days),
-  `scope: ""`, `session_id`, and `signed_in: false`, with `Cache-Control: no-store`.
+  `scope: ""`, and `session_id`, with `Cache-Control: no-store`.
 - Renewal: the same request with `session_id`. Check the Session belongs to the same `client_id`
   and User ID. Return `invalid_session` if it has ended or doesn't match.
 - Accept `scope` and `resource` on token requests
-  ([4.3](https://personalagentprotocol.org/docs/0.2/spec#sending-tokens)). If any `poppy.json` entry has
+  ([4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)). If any `poppy.json` entry has
   a `resource`, issue tokens for it that work only there.
 - If Session Tokens carry the Company's own session credentials, encrypt them (4.2, "Token format").
 - Errors use the OAuth JSON error response with the codes and statuses in the table in 4.2.
 
-**5. DPoP** ([4.3](https://personalagentprotocol.org/docs/0.2/spec#sending-tokens)). Bind each Session
+**5. DPoP** ([4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)). Bind each Session
 Token to the key in the token request's proof. On every request, at the token endpoint and every
 resource, validate the proof as RFC 9449 §4.3 describes. At the token endpoint, reject a reused
 proof `jti` with a replay cache shared by every token endpoint server. At APIs and conversation
@@ -87,10 +91,10 @@ with a `DPoP-Nonce` header: HTTP 400 OAuth errors at the token endpoint, and HTT
 `WWW-Authenticate: DPoP` at APIs and conversation endpoints (4.3). Rate-limited requests return HTTP 429 with
 `Retry-After`, and at the token endpoint the body `{"error": "rate_limited"}` (4.3, "Rate limits").
 Keep error text free of account details
-([guides](https://personalagentprotocol.org/docs/0.2/guides#company-errors)).
+([guides](https://personalagentprotocol.org/docs/0.3/guides#company-errors)).
 
 **7. Records.** Create the Session record now: `client_id`, User ID, and later the account ("How sign-in
-is remembered" in [4.4](https://personalagentprotocol.org/docs/0.2/spec#sign-in)). See
+is remembered" in [4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). See
 `patterns/session-records.md`.
 
 ## Set up the test identity
@@ -118,16 +122,17 @@ is remembered" in [4.4](https://personalagentprotocol.org/docs/0.2/spec#sign-in)
 - `organization.domain` names the apex domain while the document is served from `www.` after a
   redirect, or the other way round.
 - `issuer` in the metadata differs from `auth.issuer` by a trailing slash.
-- `poppy_domains` is missing a domain whose `poppy.json` names the issuer.
+- `protected_resources` is missing `https://{domain}` for a domain whose `poppy.json` names the
+  issuer, or lists it with a path or trailing slash.
 - Following redirects when fetching the `client_id` URL, or trusting `jku`, `x5u`, or keys embedded
-  in an assertion ([guides](https://personalagentprotocol.org/docs/0.2/guides#both-signing)).
+  in an assertion ([guides](https://personalagentprotocol.org/docs/0.3/guides#both-signing)).
 - A token endpoint replay cache per server or per process, so a proof accepted by one is accepted
-  again by another ([guides](https://personalagentprotocol.org/docs/0.2/guides#company-dpop)).
+  again by another ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-dpop)).
 - `htu` compared with the internal URL behind a proxy, so every proof fails, or with the `Host`
   header, so the check can be bypassed.
 - Checking only the proof's signature, not that its key matches the token's binding.
 - Accepting a token from a query parameter or requiring a cookie
-  ([4.3](https://personalagentprotocol.org/docs/0.2/spec#sending-tokens)).
+  ([4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)).
 - Logging `Authorization`, `DPoP`, assertions, or request bodies at the token endpoint.
 
 ## Check it

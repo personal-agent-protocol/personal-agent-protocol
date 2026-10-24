@@ -1,8 +1,8 @@
 # Pattern: OpenAPI APIs
 
 A listed OpenAPI API accepts DPoP Session Tokens
-([section 6](https://personalagentprotocol.org/docs/0.2/spec#apis),
-[4.3](https://personalagentprotocol.org/docs/0.2/spec#sending-tokens)), and its `url` points to an
+([section 6](https://personalagentprotocol.org/docs/0.3/spec#apis),
+[4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)), and its `url` points to an
 OpenAPI 3.0 or 3.1 description.
 
 ## A. Existing APIs behind a Poppy-aware gateway
@@ -14,7 +14,7 @@ API with the verified identity or an internal credential.
 - Trade-offs: no changes to the APIs themselves. The description may need editing to show the DPoP
   scheme and to leave out endpoints Personal Agents shouldn't use.
 - Watch for: internal credentials that allow more than the Session Token
-  ([guides](https://personalagentprotocol.org/docs/0.2/guides#company-internal)).
+  ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-internal)).
 
 ## B. A dedicated API for Personal Agents
 
@@ -32,7 +32,7 @@ A new API, or a subset of existing endpoints, designed for Personal Agents.
 - A `resource` on the `apis` entry if this API should accept only tokens issued for it (4.3,
   "Narrower tokens").
 - Signed-out Sessions can do what a signed-out visitor can
-  ([guides](https://personalagentprotocol.org/docs/0.2/guides#company-guest)).
+  ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-guest)).
 - Rate limits return 429 with `Retry-After`. The API keeps its own body (4.3, "Rate limits").
 - Accept `Idempotency-Key` on writes
-  ([guides](https://personalagentprotocol.org/docs/0.2/guides#both-retries)).
+  ([guides](https://personalagentprotocol.org/docs/0.3/guides#both-retries)).
