@@ -98,7 +98,11 @@ Content-Type: application/json
     "domain": "manzanitasupply.example"
   },
   "auth": {
-    "issuer": "https://auth.manzanitasupply.example"
+    "issuer": "https://auth.manzanitasupply.example",
+    "scopes": {
+      "orders:read": "See your orders and returns",
+      "orders:write": "Return or exchange items in your orders"
+    }
   },
   "agent": {
     "protocols": [
@@ -128,7 +132,7 @@ Content-Type: application/json
     "refresh_token",
     "authorization_code"
   ],
-  "scopes_supported": ["poppy:read", "poppy:write"],
+  "scopes_supported": ["orders:read", "orders:write"],
   "protected_resources": ["https://manzanitasupply.example"]
 }
 
@@ -292,7 +296,7 @@ Content-Type: application/json
   ?response_type=code
   &client_id=https%3A%2F%2Fatlas.example%2Fagent.json
   &redirect_uri=https%3A%2F%2Fatlas.example%2Foauth%2Fcallback
-  &scope=poppy%3Aread%20poppy%3Awrite
+  &scope=orders%3Aread%20orders%3Awrite
   &state=Xq81vR
   &code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM
   &code_challenge_method=S256
@@ -329,7 +333,7 @@ Cache-Control: no-store
   "expires_in": 3600,
   "refresh_token": "pat_M8xk…Rf2",
   "refresh_token_expires_in": 2592000,
-  "scope": "poppy:read poppy:write",
+  "scope": "orders:read orders:write",
   "session_id": "ses_M4zq"
 }
 
@@ -574,7 +578,11 @@ Content-Type: application/json
         { "name": "email", "label": "Email", "secret": false },
         { "name": "password", "label": "Password", "secret": true }
       ],
-      "scopes": ["poppy:read", "poppy:write"]
+      "scopes": ["account:read", "account:write"]
+    },
+    "scopes": {
+      "account:read": "See your plan, bills, and service appointments",
+      "account:write": "Change your plan and book or move service appointments"
     }
   },
   "agent": {
@@ -599,7 +607,7 @@ DPoP: ${DPOP}
 Content-Type: application/json
 
 {
-  "scope": "poppy:read poppy:write",
+  "scope": "account:read account:write",
   "credentials": { "email": "…", "password": "…" }
 }
 
@@ -631,7 +639,7 @@ Content-Type: application/json
   "token_type": "DPoP",
   "expires_in": 3600,
   "refresh_token": "pat_L5wd…Hn8",
-  "scope": "poppy:read poppy:write",
+  "scope": "account:read account:write",
   "session_id": "ses_L2v9"
 }`,
                     },
@@ -995,7 +1003,7 @@ DPoP: ${DPOP}
 
 grant_type=refresh_token
 &refresh_token=pat_P3kq…Vb7
-&scope=poppy%3Aread
+&scope=bookings%3Aread
 ${CLIENT_AUTH}
 
 HTTP/1.1 200 OK
@@ -1006,7 +1014,7 @@ Cache-Control: no-store
   "access_token": "${TOKENS.pacifica}",
   "token_type": "DPoP",
   "expires_in": 3600,
-  "scope": "poppy:read",
+  "scope": "bookings:read",
   "session_id": "ses_P8t1"
 }`,
                     },

@@ -57,6 +57,7 @@ const SECTIONS: Record<string, Record<string, Milestone>> = {
         secrets: "foundation",
         trust: "foundation",
         "assertion-audience": "foundation",
+        credentials: "sign-in",
     },
     guides: {
         "both-secrets": "foundation",
@@ -69,6 +70,7 @@ const SECTIONS: Record<string, Record<string, Milestone>> = {
         "company-agents": "foundation",
         "company-dpop": "foundation",
         "company-lifetimes": "sign-in",
+        "company-scope-descriptions": "sign-in",
         "company-consent": "sign-in",
         "company-device": "sign-in",
         "company-mediated": "sign-in",
@@ -120,6 +122,7 @@ const OVERRIDES: [string, Party | "none"][] = [
     ["exp MUST be at most five minutes after iat", "agent"],
     ["It MUST also check that protected_resources includes https://{organization.domain}", "agent"],
     ["Required, and it MUST include urn:ietf:params:oauth:grant-type:jwt-bearer", "company"],
+    ["When the website refuses an action because the Session lacks a scope", "company"],
     ["Personal Agents and Companies MUST ignore extensions", "both"],
     ["Personal Agents MUST NOT send tokens in a URL, and Companies MUST NOT", "both"],
     ["Personal Agents and Company Agents SHOULD NOT put JSON", "both"],

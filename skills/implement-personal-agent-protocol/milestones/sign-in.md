@@ -15,7 +15,8 @@ offers only signed-out Sessions.
 - [4.8 Account Tokens](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)
 - [4.9 Signing out](https://personalagentprotocol.org/docs/0.3/spec#sign-out)
 - [7.11 Sign-in during a conversation](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)
-- Guides: [Consent pages](https://personalagentprotocol.org/docs/0.3/guides#company-consent),
+- Guides: [Describing scopes](https://personalagentprotocol.org/docs/0.3/guides#company-scope-descriptions),
+  [Consent pages](https://personalagentprotocol.org/docs/0.3/guides#company-consent),
   [Device sign-in](https://personalagentprotocol.org/docs/0.3/guides#company-device),
   [Mediated sign-in](https://personalagentprotocol.org/docs/0.3/guides#company-mediated),
   [Token lifetimes and sign-out](https://personalagentprotocol.org/docs/0.3/guides#company-lifetimes),
@@ -28,8 +29,10 @@ Patterns: `patterns/sign-in.md`, `patterns/scopes.md`, `patterns/session-records
 ## What to build
 
 **Scopes** ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). Every scope a Personal
-Agent can request in `scopes_supported` in the OAuth metadata. A description of each custom scope,
-in the OAuth security scheme of an OpenAPI description you list or in `auth.scopes`.
+Agent can request in `scopes_supported` in the OAuth metadata. A description of every scope, in
+the OAuth security scheme of an OpenAPI description you list or in `auth.scopes`. Write them in
+words a User and a language model can understand
+([guides](https://personalagentprotocol.org/docs/0.3/guides#company-scope-descriptions)).
 `auth.mediated.scopes` if you offer Mediated Sign-In. Every sign-in request must include `scope`.
 Reject missing, unknown, or unavailable scopes with `invalid_scope`. Never grant more than was
 requested and allowed for the type. The User may approve fewer, but at least one: approving none is
@@ -107,7 +110,10 @@ name, domain, scopes, and last use
 **Scopes on every channel** (4.4,
 [guides](https://personalagentprotocol.org/docs/0.3/guides#company-scopes)). One shared check that the
 website, APIs, MCP tools, the Company Agent's tools, and live agents' tools all call.
-`poppy:write` doesn't include `poppy:read`. See `patterns/scopes.md`.
+Check read and write scopes separately. On the website, a refusal for a missing scope should show
+a visible error naming the scopes
+([section 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)). See
+`patterns/scopes.md`.
 
 **Conversations** ([7.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)).
 
@@ -151,7 +157,9 @@ new signed-in Session with no User ID, which ends when the sign-in is revoked or
   account access (4.9).
 - Scope checks only in the API layer, so the Company Agent or a live agent can do what the token
   doesn't allow (7.9, 7.11).
-- Treating `poppy:write` as including `poppy:read`.
+- Treating a write scope as including the matching read scope when its description doesn't say so.
+- A website that refuses a missing scope with a generic error or a sign-in page, without naming the
+  scope (section 5).
 - Logging Mediated Sign-In request bodies or one-time codes
   ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-mediated)).
 
@@ -175,8 +183,8 @@ test needs signed requests, without printing or copying the private key.
 - Revoke it, then see the Session continue signed out, the old Session Token refused for account
   actions, and the Account Token refused with `invalid_grant`.
 - Disconnect from account settings and see the same.
-- With a `poppy:read` token, try a write on each channel: API, MCP tool, the Company Agent, a live
-  agent's tools, and the website. Each refuses.
+- With a read-only token, try a write on each channel: API, MCP tool, the Company Agent, a live
+  agent's tools, and the website. Each refuses, and the website names the missing scope.
 - In a conversation, ask for an account action signed out: see an `authorization` event and a
   message. Sign in, continue the same conversation, and see it work.
 - Check logs for tokens, codes, and credentials.

@@ -207,6 +207,12 @@ export const CATALOG: CheckInfo[] = [
         "spec#oauth-server",
         "Required if the Company offers any type of sign-in, and it MUST then include every account scope a Personal Agent can request (4.4).",
     ),
+    foundation(
+        "metadata.scopes-described",
+        "Every scope in scopes_supported has a description",
+        "spec#sign-in",
+        "The Company MUST describe each scope in scopes_supported, so the Personal Agent can choose the ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it lists (section 6), or otherwise in auth.scopes.",
+    ),
 
     // Milestone 1: starting and renewing Sessions (4.2).
     foundation(

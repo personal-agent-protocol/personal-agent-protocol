@@ -4,6 +4,7 @@ import { PROTOCOL_VERSION } from "../catalog.ts";
 import { getFollowing, isJsonContentType, type Exchange } from "../http.ts";
 import { formatSchemaErrors } from "../schema.ts";
 import { check } from "../schemas.ts";
+import { loadOpenApi } from "./openapi.ts";
 import {
     describeGot,
     describeSent,
@@ -40,6 +41,7 @@ export const METADATA_IDS = [
     "metadata.authorization-endpoint",
     "metadata.device-authorization-endpoint",
     "metadata.scopes-supported",
+    "metadata.scopes-described",
 ];
 
 // The origin to check, from a URL or a bare domain.
@@ -521,7 +523,7 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
                     ? "no scopes_supported"
                     : `scopes_supported ${JSON.stringify(supported)}`,
             expected: "scopes_supported, listing every scope a Personal Agent can request",
-            cause: "Personal Agents request only scopes from scopes_supported, such as poppy:read and poppy:write.",
+            cause: "Personal Agents request only scopes from scopes_supported.",
         });
     } else {
         const missing = Array.isArray(mediated)
@@ -535,5 +537,44 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
                 cause: "auth.mediated.scopes lists scopes that scopes_supported doesn't. Add them, so Personal Agents can request them.",
             });
         } else r.pass("metadata.scopes-supported");
+        await checkScopesDescribed(ctx, r, supported);
+    }
+}
+
+// Every scope in scopes_supported is described in auth.scopes or in a listed OpenAPI description.
+async function checkScopesDescribed(
+    ctx: Context,
+    r: Recorder,
+    supported: unknown[],
+): Promise<void> {
+    const poppy = ctx.discovered.poppy!;
+    const described = new Set(Object.keys(poppy.auth?.scopes ?? {}));
+    let missing = supported.filter((s): s is string => typeof s === "string" && !described.has(s));
+    if (missing.length === 0) {
+        r.pass("metadata.scopes-described", {
+            summary: "Every scope is described in auth.scopes.",
+        });
+        return;
+    }
+    const apis = (poppy.apis ?? []).filter(
+        (a) => a?.type === "openapi" && typeof a.url === "string",
+    );
+    const loaded = await Promise.all(apis.map((a) => loadOpenApi(ctx, a.url!)));
+    for (const l of loaded) for (const s of l.scopes ?? []) described.add(s);
+    missing = missing.filter((s) => !described.has(s));
+    if (missing.length === 0) {
+        r.pass("metadata.scopes-described");
+    } else if (loaded.some((l) => !l.problem && l.scopes === undefined)) {
+        r.skip(
+            "metadata.scopes-described",
+            `${missing.join(", ")} isn't in auth.scopes, and the validator can't read scopes from a YAML OpenAPI description. Check by hand.`,
+        );
+    } else {
+        r.fail("metadata.scopes-described", {
+            exchange: loaded.map((l) => l.exchange),
+            got: `no description for ${missing.join(", ")}`,
+            expected: "a description of every scope in scopes_supported",
+            cause: "Personal Agents choose scopes by their descriptions. Describe each scope in the OAuth 2.0 security scheme of an OpenAPI description listed in apis, or in auth.scopes in poppy.json.",
+        });
     }
 }

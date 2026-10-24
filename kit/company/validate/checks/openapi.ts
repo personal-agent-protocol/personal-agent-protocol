@@ -9,18 +9,29 @@ export type OpenApiInfo = {
     version?: string;
     title?: string;
     paths?: number;
+    // Scope names from the description's OAuth 2.0 security schemes, if it's JSON.
+    scopes?: string[];
     problem?: string;
 };
 
 // Reads the version and title from a JSON or YAML description, without a YAML parser.
 export function readOpenApi(
     ex: Exchange,
-): { version?: string; title?: string; paths?: number; swagger?: string } | undefined {
+):
+    | { version?: string; title?: string; paths?: number; swagger?: string; scopes?: string[] }
+    | undefined {
     const json = ex.json as
-        | { openapi?: unknown; swagger?: unknown; info?: { title?: unknown }; paths?: object }
+        | {
+              openapi?: unknown;
+              swagger?: unknown;
+              info?: { title?: unknown };
+              paths?: object;
+              components?: { securitySchemes?: Record<string, unknown> };
+          }
         | undefined;
     if (json && typeof json === "object") {
         return {
+            scopes: oauthScopes(json.components?.securitySchemes),
             version: typeof json.openapi === "string" ? json.openapi : undefined,
             swagger: typeof json.swagger === "string" ? json.swagger : undefined,
             title: typeof json.info?.title === "string" ? json.info.title : undefined,
@@ -36,6 +47,20 @@ export function readOpenApi(
     if (!version && !swagger) return undefined;
     const title = /^info:\s*\n(?:[ \t]+.*\n)*?[ \t]+title:\s*["']?(.*?)["']?\s*$/m.exec(text)?.[1];
     return { version, swagger, title };
+}
+
+// The scope names in every flow of every OAuth 2.0 security scheme.
+function oauthScopes(schemes: Record<string, unknown> | undefined): string[] {
+    const names: string[] = [];
+    for (const scheme of Object.values(schemes ?? {})) {
+        const s = scheme as { type?: unknown; flows?: Record<string, { scopes?: unknown }> };
+        if (s?.type !== "oauth2" || !s.flows || typeof s.flows !== "object") continue;
+        for (const flow of Object.values(s.flows)) {
+            if (flow?.scopes && typeof flow.scopes === "object")
+                names.push(...Object.keys(flow.scopes));
+        }
+    }
+    return names;
 }
 
 export async function loadOpenApi(ctx: Context, url: string): Promise<OpenApiInfo> {
@@ -60,6 +85,7 @@ export async function loadOpenApi(ctx: Context, url: string): Promise<OpenApiInf
         version: info.version ?? (info.swagger ? `swagger ${info.swagger}` : undefined),
         title: info.title,
         paths: info.paths,
+        scopes: info.scopes,
     };
 }
 

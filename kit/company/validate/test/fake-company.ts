@@ -30,6 +30,10 @@ export type Flaws = {
     bearerAtDpopMcp?: boolean;
     // Issues a DPoP token for the MCP server without DPoP when the request has a proof.
     dpopAtBearerMcp?: boolean;
+    // A scope in scopes_supported with no description anywhere.
+    undescribedScope?: boolean;
+    // Describes its scopes in auth.scopes instead of the OpenAPI description.
+    scopesInPoppy?: boolean;
 };
 
 export const ORIGIN = "https://shop.test";
@@ -293,7 +297,10 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
     const poppy = () => ({
         protocol_version: PROTOCOL_VERSION,
         organization: { name: "Shop", domain: flaws.domain ?? "shop.test" },
-        auth: { issuer: ORIGIN },
+        auth: {
+            issuer: ORIGIN,
+            ...(flaws.scopesInPoppy ? { scopes: { "orders:read": "See your orders" } } : {}),
+        },
         agent: { protocols: [{ type: "poppy", endpoint: CONV }] },
         apis: [
             { type: "openapi", url: `${ORIGIN}/openapi.json`, description: "Orders" },
@@ -345,12 +352,36 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                     "refresh_token",
                     "authorization_code",
                 ],
-                scopes_supported: ["poppy:read"],
+                scopes_supported: flaws.undescribedScope
+                    ? ["orders:read", "addresses"]
+                    : ["orders:read"],
                 protected_resources: ["https://shop.test"],
             });
         }
         if (path === "/openapi.json")
-            return json(200, { openapi: "3.1.0", info: { title: "Shop" }, paths: {} });
+            return json(200, {
+                openapi: "3.1.0",
+                info: { title: "Shop" },
+                paths: {},
+                ...(flaws.scopesInPoppy
+                    ? {}
+                    : {
+                          components: {
+                              securitySchemes: {
+                                  oauth: {
+                                      type: "oauth2",
+                                      flows: {
+                                          authorizationCode: {
+                                              authorizationUrl: `${ORIGIN}/oauth/authorize`,
+                                              tokenUrl: TOKEN,
+                                              scopes: { "orders:read": "See your orders" },
+                                          },
+                                      },
+                                  },
+                              },
+                          },
+                      }),
+            });
         if (path === "/.well-known/oauth-protected-resource/mcp")
             return json(200, {
                 resource: MCP,

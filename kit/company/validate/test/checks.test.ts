@@ -176,6 +176,21 @@ test("a retried first message that starts a new conversation fails", async () =>
     assert.equal(byId("conversations.close").status, "pass", "the conversation is still closed");
 });
 
+test("every scope described, in OpenAPI or auth.scopes, passes metadata.scopes-described", async () => {
+    for (const flaws of [{}, { scopesInPoppy: true }]) {
+        const { byId } = await run(flaws, "foundation", ["metadata."]);
+        assert.equal(byId("metadata.scopes-described").status, "pass");
+    }
+});
+
+test("a scope in scopes_supported with no description fails metadata.scopes-described", async () => {
+    const { byId } = await run({ undescribedScope: true }, "foundation", ["metadata."]);
+    const r = byId("metadata.scopes-described");
+    assert.equal(r.status, "fail");
+    assert.match(r.got ?? "", /addresses/);
+    assert.doesNotMatch(r.got ?? "", /orders:read/);
+});
+
 test("organization.domain that doesn't match the host fails discovery and metadata", async () => {
     const { byId } = await run({ domain: "other.test" }, "foundation", ["discovery.", "metadata."]);
     assert.equal(byId("discovery.domain-matches-host").status, "fail");

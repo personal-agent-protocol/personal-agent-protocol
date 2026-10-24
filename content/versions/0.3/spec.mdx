@@ -44,7 +44,7 @@ when they appear in capitals, as shown here.
 | **Sessions and authorization** |                                                                                                                                                                                                                                                          |
 | User ID                        | The ID a Personal Agent gives one User at one Company. It is stable, so the Company recognizes the User across Sessions even when they're signed out. It is opaque and different at each Company, so Companies can't match Users with each other (4.2).  |
 | Session                        | One User's activity at one Company through one Personal Agent, across web browsing, APIs, and conversations. It starts signed out and can be signed in to one Company account. A Personal Agent can have several Sessions for the same User (section 4). |
-| Session Token                  | The short-lived access token for a Session, used at the Company's APIs and conversations. It is signed out, or signed in with the account scopes the User granted, such as `poppy:read` (4.2).                                                           |
+| Session Token                  | The short-lived access token for a Session, used at the Company's APIs and conversations. It is signed out, or signed in with the account scopes the User granted, such as `orders:read` (4.2).                                                          |
 | Account Token                  | A long-lived credential from sign-in that lets the Personal Agent get signed-in Session Tokens later without asking the User again. It is used only at the Company's token endpoint (4.8).                                                               |
 | DPoP Proof                     | A signature the Personal Agent sends with each request to show it holds the key its Session Token is bound to (4.3).                                                                                                                                     |
 | Direct Sign-In                 | The User signs in on the Company's own page in their browser and approves access (4.5).                                                                                                                                                                  |
@@ -108,10 +108,12 @@ An example document:
         { "name": "email", "label": "Email", "secret": false },
         { "name": "password", "label": "Password", "secret": true }
       ],
-      "scopes": ["poppy:read"]
+      "scopes": ["orders:read"]
     },
     "scopes": {
-      "addresses": "Manage saved shipping addresses"
+      "orders:read": "See your orders, returns, and bookings",
+      "orders:write": "Exchange or return items, and change bookings",
+      "addresses": "See and change your saved shipping addresses"
     }
   },
   "agent": {
@@ -151,7 +153,7 @@ An example document:
 | `organization`     | Yes                                                                          | Display name and domain. `domain` MUST be the host that serves the document, after any redirects. Domains are compared ignoring case, with no other normalization.                                                                                                                                                                                                                                        |
 | `auth`             | If `agent`, `apis`, `feedback`, or `web.browser_session_endpoint` is present | `issuer` is the Company's OAuth issuer identifier, an HTTPS URL. It identifies the Company, and the Personal Agent finds the Company's OAuth endpoints, scopes, and Direct and Device Sign-In from it (3.2). Sessions need `auth`, so a Company without it can only be browsed as an ordinary website (section 5).                                                                                        |
 | `auth.mediated`    | If supported                                                                 | `endpoint` is where the Personal Agent sends credentials, and `fields` lists them (4.7). `scopes` lists the scopes Mediated Sign-In can grant.                                                                                                                                                                                                                                                            |
-| `auth.scopes`      | No                                                                           | A description of each scope the Company defines beyond `poppy:read` and `poppy:write` that no OpenAPI description it lists describes, keyed by scope name, in the same form as the `scopes` of an OAuth 2.0 security scheme in OpenAPI (4.4).                                                                                                                                                             |
+| `auth.scopes`      | For scopes no OpenAPI description describes                                  | A description of each scope, keyed by scope name, in the same form as the `scopes` of an OAuth 2.0 security scheme in OpenAPI. It describes each scope in `scopes_supported` that no OpenAPI description the Company lists describes (4.4).                                                                                                                                                               |
 | `agent`            | One of `agent`, `apis`, or `web`                                             | The Company Agent. `protocols` lists its supported conversation protocols, each with a `type` and HTTPS `endpoint` (section 7). An entry MAY include a `resource` to require tokens issued for it (4.3).                                                                                                                                                                                                  |
 | `apis`             | One of `agent`, `apis`, or `web`                                             | A list of APIs. Each has a `type` from section 6, a `url`, and a short `description` that helps the Personal Agent pick the right one. An entry MAY include a `resource` to require tokens issued for it (4.3).                                                                                                                                                                                           |
 | `web`              | One of `agent`, `apis`, or `web`                                             | The Company's website. The optional `browser_session_endpoint` is where the Personal Agent's browser joins a Session (section 5). Without it, Personal Agents browse the site as ordinary signed-out visitors.                                                                                                                                                                                            |
@@ -201,7 +203,7 @@ any domain could claim another Company's issuer and receive its tokens.
     "authorization_code",
     "urn:ietf:params:oauth:grant-type:device_code"
   ],
-  "scopes_supported": ["poppy:read", "poppy:write", "addresses"],
+  "scopes_supported": ["orders:read", "orders:write", "addresses"],
   "dpop_signing_alg_values_supported": ["ES256", "RS256"],
   "protected_resources": [
     "https://example.com",
@@ -618,7 +620,7 @@ grant_type=refresh_token
   "access_token": "eyJhbGciOi…Mc8r",
   "token_type": "Bearer",
   "expires_in": 3600,
-  "scope": "poppy:read",
+  "scope": "orders:read",
   "session_id": "ses_2Lm0"
 }
 ```
@@ -666,37 +668,37 @@ complete a Direct Sign-In page itself. The types work on trust: a Personal Agent
 Device Sign-In only when the User signs in themselves. Companies MAY revoke the `client_id` of a
 Personal Agent that doesn't (4.1).
 
+A Personal Agent SHOULD use Direct or Device Sign-In rather than Mediated Sign-In when the Company
+offers it and the scopes it can grant cover the task. With Direct and Device Sign-In, the User's password stays
+with the Company, and the User can see and revoke what they approved. In turn, a Company that offers
+Direct or Device Sign-In SHOULD make its scopes and APIs cover the tasks Users ask Personal Agents to
+do, so that Personal Agents don't need the User's credentials (9.5).
+
 #### Scopes
 
-Scopes say what account access a sign-in grants. The protocol defines two broad scopes:
+Scopes say what account access a sign-in grants. Each Company defines its own scopes, such as
+`orders:read`, `orders:write`, and `addresses`, usually the OAuth scopes it already has. The
+protocol defines none. Names starting with `poppy:` are reserved for this protocol, so a Company's
+scopes can't clash with ones it defines later.
 
-| Scope         | Account access                                                  |
-| ------------- | --------------------------------------------------------------- |
-| `poppy:read`  | View account information, such as orders and bookings.          |
-| `poppy:write` | Make changes, such as exchanging an item or updating a booking. |
-
-- The scopes are independent: request `poppy:read poppy:write` when both are needed. Companies
-  decide which operations require each scope and enforce them across web browsing, APIs, and actions
-  performed by the Company Agent.
 - The Company lists the scopes it supports in `scopes_supported` in its OAuth server metadata (3.2).
   The Personal Agent requests only scopes from that list. The list MAY leave out scopes the Company
   offers only to its other clients, and the Company MAY limit the scopes it grants by client, as
   [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749#section-3.3) §3.3 allows.
-- Companies MAY define their own scopes, such as `addresses`. Names starting with `poppy:` are
-  reserved for this protocol, so a Company's existing OAuth scopes can't clash with them. The
-  Company describes each of its own scopes so the Personal Agent can choose the ones a task needs:
-  in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it lists (section 6), or
-  otherwise in `auth.scopes`, a map from scope name to description in the same form as the `scopes`
-  of an OAuth 2.0 security scheme in OpenAPI.
-- A Company MAY leave out `poppy:read` and `poppy:write` and offer only its own, narrower scopes, if
-  broad access doesn't meet its security needs. The Personal Agent then requests the scopes the task
-  needs from those the Company lists.
+- The Company MUST describe each scope in `scopes_supported`, so the Personal Agent can choose the
+  ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it
+  lists (section 6), or otherwise in `auth.scopes`. The protocol doesn't mark scopes as read-only:
+  the Personal Agent relies on the descriptions to tell what each scope allows.
+- Companies decide which operations require each scope and enforce them across web browsing, APIs,
+  and actions performed by the Company Agent.
 - Direct and Device Sign-In can grant any scope in `scopes_supported`. Mediated Sign-In can grant
-  only the scopes in `auth.mediated.scopes`: in the discovery example, only `poppy:read`. The
+  only the scopes in `auth.mediated.scopes`: in the discovery example, only `orders:read`. The
   Company MUST NOT grant scopes beyond those requested and allowed for the type used.
 - Each sign-in request MUST include `scope` as a space-separated string, following [OAuth scope
   syntax](https://www.rfc-editor.org/rfc/rfc6749#section-3.3). Missing, unknown, or unavailable
   scopes are rejected with `invalid_scope`.
+- A Personal Agent SHOULD request only the scopes the User's tasks need, following [RFC
+  9700](https://www.rfc-editor.org/rfc/rfc9700#section-2.3) §2.3.
 - If a task needs more access than the Account Token allows, the User signs in again, through a type
   that allows the required scopes, and the Personal Agent requests all the scopes it needs. The new
   Account Token replaces the old one, which the Personal Agent SHOULD revoke (4.9). A pending or
@@ -714,7 +716,7 @@ scope: if the User approves none, it ends as a decline.
   "expires_in": 3600,
   "refresh_token": "pat_8Hk2…Wq1",
   "refresh_token_expires_in": 2592000,
-  "scope": "poppy:read poppy:write",
+  "scope": "orders:read orders:write",
   "session_id": "ses_2Lm0"
 }
 ```
@@ -760,7 +762,7 @@ https://auth.example.com/oauth/authorize
   ?response_type=code
   &client_id=https%3A%2F%2Fagent.example%2Fagent.json
   &redirect_uri=https%3A%2F%2Fagent.example%2Foauth%2Fcallback
-  &scope=poppy%3Aread%20poppy%3Awrite
+  &scope=orders%3Aread%20orders%3Awrite
   &state=Xq81vR
   &code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM
   &code_challenge_method=S256
@@ -817,7 +819,7 @@ this kind of sign-in. The Company's OAuth server metadata gives the `device_auth
 POST https://auth.example.com/oauth/device
 Content-Type: application/x-www-form-urlencoded
 
-scope=poppy%3Aread%20poppy%3Awrite
+scope=orders%3Aread%20orders%3Awrite
 &client_id=https%3A%2F%2Fagent.example%2Fagent.json
 &client_assertion_type=urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
 &client_assertion=eyJhbGciOiJFUzI1NiIs…
@@ -898,7 +900,7 @@ DPoP: eyJ0eXAiOiJkcG9wK2p3dCIs…
 Content-Type: application/json
 
 {
-  "scope": "poppy:read",
+  "scope": "orders:read",
   "credentials": { "email": "…", "password": "…" }
 }
 ```
@@ -913,7 +915,7 @@ returns `complete` with the same fields as the response in 4.4:
   "token_type": "DPoP",
   "expires_in": 3600,
   "refresh_token": "pat_3Vn7…Lk2",
-  "scope": "poppy:read",
+  "scope": "orders:read",
   "session_id": "ses_2Lm0"
 }
 ```
@@ -999,7 +1001,7 @@ DPoP: eyJ0eXAiOiJkcG9wK2p3dCIs…
 grant_type=refresh_token
 &refresh_token=pat_8Hk2…Wq1
 &session_id=ses_4Tn8
-&scope=poppy%3Aread
+&scope=orders%3Aread
 &client_id=https%3A%2F%2Fagent.example%2Fagent.json
 &client_assertion_type=urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
 &client_assertion=eyJhbGciOiJFUzI1NiIs…
@@ -1159,7 +1161,9 @@ covers, and its lifetime, and links it to the Session on its servers. The cookie
 
 The website applies the Session's scopes, as the Company's APIs do. While the browser carries the
 Session's cookie, the Company handles its requests as that Session, signed in or out, whatever other
-cookies the browser holds from earlier visits.
+cookies the browser holds from earlier visits. When the website refuses an action because the
+Session lacks a scope, it SHOULD show a visible error message that names the missing scopes, so the
+Personal Agent can request them (4.4).
 
 The Personal Agent MAY post a new browser assertion at any time, for example when the website no
 longer recognizes the Session. Each one replaces the cookie the Company set before.
@@ -1220,7 +1224,7 @@ comes from a Personal Agent, which one, and for which User.
 
 ```http label="Response: Company → Personal Agent"
 HTTP/1.1 403 Forbidden
-WWW-Authenticate: DPoP error="insufficient_scope", scope="poppy:read poppy:write"
+WWW-Authenticate: DPoP error="insufficient_scope", scope="orders:read orders:write"
 ```
 
 ## 7. Conversations {#conversations}
@@ -1680,7 +1684,7 @@ message, so a User in a Direct Conversation sees the request:
   "type": "authorization",
   "created_at": "2026-10-08T19:04:00Z",
   "error": "insufficient_scope",
-  "scope": "poppy:read poppy:write"
+  "scope": "orders:read orders:write"
 }
 ```
 
@@ -1829,6 +1833,18 @@ Company is rejected by every other. Each Company has its own issuer (3.2), so th
 Companies a provider hosts on shared servers. A browser assertion names the Company's
 `web.browser_session_endpoint` instead, and has its own `typ`, so no token endpoint accepts it
 (section 5).
+
+### 9.5 Signing in with the User's credentials {#credentials}
+
+Direct and Device Sign-In delegate access: the User approves scopes on the Company's own page, and
+the Company knows which Personal Agent acts and can limit or revoke it without affecting the User.
+Mediated Sign-In gives the Personal Agent the User's credentials, but the Company still knows which
+Personal Agent signed in, and limits it to `auth.mediated.scopes` (4.7). A Personal Agent that signs
+in on the Company's website with the User's credentials, outside this protocol, looks like the User:
+the Company can't limit what it does, and can only stop it by blocking it entirely. A Company that
+offers no Direct or Device Sign-In, or whose scopes don't cover what Users need, can expect Personal
+Agents to sign in that way. That is why 4.4 asks Personal Agents to prefer Direct and Device
+Sign-In over Mediated Sign-In, and Companies that offer them to make them cover what Users need.
 
 ## 10. References {#references}
 

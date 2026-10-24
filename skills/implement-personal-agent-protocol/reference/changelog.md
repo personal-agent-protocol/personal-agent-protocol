@@ -14,6 +14,18 @@ Breaking · [Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) �
 
 `auth.direct` and `auth.device` are removed from `poppy.json`. A Company offers Direct and Device Sign-In when `grant_types_supported` in its OAuth server metadata includes `authorization_code` or `urn:ietf:params:oauth:grant-type:device_code`, so there's no second list to drift out of sync with the issuer. `grant_types_supported` is now required, with the JWT bearer and refresh token grants. A Company whose issuer offers one of these grants to other clients offers it to Personal Agents too. Direct and Device Sign-In can grant any scope in `scopes_supported`. Only Mediated Sign-In keeps its own list, `auth.mediated.scopes`.
 
+#### Company-defined scopes only
+
+Breaking · [Spec 2](https://personalagentprotocol.org/docs/0.3/spec#terms) · [Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Guides: Enforcing scopes everywhere](https://personalagentprotocol.org/docs/0.3/guides#company-scopes)
+
+The protocol no longer defines `poppy:read` and `poppy:write`. Each Company defines its own scopes, usually the OAuth scopes it already has, and must describe each one, in an OpenAPI description it lists or in `auth.scopes`. Names starting with `poppy:` stay reserved.
+
+#### Prefer delegated sign-in
+
+[Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Spec 9.5](https://personalagentprotocol.org/docs/0.3/spec#credentials) · [Guides: Choosing how to sign in](https://personalagentprotocol.org/docs/0.3/guides#agent-choosing-sign-in)
+
+Personal Agents should use Direct or Device Sign-In rather than Mediated Sign-In when the Company offers it and it covers the task. Companies that offer Direct or Device Sign-In should make their scopes and APIs cover what Users need. Section 9.5 explains what a Company gives up when Personal Agents sign in with the User's credentials outside the protocol.
+
 ### Minor changes
 
 #### `protected_resources` replaces `poppy_domains`
@@ -26,7 +38,19 @@ The issuer confirms which domains name it with `protected_resources`, the field 
 
 Breaking · [Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Guides: An issuer for personal agents](https://personalagentprotocol.org/docs/0.3/guides#company-agent-issuer)
 
-A Company lists every scope a Personal Agent can request in `scopes_supported` in its OAuth server metadata, as RFC 8414 defines, and Personal Agents request only scopes from it. A Company describes its own scopes in the OAuth security scheme of an OpenAPI description it lists, or otherwise in `auth.scopes`, which replaces `auth.custom_scopes` and has the same form as the `scopes` of an OAuth 2.0 security scheme in OpenAPI. `scopes_supported` may leave out scopes the Company doesn't offer Personal Agents, and the Company may limit the scopes it grants by client, so an issuer that serves other clients doesn't need a separate one for Personal Agents. The guides explain when a separate issuer is still useful.
+A Company lists every scope a Personal Agent can request in `scopes_supported` in its OAuth server metadata, as RFC 8414 defines, and Personal Agents request only scopes from it. A Company describes its scopes in the OAuth security scheme of an OpenAPI description it lists, or otherwise in `auth.scopes`, which replaces `auth.custom_scopes` and has the same form as the `scopes` of an OAuth 2.0 security scheme in OpenAPI. `scopes_supported` may leave out scopes the Company doesn't offer Personal Agents, and the Company may limit the scopes it grants by client, so an issuer that serves other clients doesn't need a separate one for Personal Agents. The guides explain when a separate issuer is still useful.
+
+#### Requesting and describing scopes
+
+[Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Guides: Choosing how to sign in](https://personalagentprotocol.org/docs/0.3/guides#agent-choosing-sign-in) · [Guides: Describing scopes](https://personalagentprotocol.org/docs/0.3/guides#company-scope-descriptions) · [Guides: Consent pages](https://personalagentprotocol.org/docs/0.3/guides#company-consent)
+
+Personal Agents should request only the scopes a task needs, following RFC 9700 §2.3. The guides add advice on writing scope descriptions a User and a language model can understand, and on consent pages that present scopes in plain words and show which are new.
+
+#### Missing scopes on the website
+
+[Spec 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing) · [Guides: Enforcing scopes everywhere](https://personalagentprotocol.org/docs/0.3/guides#company-scopes)
+
+When a Company's website refuses an action because the Session lacks a scope, it should show a visible error that names the missing scopes, so the Personal Agent can request them.
 
 #### User IDs as pairwise identifiers
 

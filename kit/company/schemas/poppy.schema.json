@@ -45,8 +45,9 @@
                     }
                 },
                 "scopes": {
+                    "description": "A description of each scope, keyed by scope name, in the same form as the scopes of an OpenAPI OAuth 2.0 security scheme. Every scope in scopes_supported needs a description here or in an OpenAPI description the Company lists.",
                     "type": "object",
-                    "additionalProperties": { "type": "string" }
+                    "additionalProperties": { "type": "string", "minLength": 1 }
                 }
             }
         },

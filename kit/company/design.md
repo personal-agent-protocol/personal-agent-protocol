@@ -29,10 +29,10 @@ offer it. Mediated Sign-In means accepting credentials from Personal Agents, wit
 [4.7](https://personalagentprotocol.org/docs/spec#mediated-sign-in) and the
 [guides](https://personalagentprotocol.org/docs/guides#company-mediated).
 
-**Scopes** ([4.4](https://personalagentprotocol.org/docs/spec#sign-in)). Whether to offer
-`poppy:read` and `poppy:write`, which custom scopes to define (names can't start with `poppy:`),
-and which scopes each sign-in type can grant. A Company MAY offer only narrower custom scopes if
-broad access doesn't meet its security needs. See `patterns/scopes.md`.
+**Scopes** ([4.4](https://personalagentprotocol.org/docs/spec#sign-in)). Which scopes to offer,
+usually the OAuth scopes the Company already has (names can't start with `poppy:`), where each one
+is described (an OpenAPI description or `auth.scopes`), and which scopes Mediated Sign-In can grant.
+See `patterns/scopes.md`.
 
 **Which Personal Agents** ([4.1](https://personalagentprotocol.org/docs/spec#agent-identity)).
 Accept any Personal Agent, keep an allowlist or blocklist by `client_id`, or require registration.
@@ -79,17 +79,17 @@ Status: <draft | approved by <engineer> on <YYYY-MM-DD>>
 
 ## 1. Scope
 
-| Decision                 | Recommendation and why | Engineer's decision |
-| ------------------------ | ---------------------- | ------------------- |
-| Interfaces               |                        |                     |
-| Sign-in types            |                        |                     |
-| Scopes and custom scopes |                        |                     |
-| Scopes per sign-in type  |                        |                     |
-| Which Personal Agents    |                        |                     |
-| Rate limits              |                        |                     |
-| Session Token lifetime   |                        |                     |
-| Account Token lifetime   |                        |                     |
-| Extensions               |                        |                     |
+| Decision                | Recommendation and why | Engineer's decision |
+| ----------------------- | ---------------------- | ------------------- |
+| Interfaces              |                        |                     |
+| Sign-in types           |                        |                     |
+| Scopes and descriptions |                        |                     |
+| Scopes per sign-in type |                        |                     |
+| Which Personal Agents   |                        |                     |
+| Rate limits             |                        |                     |
+| Session Token lifetime  |                        |                     |
+| Account Token lifetime  |                        |                     |
+| Extensions              |                        |                     |
 
 <Anything explicitly out of scope for now, and why.>
 
@@ -127,10 +127,9 @@ flowchart LR
 
 ### Scopes
 
-| Scope         | Description shown to the User | Existing permissions it grants | Sign-in types |
-| ------------- | ----------------------------- | ------------------------------ | ------------- |
-| `poppy:read`  |                               |                                |               |
-| `poppy:write` |                               |                                |               |
+| Scope | Description | Existing permissions it grants | Mediated Sign-In |
+| ----- | ----------- | ------------------------------ | ---------------- |
+|       |             |                                |                  |
 
 ### Sessions and Account Tokens
 

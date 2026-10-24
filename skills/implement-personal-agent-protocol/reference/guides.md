@@ -144,8 +144,9 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
 ### Choosing how to sign in
 
 - Before asking the user to sign in, check whether an account token you hold already covers the task ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
-- Prefer direct sign-in, then device sign-in, then mediated sign-in. With direct and device sign-in, the user's password stays with the company.
-- Ask for the fewest scopes the task needs. For a task that only looks things up, request a read-only session token from a broader account token ([4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)).
+- Prefer direct sign-in, then device sign-in, then mediated sign-in (SHOULD, [4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). With direct and device sign-in, the user's password stays with the company.
+- Read each scope's description, from the company's OpenAPI description or `auth.scopes`, to pick the ones the task needs ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). Nothing marks a scope as read-only, so tell from the description whether a scope only reads.
+- Ask for the fewest scopes the task needs, not every scope the company offers. For a task that only looks things up, request a read-only session token from a broader account token ([4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)).
 - The user may approve fewer scopes than you asked for. Check `scope` in the response before continuing.
 
 ### Direct and device sign-in
@@ -223,12 +224,21 @@ Section [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens) li
 - Give account tokens a lifetime that fits the account, such as 90 days, and expire ones that go unused sooner.
 - Revoke a user's account tokens when they reset their password or you suspect the account is compromised.
 
+### Describing scopes
+
+Every scope in `scopes_supported` needs a description, in the OAuth security scheme of an OpenAPI description you list or in `auth.scopes` (MUST, [4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). Personal agents read them to choose scopes, and a language model often does the choosing:
+
+- Say what the scope lets the personal agent see or do, in words a user understands.
+- Be specific enough for a model to match a task to the scopes it needs. "See your orders and returns" works better than "Read access".
+- Say whether the scope only reads, and whether a write scope also allows reading.
+
 ### Consent pages
 
 The page where the user approves access, in direct and device sign-in ([4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in), [4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)):
 
 - Show the personal agent's name and logo, and the domain of its `client_id`. The personal agent chooses its own name, so the domain is what the user can trust.
-- Show the account being connected, each requested scope in plain language, and how long access lasts.
+- Show the account being connected, the requested scopes in plain language, and how long access lasts. Group related scopes rather than listing their names.
+- When the user already granted some of the scopes, show which ones are new, so the user doesn't review the whole list again. A personal agent that needs more access requests every scope it needs again ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
 - Protect the page against cross-site request forgery, and against framing by other sites with `Content-Security-Policy: frame-ancestors`.
 - `redirect_uri` MUST exactly match an entry in the personal agent's `redirect_uris` ([4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)).
 - Accept PKCE with `S256` only, and reject `plain`.
@@ -269,7 +279,8 @@ If you offer mediated sign-in ([4.7](https://personalagentprotocol.org/docs/0.3/
 - Apply the same scope rules on your website, APIs, company agent, and live agents. One shared check that every channel calls is easiest to keep consistent.
 - Have the company agent's tools check the token's scopes on every call. Don't rely on the model to decide.
 - Give live agents' tools the same checks, so a person can't make a change the token doesn't allow ([7.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)).
-- `poppy:write` doesn't include `poppy:read` ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). Check each one separately.
+- Check read and write scopes separately. If a write scope also allows reading, say so in its description.
+- When your website refuses an action for a missing scope, show an error that names the scopes (SHOULD, [section 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)).
 
 ### Internal services
 

@@ -1,36 +1,43 @@
 # Pattern: scopes
 
 Scopes say what account access a sign-in grants
-([4.4](https://personalagentprotocol.org/docs/spec#sign-in)). The protocol defines `poppy:read`
-(view account information) and `poppy:write` (make changes). They're independent: `poppy:write`
-doesn't include `poppy:read`. Companies decide which operations need each scope and enforce them on
-the website, APIs, and actions the Company Agent performs (4.4).
+([4.4](https://personalagentprotocol.org/docs/spec#sign-in)). The protocol defines none: each
+Company defines its own, usually the OAuth scopes it already has. Names starting with `poppy:` are
+reserved. Companies decide which operations need each scope and enforce them on the website, APIs,
+and actions the Company Agent performs (4.4).
 
-## Mapping onto existing permissions
+## Choosing and describing scopes
 
-Write a table in the design that maps each Poppy scope to the Company's existing permissions:
+Write a table in the design with each scope, its description, and the Company's existing
+permissions it grants:
 
-| Scope         | Grants                                | Doesn't grant                                   |
-| ------------- | ------------------------------------- | ----------------------------------------------- |
-| `poppy:read`  | <existing read permissions, by name>  | <sensitive reads kept out, if any>              |
-| `poppy:write` | <existing write permissions, by name> | <actions kept out, such as changing a password> |
+| Scope          | Description                              | Grants                               | Doesn't grant                                   |
+| -------------- | ---------------------------------------- | ------------------------------------ | ----------------------------------------------- |
+| `orders:read`  | <what the User sees on the consent page> | <existing read permissions, by name> | <sensitive reads kept out, if any>              |
+| `orders:write` | <what the Personal Agent can change>     | <existing write permissions>         | <actions kept out, such as changing a password> |
 
-- Start from what the Company already lets a signed-in customer do, and decide what a Personal Agent
-  shouldn't do even with `poppy:write`, such as changing sign-in credentials or closing the
-  account.
-- Use custom scopes for access that needs separate consent, such as `addresses`. List every scope in
-  `scopes_supported` in the OAuth metadata. Describe each custom scope in the OAuth security scheme
-  of an OpenAPI description you list, or in `auth.scopes`, a map from
-  scope name to description. Names starting with `poppy:` are
-  reserved (4.4).
-- A Company MAY leave out `poppy:read` and `poppy:write` and offer only narrower custom scopes
-  (4.4).
+- Start from the scopes the Company's OAuth server already has, and from what a signed-in customer
+  can do. Decide what a Personal Agent shouldn't do under any scope, such as changing sign-in
+  credentials or closing the account.
+- List every scope in `scopes_supported` in the OAuth metadata, and describe every one (MUST, 4.4):
+  in the OAuth security scheme of an OpenAPI description you list, or in `auth.scopes`, a map from
+  scope name to description in the same form.
+- Write descriptions in words a User understands, specific enough for a language model to pick the
+  scopes a task needs. Nothing marks a scope as read-only, so say whether it only reads, and
+  whether a write scope also allows reading
+  ([guides](https://personalagentprotocol.org/docs/guides#company-scope-descriptions)).
+- On the consent page, present scopes in plain words, group related ones, and show which are new
+  when the User already granted some
+  ([guides](https://personalagentprotocol.org/docs/guides#company-consent)).
 - If the issuer also serves other OAuth clients, leave scopes you don't offer Personal Agents out of
   `scopes_supported`, and limit the scopes you grant by client (3.2, 4.4). Keeping Direct or Device
   Sign-In from Personal Agents needs an issuer only for them, chosen before launch, because changing
   `auth.issuer` later breaks every existing Session (guides#company-agent-issuer).
 - Direct and Device Sign-In can grant any scope in `scopes_supported`. Decide which Mediated Sign-In
   can grant, in `auth.mediated.scopes`. It often grants less.
+- Make the scopes cover what Users ask Personal Agents to do, so they don't fall back to the User's
+  credentials (SHOULD, [4.4](https://personalagentprotocol.org/docs/spec#sign-in),
+  [9.5](https://personalagentprotocol.org/docs/spec#credentials)).
 
 ## One shared check
 
@@ -43,7 +50,8 @@ Company Agent's tools, and live agents' tools
   its own error: `insufficient_scope` or `sign_in_required` in `WWW-Authenticate` for APIs
   ([section 6](https://personalagentprotocol.org/docs/spec#apis)), an `authorization` event in
   conversations ([7.11](https://personalagentprotocol.org/docs/spec#conversation-sign-in)), and a
-  page or redirect on the website.
+  visible error naming the missing scopes on the website (SHOULD,
+  [section 5](https://personalagentprotocol.org/docs/spec#web-browsing)).
 - **Existing permission checks, fed from scopes.** If services already check permissions, derive
   the permission set from the token's scopes at the edge, and let existing checks do the rest
   ([guides](https://personalagentprotocol.org/docs/guides#company-internal)).
