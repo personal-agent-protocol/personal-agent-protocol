@@ -166,6 +166,16 @@ When the Personal Agent revokes an Account Token, the Company should also invali
 
 A new section 4.10 lists what a Company's authorization server needs beyond standard OAuth, such as Sessions named by DPoP keys, one account per Session, and described scopes, and what the protocol adds outside OAuth. It adds no requirements.
 
+### Guides
+
+Advice that goes with the spec. Guides aren't requirements.
+
+#### Account token lifetimes, API descriptions, and one feedback channel
+
+[Guides: Token lifetimes and sign-out](https://personalagentprotocol.org/docs/0.3/guides#company-lifetimes) · [Guides: Describing APIs](https://personalagentprotocol.org/docs/0.3/guides#company-api-descriptions) · [Guides: Excluded tasks and feedback](https://personalagentprotocol.org/docs/0.3/guides#company-excluded-tasks) · [Issue #27](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/27)
+
+Companies send `refresh_token_expires_in` so a personal agent can tell an expired account token from a revoked one. They write API and MCP tool descriptions for the language model that reads them: clear about what each operation does, and small enough for its context. They take feedback only at `feedback.endpoint`, not also through an operation in their APIs.
+
 ## Version 0.2
 
 Published October 24, 2026. It's frozen at [/docs/0.2/spec](https://personalagentprotocol.org/docs/0.2/spec). Major changes are design decisions. Minor changes fill gaps, make the text consistent, or follow an RFC. A change tagged "Breaking" can require an implementation that followed the 0.1 text to change, whether it's major or minor.

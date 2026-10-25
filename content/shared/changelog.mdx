@@ -263,6 +263,19 @@ adds outside OAuth. It adds no requirements.
 
 </Change>
 
+### Guides {#v0-3-guides}
+
+Advice that goes with the spec. Guides aren't requirements.
+
+<Change title="Account token lifetimes, API descriptions, and one feedback channel" sections="guides#company-lifetimes, guides#company-api-descriptions, guides#company-excluded-tasks" issue="27">
+
+Companies send `refresh_token_expires_in` so a personal agent can tell an expired account token
+from a revoked one. They write API and MCP tool descriptions for the language model that reads
+them: clear about what each operation does, and small enough for its context. They take feedback
+only at `feedback.endpoint`, not also through an operation in their APIs.
+
+</Change>
+
 ## Version 0.2 {#v0-2}
 
 Published October 24, 2026. It's frozen at [/docs/0.2/spec](/docs/0.2/spec). Major changes are

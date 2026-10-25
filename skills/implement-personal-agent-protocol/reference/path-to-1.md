@@ -35,6 +35,7 @@ These are larger areas the draft doesn't cover yet, listed so it's clear they ar
 - **Push notifications.** How a company reaches the personal agent when no request is open, for example when an order ships or a person replies hours later.
 - **Versions.** How a company serves personal agents that implement different versions at the same time, and how the two sides agree on one, once 1.0 promises compatibility between minor versions.
 - **Attachments.** How company messages carry more than text and data, such as receipts, return labels, product images, or forms for the user to fill in.
+- **Self-hosted personal agents.** How a personal agent that runs on the user's own devices, such as a desktop app, a phone app, or a browser extension, identifies itself and signs in without a server that learns which companies each user works with, and how it can act in the browser where the user is already signed in.
 
 ## Design partners
 

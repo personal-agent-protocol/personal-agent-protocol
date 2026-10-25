@@ -413,6 +413,9 @@ token endpoint:
   away.
 - Give account tokens a lifetime that fits the account, such as 90 days, and expire ones that go
   unused sooner.
+- Send `refresh_token_expires_in` when an account token has a lifetime
+  ([4.4](/docs/spec#sign-in)). An expired token and a revoked one both get `invalid_grant`, and the
+  lifetime lets the personal agent tell the user which happened.
 - Revoke a user's account tokens when they reset their password or you suspect the account is
   compromised.
 
@@ -426,6 +429,15 @@ them to choose scopes, and a language model often does the choosing:
 - Be specific enough for a model to match a task to the scopes it needs. "See your orders and
   returns" works better than "Read access".
 - Say whether the scope only reads, and whether a write scope also allows reading.
+
+### Describing APIs {#company-api-descriptions}
+
+A language model usually reads your API descriptions and MCP tool descriptions to choose and call
+operations ([6](/docs/spec#apis)). Write them for that reader:
+
+- Say clearly what each operation does and when to use it, in terms of the user's task.
+- Keep them small. The whole description takes room in the model's context, so leave out what
+  personal agents don't need, such as long examples or operations only your own apps call.
 
 ### Consent pages {#company-consent}
 
@@ -604,6 +616,8 @@ rate limits by `client_id`, not by turning personal agents away.
 - Set caching headers on the document, and update it when you add or remove a task.
 - When a feedback report asks for a task you do offer, answer with an alternative that says how, so
   the personal agent can finish the task ([8.3](/docs/spec#feedback)).
+- Take feedback only at `feedback.endpoint` ([8.3](/docs/spec#feedback)). Don't offer a second
+  feedback operation in your APIs, so personal agents don't have to choose between them.
 
 ### Error messages {#company-errors}
 

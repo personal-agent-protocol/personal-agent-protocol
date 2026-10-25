@@ -247,6 +247,7 @@ A session is named by the thumbprint of its session key ([4.3](https://personala
 - Don't stop accepted work because the session token that started it expired. A job can outlast the token ([4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out)).
 - Where work in progress can take consequential actions on the user's account, such as payments or changes that are hard to undo, tie it to the account token, so revoking access stops it right away.
 - Give account tokens a lifetime that fits the account, such as 90 days, and expire ones that go unused sooner.
+- Send `refresh_token_expires_in` when an account token has a lifetime ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). An expired token and a revoked one both get `invalid_grant`, and the lifetime lets the personal agent tell the user which happened.
 - Revoke a user's account tokens when they reset their password or you suspect the account is compromised.
 
 ### Describing scopes
@@ -256,6 +257,13 @@ Every scope in `scopes_supported` needs a description, in the OAuth security sch
 - Say what the scope lets the personal agent see or do, in words a user understands.
 - Be specific enough for a model to match a task to the scopes it needs. "See your orders and returns" works better than "Read access".
 - Say whether the scope only reads, and whether a write scope also allows reading.
+
+### Describing APIs
+
+A language model usually reads your API descriptions and MCP tool descriptions to choose and call operations ([6](https://personalagentprotocol.org/docs/0.3/spec#apis)). Write them for that reader:
+
+- Say clearly what each operation does and when to use it, in terms of the user's task.
+- Keep them small. The whole description takes room in the model's context, so leave out what personal agents don't need, such as long examples or operations only your own apps call.
 
 ### Consent pages
 
@@ -365,6 +373,7 @@ Let a signed-out personal agent session do what a signed-out visitor can do on y
 - Give an alternative whenever there is one. Link to the page, or the screen in your app, where the user can do the task ([8.2](https://personalagentprotocol.org/docs/0.3/spec#alternatives)).
 - Set caching headers on the document, and update it when you add or remove a task.
 - When a feedback report asks for a task you do offer, answer with an alternative that says how, so the personal agent can finish the task ([8.3](https://personalagentprotocol.org/docs/0.3/spec#feedback)).
+- Take feedback only at `feedback.endpoint` ([8.3](https://personalagentprotocol.org/docs/0.3/spec#feedback)). Don't offer a second feedback operation in your APIs, so personal agents don't have to choose between them.
 
 ### Error messages
 

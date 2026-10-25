@@ -250,6 +250,7 @@ Section 4.3 lists the checks you MUST make on every proof. To make them reliably
 - [ ] Give an alternative whenever there is one. Link to the page, or the screen in your app, where the user can do the task (8.2).
 - [ ] Set caching headers on the document, and update it when you add or remove a task.
 - [ ] When a feedback report asks for a task you do offer, answer with an alternative that says how, so the personal agent can finish the task (8.3).
+- [ ] Take feedback only at `feedback.endpoint` (8.3). Don't offer a second feedback operation in your APIs, so personal agents don't have to choose between them.
 
 ### Recommended: [Error messages](https://personalagentprotocol.org/docs/0.3/guides#company-errors)
 
@@ -298,6 +299,7 @@ Section 4.3 lists the checks you MUST make on every proof. To make them reliably
 - [ ] Don't stop accepted work because the session token that started it expired. A job can outlast the token (4.9).
 - [ ] Where work in progress can take consequential actions on the user's account, such as payments or changes that are hard to undo, tie it to the account token, so revoking access stops it right away.
 - [ ] Give account tokens a lifetime that fits the account, such as 90 days, and expire ones that go unused sooner.
+- [ ] Send `refresh_token_expires_in` when an account token has a lifetime (4.4). An expired token and a revoked one both get `invalid_grant`, and the lifetime lets the personal agent tell the user which happened.
 - [ ] Revoke a user's account tokens when they reset their password or you suspect the account is compromised.
 
 ### Recommended: [Describing scopes](https://personalagentprotocol.org/docs/0.3/guides#company-scope-descriptions)
