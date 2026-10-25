@@ -219,6 +219,20 @@ test("a redirect to plain HTTP fails", async () => {
     assert.equal(results.find((r) => r.id === "discovery.redirects-https")?.status, "fail");
 });
 
+test("a redirect that ends outside the well-known path fails", async () => {
+    const http = createHttp({
+        fetch: fakeCompany(join(cwd, ".poppy"), { redirectToUpload: true }),
+    });
+    const ctx = newContext(
+        http,
+        { milestones: parseMilestones("foundation")!, only: ["discovery."] },
+        "https://www.shop.test",
+    );
+    const results = await runChecks(ctx, { cwd });
+    assert.equal(results.find((r) => r.id === "discovery.redirects-well-known")?.status, "fail");
+    assert.equal(results.find((r) => r.id === "discovery.schema")?.status, "skip");
+});
+
 test("without an identity, checks that need one are skipped with one note", async () => {
     const empty = mkdtempSync(join(tmpdir(), "poppy-empty-"));
     const http = createHttp({ fetch: fakeCompany(join(cwd, ".poppy")) });

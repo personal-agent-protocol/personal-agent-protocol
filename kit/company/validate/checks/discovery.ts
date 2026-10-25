@@ -20,6 +20,7 @@ import {
 export const DISCOVERY_IDS = [
     "discovery.https",
     "discovery.redirects-https",
+    "discovery.redirects-well-known",
     "discovery.json",
     "discovery.schema",
     "discovery.protocol-version",
@@ -123,6 +124,26 @@ export async function checkPoppyOnline(ctx: Context, r: Recorder): Promise<void>
     }
     r.pass("discovery.https", {
         summary: `Served at ${final.url}${redirects.length ? ` after ${redirects.length} redirect(s)` : ""}.`,
+    });
+
+    const finalUrl = new URL(final.url);
+    if (finalUrl.pathname !== "/.well-known/poppy.json" || finalUrl.search) {
+        r.fail("discovery.redirects-well-known", {
+            exchange: follow.chain,
+            sent: `GET ${url}, following redirects`,
+            got: `The redirects end at ${final.url}`,
+            expected: "The last URL's path is exactly /.well-known/poppy.json, with no query",
+            cause: "Personal Agents ignore a poppy.json served from any other path, so a file uploaded elsewhere on a domain can't speak for it. Redirect to /.well-known/poppy.json on the target host.",
+        });
+        skipRest(
+            r,
+            DISCOVERY_IDS,
+            "Personal Agents won't use this poppy.json (see discovery.redirects-well-known).",
+        );
+        return;
+    }
+    r.pass("discovery.redirects-well-known", {
+        summary: redirects.length ? `Ends at ${final.url}.` : "No redirects.",
     });
 
     const notes: string[] = [];

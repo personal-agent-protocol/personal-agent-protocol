@@ -52,6 +52,12 @@ Personal Agents must keep Session Tokens, private keys, authorization codes, PKC
 
 ### Minor changes
 
+#### Discovery redirects end at the well-known path
+
+Breaking · [Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 9.3](https://personalagentprotocol.org/docs/0.3/spec#trust) · [Guides: Finding a company](https://personalagentprotocol.org/docs/0.3/guides#agent-discovery)
+
+A redirect of the well-known URL can still go to another host, but the Personal Agent uses the document only when the last URL's path is exactly `/.well-known/poppy.json`, with no query. Before, a redirect could end at any path, so anyone who could upload a file to a Company's domain could publish a `poppy.json` there that spoke for the Company, with endpoints on their own host.
+
 #### `protected_resources` replaces `poppy_domains`
 
 Breaking · [Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in) · [Spec 9.3](https://personalagentprotocol.org/docs/0.3/spec#trust) · [Guides: Direct and device sign-in](https://personalagentprotocol.org/docs/0.3/guides#agent-direct-device) · [Guides: Hosting several companies](https://personalagentprotocol.org/docs/0.3/guides#company-hosting)

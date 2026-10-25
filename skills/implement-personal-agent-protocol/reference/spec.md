@@ -46,9 +46,9 @@ The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are used as described 
 
 A Company MUST publish its `poppy.json` document at `https://{domain}/.well-known/poppy.json` over HTTPS, where `{domain}` is the Company's domain or a subdomain it controls.
 
-The well-known URL MAY redirect, for example from `www.example.com` to `example.com`. Personal Agents MUST follow redirects, and every redirect MUST be to an HTTPS URL. Personal Agents SHOULD cache the document according to its HTTP caching headers.
+The well-known URL MAY redirect, for example from `www.example.com` to `example.com`. Personal Agents MUST follow redirects, and every redirect MUST be to an HTTPS URL. A redirect MAY go to another host, but Personal Agents MUST use the document only when the last URL's path is exactly `/.well-known/poppy.json` and it has no query. Otherwise anyone who can serve a file from some path on a domain, such as an upload, could redirect to it and have it speak for that domain. Personal Agents SHOULD cache the document according to its HTTP caching headers.
 
-**Which Company a document speaks for.** A `poppy.json` speaks for the host that serves it, after any redirects, so a Company that uses a provider has the provider serve it on the Company's own domain. The document names the Company's OAuth issuer in `auth.issuer`, and the issuer identifies the Company (3.2). The issuer confirms the link from its side by listing, in its metadata, the domains whose documents name it. Before using a document, the Personal Agent checks both directions:
+**Which Company a document speaks for.** A `poppy.json` speaks for the host that serves it at the well-known path, after any redirects, so a Company that uses a provider has the provider serve it on the Company's own domain. The document names the Company's OAuth issuer in `auth.issuer`, and the issuer identifies the Company (3.2). The issuer confirms the link from its side by listing, in its metadata, the domains whose documents name it. Before using a document, the Personal Agent checks both directions:
 
 1. `organization.domain` is the host that served the document (3.1). This stops a document copied to another domain from speaking for the Company.
 2. The issuer's metadata has the same `issuer`, and its `protected_resources` lists `https://{organization.domain}` (3.2). This stops a domain from claiming another Company's issuer and receiving its tokens.
@@ -1385,7 +1385,7 @@ A model can be led to repeat what is in its context, so a secret in context can 
 
 ### 9.3 What a domain vouches for
 
-A Company's `poppy.json` is where the Personal Agent learns everything about the Company: its issuer, and through it the Company's sign-in types and scopes, the Mediated Sign-In endpoint, its APIs, and its Company Agent. Whoever controls that document speaks for the Company at the host that serves it, as whoever controls its website does today. The document's endpoints can be on any host. The checks in section 3 cover both directions of the link between domain and issuer, which stops a domain from claiming another Company's issuer and receiving its tokens. They don't make the issuer metadata more trustworthy than `poppy.json`, because the document chooses the issuer.
+A Company's `poppy.json` is where the Personal Agent learns everything about the Company: its issuer, and through it the Company's sign-in types and scopes, the Mediated Sign-In endpoint, its APIs, and its Company Agent. Whoever controls that document speaks for the Company at the host that serves it at `/.well-known/poppy.json`, as whoever controls its website does today. The document's endpoints can be on any host. The checks in section 3 cover both directions of the link between domain and issuer, which stops a domain from claiming another Company's issuer and receiving its tokens. They don't make the issuer metadata more trustworthy than `poppy.json`, because the document chooses the issuer.
 
 ### 9.4 Assertions
 

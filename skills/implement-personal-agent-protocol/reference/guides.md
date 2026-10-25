@@ -82,7 +82,7 @@ Personal agents change the shape of web traffic: one user's request can turn int
 
 ### Finding a company
 
-When the company you reach is on a different domain from the one the user asked for, tell the user which company you're dealing with, its `organization.name` and domain, before you sign in or act for them. A well-known URL can redirect anywhere ([section 3](https://personalagentprotocol.org/docs/0.3/spec#discovery)). A rebrand, such as `thefacebook.com` redirecting to `facebook.com`, then costs one line, and a domain that sends you to another company can't move the user's task there without them noticing.
+When the company you reach is on a different domain from the one the user asked for, tell the user which company you're dealing with, its `organization.name` and domain, before you sign in or act for them. A well-known URL can redirect to any host's `/.well-known/poppy.json` ([section 3](https://personalagentprotocol.org/docs/0.3/spec#discovery)). A rebrand, such as `thefacebook.com` redirecting to `facebook.com`, then costs one line, and a domain that sends you to another company can't move the user's task there without them noticing.
 
 ### User IDs
 

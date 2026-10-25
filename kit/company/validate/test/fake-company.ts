@@ -12,6 +12,8 @@ export type Flaws = {
     acceptReplayedAssertion?: boolean;
     domain?: string;
     httpRedirect?: boolean;
+    // www.shop.test redirects to a file outside the well-known path.
+    redirectToUpload?: boolean;
     noStore?: boolean;
     acceptBearerEverywhere?: boolean;
     acceptQueryToken?: boolean;
@@ -329,12 +331,17 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                 headers: {
                     location: flaws.httpRedirect
                         ? "http://shop.test/.well-known/poppy.json"
-                        : `${ORIGIN}/.well-known/poppy.json`,
+                        : flaws.redirectToUpload
+                          ? `${ORIGIN}/uploads/poppy.json`
+                          : `${ORIGIN}/.well-known/poppy.json`,
                 },
             });
         }
         if (url.origin !== ORIGIN) throw new TypeError("fetch failed");
-        if (path === "/.well-known/poppy.json")
+        if (
+            path === "/.well-known/poppy.json" ||
+            (flaws.redirectToUpload && path === "/uploads/poppy.json")
+        )
             return json(200, poppy(), { "cache-control": "max-age=300" });
         if (path === "/.well-known/oauth-authorization-server") {
             return json(200, {

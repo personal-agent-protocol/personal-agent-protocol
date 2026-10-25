@@ -2,7 +2,8 @@
 
 `poppy.json` is served at `https://{domain}/.well-known/poppy.json` on the Company's own domain
 ([section 3](https://personalagentprotocol.org/docs/spec#discovery)). The document speaks for the
-host that serves it after any redirects, and `organization.domain` must be that host
+host that serves it at `/.well-known/poppy.json` after any redirects, so a redirect must end at that
+path, and `organization.domain` must be that host
 ([3.1](https://personalagentprotocol.org/docs/spec#fields)).
 
 ## Options

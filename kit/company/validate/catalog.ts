@@ -98,6 +98,12 @@ export const CATALOG: CheckInfo[] = [
         "every redirect MUST be to an HTTPS URL",
     ),
     foundation(
+        "discovery.redirects-well-known",
+        "Redirects of the well-known URL end at /.well-known/poppy.json, with no query",
+        "spec#discovery",
+        "Personal Agents MUST use the document only when the last URL's path is exactly /.well-known/poppy.json and it has no query",
+    ),
+    foundation(
         "discovery.json",
         "poppy.json is a JSON object",
         "spec#terms",

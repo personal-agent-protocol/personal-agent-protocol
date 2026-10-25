@@ -91,6 +91,15 @@ SHOULD. The guides list authorization codes and PKCE code verifiers as secrets.
 
 ### Minor changes {#v0-3-minor}
 
+<Change title="Discovery redirects end at the well-known path" breaking sections="3, 9.3, guides#agent-discovery">
+
+A redirect of the well-known URL can still go to another host, but the Personal Agent uses the
+document only when the last URL's path is exactly `/.well-known/poppy.json`, with no query. Before,
+a redirect could end at any path, so anyone who could upload a file to a Company's domain could
+publish a `poppy.json` there that spoke for the Company, with endpoints on their own host.
+
+</Change>
+
 <Change title="`protected_resources` replaces `poppy_domains`" breaking sections="3, 3.2, 4.6, 9.3, guides#agent-direct-device, guides#company-hosting">
 
 The issuer confirms which domains name it with `protected_resources`, the field RFC 9728 registers in
