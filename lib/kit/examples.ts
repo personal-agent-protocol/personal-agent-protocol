@@ -35,7 +35,6 @@ const EXAMPLES: Record<string, Target> = {
     "mediated-sign-in:3": "mediated-sign-in-response.schema.json",
     "mediated-sign-in:4": "mediated-sign-in-response.schema.json",
     "mediated-sign-in:5": "mediated-code-request.schema.json",
-    "web-browsing:1": "browser-assertion.schema.json",
     // A request to the Company's own API, whose schema is the Company's.
     "apis:1": null,
     "sending-messages:1": "conversation-request.schema.json",

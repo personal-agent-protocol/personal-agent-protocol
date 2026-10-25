@@ -295,12 +295,6 @@ export const CATALOG: CheckInfo[] = [
         "spec#starting-sessions",
         "The Company verifies both assertions against the Personal Agent's jwks_uri",
     ),
-    foundation(
-        "session.browser-assertion-rejected",
-        "Token endpoint rejects a browser assertion as a Session assertion",
-        "spec#web-browsing",
-        "A Session assertion isn't accepted here, and a browser assertion isn't accepted at the token endpoint.",
-    ),
 
     // Milestone 1: DPoP (4.3).
     foundation(

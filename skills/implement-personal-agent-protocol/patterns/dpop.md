@@ -52,9 +52,7 @@ For any cache:
 
 - Key it by `jti` and keep entries for the acceptance window.
 - Use an atomic "insert if absent" operation, so two servers can't both accept the same `jti`.
-- The same cache can hold assertion `jti`s (4.2) and browser assertion `jti`s
-  ([section 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)), each kept until its
-  assertion expires.
+- The same cache can hold assertion `jti`s (4.2), each kept until its assertion expires.
 - Decide what happens if the cache is unavailable. At the token endpoint, refuse token requests
   rather than accept proofs unchecked.
 
@@ -77,5 +75,9 @@ for path rewrites, such as a gateway that strips a prefix.
 - Failed checks return `invalid_dpop_proof`, or `use_dpop_nonce` with a `DPoP-Nonce` header: as HTTP
   400 OAuth errors at the token endpoint, and as HTTP 401 with `WWW-Authenticate: DPoP` at APIs and
   conversation endpoints (4.3).
+- The browser-session endpoint verifies a proof from the form's `proof` field, not a `DPoP` header.
+  It has no `ath`, and its `nonce` is the form's code
+  ([section 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)). Share the verification
+  code with the token endpoint and APIs.
 - Accept Bearer Session Tokens only on MCP APIs, and require DPoP everywhere else (4.3). An MCP server
   that supports DPoP also accepts DPoP tokens, and rejects one sent with the `Bearer` scheme.

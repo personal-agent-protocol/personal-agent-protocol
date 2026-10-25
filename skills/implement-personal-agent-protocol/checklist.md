@@ -67,7 +67,7 @@ These are secrets:
 
 - Session tokens and account tokens.
 - Private keys, client assertions, session assertions, and DPoP proofs.
-- Device codes, one-time sign-in codes, and credentials sent in mediated sign-in.
+- Device codes, one-time sign-in codes, browser-session codes, and credentials sent in mediated sign-in.
 
 To handle them:
 
@@ -157,15 +157,22 @@ Section 4.3 lists the checks you MUST make on every proof. To make them reliably
 
 ### Specification: [5. Web browsing](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)
 
+- [ ] **MUST**: The Company MUST make the code at least 128 random bits, and MUST expire it no more than 60 seconds after issuing it.
+- [ ] **MUST**: The Company MUST tie the code to the browser that loaded the page with a cookie set in the same response, so that only that browser can submit it.
+- [ ] **MUST**: The cookie MUST be `Secure`, `HttpOnly`, and `SameSite=Strict`, and MUST use the `__Host-` prefix, so other hosts on the Company's domain can't set it in a victim's browser.
+- [ ] **MUST**: The Company MUST send the response with `Cache-Control: no-store`.
+- [ ] **MUST**: It MUST forbid other pages from framing it, with `Content-Security-Policy: frame-ancestors 'none'`, and from keeping a reference to its window, with `Cross-Origin-Opener-Policy: same-origin`.
+- [ ] **MUST NOT**: Loading the page MUST NOT start, end, or change any Session, or change the browser's other cookies.
 - [ ] **MUST**: The Company MUST check that:
-    - [ ] The signature verifies with a key from the `iss` client's `jwks_uri`, and `typ` is `poppy-browser+jwt`. A Session assertion isn't accepted here, and a browser assertion isn't accepted at the token endpoint.
-    - [ ] `aud` is its endpoint, the assertion hasn't expired, and `exp` is no more than 60 seconds after `iat`.
-    - [ ] It hasn't accepted the same `jti` before. It only needs to remember a `jti` until the assertion expires.
-    - [ ] The Session is active and belongs to the same `client_id` and User.
-    - [ ] `return_to` is on its own domain.
+    - [ ] The request has the cookie from step 1, and it matches `code`.
+    - [ ] The code is one it issued, hasn't expired, and hasn't been used. A code is used by the first request that sends it, whatever the result.
+    - [ ] `proof` is a valid DPoP Proof, checked as in 4.3, for this request: `htm` is `POST`, `htu` is the endpoint, and `nonce` is the code.
+    - [ ] The proof's key is the Session Key of an active Session (4.3). Unlike at the token endpoint, a key the Company doesn't know is an error, not a new Session.
+- [ ] **MUST**: MUST be set only in step 3.
 - [ ] **MUST**: MUST follow the Session's current state: when the Session signs in or out, or its scopes change, the website reflects it on the next request.
 - [ ] **MUST NOT**: MUST NOT outlive the Session.
-- [ ] **MUST**: MUST be `Secure` and `HttpOnly`, and use `SameSite=Lax` or `None`, not `Strict`.
+- [ ] **MUST**: MUST be `Secure` and `HttpOnly`.
+- [ ] **SHOULD**: It SHOULD use the `__Host-` prefix (RFC 6265bis), so other hosts on the Company's domain can't set it, unless it has to cover several hosts.
 - [ ] **SHOULD**: When the website refuses an action because the Session lacks a scope, it SHOULD show a visible error message that names the missing scopes, so the Personal Agent can request them (4.4).
 
 ### Specification: [6. APIs](https://personalagentprotocol.org/docs/0.3/spec#apis)
@@ -218,7 +225,8 @@ Section 4.3 lists the checks you MUST make on every proof. To make them reliably
 ### Recommended: [Browser sessions](https://personalagentprotocol.org/docs/0.3/guides#company-browsing)
 
 - [ ] Offer `web.browser_session_endpoint` if you want signed-in personal agents to use your website. Without it, they browse your website only as ordinary signed-out visitors (section 5), and use your APIs and conversations for anything that needs the account.
-- [ ] Don't log request bodies at the endpoint. They contain browser assertions.
+- [ ] Don't log the endpoint's responses or request bodies. They contain browser-session codes and proofs.
+- [ ] If you make the code stateless, put a keyed hash of the code and its expiry in the step 1 cookie, and still remember used codes until they expire, so each one works once.
 - [ ] Limit the cookie to the hosts personal agents need, such as your main site, rather than your whole domain.
 - [ ] Look up the session on each request, so sign-out and scope changes take effect on the website right away.
 

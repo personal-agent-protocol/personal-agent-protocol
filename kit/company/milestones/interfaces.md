@@ -102,11 +102,16 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
 
 - List `web.browser_session_endpoint` in `poppy.json`
   ([section 5](https://personalagentprotocol.org/docs/spec#web-browsing)).
-- The endpoint takes a form POST with `assertion`, makes every check in section 5 step 3, sets the
-  site's own session cookie for the Session, and responds `303 See Other` to `return_to`. On failure,
-  no cookie and an HTTP 400 error page.
-- The cookie is `Secure`, `HttpOnly`, `SameSite=Lax` or `None`, never outlives the Session, and
-  follows the Session's state.
+- A GET to the endpoint returns a form with a one-time code in a hidden `code` field and an empty
+  `proof` field, with `Cache-Control: no-store`, `Content-Security-Policy: frame-ancestors 'none'`,
+  and `Cross-Origin-Opener-Policy: same-origin`. It sets a `__Host-`, `Secure`, `HttpOnly`,
+  `SameSite=Strict` cookie that ties the code to the browser, and starts no Session.
+- The form's POST makes every check in section 5 step 3: the join cookie matches the code, the code
+  is unexpired and unused, and the proof is a DPoP Proof with the code as its `nonce`, signed with
+  the Session Key of an active Session. It then sets the site's own session cookie for that Session
+  and responds `303 See Other`. A failed check gets an error page with HTTP 400 and no cookie.
+- The Session's cookie is `Secure` and `HttpOnly`, uses the `__Host-` prefix unless it has to cover
+  several hosts, never outlives the Session, and follows the Session's state.
 - While the browser carries that cookie, the website handles requests as that Session, whatever
   other cookies it has.
 
@@ -131,10 +136,11 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
 - A different error for "conversation exists but isn't yours" than for "doesn't exist" (7.13).
 - A stream that goes silent long enough for a proxy to close it. Send an SSE comment every 15 to 30
   seconds ([guides](https://personalagentprotocol.org/docs/guides#company-conversations)).
-- A browser-session cookie with `SameSite=Strict`, so it's missing after the redirect (section 5).
-- Logging request bodies at the browser-session endpoint
+- Accepting a code without the join cookie set with it, or treating an unknown proof key as a new
+  Session (section 5).
+- A code that can be used twice, or after a failed request (section 5).
+- Logging responses or request bodies at the browser-session endpoint
   ([guides](https://personalagentprotocol.org/docs/guides#company-browsing)).
-- A `return_to` check that accepts lookalike hosts, such as `example.com.evil.example`.
 
 ## Check it
 
@@ -161,9 +167,10 @@ printing or copying the private key, and keep the script out of the Company's pr
   parent closes an open Direct Conversation.
 - **Streaming,** if offered: events arrive with SSE `id`s, a reconnect with `Last-Event-ID` resumes
   after it, and idle streams stay open.
-- **Browser sessions:** post a valid assertion and land on `return_to` with the cookie set. Replay
-  the same assertion, use an expired one, a wrong `aud`, a Session assertion instead of a browser
-  assertion, and a `return_to` on another domain: each gets 400 and no cookie. The page then shows
-  the Session's state, not an earlier visitor's.
+- **Browser sessions:** load the endpoint in a browser, confirm its code with a Session Token, and
+  see the website show the Session's state, not an earlier visitor's. Send the same code again, an
+  expired code, a made-up code, and a valid code with a Bearer token: each gets an error. Load the
+  endpoint in a second browser and confirm the first browser's code: the second browser stays
+  signed out.
 
 Log anything unclear in `plan/feedback.md`.

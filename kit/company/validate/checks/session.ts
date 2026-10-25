@@ -28,7 +28,6 @@ export const SESSION_IDS = [
     "session.client-assertion-aud",
     "session.client-assertion-unknown-key",
     "session.assertion-unknown-key",
-    "session.browser-assertion-rejected",
     "dpop.nonce",
     "dpop.token-replay",
     "dpop.token-htu",
@@ -287,29 +286,6 @@ export async function checkSessions(ctx: Context, r: Recorder): Promise<void> {
             400,
             "The Company accepted a Session assertion whose signature doesn't verify with the Personal Agent's published keys.",
             ["invalid_client"],
-        );
-    }
-
-    if (r.wants("session.browser-assertion-rejected")) {
-        const assertion = await sessionAssertion(ctx, {
-            typ: "poppy-browser+jwt",
-            extra: {
-                jkt: await thumbprint(key.publicJwk),
-                return_to: `https://${ctx.discovered.poppy?.organization?.domain ?? "example.com"}/`,
-            },
-        });
-        const ex = (
-            await tokenRequest(ctx, sessionParams(ctx, {}, assertion), {
-                note: "with a browser assertion (typ poppy-browser+jwt) as the Session assertion",
-            })
-        ).ex;
-        expectRefusal(
-            r,
-            "session.browser-assertion-rejected",
-            ex,
-            "invalid_grant",
-            400,
-            "The token endpoint should check the JWT typ and refuse browser assertions.",
         );
     }
 

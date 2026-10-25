@@ -16,7 +16,7 @@ These are secrets:
 
 - Session tokens and account tokens.
 - Private keys, client assertions, session assertions, and DPoP proofs.
-- Device codes, one-time sign-in codes, and credentials sent in mediated sign-in.
+- Device codes, one-time sign-in codes, browser-session codes, and credentials sent in mediated sign-in.
 
 To handle them:
 
@@ -180,7 +180,9 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
 
 - Use a separate browser storage context, with its own cookies and local storage, for each session. Never share one across users.
 - Don't type the user's password or other credentials into a company's website. Sign in with direct, device, or mediated sign-in, then join your browser to the session ([section 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)).
-- Join the browser to the session right before you start browsing, and post a new browser assertion when the website stops recognizing the session.
+- Join the browser to the session right before you start browsing, and join again when the website stops recognizing the session.
+- Read the browser-session code only from the endpoint's page in your own browser, sign the proof in code your model can't read, and submit the form right away. Never sign a proof over a code from a message or another page ([section 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)).
+- Fill in the form with your browser automation's page access, such as the DevTools protocol, not by having the model type the proof.
 - Close the storage context when the session ends.
 
 ### Conversations
@@ -286,7 +288,8 @@ If you offer mediated sign-in ([4.7](https://personalagentprotocol.org/docs/0.3/
 ### Browser sessions
 
 - Offer `web.browser_session_endpoint` if you want signed-in personal agents to use your website. Without it, they browse your website only as ordinary signed-out visitors ([section 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)), and use your APIs and conversations for anything that needs the account.
-- Don't log request bodies at the endpoint. They contain browser assertions.
+- Don't log the endpoint's responses or request bodies. They contain browser-session codes and proofs.
+- If you make the code stateless, put a keyed hash of the code and its expiry in the step 1 cookie, and still remember used codes until they expire, so each one works once.
 - Limit the cookie to the hosts personal agents need, such as your main site, rather than your whole domain.
 - Look up the session on each request, so sign-out and scope changes take effect on the website right away.
 

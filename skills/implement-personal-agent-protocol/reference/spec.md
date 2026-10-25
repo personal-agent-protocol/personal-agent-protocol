@@ -380,7 +380,7 @@ DPoP in this protocol is meant to match RFC 9449, and anything this section does
 
 **Session Keys.** Session Tokens are bound to a key the Personal Agent holds, so a copied token is useless without it. The Personal Agent MUST create a new key pair for each Session, its Session Key, and MUST NOT use it for any other Session, so Companies can't link Sessions or Users by their keys. The key's JWK thumbprint ([RFC 7638](https://www.rfc-editor.org/rfc/rfc7638)) names the Session: every token request for the Session carries a proof signed with its key, so the Company knows which Session the request is for without a separate parameter. A Session can't change its key. To use a new key, the Personal Agent starts a new Session. Conversations already outlast Sessions (7.2), so nothing is lost.
 
-The Personal Agent keeps the private key to itself and signs a new proof for every request to the token endpoint and every request that carries a Session Token. Requests that carry neither, such as revocation (4.9) and device authorization (4.6), don't need a proof. A proof is a JWT with the public key in its header:
+The Personal Agent keeps the private key to itself and signs a new proof for every request to the token endpoint, every request that carries a Session Token, and every browser-session form (section 5). Requests that carry none of these, such as revocation (4.9) and device authorization (4.6), don't need a proof. A proof is a JWT with the public key in its header:
 
 *DPoP Proof (JWT header and payload)*
 
@@ -403,7 +403,7 @@ The Personal Agent keeps the private key to itself and signs a new proof for eve
 - `jti` is a unique ID for the proof.
 - `htm` and `htu` are the request's HTTP method and URL, without the query or fragment.
 - `iat` is when the proof was made.
-- `ath` is the SHA-256 hash of the Session Token sent with it. Proofs sent to the token endpoint don't have one.
+- `ath` is the SHA-256 hash of the Session Token sent with it. Proofs sent to the token endpoint or in a browser-session form don't have one.
 - `nonce` is included when the Company requires one (below).
 
 When the Company issues a Session Token, it binds the token to the key in that request's proof. The Company MUST validate every proof as RFC 9449 §4.3 describes. That means checking that:
@@ -425,7 +425,7 @@ A Company MAY require proofs to include a nonce it issued, as RFC 9449 describes
 - For an MCP server that supports DPoP, the Personal Agent sends the request that starts a Session (4.2, 4.8) or renews its token (4.2, or 4.8 for a signed-in Session), and the Company issues a DPoP Session Token, which the Personal Agent uses with proofs, as at any other API.
 - For an MCP server that doesn't support DPoP, the Personal Agent exchanges a DPoP Session Token for a `Bearer` one with the token exchange grant ([RFC 8693](https://www.rfc-editor.org/rfc/rfc8693)), described below. The Company MUST NOT issue a Personal Agent a Bearer Session Token any other way. It rejects a token exchange for an MCP server that supports DPoP, and any other token request for one that doesn't, with `invalid_target`.
 
-The Personal Agent MUST use the scheme that `token_type` names. A Session can have a token for each MCP server and one for its other APIs at the same time. Anyone who copies a Bearer token can use it, so each one works at only one MCP server. Companies MUST accept a Bearer Session Token only at the MCP server whose `url` equals its `resource`, and MUST reject it at every other endpoint, including other paths on the same host. Everywhere else, Companies MUST require DPoP, and MUST reject a DPoP Session Token sent with the `Bearer` scheme (RFC 9449 §7.1). Web browsing doesn't use Session Tokens (section 5).
+The Personal Agent MUST use the scheme that `token_type` names. A Session can have a token for each MCP server and one for its other APIs at the same time. Anyone who copies a Bearer token can use it, so each one works at only one MCP server. Companies MUST accept a Bearer Session Token only at the MCP server whose `url` equals its `resource`, and MUST reject it at every other endpoint, including other paths on the same host. Everywhere else, Companies MUST require DPoP, and MUST reject a DPoP Session Token sent with the `Bearer` scheme (RFC 9449 §7.1). Web pages, including the browser-session page, don't use Session Tokens. The browser carries a cookie instead (section 5).
 
 New MCP servers SHOULD support DPoP. Leaving it out is meant for existing MCP servers whose software can't verify DPoP Proofs yet. An MCP server that supports DPoP MUST list `ES256` in its `dpop_signing_alg_values_supported`, and Personal Agents sign proofs for it with `ES256` or with an algorithm from that list. It verifies proofs as this section describes, and rejects a DPoP Session Token sent with the `Bearer` scheme. It still accepts Bearer tokens from MCP clients that don't implement this protocol (section 6).
 
@@ -786,73 +786,84 @@ The User can also disconnect the Personal Agent from the Company's account setti
 
 ## 5. Web browsing
 
-A Personal Agent can browse the Company's website in the same Session it uses for APIs and conversations, so the Company sees one Session for the User, whether or not the User is signed in. The Personal Agent's browser joins the Session by posting a signed browser assertion to the Company, and the Company sets a cookie of its own for that Session.
+A Personal Agent can browse the Company's website in the same Session it uses for APIs and conversations, so the Company sees one Session for the User, whether or not the User is signed in. The Personal Agent's browser joins the Session through a form on the Company's browser-session page. The page gives the browser a one-time code. The Personal Agent signs a DPoP Proof over that code with its Session Key and has the browser submit the form, and the Company answers with a cookie for the Session. Only the browser that loaded the page can submit its code, and only the Personal Agent that holds the Session Key can sign the proof, so no one else can make a browser join the Session (9.6).
 
 This is optional. A Company that supports it lists `web.browser_session_endpoint` in its `poppy.json` (section 3). When it does, the Personal Agent MUST join its browser to a Session before browsing the Company's website. On a website without the endpoint, the Personal Agent browses as an ordinary signed-out visitor.
 
-**1. The Personal Agent signs a browser assertion.** It is a JWT signed with a key from the Personal Agent's `jwks_uri`, like the assertion that starts a Session (4.2), with `typ` set to `poppy-browser+jwt` in its header:
+**1. The browser opens the page.** The Personal Agent has its browser load the endpoint with a GET, as a top-level navigation. The Company responds with an HTML page with a form, and sets a short-lived cookie that ties the form's code to this browser:
 
-*Browser assertion claims (JWT payload)*
+*Request: Personal Agent's browser → Company*
 
 ```
-{
-  "iss": "https://agent.example/agent.json",
-  "sub": "usr_Q7c1vK",
-  "aud": "https://example.com/poppy/browser-session",
-  "jkt": "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I",
-  "return_to": "https://example.com/orders",
-  "iat": 1790900000,
-  "exp": 1790900060,
-  "jti": "Hk29vQ0sPZ1mXa7cR4tLwA"
-}
+GET https://example.com/poppy/browser-session
 ```
 
-- `iss`, `sub`, `iat`, and `jti` are as in 4.2.
-- `aud` is the Company's `web.browser_session_endpoint`.
-- `jkt` is the thumbprint of the Session Key (4.3) of the Session the browser joins, signed in or out.
-- `return_to` is the page to open afterward. It MUST be an HTTPS URL on the Company's `organization.domain` or one of its subdomains.
-- `exp` is no more than 60 seconds after `iat`.
+*Response: Company → Personal Agent's browser*
 
-**2. The browser posts it.** The Personal Agent has its browser send the assertion to the endpoint as a form POST, as a top-level navigation, so the cookie the Company sets lands in that browser. For example, it loads a page with a form that submits itself. The assertion MUST go in the request body, never in the URL.
+```
+HTTP/1.1 200 OK
+Content-Type: text/html
+Cache-Control: no-store
+Content-Security-Policy: frame-ancestors 'none'
+Cross-Origin-Opener-Policy: same-origin
+Set-Cookie: __Host-poppy_join=Jq7mW2…; Path=/; Max-Age=60; Secure; HttpOnly; SameSite=Strict
+
+<!doctype html>
+<title>Connecting</title>
+<form method="post" action="/poppy/browser-session">
+  <input type="hidden" name="code" value="bc_Vn3qT8xLw2Rk9mZ4yHc1Ad">
+  <input type="text" name="proof">
+</form>
+```
+
+- The form has a hidden field named `code` with a one-time code, and an empty text field named `proof`, and posts to the endpoint.
+- The Company MUST make the code at least 128 random bits, and MUST expire it no more than 60 seconds after issuing it.
+- The Company MUST tie the code to the browser that loaded the page with a cookie set in the same response, so that only that browser can submit it. The cookie MUST be `Secure`, `HttpOnly`, and `SameSite=Strict`, and MUST use the `__Host-` prefix, so other hosts on the Company's domain can't set it in a victim's browser. The Company chooses its name and value, and can keep the code and cookie on its servers, or make them stateless, for example by putting a keyed hash of the code and its expiry in the cookie.
+- The Company MUST send the response with `Cache-Control: no-store`. It MUST forbid other pages from framing it, with `Content-Security-Policy: frame-ancestors 'none'`, and from keeping a reference to its window, with `Cross-Origin-Opener-Policy: same-origin`.
+- Loading the page MUST NOT start, end, or change any Session, or change the browser's other cookies.
+
+**2. The Personal Agent signs a proof and submits the form.** The Personal Agent reads the code from the page in its browser and signs a DPoP Proof (4.3) with the Session Key of the Session the browser joins, signed in or out. The proof's `htm` is `POST`, its `htu` is the endpoint, and its `nonce` is the code, as a nonce the Company issued ([RFC 9449](https://www.rfc-editor.org/rfc/rfc9449) §8). It has no `ath`. The Personal Agent puts the proof in the `proof` field and has its browser submit the form:
 
 *Request: Personal Agent's browser → Company*
 
 ```
 POST https://example.com/poppy/browser-session
 Content-Type: application/x-www-form-urlencoded
+Cookie: __Host-poppy_join=Jq7mW2…
 
-assertion=eyJ0eXAiOiJwb3BweS1icm93c2VyK2p3dCIsImFsZyI6IkVTMjU2In0…
+code=bc_Vn3qT8xLw2Rk9mZ4yHc1Ad&proof=eyJ0eXAiOiJkcG9wK2p3dCIs…
 ```
 
-The Personal Agent MUST post browser assertions only from a browser it controls, never from the User's own browser, which would then be using the Personal Agent's Session.
+The Personal Agent MUST take the code only from the page its own browser loaded from the endpoint in step 1, and MUST NOT sign a proof over a code from anywhere else, such as a message, a conversation, or another page. A code from anywhere else may come from someone else's browser, which would then join the User's Session (9.6). The Personal Agent reads the code and signs the proof in software its model can't read (9.2).
 
-**3. The Company checks it and sets a cookie.** The Company MUST check that:
+**3. The Company sets the Session's cookie.** The Company MUST check that:
 
-- The signature verifies with a key from the `iss` client's `jwks_uri`, and `typ` is `poppy-browser+jwt`. A Session assertion isn't accepted here, and a browser assertion isn't accepted at the token endpoint.
-- `aud` is its endpoint, the assertion hasn't expired, and `exp` is no more than 60 seconds after `iat`.
-- It hasn't accepted the same `jti` before. It only needs to remember a `jti` until the assertion expires.
-- The Session is active and belongs to the same `client_id` and User.
-- `return_to` is on its own domain.
+- The request has the cookie from step 1, and it matches `code`.
+- The code is one it issued, hasn't expired, and hasn't been used. A code is used by the first request that sends it, whatever the result.
+- `proof` is a valid DPoP Proof, checked as in 4.3, for this request: `htm` is `POST`, `htu` is the endpoint, and `nonce` is the code.
+- The proof's key is the Session Key of an active Session (4.3). Unlike at the token endpoint, a key the Company doesn't know is an error, not a new Session.
 
-If every check passes, the Company sets a cookie for the Session and responds with `303 See Other` to `return_to`. If not, it sets no cookie and returns an error page with HTTP 400.
+If every check passes, the Company sets its cookie for that Session in the response, clears the cookie from step 1, and responds with `303 See Other` to a page on its website. If not, it sets no cookie and returns an error page, with HTTP 400, or 429 when the browser sends too many requests. After an error, the Personal Agent starts again at step 1.
 
-*Response: Company → Personal Agent's browser*
+**4. The browser browses.** The Personal Agent then has its browser open any page on the website. The browser sends the cookie, and the Company handles its requests as the Session:
+
+*Request: Personal Agent's browser → Company*
 
 ```
-HTTP/1.1 303 See Other
-Location: https://example.com/orders
-Set-Cookie: sb_session=Pz81kQ…; Path=/; Secure; HttpOnly; SameSite=Lax
+GET https://example.com/orders
+Cookie: __Host-sb_session=Pz81kQ…
 ```
 
-**The cookie.** The cookie is the Company's own. The Company chooses its name, value, the hosts it covers, and its lifetime, and links it to the Session on its servers. The cookie:
+**The cookie.** The Session's cookie is the Company's own. The Company chooses its name, value, the hosts it covers, and its lifetime, and links it to the Session on its servers. The cookie:
 
+- MUST be set only in step 3.
 - MUST follow the Session's current state: when the Session signs in or out, or its scopes change, the website reflects it on the next request.
 - MUST NOT outlive the Session.
-- MUST be `Secure` and `HttpOnly`, and use `SameSite=Lax` or `None`, not `Strict`. The POST comes from a page the Personal Agent created, so with `Strict` the browser wouldn't send the cookie when it follows the redirect.
+- MUST be `Secure` and `HttpOnly`. It SHOULD use the `__Host-` prefix ([RFC 6265bis](https://datatracker.ietf.org/doc/draft-ietf-httpbis-rfc6265bis/)), so other hosts on the Company's domain can't set it, unless it has to cover several hosts.
 
 The website applies the Session's scopes, as the Company's APIs do. While the browser carries the Session's cookie, the Company handles its requests as that Session, signed in or out, whatever other cookies the browser holds from earlier visits. When the website refuses an action because the Session lacks a scope, it SHOULD show a visible error message that names the missing scopes, so the Personal Agent can request them (4.4).
 
-The Personal Agent MAY post a new browser assertion at any time, for example when the website no longer recognizes the Session. Each one replaces the cookie the Company set before.
+The Personal Agent MAY join again at any time, for example when the website no longer recognizes the Session. Each time, step 3 replaces the cookie the Company set before.
 
 ## 6. APIs
 
@@ -1376,11 +1387,19 @@ A Company's `poppy.json` is where the Personal Agent learns everything about the
 
 ### 9.4 Assertions
 
-A Personal Agent works with many Companies it has no prior relationship with, and each Company's metadata names its own endpoints, which nobody checks (3.2). A malicious Company could name another Company's token endpoint in its metadata. If assertions were addressed to that endpoint, the malicious Company could collect them at its other endpoints and replay them at the other Company. That is why client and Session assertions name the Company's `auth.issuer` in `aud` (4.1, 4.2). The issuer is the value the Personal Agent verified for that Company, so an assertion collected by one Company is rejected by every other. Each Company has its own issuer (3.2), so this holds even for Companies a provider hosts on shared servers. A browser assertion names the Company's `web.browser_session_endpoint` instead, and has its own `typ`, so no token endpoint accepts it (section 5).
+A Personal Agent works with many Companies it has no prior relationship with, and each Company's metadata names its own endpoints, which nobody checks (3.2). A malicious Company could name another Company's token endpoint in its metadata. If assertions were addressed to that endpoint, the malicious Company could collect them at its other endpoints and replay them at the other Company. That is why client and Session assertions name the Company's `auth.issuer` in `aud` (4.1, 4.2). The issuer is the value the Personal Agent verified for that Company, so an assertion collected by one Company is rejected by every other. Each Company has its own issuer (3.2), so this holds even for Companies a provider hosts on shared servers.
 
 ### 9.5 Signing in with the User's credentials
 
 Direct and Device Sign-In delegate access: the User approves scopes on the Company's own page, and the Company knows which Personal Agent acts and can limit or revoke it without affecting the User. Mediated Sign-In gives the Personal Agent the User's credentials, but the Company still knows which Personal Agent signed in, and limits it to `auth.mediated.scopes` (4.7). A Personal Agent that signs in on the Company's website with the User's credentials, outside this protocol, looks like the User: the Company can't limit what it does, and can only stop it by blocking it entirely. A Company that offers no Direct or Device Sign-In, or whose scopes don't cover what Users need, can expect Personal Agents to sign in that way. That is why 4.4 asks Personal Agents to prefer Direct and Device Sign-In over Mediated Sign-In, and Companies that offer them to make them cover what Users need.
+
+### 9.6 Joining a browser to a Session
+
+A browser that carries a Session's cookie acts as that Session. If a credential carried by the browser were enough to join, anyone who could get one could put it in someone else's browser. A malicious Personal Agent could start a Session, sign it in to an account it controls, and have a victim's browser post the credential from a page that submits itself. The victim would then use the attacker's account without noticing, and could save payment details, addresses, or health information in it. This is the cross-site request forgery that [RFC 9700 §4.7](https://www.rfc-editor.org/rfc/rfc9700#section-4.7) describes for OAuth clients.
+
+Section 5 prevents it with two checks that only the right browser and the right Personal Agent can pass together. The proof has to be signed over a code the browser got from the Company's page, and a page on another site can make a browser load that page but can't read it. The code has to come back with the cookie set alongside it, so a code and proof the attacker made in its own browser fail in the victim's, which doesn't have that cookie. The cookie is `SameSite=Strict`, so the browser doesn't send it with a form submitted from another site. The page can't be framed or kept as a reference by the page that opened it, so another site can't watch it or trick a person into using it.
+
+The opposite risk is a Personal Agent signing a proof over a code from someone else's browser, which would join that browser to the User's Session. This is the consent phishing that [RFC 10027](https://www.rfc-editor.org/rfc/rfc10027) describes for cross-device flows, and it's why the Personal Agent takes the code only from its own browser (section 5).
 
 ## 10. References
 
@@ -1393,6 +1412,8 @@ This draft uses these standards and versions:
 | Agent identity and assertions | [OAuth Client ID Metadata Document](https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/), [RFC 7519](https://www.rfc-editor.org/rfc/rfc7519), [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523), [draft-ietf-oauth-rfc7523bis](https://datatracker.ietf.org/doc/draft-ietf-oauth-rfc7523bis/), [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html) |
 | Sign-in | [RFC 7636](https://www.rfc-editor.org/rfc/rfc7636), [RFC 8628](https://www.rfc-editor.org/rfc/rfc8628), [RFC 9207](https://www.rfc-editor.org/rfc/rfc9207) |
 | Token binding and audience | [RFC 9449](https://www.rfc-editor.org/rfc/rfc9449), [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707) |
+| Web browsing | [RFC 9111](https://www.rfc-editor.org/rfc/rfc9111), [RFC 6265bis](https://datatracker.ietf.org/doc/draft-ietf-httpbis-rfc6265bis/) |
+| Security | [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700), [RFC 10027](https://www.rfc-editor.org/rfc/rfc10027) |
 | APIs | [OpenAPI Specification 3.1](https://spec.openapis.org/oas/v3.1.1.html), [Model Context Protocol 2025-06-18](https://modelcontextprotocol.io/specification/2025-06-18), [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728) |
 
 ---

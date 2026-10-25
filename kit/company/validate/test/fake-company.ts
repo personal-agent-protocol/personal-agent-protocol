@@ -135,11 +135,7 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
         } else if (grant === "urn:ietf:params:oauth:grant-type:jwt-bearer") {
             const assertion = form.get("assertion") ?? "";
             const verified = await verifyJwt(assertion, key);
-            if (
-                !verified ||
-                verified.header.typ === "poppy-browser+jwt" ||
-                verified.payload.aud !== ORIGIN
-            )
+            if (!verified || verified.payload.aud !== ORIGIN)
                 return json(400, { error: "invalid_grant" });
             const jti = String(verified.payload.jti);
             if (seenAssertions.has(jti) && !flaws.acceptReplayedAssertion)

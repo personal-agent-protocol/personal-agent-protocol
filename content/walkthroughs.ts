@@ -665,34 +665,40 @@ Content-Type: application/json
                 },
                 wire: [
                     {
-                        dir: "Atlas's browser ↔ laurelfiber.example",
+                        dir: "Atlas and its browser ↔ laurelfiber.example",
                         kind: "browser joins",
-                        body: `POST https://laurelfiber.example/poppy/browser-session
+                        body: `GET https://laurelfiber.example/poppy/browser-session
+
+HTTP/1.1 200 OK
+Content-Type: text/html
+Cache-Control: no-store
+Content-Security-Policy: frame-ancestors 'none'
+Cross-Origin-Opener-Policy: same-origin
+Set-Cookie: __Host-lf_join=Jq7mW2…; Path=/; Max-Age=60; Secure; HttpOnly; SameSite=Strict
+
+<form method="post" action="/poppy/browser-session">
+  <input type="hidden" name="code" value="bc_Vn3qT8xLw2Rk9mZ4yHc1Ad">
+  <input type="text" name="proof">
+</form>
+
+// Atlas reads the code from its own browser, signs a DPoP Proof
+// with its Laurel Session Key and the code as the nonce, puts it
+// in the form, and submits it:
+POST https://laurelfiber.example/poppy/browser-session
 Content-Type: application/x-www-form-urlencoded
+Cookie: __Host-lf_join=Jq7mW2…
 
-assertion=eyJ0eXAiOiJwb3BweS1icm93c2VyK2p3dCIs…
-
-// The browser assertion, signed by Atlas:
-{
-  "iss": "https://atlas.example/agent.json",
-  "sub": "usr_L7r2xW",
-  "aud": "https://laurelfiber.example/poppy/browser-session",
-  "jkt": "Vb2hT0mRk9yq1XcE4pLnZs8uWdA6jG3fKe7iOyN5MtQ",
-  "return_to": "https://laurelfiber.example/support/diagnostics",
-  "iat": 1791311000,
-  "exp": 1791311060,
-  "jti": "Hk29vQ0sPZ1mXa7cR4tLwA"
-}
+code=bc_Vn3qT8xLw2Rk9mZ4yHc1Ad&proof=eyJ0eXAiOiJkcG9wK2p3dCIs…
 
 HTTP/1.1 303 See Other
-Location: https://laurelfiber.example/support/diagnostics
-Set-Cookie: lf_session=Pz81kQ…; Path=/; Secure; HttpOnly; SameSite=Lax`,
+Location: https://laurelfiber.example/
+Set-Cookie: __Host-lf_session=Pz81kQ…; Path=/; Secure; HttpOnly; SameSite=Lax`,
                     },
                     {
                         dir: "Atlas's browser ↔ laurelfiber.example",
                         kind: "page view",
                         body: `GET https://laurelfiber.example/support/diagnostics
-Cookie: lf_session=Pz81kQ…
+Cookie: __Host-lf_session=Pz81kQ…
 
 HTTP/1.1 200 OK
 Content-Type: text/html
@@ -1192,25 +1198,32 @@ Content-Type: application/json
                 },
                 wire: [
                     {
-                        dir: "Atlas's browser ↔ chaparralhotel.example",
+                        dir: "Atlas and its browser ↔ chaparralhotel.example",
                         kind: "browser joins",
-                        body: `POST https://chaparralhotel.example/poppy/browser-session
-Content-Type: application/x-www-form-urlencoded
+                        body: `GET https://chaparralhotel.example/poppy/browser-session
 
-assertion=eyJ0eXAiOiJwb3BweS1icm93c2VyK2p3dCIs…
+HTTP/1.1 200 OK
+Set-Cookie: __Host-ch_join=Lk40sB…; Path=/; Max-Age=60; Secure; HttpOnly; SameSite=Strict
 
-// Signed by Atlas, with the key thumbprint of its
-// signed-in Chaparral session and return_to set to the stay page.
+<form method="post" action="/poppy/browser-session">
+  <input type="hidden" name="code" value="bc_8Jr2Lp0Qx5Tm1Wc7Ns4Ke">
+  <input type="text" name="proof">
+</form>
+
+// Atlas signs a proof over the code with the Session Key of its
+// signed-in Chaparral session, and its browser submits the form:
+POST https://chaparralhotel.example/poppy/browser-session
+code=bc_8Jr2Lp0Qx5Tm1Wc7Ns4Ke&proof=eyJ0eXAiOiJkcG9wK2p3dCIs…
 
 HTTP/1.1 303 See Other
-Location: https://chaparralhotel.example/stays/stay_9Kp4
-Set-Cookie: ch_session=Wq52nT…; Path=/; Secure; HttpOnly; SameSite=Lax`,
+Location: https://chaparralhotel.example/
+Set-Cookie: __Host-ch_session=Wq52nT…; Path=/; Secure; HttpOnly; SameSite=Lax`,
                     },
                     {
                         dir: "Atlas's browser ↔ chaparralhotel.example",
                         kind: "page view",
                         body: `GET https://chaparralhotel.example/stays/stay_9Kp4
-Cookie: ch_session=Wq52nT…
+Cookie: __Host-ch_session=Wq52nT…
 
 HTTP/1.1 200 OK
 Content-Type: text/html
@@ -1253,7 +1266,7 @@ Content-Type: text/html
                         kind: "form submission",
                         body: `// Atlas submits Chaparral's form after the user says yes.
 POST https://chaparralhotel.example/stays/stay_9Kp4/extend
-Cookie: ch_session=Wq52nT…
+Cookie: __Host-ch_session=Wq52nT…
 Content-Type: application/x-www-form-urlencoded
 
 offer_id=room_offer_912&checkout=2026-10-14T05%3A30

@@ -184,8 +184,8 @@ export type AssertionOptions = {
     extra?: Record<string, unknown>;
 };
 
-// A short-lived signed assertion: the client assertion (RFC 7523, sub = client_id), the Session
-// assertion (spec 4.2, sub = User ID), or a browser assertion (spec 5, typ poppy-browser+jwt).
+// A short-lived signed assertion: the client assertion (RFC 7523, sub = client_id) or the Session
+// assertion (spec 4.2, sub = User ID).
 export function signAssertion(options: AssertionOptions): Promise<string> {
     const iat = nowSeconds();
     const header: Record<string, unknown> = { alg: "ES256", typ: options.typ ?? "JWT" };
