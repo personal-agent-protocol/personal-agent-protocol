@@ -287,9 +287,11 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
   assertions for the signed-in user.
 - Session keys belong to one session, so the app can generate and keep them on the device, in its
   platform keystore.
-- Redirect URIs MUST be HTTPS URLs on your `client_id` domain ([4.1](/docs/spec#agent-identity)). To
-  return the user to an app, use an HTTPS link the app claims, such as an iOS universal link or an
-  Android app link, or use device sign-in.
+- Redirect URIs are HTTPS URLs on your `client_id` domain, or loopback redirect URIs
+  ([4.1](/docs/spec#agent-identity)). To return the user to a phone app, use an HTTPS link the app
+  claims, such as an iOS universal link or an Android app link, or use device sign-in. A desktop app
+  can listen on a loopback port, as [RFC 8252](https://www.rfc-editor.org/rfc/rfc8252) §7.3
+  describes.
 
 ### Web browsing {#agent-browsing}
 

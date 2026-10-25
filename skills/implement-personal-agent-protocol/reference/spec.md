@@ -64,7 +64,7 @@ The well-known URL MAY redirect, for example from `www.example.com` to `example.
 1. `organization.domain` is the host that served the document (3.1). This stops a document copied to another domain from speaking for the Company.
 2. The issuer's metadata has the same `issuer`, and its `protected_resources` lists `https://{organization.domain}` (3.2). This stops a domain from claiming another Company's issuer and receiving its tokens.
 
-**HTTPS.** Every URL this protocol defines or exchanges MUST be an HTTPS URL: in `poppy.json`, in authorization server and protected resource metadata, in client metadata documents (4.1), in extensions, and in assertions, proofs, and responses. Personal Agents MUST NOT use a URL from a Company that has another scheme, and Companies MUST reject one from a Personal Agent. This doesn't cover the pages of a Company's website, which Personal Agents browse as any visitor would (section 5).
+**HTTPS.** Every URL this protocol defines or exchanges MUST be an HTTPS URL: in `poppy.json`, in authorization server and protected resource metadata, in client metadata documents (4.1), in extensions, and in assertions, proofs, and responses. Personal Agents MUST NOT use a URL from a Company that has another scheme, and Companies MUST reject one from a Personal Agent. This doesn't cover the pages of a Company's website, which Personal Agents browse as any visitor would (section 5), or loopback redirect URIs (4.1).
 
 **Redirects and addresses.** Outside discovery, a redirect never carries the protocol's secrets. If the token, revocation, device authorization, or Mediated Sign-In endpoint, an API, or a conversation, feedback, or extension endpoint answers with a redirect, the Personal Agent MUST NOT send a token, DPoP Proof, assertion, or credentials to the new URL. Personal Agents and Companies MUST NOT connect to a loopback, private, or link-local address for a URL the other party gave them, unless they were configured to on purpose. Otherwise a Company could aim Personal Agents at another Company's servers or at internal ones.
 
@@ -264,8 +264,8 @@ A Personal Agent's `client_id` MUST be an HTTPS URL that returns its metadata do
 ```
 
 - `client_id` MUST equal the URL the document was fetched from.
-- `jwks_uri` and every entry in `redirect_uris` MUST be HTTPS URLs on the same domain as `client_id`. The key set contains only public keys.
-- `redirect_uris` lists where Direct Sign-In may send the User back to (4.5).
+- `jwks_uri` MUST be an HTTPS URL on the same domain as `client_id`. The key set contains only public keys.
+- `redirect_uris` lists where Direct Sign-In may send the User back to (4.5). Each entry MUST be an HTTPS URL on the same domain as `client_id`, or a loopback redirect URI for an app on the User's computer, as [RFC 8252](https://www.rfc-editor.org/rfc/rfc8252) §7.3 defines.
 - `extensions` lists the extensions the Personal Agent supports, keyed by name, each with its `version` (3.3). It is optional.
 - The Personal Agent authenticates at the token endpoint with a client assertion signed by a key from `jwks_uri` (`private_key_jwt`, [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523)). The same keys sign its Session assertions (4.2). Its DPoP keys (4.3) are separate and aren't published.
 - The client assertion's `aud` MUST be the Company's `auth.issuer`, as a single string. Companies MUST reject a client assertion with any other `aud`, compared character for character, including their token endpoint URL. This follows [draft-ietf-oauth-rfc7523bis](https://datatracker.ietf.org/doc/draft-ietf-oauth-rfc7523bis/). The endpoints in a Company's metadata aren't checked (3.2), so an `aud` set to an endpoint could name another Company's endpoint, and that Company would accept the assertion.
@@ -314,7 +314,7 @@ grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer
 
 - `iss` is the Personal Agent's `client_id` (4.1).
 - `sub` is the User ID for this Company, described above.
-- `aud` is the Company's `auth.issuer`, as a single string rather than an array, so the assertion can't be used at another Company. As with the client assertion (4.1), the Company MUST reject any other `aud`, compared character for character.
+- `aud` is the Company's `auth.issuer`, as a single string rather than an array, so the assertion can't be used at another Company. As with the client assertion (4.1), the Company MUST reject any other `aud`, compared character for character. [draft-ietf-oauth-rfc7523bis](https://datatracker.ietf.org/doc/draft-ietf-oauth-rfc7523bis/) §4 also allows the token endpoint URL as an authorization grant's audience. Poppy doesn't, for the reason in 9.4.
 - `iat` and `exp` are when the assertion was issued and when it expires, in seconds since 1970 (Unix time). `exp` MUST be at most five minutes after `iat`. The assertion is short-lived: one minute in this example.
 - `jti` is a unique ID for the assertion, with at least 128 random bits. The Company MUST reject a `jti` it has already seen from the same `client_id` until the assertion expires, so a copied assertion can't be used again.
 
@@ -562,7 +562,7 @@ A Company that supports pushed authorization requests ([RFC 9126](https://www.rf
 
 **2. The User signs in and approves.** The Company's page shows which Personal Agent is asking, using the name and logo from its metadata document. The User signs in however the Company allows, such as a password, a passkey, or a provider like Google or Apple. The page shows the requested scopes and lets the User approve some or all of them, or decline.
 
-**3. The Company sends the User back.** The Company redirects the browser to `redirect_uri` with a one-time `code`, the same `state`, and its `auth.issuer` in `iss` ([RFC 9207](https://www.rfc-editor.org/rfc/rfc9207)). `redirect_uri` MUST exactly match an entry in the Personal Agent's `redirect_uris` (4.1). If the User declines, the redirect carries `error=access_denied` and `iss` instead.
+**3. The Company sends the User back.** The Company redirects the browser to `redirect_uri` with a one-time `code`, the same `state`, and its `auth.issuer` in `iss` ([RFC 9207](https://www.rfc-editor.org/rfc/rfc9207)). `redirect_uri` MUST exactly match an entry in the Personal Agent's `redirect_uris` (4.1), except for the port of a loopback redirect URI, as RFC 8252 §7.3 describes. If the User declines, the redirect carries `error=access_denied` and `iss` instead.
 
 **4. The Personal Agent exchanges the code.** The Personal Agent checks `state`, and MUST check that `iss` exactly matches the `auth.issuer` of the Company it started sign-in with. This stops a response from another Company's sign-in being swapped in. It then sends the code to the `token_endpoint` with its client assertion and a proof signed with the Session Key:
 
@@ -1515,7 +1515,7 @@ This draft uses these standards and versions:
 | Requirement words | [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119), [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174) |
 | OAuth | [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749), [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750), [RFC 7009](https://www.rfc-editor.org/rfc/rfc7009), [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414), [RFC 8693](https://www.rfc-editor.org/rfc/rfc8693), [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728) |
 | Agent identity and assertions | [OAuth Client ID Metadata Document](https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/), [RFC 7519](https://www.rfc-editor.org/rfc/rfc7519), [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523), [draft-ietf-oauth-rfc7523bis](https://datatracker.ietf.org/doc/draft-ietf-oauth-rfc7523bis/), [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html), [draft-ietf-wimse-aims](https://datatracker.ietf.org/doc/draft-ietf-wimse-aims/) |
-| Sign-in | [RFC 7636](https://www.rfc-editor.org/rfc/rfc7636), [RFC 8628](https://www.rfc-editor.org/rfc/rfc8628), [RFC 9207](https://www.rfc-editor.org/rfc/rfc9207) |
+| Sign-in | [RFC 7636](https://www.rfc-editor.org/rfc/rfc7636), [RFC 8252](https://www.rfc-editor.org/rfc/rfc8252), [RFC 8628](https://www.rfc-editor.org/rfc/rfc8628), [RFC 9207](https://www.rfc-editor.org/rfc/rfc9207) |
 | Token binding and audience | [RFC 9449](https://www.rfc-editor.org/rfc/rfc9449), [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707) |
 | Web browsing | [RFC 9111](https://www.rfc-editor.org/rfc/rfc9111), [RFC 6265bis](https://datatracker.ietf.org/doc/draft-ietf-httpbis-rfc6265bis/) |
 | Security | [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700), [RFC 10027](https://www.rfc-editor.org/rfc/rfc10027) |

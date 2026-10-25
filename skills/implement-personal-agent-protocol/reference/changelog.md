@@ -82,6 +82,12 @@ Breaking · [Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) 
 
 The issuer confirms which domains name it with `protected_resources`, the field RFC 9728 registers in authorization server metadata, instead of the custom `poppy_domains`. It lists `https://{domain}` for each domain, exactly in that form with no path or trailing slash, and may list other resources, such as MCP servers. Personal Agents check that it includes `https://{organization.domain}` by exact string, ignoring case only in the host, and a device sign-in link's host is checked against the hosts of its entries.
 
+#### Loopback redirect URIs
+
+[Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity) · [Spec 4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in) · [Spec 10](https://personalagentprotocol.org/docs/0.3/spec#references) · [Guides: Native and distributed apps](https://personalagentprotocol.org/docs/0.3/guides#agent-native-apps) · [Issue #33](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/33)
+
+A Personal Agent's `redirect_uris` can include loopback redirect URIs, as RFC 8252 §7.3 defines, so an app on the User's computer can receive the authorization response. A loopback redirect URI matches an entry with any port. Every other entry is still an HTTPS URL on the `client_id` domain.
+
 #### `scopes_supported` and `auth.scopes`
 
 Breaking · [Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Guides: An issuer for personal agents](https://personalagentprotocol.org/docs/0.3/guides#company-agent-issuer)
@@ -135,6 +141,12 @@ Section 4.2 says where the assertion differs from draft-ietf-wimse-aims §10.4.2
 [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 10](https://personalagentprotocol.org/docs/0.3/spec#references)
 
 Section 4.2 relates User IDs to OpenID Connect pairwise subject identifiers, which the Personal Agent assigns for each pair of User and Company. The rules for User IDs don't change.
+
+#### Session assertion audience and rfc7523bis
+
+[Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Issue #30](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/30)
+
+Section 4.2 notes that the Session assertion's audience is narrower than draft-ietf-oauth-rfc7523bis, which also allows the token endpoint URL for an authorization grant. The rule doesn't change.
 
 #### `signed_in` removed
 

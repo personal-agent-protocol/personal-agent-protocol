@@ -39,7 +39,7 @@ are left out.
 
 ### Specification: [4.2 Starting a Session](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions)
 
-- [ ] **MUST**: As with the client assertion (4.1), the Company MUST reject any other `aud`, compared character for character.
+- [ ] **MUST**: As with the client assertion (4.1), the Company MUST reject any other `aud`, compared character for character. draft-ietf-oauth-rfc7523bis §4 also allows the token endpoint URL as an authorization grant's audience.
 - [ ] **MUST**: The Company MUST reject a `jti` it has already seen from the same `client_id` until the assertion expires, so a copied assertion can't be used again.
 - [ ] **MUST**: The Company chooses the value, and it MUST be greater than 0.
 - [ ] **SHOULD**: Session Tokens SHOULD last hours, not days.
@@ -267,7 +267,7 @@ Section 4.3 lists the checks you MUST make on every proof. To make them reliably
 
 ### Specification: [4.5 Direct Sign-In](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)
 
-- [ ] **MUST**: `redirect_uri` MUST exactly match an entry in the Personal Agent's `redirect_uris` (4.1).
+- [ ] **MUST**: `redirect_uri` MUST exactly match an entry in the Personal Agent's `redirect_uris` (4.1), except for the port of a loopback redirect URI, as RFC 8252 §7.3 describes.
 
 ### Specification: [4.6 Device Sign-In](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)
 

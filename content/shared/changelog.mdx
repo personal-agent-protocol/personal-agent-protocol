@@ -139,6 +139,14 @@ hosts of its entries.
 
 </Change>
 
+<Change title="Loopback redirect URIs" sections="3, 4.1, 4.5, 10, guides#agent-native-apps" issue="33">
+
+A Personal Agent's `redirect_uris` can include loopback redirect URIs, as RFC 8252 §7.3 defines, so
+an app on the User's computer can receive the authorization response. A loopback redirect URI
+matches an entry with any port. Every other entry is still an HTTPS URL on the `client_id` domain.
+
+</Change>
+
 <Change title="`scopes_supported` and `auth.scopes`" breaking sections="3.1, 3.2, 4.4, guides#company-agent-issuer">
 
 A Company lists every scope a Personal Agent can request in `scopes_supported` in its OAuth server
@@ -213,6 +221,14 @@ agent in `sub`, and Poppy names it in `iss` and the User in `sub`.
 
 Section 4.2 relates User IDs to OpenID Connect pairwise subject identifiers, which the Personal Agent
 assigns for each pair of User and Company. The rules for User IDs don't change.
+
+</Change>
+
+<Change title="Session assertion audience and rfc7523bis" sections="4.2" issue="30">
+
+Section 4.2 notes that the Session assertion's audience is narrower than
+draft-ietf-oauth-rfc7523bis, which also allows the token endpoint URL for an authorization grant.
+The rule doesn't change.
 
 </Change>
 
