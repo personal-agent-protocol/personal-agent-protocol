@@ -76,6 +76,8 @@ unchanged.
 
 **Mediated Sign-In** ([4.7](https://personalagentprotocol.org/docs/spec#mediated-sign-in)).
 
+- Transitional. Offer it only until Direct or Device Sign-In covers the same scopes. The protocol
+  plans to remove it in the version published in February 2027.
 - `auth.mediated` with `endpoint`, `fields`, and `scopes`.
 - The endpoint takes a DPoP Session Token and JSON with `scope` and `credentials`. Statuses
   `complete`, `code_required`, `failed`, and `expired`, each with HTTP 200. Code submission at

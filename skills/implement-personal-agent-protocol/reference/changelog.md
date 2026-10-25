@@ -38,6 +38,12 @@ Breaking · [Spec 4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-t
 
 The Personal Agent's browser no longer posts a signed browser assertion. Any browser could post one, so a malicious Personal Agent could have a victim's browser join a Session signed in to the attacker's account. Now the browser loads `web.browser_session_endpoint` with a GET and gets a page with a form holding a one-time code, and a `SameSite=Strict` cookie that ties the code to that browser. The Personal Agent signs a DPoP Proof with its Session Key, with the code as its `nonce`, puts it in the form, and has the browser submit it. The Company checks the cookie, the code, and the proof, and sets the Session's cookie in its response. The page can't be framed or kept by the page that opened it. The Personal Agent takes the code only from its own browser, outside its model, and the guides list the code as a secret. The browser assertion, its `typ`, and `return_to` are removed. The Session's cookie SHOULD use the `__Host-` prefix, and `SameSite=Strict` is no longer ruled out. A new section 9.6 explains both attacks the design prevents, and the references add RFC 9111, RFC 6265bis, RFC 9700, and RFC 10027.
 
+#### Mediated Sign-In is transitional
+
+[Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) · [Spec 4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in) · [Spec 9.5](https://personalagentprotocol.org/docs/0.3/spec#credentials) · [Guides: Mediated sign-in](https://personalagentprotocol.org/docs/0.3/guides#company-mediated)
+
+Mediated Sign-In is a transitional step, not where the protocol is headed, like OAuth's password grant. Companies should offer it only until they can add Direct or Device Sign-In, and stop once those cover the same scopes. The protocol plans to remove it in the version published in February 2027, and after that the community will look for ways to encourage the Companies that still offer it to move to Direct or Device Sign-In.
+
 ### Minor changes
 
 #### `protected_resources` replaces `poppy_domains`

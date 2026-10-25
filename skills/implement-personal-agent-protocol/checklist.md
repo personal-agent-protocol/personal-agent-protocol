@@ -261,6 +261,7 @@ Section 4.3 lists the checks you MUST make on every proof. To make them reliably
 
 ### Specification: [4.7 Mediated Sign-In](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in)
 
+- [ ] **SHOULD**: A Company SHOULD offer Mediated Sign-In only until it can add Direct or Device Sign-In, and SHOULD stop offering it once those cover the scopes it grants.
 - [ ] **MUST**: A Company that offers Mediated Sign-In MUST rate-limit attempts, MUST NOT return credentials in any response, and SHOULD require a one-time code when a sign-in looks unusual.
 
 ### Specification: [4.8 Account Tokens](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)
@@ -316,7 +317,7 @@ The page where the user approves access, in direct and device sign-in (4.5, 4.6)
 
 ### Recommended: [Mediated sign-in](https://personalagentprotocol.org/docs/0.3/guides#company-mediated)
 
-If you offer mediated sign-in (4.7), you MUST rate-limit attempts and MUST NOT return credentials in any response. Also:
+If you offer mediated sign-in, you MUST rate-limit attempts and MUST NOT return credentials in any response. Also:
 
 - [ ] Rate-limit by account, by `client_id`, and by user ID, and cap wrong one-time codes.
 - [ ] Require a one-time code when a sign-in looks unusual, including a personal agent's first mediated sign-in after the user disconnected it.

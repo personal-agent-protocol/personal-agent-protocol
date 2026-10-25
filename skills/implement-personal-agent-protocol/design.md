@@ -27,7 +27,9 @@ Sessions only), or any of Direct, Device, and Mediated Sign-In. Direct Sign-In k
 password with the Company and suits most Companies. Device Sign-In suits Companies that already
 offer it. Mediated Sign-In means accepting credentials from Personal Agents, with the duties in
 [4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in) and the
-[guides](https://personalagentprotocol.org/docs/0.3/guides#company-mediated).
+[guides](https://personalagentprotocol.org/docs/0.3/guides#company-mediated). It is transitional: the
+protocol plans to remove it in the version published in February 2027. Choose it only as a bridge to
+Direct or Device Sign-In, and record when you plan to add those.
 
 **Scopes** ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). Which scopes to offer,
 usually the OAuth scopes the Company already has (names can't start with `poppy:`), where each one

@@ -272,7 +272,9 @@ The page where the user approves access, in direct and device sign-in ([4.5](htt
 
 ### Mediated sign-in
 
-If you offer mediated sign-in ([4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in)), you MUST rate-limit attempts and MUST NOT return credentials in any response. Also:
+Mediated sign-in is transitional ([4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in)). Offer it only until you can add direct or device sign-in, and plan its removal: the protocol plans to remove it in the version published in February 2027.
+
+If you offer mediated sign-in, you MUST rate-limit attempts and MUST NOT return credentials in any response. Also:
 
 - Rate-limit by account, by `client_id`, and by user ID, and cap wrong one-time codes.
 - Require a one-time code when a sign-in looks unusual, including a personal agent's first mediated sign-in after the user disconnected it.
