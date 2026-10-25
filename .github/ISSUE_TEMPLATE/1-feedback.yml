@@ -30,7 +30,7 @@ body:
       id: kind
       attributes:
           label: Kind
-          description: For a weakness that could harm a live implementation, don't open an issue. Report it privately, as [SECURITY.md](https://github.com/personal-agent-protocol/personal-agent-protocol/blob/main/SECURITY.md) describes.
+          description: For a security vulnerability, don't open an issue. Report it privately, as [SECURITY.md](https://github.com/personal-agent-protocol/personal-agent-protocol/blob/main/SECURITY.md) describes. Design problems already discussed in the open are fine here.
           options:
               - Gap
               - Ambiguous

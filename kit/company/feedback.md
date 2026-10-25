@@ -62,6 +62,10 @@ editing:
 - Never include hostnames, tokens, keys, credentials, customer data, or internal details. Put
   Company-specific detail in `plan/design.md` instead.
 - One problem per entry. If the same issue comes up again, add to the existing entry.
+- Keep a **Risk** entry out of the report when it describes an attack that hasn't been discussed in
+  public. Tell the engineer to report it privately, as
+  [SECURITY.md](https://github.com/personal-agent-protocol/personal-agent-protocol/blob/main/SECURITY.md)
+  describes.
 
 Feedback sent to the project is licensed under the
 [contribution terms](https://personalagentprotocol.org/license/contributions).
