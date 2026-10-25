@@ -52,6 +52,16 @@ with `invalid_grant`, so an ended Session's key doesn't silently start a new one
 
 </Change>
 
+<Change title="Agent IDs for several agents" sections="4.2, 4.10" issue="36">
+
+A Personal Agent that acts for a User through several agents can say which one a Session is for in
+an optional `agent_id` claim in the Session assertion. The Agent ID follows the rules for User IDs
+and doesn't name a separate party. Companies may use it to tell the agents apart, but the agents
+share the User's account, Account Tokens, and conversations. A Session keeps the Agent ID it started
+with.
+
+</Change>
+
 <Change title="Browsers join a Session with a signed one-time code" breaking sections="4.3, 5, 9.4, 9.6, 10, guides#both-secrets, guides#agent-browsing, guides#company-browsing">
 
 The Personal Agent's browser no longer posts a signed browser assertion. Any browser could post one,

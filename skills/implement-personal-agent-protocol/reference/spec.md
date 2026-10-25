@@ -281,7 +281,9 @@ The Personal Agent MUST give each of its Users a User ID for each Company, where
 
 A Personal Agent MAY instead give a User a new User ID for each anonymous browsing session, like a private browser window. The Company sees a new User each time. The Personal Agent uses the ID for nothing else, discards it when the browsing session ends, and MUST NOT sign in with a Session that uses it (4.4).
 
-The Personal Agent holds the User IDs of each of its Users at every Company, and MUST keep that mapping confidential: it MUST NOT publish it or share it with third parties, other than service providers that process it on the Personal Agent's behalf.
+A Personal Agent that acts for a User through several agents, such as a travel agent and a shopping agent, MAY say which one a Session is for with an Agent ID. The Agent ID follows the same rules as the User ID: it is stable, opaque, different for each Company, and MUST NOT contain or be derived from personal information. An Agent ID doesn't name a separate party: the Personal Agent is still the client the Company deals with (4.1). The Company MAY use the Agent ID to tell a User's agents apart, for example in account settings or for rate limits, but they share the User's account, Account Tokens, and conversations. A Session keeps the Agent ID it started with: when the Personal Agent renews the Session, it MUST send the same Agent ID, or none if it started without one. A Session started with an Account Token (4.8) has no Agent ID. To give a signed-in Session one, the Personal Agent starts the Session with the assertion, then signs it in with the Account Token using the same Session Key. A Personal Agent with one agent leaves it out.
+
+The Personal Agent holds the User IDs and Agent IDs of each of its Users at every Company, and MUST keep that mapping confidential: it MUST NOT publish it or share it with third parties, other than service providers that process it on the Personal Agent's behalf.
 
 To start a Session, the Personal Agent requests a Session Token from the Company's `token_endpoint` with the JWT bearer grant ([RFC 7523](https://www.rfc-editor.org/rfc/rfc7523) §2.1). The assertion is a short-lived JWT signed with a key from its `jwks_uri`, naming itself in `iss` and the User in `sub`. Unlike most uses of this grant, the client issues the assertion itself: the Personal Agent obtains its own authorization, as [draft-ietf-wimse-aims](https://datatracker.ietf.org/doc/draft-ietf-wimse-aims/) §10.4.2 describes, for one User the Company knows only by User ID. AIMS names the agent in `sub`. Poppy names it in `iss` and the User in `sub`, because the token is for that User. Like every token request, it also carries the Personal Agent's client assertion (4.1) and a DPoP Proof (4.3). The Personal Agent creates a new Session Key for the Session and signs the proof with it.
 
@@ -314,6 +316,7 @@ grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer
 
 - `iss` is the Personal Agent's `client_id` (4.1).
 - `sub` is the User ID for this Company, described above.
+- `agent_id` is the Agent ID, described above. It is optional.
 - `aud` is the Company's `auth.issuer`, as a single string rather than an array, so the assertion can't be used at another Company. As with the client assertion (4.1), the Company MUST reject any other `aud`, compared character for character. [draft-ietf-oauth-rfc7523bis](https://datatracker.ietf.org/doc/draft-ietf-oauth-rfc7523bis/) §4 also allows the token endpoint URL as an authorization grant's audience. Poppy doesn't, for the reason in 9.4.
 - `iat` and `exp` are when the assertion was issued and when it expires, in seconds since 1970 (Unix time). `exp` MUST be at most five minutes after `iat`. The assertion is short-lived: one minute in this example.
 - `jti` is a unique ID for the assertion, with at least 128 random bits. The Company MUST reject a `jti` it has already seen from the same `client_id` until the assertion expires, so a copied assertion can't be used again.
@@ -807,7 +810,7 @@ The User can also disconnect the Personal Agent from the Company's account setti
 Every request in this section is a standard OAuth request. What a Company's authorization server needs beyond the specifications listed at the start of this section:
 
 - **Sessions named by DPoP keys.** A proof from a new key starts a Session, and a proof from a known key renews it or signs it in (4.3). The Company keeps a record for each Session (4.4).
-- **Assertions the Personal Agent issues.** The Personal Agent signs its own JWT bearer assertion, naming itself in `iss` and the User ID in `sub` (4.2).
+- **Assertions the Personal Agent issues.** The Personal Agent signs its own JWT bearer assertion, naming itself in `iss`, the User ID in `sub`, and optionally one of its agents in `agent_id` (4.2).
 - **One account per Session.** A Session that has been signed in to one account can't sign in to another. The token endpoint returns `account_mismatch` (4.4).
 - **Described scopes.** Each scope in `scopes_supported` has a description, in an OpenAPI description the Company lists or in `auth.scopes`, so the Personal Agent can choose the scopes a task needs (4.4).
 - **Account Tokens that start Sessions.** An Account Token isn't bound to a Session Key, so it can start new Sessions as well as renew existing ones (4.8).

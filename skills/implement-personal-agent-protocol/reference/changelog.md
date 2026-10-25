@@ -32,6 +32,12 @@ Breaking · [Spec 2](https://personalagentprotocol.org/docs/0.3/spec#terms) · [
 
 Each Session has its own DPoP key, the Session Key, and the key's thumbprint names the Session. The custom `session_id` parameter is removed from every token request and response, so Poppy's token requests are standard OAuth requests. A proof from a new key starts a new Session, and a proof from a known key renews or signs in that Session. Personal Agents use a new key for each Session instead of one for each User ID. Companies should remember the keys of Sessions they end and reject them with `invalid_grant`, so an ended Session's key doesn't silently start a new one.
 
+#### Agent IDs for several agents
+
+[Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 4.10](https://personalagentprotocol.org/docs/0.3/spec#oauth-additions) · [Issue #36](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/36)
+
+A Personal Agent that acts for a User through several agents can say which one a Session is for in an optional `agent_id` claim in the Session assertion. The Agent ID follows the rules for User IDs and doesn't name a separate party. Companies may use it to tell the agents apart, but the agents share the User's account, Account Tokens, and conversations. A Session keeps the Agent ID it started with.
+
 #### Browsers join a Session with a signed one-time code
 
 Breaking · [Spec 4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens) · [Spec 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing) · [Spec 9.4](https://personalagentprotocol.org/docs/0.3/spec#assertion-audience) · [Spec 9.6](https://personalagentprotocol.org/docs/0.3/spec#browser-join) · [Spec 10](https://personalagentprotocol.org/docs/0.3/spec#references) · [Guides: Handling secrets](https://personalagentprotocol.org/docs/0.3/guides#both-secrets) · [Guides: Web browsing](https://personalagentprotocol.org/docs/0.3/guides#agent-browsing) · [Guides: Browser sessions](https://personalagentprotocol.org/docs/0.3/guides#company-browsing)
