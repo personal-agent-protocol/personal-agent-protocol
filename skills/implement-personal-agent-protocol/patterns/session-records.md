@@ -3,10 +3,14 @@
 The Company keeps a record for each Session and each Account Token ("How sign-in is remembered" in
 [4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)):
 
-| Record        | Holds                                                           |
-| ------------- | --------------------------------------------------------------- |
-| Session       | `client_id`, User ID, and the account it's signed in to, if any |
-| Account Token | `client_id`, User ID, account, granted scopes, and expiry       |
+| Record  | Holds                                                           |
+| ------- | --------------------------------------------------------------- |
+| Session | `client_id`, User ID, and the account it's signed in to, if any |
+
+Find each Session record by the thumbprint of its Session Key
+([4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)). The token endpoint has no other
+way to tell which Session a request is for.
+| Account Token | `client_id`, User ID, account, granted scopes, and expiry |
 
 In practice a Session record also needs its expiry and the Account Token that signed it in, so
 sign-out can find its Sessions ([4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out)).
@@ -40,6 +44,9 @@ Add `client_id`, User ID, and Poppy fields to the records the website and OAuth 
   the Session on each request. If you can't, keep Session Tokens to a few minutes
   ([4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out),
   [guides](https://personalagentprotocol.org/docs/0.3/guides#company-lifetimes)).
+- Keep the thumbprints of Sessions you end for a while, and refuse them with `invalid_grant`
+  ([4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions)). Otherwise the ended
+  Session's key silently starts a new Session.
 - Store Account Tokens as hashes, like passwords, so a leaked table doesn't leak usable tokens.
 - The User ID isn't personal information, but it is a stable identifier. Don't show it in the
   website or to other Personal Agents.

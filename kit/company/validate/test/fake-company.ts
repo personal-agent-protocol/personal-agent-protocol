@@ -28,12 +28,14 @@ export type Flaws = {
     mcpDpop?: boolean;
     // Issues a Bearer token for the MCP server even when it supports DPoP.
     bearerAtDpopMcp?: boolean;
-    // Issues a DPoP token for the MCP server without DPoP when the request has a proof.
+    // Issues a DPoP token, not a Bearer one, in exchange for the MCP server without DPoP.
     dpopAtBearerMcp?: boolean;
     // A scope in scopes_supported with no description anywhere.
     undescribedScope?: boolean;
     // Describes its scopes in auth.scopes instead of the OpenAPI description.
     scopesInPoppy?: boolean;
+    // Doesn't check which User ID a Session Key's Session belongs to.
+    ignoreKeyUser?: boolean;
 };
 
 export const ORIGIN = "https://shop.test";
@@ -41,7 +43,7 @@ const TOKEN = `${ORIGIN}/oauth/token`;
 const CONV = `${ORIGIN}/poppy/conversations`;
 const MCP = `${ORIGIN}/mcp`;
 
-type Token = { type: "DPoP" | "Bearer"; jkt?: string; sessionId: string; resource?: string };
+type Token = { type: "DPoP" | "Bearer"; jkt?: string; resource?: string };
 type Conversation = {
     id: string;
     events: Record<string, unknown>[];
@@ -60,7 +62,8 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
     const seenProofs = new Set<string>();
     const seenAssertions = new Set<string>();
     const tokens = new Map<string, Token>();
-    const sessions = new Set<string>();
+    // Each Session's User ID, by the thumbprint of its Session Key.
+    const sessions = new Map<string, string>();
     const convs = new Map<string, Conversation>();
     const messageIds = new Map<string, { conv: string; content: string }>();
     const nonce = "n_" + randomId(8);
@@ -101,21 +104,17 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
 
     async function tokenEndpoint(headers: Headers, body: string): Promise<Response> {
         const form = new URLSearchParams(body);
-        const proof = headers.get("dpop");
-        let jkt: string | undefined;
-        if (proof) {
-            const result = await verifyProof(
-                proof,
-                "POST",
-                TOKEN,
-                undefined,
-                flaws.acceptReplayedTokenProof,
-            );
-            if (result === "nonce")
-                return json(400, { error: "use_dpop_nonce" }, { "dpop-nonce": nonce });
-            if (!result) return json(400, { error: "invalid_dpop_proof" });
-            jkt = result;
-        }
+        const result = await verifyProof(
+            headers.get("dpop"),
+            "POST",
+            TOKEN,
+            undefined,
+            flaws.acceptReplayedTokenProof,
+        );
+        if (result === "nonce")
+            return json(400, { error: "use_dpop_nonce" }, { "dpop-nonce": nonce });
+        if (!result) return json(400, { error: "invalid_dpop_proof" });
+        const jkt = result;
         const key = await agentKey();
         const clientAssertion = form.get("client_assertion") ?? "";
         const client = await verifyJwt(clientAssertion, key);
@@ -123,32 +122,39 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
         const audiences = flaws.acceptTokenEndpointAud ? [ORIGIN, TOKEN] : [ORIGIN];
         if (!audiences.includes(String(client.payload.aud)))
             return json(401, { error: "invalid_client" });
-        if (form.get("grant_type") !== "urn:ietf:params:oauth:grant-type:jwt-bearer")
-            return json(400, { error: "unsupported_grant_type" });
-        const assertion = form.get("assertion") ?? "";
-        const verified = await verifyJwt(assertion, key);
-        if (
-            !verified ||
-            verified.header.typ === "poppy-browser+jwt" ||
-            verified.payload.aud !== ORIGIN
-        )
-            return json(400, { error: "invalid_grant" });
-        const jti = String(verified.payload.jti);
-        if (seenAssertions.has(jti) && !flaws.acceptReplayedAssertion)
-            return json(400, { error: "invalid_grant" });
-        seenAssertions.add(jti);
-        let sessionId = form.get("session_id");
-        if (sessionId && !sessions.has(sessionId)) return json(400, { error: "invalid_session" });
-        sessionId ??= "ses_" + randomId(6);
-        sessions.add(sessionId);
         const resource = form.get("resource") ?? undefined;
-        if (resource && resource !== MCP) return json(400, { error: "invalid_target" });
+        const grant = form.get("grant_type");
+        let type: Token["type"] = "DPoP";
+        if (grant === "urn:ietf:params:oauth:grant-type:token-exchange") {
+            const subject = tokens.get(form.get("subject_token") ?? "");
+            if (!subject || subject.type !== "DPoP" || subject.jkt !== jkt)
+                return json(400, { error: "invalid_grant" });
+            if (resource !== MCP || (flaws.mcpDpop && !flaws.bearerAtDpopMcp))
+                return json(400, { error: "invalid_target" });
+            if (!flaws.dpopAtBearerMcp) type = "Bearer";
+        } else if (grant === "urn:ietf:params:oauth:grant-type:jwt-bearer") {
+            const assertion = form.get("assertion") ?? "";
+            const verified = await verifyJwt(assertion, key);
+            if (
+                !verified ||
+                verified.header.typ === "poppy-browser+jwt" ||
+                verified.payload.aud !== ORIGIN
+            )
+                return json(400, { error: "invalid_grant" });
+            const jti = String(verified.payload.jti);
+            if (seenAssertions.has(jti) && !flaws.acceptReplayedAssertion)
+                return json(400, { error: "invalid_grant" });
+            seenAssertions.add(jti);
+            const sub = String(verified.payload.sub);
+            const owner = sessions.get(jkt);
+            if (owner && owner !== sub && !flaws.ignoreKeyUser)
+                return json(400, { error: "invalid_grant" });
+            if (!owner) sessions.set(jkt, sub);
+            if (resource && (resource !== MCP || !flaws.mcpDpop))
+                return json(400, { error: "invalid_target" });
+        } else return json(400, { error: "unsupported_grant_type" });
         const access = randomId(24);
-        let type: Token["type"] = jkt ? "DPoP" : "Bearer";
-        if (resource === MCP && !flaws.mcpDpop && !flaws.dpopAtBearerMcp) type = "Bearer";
-        if (type === "Bearer" && (resource !== MCP || (flaws.mcpDpop && !flaws.bearerAtDpopMcp)))
-            return json(400, { error: "invalid_dpop_proof" });
-        tokens.set(access, { type, jkt: type === "DPoP" ? jkt : undefined, sessionId, resource });
+        tokens.set(access, { type, jkt: type === "DPoP" ? jkt : undefined, resource });
         return json(
             200,
             {
@@ -156,7 +162,6 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                 token_type: type,
                 expires_in: 3600,
                 scope: "",
-                session_id: sessionId,
             },
             flaws.noStore ? {} : { "cache-control": "no-store" },
         );
@@ -351,6 +356,7 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                     "urn:ietf:params:oauth:grant-type:jwt-bearer",
                     "refresh_token",
                     "authorization_code",
+                    "urn:ietf:params:oauth:grant-type:token-exchange",
                 ],
                 scopes_supported: flaws.undescribedScope
                     ? ["orders:read", "addresses"]

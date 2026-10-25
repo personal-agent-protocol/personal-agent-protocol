@@ -32,6 +32,7 @@ The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are used as described 
 | Session | One User's activity at one Company through one Personal Agent, across web browsing, APIs, and conversations. It starts signed out and can be signed in to one Company account. A Personal Agent can have several Sessions for the same User (section 4). |
 | Session Token | The short-lived access token for a Session, used at the Company's APIs and conversations. It is signed out, or signed in with the account scopes the User granted, such as `orders:read` (4.2). |
 | Account Token | A long-lived credential from sign-in that lets the Personal Agent get signed-in Session Tokens later without asking the User again. It is used only at the Company's token endpoint (4.8). |
+| Session Key | The key pair a Personal Agent creates for one Session. Its Session Tokens are bound to it, and its thumbprint names the Session at the Company's token endpoint (4.3). |
 | DPoP Proof | A signature the Personal Agent sends with each request to show it holds the key its Session Token is bound to (4.3). |
 | Direct Sign-In | The User signs in on the Company's own page in their browser and approves access (4.5). |
 | Device Sign-In | The User signs in on the Company's page on any device, using a link and code the Personal Agent shows them (4.6). |
@@ -165,9 +166,10 @@ The Personal Agent uses these fields of the metadata:
 - `issuer` and `protected_resources`, which it checks against `poppy.json` (above). Required.
 - `token_endpoint` issues Session and Account Tokens (4.2, 4.8). Required.
 - `revocation_endpoint` revokes Account Tokens (4.9). Required.
-- `grant_types_supported` lists the grant types the token endpoint accepts. Required, and it MUST include `urn:ietf:params:oauth:grant-type:jwt-bearer` (4.2) and `refresh_token` (4.8). It also says which of Direct and Device Sign-In the Company offers (4.4): `authorization_code` for Direct Sign-In and `urn:ietf:params:oauth:grant-type:device_code` for Device Sign-In.
+- `grant_types_supported` lists the grant types the token endpoint accepts. Required, and it MUST include `urn:ietf:params:oauth:grant-type:jwt-bearer` (4.2) and `refresh_token` (4.8). It also says which of Direct and Device Sign-In the Company offers (4.4): `authorization_code` for Direct Sign-In and `urn:ietf:params:oauth:grant-type:device_code` for Device Sign-In. It MUST include `urn:ietf:params:oauth:grant-type:token-exchange` if the Company lists an MCP server that doesn't support DPoP (4.3).
 - `authorization_endpoint` starts Direct Sign-In (4.5). Required if `grant_types_supported` includes `authorization_code`.
 - `device_authorization_endpoint` starts Device Sign-In (4.6). Required if `grant_types_supported` includes `urn:ietf:params:oauth:grant-type:device_code`.
+- `pushed_authorization_request_endpoint` accepts pushed authorization requests for Direct Sign-In (4.5). Optional.
 - `scopes_supported` lists the scopes the issuer supports. Required if the Company offers any type of sign-in, and it MUST then include every account scope a Personal Agent can request (4.4). It MAY leave out scopes the Company doesn't offer Personal Agents, as RFC 8414 §2 allows ("Servers MAY choose not to advertise some supported scope values"), so an issuer that serves other clients doesn't need a separate issuer for Personal Agents to limit their scopes.
 
 Companies MUST accept DPoP Proofs (4.3) signed with `ES256`, so every Personal Agent has an algorithm that works at every Company. A Company MAY list the algorithms it accepts in `dpop_signing_alg_values_supported`, as [RFC 9449](https://www.rfc-editor.org/rfc/rfc9449) §5.1 defines, and the list MUST then include `ES256`. Personal Agents MUST sign DPoP Proofs with `ES256` or with an algorithm from that list, except at an MCP server, where the list in the server's protected resource metadata applies (4.3). The field also tells every other OAuth client of the issuer that it supports DPoP, so a Company whose issuer serves other clients, such as MCP clients that use Bearer tokens (section 6), can leave it out.
@@ -219,12 +221,12 @@ The steps, in the order they usually happen:
 | Step | Request | Result |
 | --- | --- | --- |
 | Start a Session (4.2) | `token_endpoint` with the Personal Agent's assertion | A new Session and a signed-out Session Token |
-| Renew a Session Token (4.2) | The same, with `session_id` | A new signed-out Session Token for the same Session |
+| Renew a Session Token (4.2) | The same, with a proof from the same Session Key | A new signed-out Session Token for the same Session |
 | Sign in (4.4–4.7) | Direct, device, or Mediated Sign-In | An Account Token, and a signed-in Session Token for the current Session |
 | Use the Account Token (4.8) | `token_endpoint` with the Account Token | A signed-in Session Token, for a new or existing Session |
 | Sign out (4.9) | `revocation_endpoint` with the Account Token | The Account Token is revoked, and Sessions continue signed out |
 
-The endpoints come from the Company's OAuth server metadata (3.2). Everything except Mediated Sign-In is standard OAuth 2.0: Session Tokens are OAuth access tokens and Account Tokens are OAuth refresh tokens, so a Company can use its existing authorization server. The protocol adds the `session_id` parameter and the rules in this section.
+The endpoints come from the Company's OAuth server metadata (3.2). Everything except Mediated Sign-In is standard OAuth 2.0: Session Tokens are OAuth access tokens and Account Tokens are OAuth refresh tokens, so a Company can use its existing authorization server. The protocol adds the rules in this section. Token requests use only standard OAuth parameters: each Session is named by the key its tokens are bound to, the Session Key (4.3).
 
 ### 4.1 Agent identity
 
@@ -266,7 +268,7 @@ A Personal Agent MAY instead give a User a new User ID for each anonymous browsi
 
 The Personal Agent holds the User IDs of each of its Users at every Company, and MUST keep that mapping confidential: it MUST NOT publish it or share it with third parties, other than service providers that process it on the Personal Agent's behalf.
 
-To start a Session, the Personal Agent requests a Session Token from the Company's `token_endpoint` with the JWT bearer grant ([RFC 7523](https://www.rfc-editor.org/rfc/rfc7523)). The assertion is a short-lived JWT signed with a key from its `jwks_uri`, naming itself in `iss` and the User in `sub`. Like every token request, it also carries the Personal Agent's client assertion (4.1) and a DPoP Proof (4.3). Only a request for a Bearer token for an MCP server can leave the proof out.
+To start a Session, the Personal Agent requests a Session Token from the Company's `token_endpoint` with the JWT bearer grant ([RFC 7523](https://www.rfc-editor.org/rfc/rfc7523)). The assertion is a short-lived JWT signed with a key from its `jwks_uri`, naming itself in `iss` and the User in `sub`. Like every token request, it also carries the Personal Agent's client assertion (4.1) and a DPoP Proof (4.3). The Personal Agent creates a new Session Key for the Session and signs the proof with it.
 
 *Request: Personal Agent → Company*
 
@@ -301,7 +303,7 @@ grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer
 - `iat` and `exp` are when the assertion was issued and when it expires, in seconds since 1970 (Unix time). `exp` MUST be at most five minutes after `iat`. The assertion is short-lived: one minute in this example.
 - `jti` is a unique ID for the assertion, with at least 128 random bits. The Company MUST reject a `jti` it has already seen from the same `client_id` until the assertion expires, so a copied assertion can't be used again.
 
-The Company verifies both assertions against the Personal Agent's `jwks_uri`, checks that the assertion's `iss` is the authenticated `client_id`, rejects a reused `jti`, and returns a new Session:
+The Company verifies both assertions against the Personal Agent's `jwks_uri`, checks that the assertion's `iss` is the authenticated `client_id`, rejects a reused `jti`, and returns a new Session, named by the key in the proof:
 
 *Response: Company → Personal Agent*
 
@@ -314,17 +316,15 @@ Cache-Control: no-store
   "access_token": "eyJhbGciOi…Lm9x",
   "token_type": "DPoP",
   "expires_in": 3600,
-  "scope": "",
-  "session_id": "ses_2Lm0"
+  "scope": ""
 }
 ```
 
-- `access_token` is the Session Token. `token_type` is `DPoP`, or `Bearer` for a token for an MCP server that doesn't support DPoP (4.3).
+- `access_token` is the Session Token. `token_type` is `DPoP`. Bearer tokens for MCP servers that don't support DPoP come from Token Exchange (4.3).
 - `expires_in` is the token's lifetime in seconds. The Company chooses the value, and it MUST be greater than 0. Session Tokens SHOULD last hours, not days.
-- `session_id` identifies the Session. It is not a credential.
 - `scope` is a space-separated string of the account scopes granted (4.4). It is always present. A signed-out token has none, and a signed-in token has at least one, so `scope` also says whether the Session is signed in to a Company account.
 
-**Renewing.** When a signed-out Session Token expires, the Personal Agent sends the same request with fresh assertions and the `session_id`:
+**Renewing.** When a signed-out Session Token expires, the Personal Agent sends the same request with fresh assertions and a proof signed with the same Session Key:
 
 *Request: Personal Agent → Company*
 
@@ -335,13 +335,14 @@ DPoP: eyJ0eXAiOiJkcG9wK2p3dCIs…
 
 grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer
 &assertion=eyJhbGciOiJFUzI1NiIs…
-&session_id=ses_2Lm0
 &client_id=https%3A%2F%2Fagent.example%2Fagent.json
 &client_assertion_type=urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
 &client_assertion=eyJhbGciOiJFUzI1NiIs…
 ```
 
-The Company checks that the Session belongs to the same `client_id` and User ID as the assertion, and returns a new signed-out Session Token for it. A signed-in Session is renewed with the Account Token instead (4.8). The Company decides how long a Session lasts. If it has ended, the Company returns `invalid_session`, and the Personal Agent starts a new Session.
+The Company finds the Session by the proof's key, checks that it belongs to the same `client_id` and User ID as the assertion, and returns a new signed-out Session Token for it. A key that names a Session for a different `client_id` or User ID gets `invalid_grant`. A signed-in Session is renewed with the Account Token instead (4.8).
+
+**Ended Sessions.** The Company decides how long a Session lasts. A key the Company doesn't know starts a new Session, so after a Session ends, its key would start a new one without the Personal Agent knowing. To prevent that, a Company SHOULD remember the keys of the Sessions it ended, for as long as it chooses, and reject them with `invalid_grant`. After `invalid_grant` on a Session Key, the Personal Agent MUST NOT use that key again, and starts a new Session with a new key. Because a Company can forget an ended Session's key, the Personal Agent MUST be prepared for a renewal to start a new Session, for example finding that the website no longer recognizes it (section 5).
 
 **Token format.** Session Tokens are issued by the Company and are opaque to the Personal Agent. Personal Agents MUST NOT depend on their contents; everything they need is in the response. A Company MAY include its own Session credentials in a token so its existing systems can read them. If it does, it MUST encrypt the token.
 
@@ -350,9 +351,9 @@ Errors use the OAuth error response, with these codes:
 | Error | Status | Meaning |
 | --- | --- | --- |
 | `invalid_client` | 401 | The Company doesn't accept this `client_id`: it is unregistered, blocked, or revoked, or its metadata or signature doesn't check out. |
-| `invalid_grant` | 400 | The assertion or Account Token is missing, expired, reused, revoked, or malformed. |
-| `invalid_session` | 400 | The Session has ended, or belongs to a different Personal Agent or User. Start a new Session. |
+| `invalid_grant` | 400 | The assertion or Account Token is missing, expired, reused, revoked, or malformed, or the Session Key's Session has ended or belongs to a different Personal Agent or User. |
 | `account_mismatch` | 400 | The Session is, or was, signed in to a different account than the one requested. Start a new Session (4.4). |
+| `invalid_target` | 400 | The `resource` is unknown, or needs a different token type: Token Exchange only for an MCP server that doesn't support DPoP (4.3). |
 | `invalid_dpop_proof`, `use_dpop_nonce` | 400 | The DPoP Proof is missing or invalid, or needs a nonce (4.3). |
 | `extension_required` | 403 | The Company requires an extension the Personal Agent doesn't list, named in `extension` (3.3). |
 | `rate_limited` | 429 | Too many requests for this `client_id`. Retry after the time in the `Retry-After` header. |
@@ -373,10 +374,13 @@ DPoP in this protocol is meant to match RFC 9449, and anything this section does
 - Companies MUST accept `ES256`, and listing their algorithms in `dpop_signing_alg_values_supported` is optional (3.2).
 - Personal Agents MUST support nonces.
 - The token endpoint MUST reject a reused `jti`. Elsewhere the check is optional, as in the RFC.
-- An MCP server that doesn't support DPoP uses Bearer Session Tokens, each for that server only. Companies MUST require DPoP everywhere else (below).
-- Companies don't need to support `dpop_jkt` (RFC 9449 §10).
+- Each Session has its own key, and the key's thumbprint names the Session at the token endpoint (below).
+- An MCP server that doesn't support DPoP uses Bearer Session Tokens, each for that server only, which the Personal Agent gets by Token Exchange. Companies MUST require DPoP everywhere else (below).
+- Companies MUST support `dpop_jkt` (RFC 9449 §10), and Personal Agents MUST bind the authorization code in Direct Sign-In to the Session Key (4.5).
 
-**Proof of possession.** Session Tokens are bound to a key the Personal Agent holds, so a copied token is useless without it. The Personal Agent MUST use a different key pair for each User ID (4.2), so Companies can't link Users by their keys, and MAY use a new one for each Session. It keeps the private key to itself and signs a new proof for every request to the token endpoint and every request that carries a Session Token. The only exception is a request for a Bearer token for an MCP server (below). Requests that carry neither, such as revocation (4.9) and device authorization (4.6), don't need a proof. A proof is a JWT with the public key in its header:
+**Session Keys.** Session Tokens are bound to a key the Personal Agent holds, so a copied token is useless without it. The Personal Agent MUST create a new key pair for each Session, its Session Key, and MUST NOT use it for any other Session, so Companies can't link Sessions or Users by their keys. The key's JWK thumbprint ([RFC 7638](https://www.rfc-editor.org/rfc/rfc7638)) names the Session: every token request for the Session carries a proof signed with its key, so the Company knows which Session the request is for without a separate parameter. A Session can't change its key. To use a new key, the Personal Agent starts a new Session. Conversations already outlast Sessions (7.2), so nothing is lost.
+
+The Personal Agent keeps the private key to itself and signs a new proof for every request to the token endpoint and every request that carries a Session Token. Requests that carry neither, such as revocation (4.9) and device authorization (4.6), don't need a proof. A proof is a JWT with the public key in its header:
 
 *DPoP Proof (JWT header and payload)*
 
@@ -416,43 +420,48 @@ When the Company issues a Session Token, it binds the token to the key in that r
 
 A Company MAY require proofs to include a nonce it issued, as RFC 9449 describes, so proofs can't be made in advance. Personal Agents MUST support nonces. A failed check returns `invalid_dpop_proof`, or `use_dpop_nonce` with the nonce to use in the `DPoP-Nonce` header. The token endpoint returns them as OAuth errors with HTTP 400 (4.2). APIs and conversation endpoints return HTTP 401 with the error in the `WWW-Authenticate: DPoP` header (section 6).
 
-**MCP.** MCP authorization uses Bearer tokens, and many MCP servers and clients don't support DPoP. An MCP server supports DPoP if its protected resource metadata (section 6) lists `dpop_signing_alg_values_supported`, as [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728) §2 defines. To get a token for an MCP server, the Personal Agent sends the request that starts a Session (4.2, 4.8) or renews its token (4.2, or 4.8 for a signed-in Session), and MUST include `resource` set to the MCP server's `url` from `poppy.json`, as MCP authorization requires. The Company chooses the token type by that server:
+**MCP.** MCP authorization uses Bearer tokens, and many MCP servers and clients don't support DPoP. An MCP server supports DPoP if its protected resource metadata (section 6) lists `dpop_signing_alg_values_supported`, as [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728) §2 defines. To get a token for an MCP server, the Personal Agent MUST include `resource` set to the MCP server's `url` from `poppy.json`, as MCP authorization requires. The token type depends on the server:
 
-- For an MCP server that supports DPoP, the Company issues a DPoP Session Token, which the Personal Agent uses with proofs, as at any other API. The Company MUST NOT issue a Personal Agent a Bearer Session Token for an MCP server that supports DPoP, so a request without a proof gets `invalid_dpop_proof`.
-- For an MCP server that doesn't support DPoP, the Company issues a `Bearer` Session Token, even if the request has a proof, and never a DPoP one. The Personal Agent MAY leave the proof out of that request.
+- For an MCP server that supports DPoP, the Personal Agent sends the request that starts a Session (4.2, 4.8) or renews its token (4.2, or 4.8 for a signed-in Session), and the Company issues a DPoP Session Token, which the Personal Agent uses with proofs, as at any other API.
+- For an MCP server that doesn't support DPoP, the Personal Agent exchanges a DPoP Session Token for a `Bearer` one with the token exchange grant ([RFC 8693](https://www.rfc-editor.org/rfc/rfc8693)), described below. The Company MUST NOT issue a Personal Agent a Bearer Session Token any other way. It rejects a token exchange for an MCP server that supports DPoP, and any other token request for one that doesn't, with `invalid_target`.
 
 The Personal Agent MUST use the scheme that `token_type` names. A Session can have a token for each MCP server and one for its other APIs at the same time. Anyone who copies a Bearer token can use it, so each one works at only one MCP server. Companies MUST accept a Bearer Session Token only at the MCP server whose `url` equals its `resource`, and MUST reject it at every other endpoint, including other paths on the same host. Everywhere else, Companies MUST require DPoP, and MUST reject a DPoP Session Token sent with the `Bearer` scheme (RFC 9449 §7.1). Web browsing doesn't use Session Tokens (section 5).
 
 New MCP servers SHOULD support DPoP. Leaving it out is meant for existing MCP servers whose software can't verify DPoP Proofs yet. An MCP server that supports DPoP MUST list `ES256` in its `dpop_signing_alg_values_supported`, and Personal Agents sign proofs for it with `ES256` or with an algorithm from that list. It verifies proofs as this section describes, and rejects a DPoP Session Token sent with the `Bearer` scheme. It still accepts Bearer tokens from MCP clients that don't implement this protocol (section 6).
 
-For example, to get a token for an MCP server that doesn't support DPoP, for a signed-in Session, the Personal Agent sends its Account Token (4.8) with `resource` and without a proof:
+**Token Exchange.** A Company that lists an MCP server that doesn't support DPoP MUST support the token exchange grant, and list `urn:ietf:params:oauth:grant-type:token-exchange` in `grant_types_supported` (3.2). The Personal Agent sends a current DPoP Session Token as `subject_token`, with `resource`, its client assertion, and a proof signed with the Session Key:
 
 *Request: Personal Agent → Company*
 
 ```
 POST https://auth.example.com/oauth/token
 Content-Type: application/x-www-form-urlencoded
+DPoP: eyJ0eXAiOiJkcG9wK2p3dCIs…
 
-grant_type=refresh_token
-&refresh_token=pat_8Hk2…Wq1
-&session_id=ses_2Lm0
+grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange
+&subject_token=eyJhbGciOi…Qp4w
+&subject_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aaccess_token
 &resource=https%3A%2F%2Fmcp.example.com%2Fmcp
 &client_id=https%3A%2F%2Fagent.example%2Fagent.json
 &client_assertion_type=urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
 &client_assertion=eyJhbGciOiJFUzI1NiIs…
 ```
 
+The Company checks that the subject token is valid, was issued to the same `client_id`, and is bound to the proof's key. It returns a Bearer Session Token for the same Session, with the subject token's scopes, or fewer if the request includes `scope`:
+
 *Response: Company → Personal Agent*
 
 ```
 {
   "access_token": "eyJhbGciOi…Mc8r",
+  "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
   "token_type": "Bearer",
   "expires_in": 3600,
-  "scope": "orders:read",
-  "session_id": "ses_2Lm0"
+  "scope": "orders:read"
 }
 ```
+
+The Bearer token reflects the Session as it was when the subject token was issued. When it expires, or the Session signs in or out, the Personal Agent exchanges a current DPoP Session Token for a new one. An invalid or expired subject token gets `invalid_grant`.
 
 **Narrower tokens.** Any token request MAY include `scope`, to ask for fewer scopes than the Session has, and `resource` ([RFC 8707](https://www.rfc-editor.org/rfc/rfc8707)), to ask for a token for one service. By default, one DPoP Session Token works at all of a Company's services, except MCP servers, which accept only tokens issued for them (above). A Company that wants separate tokens for some services gives those entries a `resource` in its `poppy.json` (section 3), and accepts a token at such a service only if it was issued for that `resource`.
 
@@ -500,8 +509,7 @@ All three types end the same way: the Company returns an Account Token as `refre
   "expires_in": 3600,
   "refresh_token": "pat_8Hk2…Wq1",
   "refresh_token_expires_in": 2592000,
-  "scope": "orders:read orders:write",
-  "session_id": "ses_2Lm0"
+  "scope": "orders:read orders:write"
 }
 ```
 
@@ -510,7 +518,7 @@ All three types end the same way: the Company returns an Account Token as `refre
 
 #### How sign-in is remembered
 
-The Company keeps a record for each Account Token: the `client_id`, the User ID, the account, the granted scopes, and when it expires. It also keeps a record for each Session: the `client_id`, the User ID, and the account the Session is signed in to, if any.
+The Company keeps a record for each Account Token: the `client_id`, the User ID, the account, the granted scopes, and when it expires. It also keeps a record for each Session, found by its Session Key's thumbprint: the `client_id`, the User ID, and the account the Session is signed in to, if any.
 
 A Session is signed in to at most one account. Once it has been, it can't switch to another, even after it is signed out (4.9): the Company returns `account_mismatch`, and the Personal Agent starts a new Session. This applies to every sign-in type. If the User signs in to a different account than the Session's, the code exchange, device poll, or Mediated Sign-In returns `account_mismatch` and issues no tokens. The User then signs in again in a new Session. A User with two accounts at the same Company, such as a personal and a business account, has an Account Token for each and uses separate Sessions for them.
 
@@ -518,9 +526,9 @@ Each Session Token reflects the Session as it was when the token was issued. Sev
 
 ### 4.5 Direct Sign-In
 
-Direct Sign-In is the OAuth 2.0 authorization code flow with PKCE ([RFC 6749](https://www.rfc-editor.org/rfc/rfc6749), [RFC 7636](https://www.rfc-editor.org/rfc/rfc7636)). It adds one thing: the Personal Agent sends `session_id` when it exchanges the code, so the Company knows which Session to sign in. The Company's OAuth server metadata gives the `authorization_endpoint` (3.2).
+Direct Sign-In is the OAuth 2.0 authorization code flow with PKCE ([RFC 6749](https://www.rfc-editor.org/rfc/rfc6749), [RFC 7636](https://www.rfc-editor.org/rfc/rfc7636)). It adds one thing: the code is bound to the Session Key, so the Company knows which Session to sign in, and a code taken from the redirect can't be used with any other key. The Company's OAuth server metadata gives the `authorization_endpoint` (3.2).
 
-**1. Send the User to the Company.** The Personal Agent creates a random `state` and a PKCE code verifier, then opens the authorization URL in the User's browser, for example in a new tab, a popup, or a link sent to the User's phone:
+**1. Send the User to the Company.** The Personal Agent creates a random `state` and a PKCE code verifier, then opens the authorization URL in the User's browser, for example in a new tab, a popup, or a link sent to the User's phone. The Personal Agent MUST include `dpop_jkt` in the URL, the Session Key's thumbprint ([RFC 9449](https://www.rfc-editor.org/rfc/rfc9449) §10):
 
 *Authorization URL, opened in the User's browser*
 
@@ -533,13 +541,16 @@ https://auth.example.com/oauth/authorize
   &state=Xq81vR
   &code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM
   &code_challenge_method=S256
+  &dpop_jkt=0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I
 ```
+
+A Company that supports pushed authorization requests ([RFC 9126](https://www.rfc-editor.org/rfc/rfc9126)) lists `pushed_authorization_request_endpoint` in its metadata. There, the Personal Agent MAY instead push the request with a proof signed with the Session Key, and leave out `dpop_jkt` (RFC 9449 §10.1). Either way, the Company binds the code to that key.
 
 **2. The User signs in and approves.** The Company's page shows which Personal Agent is asking, using the name and logo from its metadata document. The User signs in however the Company allows, such as a password, a passkey, or a provider like Google or Apple. The page shows the requested scopes and lets the User approve some or all of them, or decline.
 
 **3. The Company sends the User back.** The Company redirects the browser to `redirect_uri` with a one-time `code`, the same `state`, and its `auth.issuer` in `iss` ([RFC 9207](https://www.rfc-editor.org/rfc/rfc9207)). `redirect_uri` MUST exactly match an entry in the Personal Agent's `redirect_uris` (4.1). If the User declines, the redirect carries `error=access_denied` and `iss` instead.
 
-**4. The Personal Agent exchanges the code.** The Personal Agent checks `state`, and MUST check that `iss` exactly matches the `auth.issuer` of the Company it started sign-in with. This stops a response from another Company's sign-in being swapped in. It then sends the code to the `token_endpoint` with its client assertion, a DPoP Proof, and the `session_id`:
+**4. The Personal Agent exchanges the code.** The Personal Agent checks `state`, and MUST check that `iss` exactly matches the `auth.issuer` of the Company it started sign-in with. This stops a response from another Company's sign-in being swapped in. It then sends the code to the `token_endpoint` with its client assertion and a proof signed with the Session Key:
 
 *Request: Personal Agent → Company*
 
@@ -552,13 +563,12 @@ grant_type=authorization_code
 &code=SplxlOBeZQQYbYS6WxSbIA
 &redirect_uri=https%3A%2F%2Fagent.example%2Foauth%2Fcallback
 &code_verifier=dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk
-&session_id=ses_2Lm0
 &client_id=https%3A%2F%2Fagent.example%2Fagent.json
 &client_assertion_type=urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
 &client_assertion=eyJhbGciOiJFUzI1NiIs…
 ```
 
-The Company verifies the code, the verifier, and the client assertion, and checks that the Session belongs to the same `client_id`. It returns an Account Token and a signed-in Session Token for that Session, as shown in 4.4. Errors follow OAuth 2.0, such as `invalid_grant` for an expired or reused code.
+The Company verifies the code, the verifier, and the client assertion, checks that the proof's key is the one the code is bound to, and checks that the key's Session belongs to the same `client_id`. It returns an Account Token and a signed-in Session Token for that Session, as shown in 4.4. Errors follow OAuth 2.0, such as `invalid_grant` for an expired or reused code, or a proof from a different key.
 
 ### 4.6 Device Sign-In
 
@@ -593,7 +603,7 @@ scope=orders%3Aread%20orders%3Awrite
 
 **2. The User signs in and approves.** The Personal Agent shows the User `verification_uri` and `user_code`, or `verification_uri_complete` as a link or QR code. It keeps `device_code` private. Before showing them, the Personal Agent MUST check that the link's host is the host of `auth.issuer` or of a URL in the issuer's `protected_resources` (3.2), or a subdomain of either, and MUST show the Company's `organization.name` and domain with them. Otherwise a Company could pass off another Company's sign-in page as its own, and the User would approve a sign-in there for the Company that asked. The Company's page shows which Personal Agent is asking and the requested scopes, as in Direct Sign-In, and the User approves some or all of them, or declines. Opening the link MUST NOT approve the request by itself.
 
-**3. The Personal Agent waits.** Every `interval` seconds, the Personal Agent asks the `token_endpoint` whether the User has finished:
+**3. The Personal Agent waits.** Every `interval` seconds, the Personal Agent asks the `token_endpoint` whether the User has finished, with a proof signed with the Session Key:
 
 *Request: Personal Agent → Company*
 
@@ -604,11 +614,12 @@ DPoP: eyJ0eXAiOiJkcG9wK2p3dCIs…
 
 grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Adevice_code
 &device_code=GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS
-&session_id=ses_2Lm0
 &client_id=https%3A%2F%2Fagent.example%2Fagent.json
 &client_assertion_type=urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
 &client_assertion=eyJhbGciOiJFUzI1NiIs…
 ```
+
+The device authorization request in step 1 carries no proof, so the Company binds the `device_code` to the key of the first poll's proof, and returns `invalid_grant` to a poll with any other key. Once the User approves, the Company signs in that key's Session.
 
 Until the User finishes, the Company returns `authorization_pending`, or `slow_down` to ask the Personal Agent to wait longer between requests. Once the User approves, it returns an Account Token and a signed-in Session Token, as shown in 4.4. If the User declines, it returns `access_denied`, and if the request runs past `expires_in`, `expired_token`. The Personal Agent stops asking after either.
 
@@ -658,8 +669,7 @@ If the credentials are correct and nothing else is needed, the Company signs in 
   "token_type": "DPoP",
   "expires_in": 3600,
   "refresh_token": "pat_3Vn7…Lk2",
-  "scope": "orders:read",
-  "session_id": "ses_2Lm0"
+  "scope": "orders:read"
 }
 ```
 
@@ -714,7 +724,7 @@ After a sign-in ends, as `complete`, `failed`, or `expired`, the Personal Agent 
 
 An Account Token lets the Personal Agent get signed-in Session Tokens later without asking the User to sign in again. It is the OAuth refresh token from sign-in ([RFC 6749, section 6](https://www.rfc-editor.org/rfc/rfc6749#section-6)).
 
-The Personal Agent sends the Account Token to the `token_endpoint` with its client assertion and a DPoP Proof. With `session_id`, it gets a token for that Session, signing it in if it was signed out. Without one, it starts a new Session that is already signed in:
+The Personal Agent sends the Account Token to the `token_endpoint` with its client assertion and a DPoP Proof. With a proof signed with an existing Session's key, it gets a token for that Session, signing it in if it was signed out. With a proof signed with a new Session Key, it starts a new Session that is already signed in:
 
 *Request: Personal Agent → Company*
 
@@ -725,7 +735,6 @@ DPoP: eyJ0eXAiOiJkcG9wK2p3dCIs…
 
 grant_type=refresh_token
 &refresh_token=pat_8Hk2…Wq1
-&session_id=ses_4Tn8
 &scope=orders%3Aread
 &client_id=https%3A%2F%2Fagent.example%2Fagent.json
 &client_assertion_type=urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
@@ -735,10 +744,11 @@ grant_type=refresh_token
 The response has the same fields as in 4.4, without a new `refresh_token` unless the Company rotates it (below).
 
 - Companies MUST accept an Account Token only at their `token_endpoint` and `revocation_endpoint`, and only from the `client_id` it was issued to, authenticated by its client assertion. A copied Account Token is useless without the Personal Agent's private key.
-- The Session MUST belong to the same `client_id` and User ID as the Account Token, and MUST NOT have been signed in to a different account, even if it is now signed out (4.4). Otherwise the Company returns `invalid_session` or `account_mismatch`.
+- The Session MUST belong to the same `client_id` and User ID as the Account Token, and MUST NOT have been signed in to a different account, even if it is now signed out (4.4). Otherwise the Company returns `invalid_grant` or `account_mismatch`.
 - `scope` MAY ask for fewer scopes than the Account Token has, for example read-only access for a task that only looks things up. It can't ask for more.
 - Using an Account Token doesn't extend its lifetime. A Company MAY return a new Account Token in `refresh_token`. The Personal Agent then MUST use the new one from then on.
-- When the Account Token has expired or been revoked, the Company returns `invalid_grant`. The Session continues signed out, and the User signs in again when a task needs the account.
+- When the Account Token has expired or been revoked, the Company returns `invalid_grant`. The Session continues signed out, and the User signs in again when a task needs the account. With an existing Session's key, `invalid_grant` can also mean the Session has ended. To tell them apart, the Personal Agent renews the Session with its assertion (4.2): `invalid_grant` there means the Session has ended.
+- The Company doesn't bind the Account Token to a Session Key, so one Account Token can start Sessions with different keys. RFC 9449 §5 binds refresh tokens only for public clients, and Personal Agents are confidential clients (4.1).
 - Personal Agents MUST store Account Tokens as secrets, and MUST NOT put them in model context, conversation messages, logs, or URLs.
 
 ### 4.9 Signing out
@@ -758,7 +768,7 @@ token=pat_8Hk2…Wq1
 &client_assertion=eyJhbGciOiJFUzI1NiIs…
 ```
 
-The Company revokes the Account Token and signs out every Session signed in with it. Usually those Sessions continue signed out, as described below: the Personal Agent renews them with its assertion (4.2) and gets signed-out Session Tokens. Such a Session can be signed in again only to the same account (4.4). A Company MAY end the Sessions instead, if its policy is to clear everything at sign-out. Renewal then returns `invalid_session`, and the Personal Agent starts a new Session.
+The Company revokes the Account Token and signs out every Session signed in with it. Usually those Sessions continue signed out, as described below: the Personal Agent renews them with its assertion (4.2) and gets signed-out Session Tokens. Such a Session can be signed in again only to the same account (4.4). A Company MAY end the Sessions instead, if its policy is to clear everything at sign-out. Renewal then returns `invalid_grant`, and the Personal Agent starts a new Session.
 
 Session Tokens issued before sign-out may still be valid. Companies SHOULD check on each request whether the Session is still signed in, so sign-out takes effect right away. A Company that doesn't SHOULD use much shorter Session Token lifetimes, such as a few minutes.
 
@@ -789,7 +799,7 @@ This is optional. A Company that supports it lists `web.browser_session_endpoint
   "iss": "https://agent.example/agent.json",
   "sub": "usr_Q7c1vK",
   "aud": "https://example.com/poppy/browser-session",
-  "session_id": "ses_2Lm0",
+  "jkt": "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I",
   "return_to": "https://example.com/orders",
   "iat": 1790900000,
   "exp": 1790900060,
@@ -799,7 +809,7 @@ This is optional. A Company that supports it lists `web.browser_session_endpoint
 
 - `iss`, `sub`, `iat`, and `jti` are as in 4.2.
 - `aud` is the Company's `web.browser_session_endpoint`.
-- `session_id` is the Session the browser joins, signed in or out.
+- `jkt` is the thumbprint of the Session Key (4.3) of the Session the browser joins, signed in or out.
 - `return_to` is the page to open afterward. It MUST be an HTTPS URL on the Company's `organization.domain` or one of its subdomains.
 - `exp` is no more than 60 seconds after `iat`.
 

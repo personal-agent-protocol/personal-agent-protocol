@@ -135,11 +135,11 @@ flowchart LR
 
 <Where each record lives and which existing record it maps to. See patterns/session-records.md.>
 
-| Poppy record  | Fields                                                         | Stored in | Maps to existing |
-| ------------- | -------------------------------------------------------------- | --------- | ---------------- |
-| Session       | `client_id`, User ID, account (if signed in), DPoP key, expiry |           |                  |
-| Account Token | `client_id`, User ID, account, scopes, expiry                  |           |                  |
-| Session Token | Session, scopes, key binding or `resource`, expiry             |           |                  |
+| Poppy record  | Fields                                                                       | Stored in | Maps to existing |
+| ------------- | ---------------------------------------------------------------------------- | --------- | ---------------- |
+| Session       | Session Key thumbprint, `client_id`, User ID, account (if signed in), expiry |           |                  |
+| Account Token | `client_id`, User ID, account, scopes, expiry                                |           |                  |
+| Session Token | Session, scopes, key binding or `resource`, expiry                           |           |                  |
 
 ## 4. Plan
 

@@ -11,7 +11,7 @@ import {
 import { errorCode, header, type Exchange } from "../http.ts";
 import { formatSchemaErrors } from "../schema.ts";
 import { check } from "../schemas.ts";
-import { generateKey, randomId } from "../jose.ts";
+import { generateKey, randomId, thumbprint } from "../jose.ts";
 import { skipRest, type Context, type Recorder } from "./types.ts";
 
 export const SESSION_IDS = [
@@ -23,7 +23,7 @@ export const SESSION_IDS = [
     "session.signed-out",
     "session.no-store",
     "session.renew",
-    "session.unknown-session",
+    "session.key-other-user",
     "session.assertion-replay",
     "session.client-assertion-aud",
     "session.client-assertion-unknown-key",
@@ -110,7 +110,7 @@ export async function checkSessions(ctx: Context, r: Recorder): Promise<void> {
         return;
     }
     ctx.session.token = token;
-    r.pass("session.start", { summary: `Session ${token.sessionId} started.` });
+    r.pass("session.start");
 
     const json = start.ex.json as Record<string, unknown>;
     const errors = check("token-response.schema.json", json);
@@ -141,7 +141,7 @@ export async function checkSessions(ctx: Context, r: Recorder): Promise<void> {
                 exchange: start.ex,
                 got: `expires_in ${expires} (${Math.round(expires / 3600)} hours)`,
                 expected: "A lifetime of hours, not days",
-                cause: "Shorten the Session Token lifetime; Personal Agents renew with session_id.",
+                cause: "Shorten the Session Token lifetime; Personal Agents renew with the same Session Key.",
             });
         } else r.pass("session.token-lifetime");
     } else {
@@ -171,41 +171,40 @@ export async function checkSessions(ctx: Context, r: Recorder): Promise<void> {
             cause: "Token responses shouldn't be cached (RFC 6749 section 5.1 also requires this).",
         });
 
-    // Renew with session_id.
+    // Renew with a proof from the same Session Key.
     if (r.wants("session.renew")) {
-        const renew = await tokenRequest(ctx, sessionParams(ctx, { session_id: token.sessionId }), {
-            note: `renewing Session ${token.sessionId}`,
+        const renew = await tokenRequest(ctx, sessionParams(ctx), {
+            note: "renewing the Session with a proof from the same Session Key",
         });
         const renewed = heldToken(renew.ex, key);
-        if (renewed && renewed.sessionId === token.sessionId) {
+        if (renewed && renewed.tokenType === "DPoP") {
             ctx.session.token = renewed;
             r.pass("session.renew");
         } else {
             r.fail("session.renew", {
                 exchange: renew.exchanges,
-                expected: `200 with session_id "${token.sessionId}"`,
-                got: renewed ? `200 with session_id "${renewed.sessionId}"` : undefined,
-                cause: renewed
-                    ? "The Company started a new Session instead of renewing the one named in session_id."
-                    : `The renewal wasn't accepted.${said(renew.ex)}`,
+                expected: "200 with a DPoP Session Token",
+                got: renewed ? `token_type ${JSON.stringify(renewed.tokenType)}` : undefined,
+                cause: `The renewal wasn't accepted.${said(renew.ex)}`,
             });
         }
     }
 
-    if (r.wants("session.unknown-session")) {
-        const bogus = `ses_validator${randomId(12)}`;
+    if (r.wants("session.key-other-user")) {
+        const other = `usr_validator${randomId(12)}`;
+        const assertion = await sessionAssertion(ctx, { sub: other });
         const ex = (
-            await tokenRequest(ctx, sessionParams(ctx, { session_id: bogus }), {
-                note: `with session_id=${bogus}, which doesn't exist`,
+            await tokenRequest(ctx, sessionParams(ctx, {}, assertion), {
+                note: `with the Session Key of another User ID's Session, and sub ${other}`,
             })
         ).ex;
         expectRefusal(
             r,
-            "session.unknown-session",
+            "session.key-other-user",
             ex,
-            "invalid_session",
+            "invalid_grant",
             400,
-            "The Company issued a token for a Session that doesn't exist, probably ignoring session_id.",
+            "The Company issued a token for a Session Key that already names another User ID's Session. Find each Session by its key's thumbprint, and check its User ID.",
         );
     }
 
@@ -295,7 +294,7 @@ export async function checkSessions(ctx: Context, r: Recorder): Promise<void> {
         const assertion = await sessionAssertion(ctx, {
             typ: "poppy-browser+jwt",
             extra: {
-                session_id: token.sessionId,
+                jkt: await thumbprint(key.publicJwk),
                 return_to: `https://${ctx.discovered.poppy?.organization?.domain ?? "example.com"}/`,
             },
         });

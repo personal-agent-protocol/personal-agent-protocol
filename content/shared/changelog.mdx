@@ -41,6 +41,18 @@ Agents sign in with the User's credentials outside the protocol.
 
 </Change>
 
+<Change title="Session Keys replace `session_id`" breaking sections="2, 4, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 5, guides#agent-dpop, guides#company-session-keys">
+
+Each Session has its own DPoP key, the Session Key, and the key's thumbprint names the Session. The
+custom `session_id` parameter is removed from every token request and response, so Poppy's token
+requests are standard OAuth requests. A proof from a new key starts a new Session, and a proof from
+a known key renews or signs in that Session. Personal Agents use a new key for each Session instead
+of one for each User ID. Companies should remember the keys of Sessions they end and reject them
+with `invalid_grant`, so an ended Session's key doesn't silently start a new one. The browser
+assertion names the Session with a `jkt` claim.
+
+</Change>
+
 ### Minor changes {#v0-3-minor}
 
 <Change title="`protected_resources` replaces `poppy_domains`" breaking sections="3, 3.2, 4.6, 9.3, guides#agent-direct-device, guides#company-hosting">
@@ -79,6 +91,31 @@ pages that present scopes in plain words and show which are new.
 
 When a Company's website refuses an action because the Session lacks a scope, it should show a
 visible error that names the missing scopes, so the Personal Agent can request them.
+
+</Change>
+
+<Change title="`invalid_session` becomes `invalid_grant`" breaking sections="4.2, 4.8, 4.9">
+
+A Session that has ended, or belongs to a different Personal Agent or User, now gets the standard
+`invalid_grant`. `account_mismatch` stays, so the Personal Agent can tell the User they signed in to
+a different account.
+
+</Change>
+
+<Change title="Authorization codes bound to the Session Key" breaking sections="3.2, 4.3, 4.5, 4.6, guides#agent-direct-device, guides#company-session-keys">
+
+Companies must support `dpop_jkt`, and Personal Agents must bind the authorization code to the
+Session Key with it, or with a proof on a pushed authorization request. A device code is bound to
+the key of the first poll.
+
+</Change>
+
+<Change title="Bearer tokens for MCP servers by Token Exchange" breaking sections="3.2, 4.2, 4.3, guides#agent-tokens, guides#company-dpop">
+
+A Personal Agent gets a Bearer token for an MCP server that doesn't support DPoP by exchanging a
+DPoP Session Token for it with the token exchange grant (RFC 8693), instead of leaving the proof out
+of a token request. Every other token request carries a proof. A Company that lists such an MCP
+server must support the grant. A request for the wrong token type gets `invalid_target`.
 
 </Change>
 

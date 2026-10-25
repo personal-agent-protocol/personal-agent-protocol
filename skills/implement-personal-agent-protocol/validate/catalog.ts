@@ -231,7 +231,7 @@ export const CATALOG: CheckInfo[] = [
         "session.token-type",
         "A Session Token requested with a DPoP Proof has token_type DPoP",
         "spec#starting-sessions",
-        "token_type is DPoP, or Bearer for a token for an MCP server that doesn't support DPoP (4.3).",
+        "access_token is the Session Token. token_type is DPoP.",
     ),
     foundation(
         "session.expires-in",
@@ -261,15 +261,15 @@ export const CATALOG: CheckInfo[] = [
     ),
     foundation(
         "session.renew",
-        "Renewing with session_id returns a token for the same Session",
+        "Renewing with the same Session Key returns a token for the Session",
         "spec#starting-sessions",
-        "The Company checks that the Session belongs to the same client_id and User ID as the assertion, and returns a new signed-out Session Token for it.",
+        "The Company finds the Session by the proof's key, checks that it belongs to the same client_id and User ID as the assertion, and returns a new signed-out Session Token for it.",
     ),
     foundation(
-        "session.unknown-session",
-        "An unknown session_id returns invalid_session",
+        "session.key-other-user",
+        "A Session Key that names another User ID's Session gets invalid_grant",
         "spec#starting-sessions",
-        "If it has ended, the Company returns invalid_session, and the Personal Agent starts a new Session.",
+        "A key that names a Session for a different client_id or User ID gets invalid_grant.",
     ),
     foundation(
         "session.assertion-replay",
@@ -399,9 +399,9 @@ export const CATALOG: CheckInfo[] = [
     ),
     interfaces(
         "mcp.bearer-token",
-        "Token endpoint issues a Bearer Session Token for an MCP server without DPoP, with or without a proof",
+        "Token endpoint exchanges a DPoP Session Token for a Bearer one for an MCP server without DPoP",
         "spec#sending-tokens",
-        "For an MCP server that doesn't support DPoP, the Company issues a Bearer Session Token, even if the request has a proof, and never a DPoP one.",
+        "A Company that lists an MCP server that doesn't support DPoP MUST support the token exchange grant",
     ),
     interfaces(
         "mcp.bearer-accepted",
@@ -419,13 +419,13 @@ export const CATALOG: CheckInfo[] = [
         "mcp.dpop-server-token",
         "Token endpoint issues a DPoP Session Token for an MCP server that supports DPoP",
         "spec#sending-tokens",
-        "For an MCP server that supports DPoP, the Company issues a DPoP Session Token, which the Personal Agent uses with proofs, as at any other API.",
+        "the Company issues a DPoP Session Token, which the Personal Agent uses with proofs, as at any other API.",
     ),
     interfaces(
         "mcp.dpop-server-no-bearer",
         "Token endpoint refuses a Bearer Session Token for an MCP server that supports DPoP",
         "spec#sending-tokens",
-        "The Company MUST NOT issue a Personal Agent a Bearer Session Token for an MCP server that supports DPoP, so a request without a proof gets invalid_dpop_proof.",
+        "It rejects a token exchange for an MCP server that supports DPoP, and any other token request for one that doesn't, with invalid_target.",
     ),
     interfaces(
         "mcp.dpop-server-accepted",

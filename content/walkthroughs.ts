@@ -184,8 +184,9 @@ grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer
 ${CLIENT_AUTH}
 
 // The assertion names Atlas in iss, and this user's
-// Manzanita User ID in sub. The DPoP Proof binds the
-// token to a key only Atlas holds.
+// Manzanita User ID in sub. The DPoP Proof is signed
+// with a new key for this Session. Manzanita binds the
+// token to it, and the key names the Session from now on.
 
 HTTP/1.1 200 OK
 Content-Type: application/json
@@ -195,8 +196,7 @@ Cache-Control: no-store
   "access_token": "${TOKENS.manzanitaSignedOut}",
   "token_type": "DPoP",
   "expires_in": 3600,
-  "scope": "",
-  "session_id": "ses_M4zq"
+  "scope": ""
 }`,
                     },
                     {
@@ -300,7 +300,9 @@ Content-Type: application/json
   &state=Xq81vR
   &code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM
   &code_challenge_method=S256
+  &dpop_jkt=0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I
 
+// dpop_jkt binds the code to the Session's key.
 // The user signs in on Manzanita's page and approves access.
 // Manzanita sends the browser back to Atlas with a code:
 
@@ -320,7 +322,6 @@ grant_type=authorization_code
 &code=SplxlOBeZQQYbYS6WxSbIA
 &redirect_uri=https%3A%2F%2Fatlas.example%2Foauth%2Fcallback
 &code_verifier=dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk
-&session_id=ses_M4zq
 ${CLIENT_AUTH}
 
 HTTP/1.1 200 OK
@@ -333,8 +334,7 @@ Cache-Control: no-store
   "expires_in": 3600,
   "refresh_token": "pat_M8xk…Rf2",
   "refresh_token_expires_in": 2592000,
-  "scope": "orders:read orders:write",
-  "session_id": "ses_M4zq"
+  "scope": "orders:read orders:write"
 }
 
 // refresh_token is the Account Token. Atlas keeps it
@@ -639,8 +639,7 @@ Content-Type: application/json
   "token_type": "DPoP",
   "expires_in": 3600,
   "refresh_token": "pat_L5wd…Hn8",
-  "scope": "account:read account:write",
-  "session_id": "ses_L2v9"
+  "scope": "account:read account:write"
 }`,
                     },
                 ],
@@ -678,7 +677,7 @@ assertion=eyJ0eXAiOiJwb3BweS1icm93c2VyK2p3dCIs…
   "iss": "https://atlas.example/agent.json",
   "sub": "usr_L7r2xW",
   "aud": "https://laurelfiber.example/poppy/browser-session",
-  "session_id": "ses_L2v9",
+  "jkt": "Vb2hT0mRk9yq1XcE4pLnZs8uWdA6jG3fKe7iOyN5MtQ",
   "return_to": "https://laurelfiber.example/support/diagnostics",
   "iat": 1791311000,
   "exp": 1791311060,
@@ -1006,6 +1005,9 @@ grant_type=refresh_token
 &scope=bookings%3Aread
 ${CLIENT_AUTH}
 
+// The proof is signed with a new key, so Pacifica
+// starts a new Session that is already signed in.
+
 HTTP/1.1 200 OK
 Content-Type: application/json
 Cache-Control: no-store
@@ -1014,8 +1016,7 @@ Cache-Control: no-store
   "access_token": "${TOKENS.pacifica}",
   "token_type": "DPoP",
   "expires_in": 3600,
-  "scope": "bookings:read",
-  "session_id": "ses_P8t1"
+  "scope": "bookings:read"
 }`,
                     },
                     {
@@ -1198,8 +1199,8 @@ Content-Type: application/x-www-form-urlencoded
 
 assertion=eyJ0eXAiOiJwb3BweS1icm93c2VyK2p3dCIs…
 
-// Signed by Atlas, with session_id for its signed-in
-// Chaparral session and return_to set to the stay page.
+// Signed by Atlas, with the key thumbprint of its
+// signed-in Chaparral session and return_to set to the stay page.
 
 HTTP/1.1 303 See Other
 Location: https://chaparralhotel.example/stays/stay_9Kp4

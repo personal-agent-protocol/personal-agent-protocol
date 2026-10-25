@@ -46,13 +46,14 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
   2025-06-18 or later ([section 6](https://personalagentprotocol.org/docs/0.3/spec#apis)).
 - A new MCP server should support DPoP: list `dpop_signing_alg_values_supported`, with `ES256`, in
   its protected resource metadata, verify proofs, and reject a DPoP token sent as a Bearer token.
-  The token endpoint issues Personal Agents only DPoP Session Tokens for it, for a request with a
-  proof and `resource` set to the server's `url`, and answers one without a proof with
-  `invalid_dpop_proof` ([4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens), "MCP").
+  The token endpoint issues Personal Agents only DPoP Session Tokens for it, for a request with
+  `resource` set to the server's `url`, and refuses a token exchange for it with `invalid_target`
+  ([4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens), "MCP").
   Keep accepting Bearer tokens from MCP clients that don't implement Poppy.
-- For an MCP server without DPoP, the token endpoint issues a `Bearer` Session Token for a request
-  with `resource` set to the server's `url`, whether or not it has a proof. Issue Bearer tokens only
-  for MCP servers without DPoP.
+- For an MCP server without DPoP, support the token exchange grant (RFC 8693) and list it in
+  `grant_types_supported`. Exchange a DPoP Session Token, bound to the request's proof, for a
+  `Bearer` Session Token with `resource` set to the server's `url`. Issue Bearer tokens only this
+  way, and only for MCP servers without DPoP; refuse other requests with `invalid_target`.
 - The MCP server accepts Session Tokens as its access tokens, only those issued for its `url`, and
   enforces their scopes.
 - Publish RFC 9728 protected resource metadata whose `authorization_servers` includes `auth.issuer`.

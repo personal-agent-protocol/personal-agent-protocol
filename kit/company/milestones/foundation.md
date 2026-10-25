@@ -68,10 +68,13 @@ sign-in milestone.
   `iss` is the authenticated `client_id`, `aud` is your `auth.issuer` as a single string (not the token endpoint URL), `iat`
   and `exp` are short-lived, and `jti` hasn't been seen.
 - Treat `sub` as the User ID: opaque, never shown, stored with the Session.
-- Return `access_token`, `token_type: "DPoP"`, `expires_in` (greater than 0; hours, not days),
-  `scope: ""`, and `session_id`, with `Cache-Control: no-store`.
-- Renewal: the same request with `session_id`. Check the Session belongs to the same `client_id`
-  and User ID. Return `invalid_session` if it has ended or doesn't match.
+- Find the Session by the thumbprint of the proof's key, the Session Key
+  ([4.3](https://personalagentprotocol.org/docs/spec#sending-tokens)). A new key starts a new Session.
+- Return `access_token`, `token_type: "DPoP"`, `expires_in` (greater than 0; hours, not days), and
+  `scope: ""`, with `Cache-Control: no-store`.
+- Renewal: the same request with a proof from the same key. Check the Session belongs to the same
+  `client_id` and User ID. Return `invalid_grant` if it doesn't match, or if it has ended and you
+  still remember its key. Remembering ended keys is a SHOULD: decide with the engineer how long.
 - Accept `scope` and `resource` on token requests
   ([4.3](https://personalagentprotocol.org/docs/spec#sending-tokens)). If any `poppy.json` entry has
   a `resource`, issue tokens for it that work only there.
@@ -93,7 +96,8 @@ with a `DPoP-Nonce` header: HTTP 400 OAuth errors at the token endpoint, and HTT
 Keep error text free of account details
 ([guides](https://personalagentprotocol.org/docs/guides#company-errors)).
 
-**7. Records.** Create the Session record now: `client_id`, User ID, and later the account ("How sign-in
+**7. Records.** Create the Session record now, found by its Session Key's thumbprint: `client_id`,
+User ID, and later the account ("How sign-in
 is remembered" in [4.4](https://personalagentprotocol.org/docs/spec#sign-in)). See
 `patterns/session-records.md`.
 

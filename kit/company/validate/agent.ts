@@ -8,6 +8,8 @@ import type { Context, HeldToken } from "./checks/types.ts";
 
 export const JWT_BEARER = "urn:ietf:params:oauth:grant-type:jwt-bearer";
 const CLIENT_ASSERTION_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
+export const TOKEN_EXCHANGE = "urn:ietf:params:oauth:grant-type:token-exchange";
+const ACCESS_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:access_token";
 
 export function tokenEndpoint(ctx: Context): string {
     const endpoint = ctx.discovered.metadata?.token_endpoint;
@@ -45,13 +47,19 @@ export function clientAssertion(ctx: Context, key?: SigningKey, aud?: string): P
 
 export function sessionAssertion(
     ctx: Context,
-    options: { key?: SigningKey; typ?: string; jti?: string; extra?: Record<string, unknown> } = {},
+    options: {
+        key?: SigningKey;
+        typ?: string;
+        jti?: string;
+        sub?: string;
+        extra?: Record<string, unknown>;
+    } = {},
 ): Promise<string> {
     const identity = ctx.identity!;
     return signAssertion({
         key: options.key ?? identity.key,
         iss: identity.clientId,
-        sub: userId(ctx),
+        sub: options.sub ?? userId(ctx),
         aud: issuer(ctx),
         typ: options.typ,
         jti: options.jti,
@@ -195,13 +203,13 @@ export function heldToken(
     return {
         accessToken: json.access_token,
         tokenType: typeof json.token_type === "string" ? json.token_type : "",
-        sessionId: typeof json.session_id === "string" ? json.session_id : "",
         dpopKey: dpop,
         resource,
     };
 }
 
-// Params for starting (or, with sessionId, renewing) a Session with the JWT bearer grant.
+// Params for starting a Session with the JWT bearer grant. With the Session's DPoP key, the same
+// request renews it (4.2).
 export function sessionParams(
     ctx: Context,
     extra: Record<string, string> = {},
@@ -222,14 +230,25 @@ export async function tokenForResource(
     const base = ctx.session.token;
     if (!base || !resource) return base;
     if (ctx.session.resourceTokens[resource]) return ctx.session.resourceTokens[resource];
-    const attempt = await tokenRequest(
-        ctx,
-        sessionParams(ctx, { session_id: base.sessionId, resource }),
-        { note: `renewing the Session with resource=${resource}` },
-    );
+    const attempt = await tokenRequest(ctx, sessionParams(ctx, { resource }), {
+        note: `renewing the Session with resource=${resource}`,
+    });
     const token = heldToken(attempt.ex, ctx.session.dpopKey, resource);
     if (token) ctx.session.resourceTokens[resource] = token;
     return token;
+}
+
+// Params for exchanging a DPoP Session Token for a Bearer one for an MCP server (4.3, RFC 8693).
+export function exchangeParams(
+    subject: HeldToken,
+    resource: string,
+): () => Promise<Record<string, string>> {
+    return async () => ({
+        grant_type: TOKEN_EXCHANGE,
+        subject_token: subject.accessToken,
+        subject_token_type: ACCESS_TOKEN_TYPE,
+        resource,
+    });
 }
 
 export function syntheticMessageId(): string {

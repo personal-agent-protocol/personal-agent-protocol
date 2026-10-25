@@ -34,8 +34,12 @@ that should be one Company share one issuer
   `jwks_uri`;
 - accepts clients it hasn't registered, identified by a URL (Client ID Metadata Documents), or has a
   hook to resolve them;
-- supports the JWT bearer grant, custom grant types, or token hooks that can add `session_id` to the
-  token response and read it from the request;
+- supports the JWT bearer grant with a `sub` it hasn't seen before, or custom grant types or token
+  hooks that can create a Session from it;
+- can key server-side state by a DPoP key's thumbprint, or expose the thumbprint to a hook, so it can
+  find the Session a token request is for;
+- supports `dpop_jkt` on authorization requests (RFC 9449 §10), and pushed authorization requests
+  (RFC 9126);
 - issues DPoP-bound tokens (RFC 9449), with nonces;
 - supports refresh tokens, their lifetimes, and rotation;
 - supports the device authorization grant (RFC 8628), PKCE with S256, `iss` in redirects (RFC 9207),

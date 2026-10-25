@@ -141,13 +141,19 @@ test("resource servers that take tokens from the URL fail", async () => {
     assert.equal(byId("dpop.wrong-ath").status, "pass");
 });
 
+test("a Session Key accepted for another User ID fails", async () => {
+    const { byId } = await run({ ignoreKeyUser: true }, "foundation", ["session."]);
+    assert.equal(byId("session.renew").status, "pass");
+    assert.equal(byId("session.key-other-user").status, "fail");
+});
+
 test("a Bearer MCP token accepted elsewhere fails", async () => {
     const { byId } = await run({ acceptBearerEverywhere: true }, "interfaces", ["mcp."]);
     assert.equal(byId("mcp.bearer-accepted").status, "pass");
     assert.equal(byId("mcp.bearer-elsewhere-rejected").status, "fail");
 });
 
-test("an MCP server without DPoP that gets a DPoP token for a request with a proof fails", async () => {
+test("an MCP server without DPoP that gets a DPoP token by exchange fails", async () => {
     const { byId } = await run({ dpopAtBearerMcp: true }, "interfaces", ["mcp."]);
     assert.equal(byId("mcp.bearer-token").status, "fail");
     assert.equal(byId("mcp.dpop-server-token").status, "skip");

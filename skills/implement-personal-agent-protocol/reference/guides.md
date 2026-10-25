@@ -99,7 +99,7 @@ Tell your users, such as in your privacy notice, that each company recognizes th
 
 You MAY offer anonymous browsing, like a private browser window, with a new user ID for each anonymous browsing session ([4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions)). The company sees a new user each time, and nothing in the protocol links that browsing to the user's regular ID, their account, or their other anonymous sessions. Other signals, such as IP addresses, still can.
 
-- Create a random ID and a new DPoP key for each anonymous browsing session. Reusing a key would let the company link the sessions that share it.
+- Create a random ID for each anonymous browsing session. Its session has its own session key, as every session does, so nothing links it to the user's other sessions.
 - Discard both when the browsing session ends. Carts and conversations from it end with it.
 - Never sign in with an anonymous ID (MUST NOT, [4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions)). If the user wants to sign in, switch to their regular ID in a new session.
 
@@ -107,12 +107,14 @@ Keep the mapping of each user's IDs across companies confidential (MUST, [4.2](h
 
 ### DPoP keys and proofs
 
-- Generate a DPoP key pair for each user ID (MUST, [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)), so each user at each company has its own. Make it non-extractable where your platform allows, such as in a key management service or WebCrypto.
+- Generate a new DPoP key pair, the session key, for each session, and never use it for another session (MUST, [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)). Make it non-extractable where your platform allows, such as in a key management service or WebCrypto.
+- Keep the session key for as long as you use the session. Its thumbprint names the session at the token endpoint, so a lost key means a new session.
 - Never expose private keys to a model or to tools a model can call. Sign on the model's behalf in code it can't reach.
 - Sign proofs in an HTTP client hook that sees the final method and URL. Don't let the client follow redirects from protocol endpoints with the token or proof: you MUST NOT send either to the new URL ([section 3](https://personalagentprotocol.org/docs/0.3/spec#discovery)).
 - Sign proofs with ES256, which every company accepts ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)). Use another algorithm only if the company lists it in `dpop_signing_alg_values_supported`.
 - Personal agents MUST support nonces ([4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)). On `use_dpop_nonce`, take the nonce from the `DPoP-Nonce` header, keep it for that server, and retry once with a new proof that includes it.
-- To switch to a new DPoP key, request a new session token with a proof signed by the new key. The company binds the token to that key.
+- A session can't change its key. To use a new key, start a new session.
+- After `invalid_grant` on a session key, never use that key again (MUST NOT, [4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions)). Start a new session with a new key. A company can forget an ended session's key and start a new session for it, so don't count on a renewed session keeping its cart or browser cookie.
 
 *Response: company → personal agent*
 
@@ -136,7 +138,7 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
 - Account tokens MUST be stored as secrets ([4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)). Encrypt them at rest, apart from the model and its tools. Give tools a reference to the token, not the token.
 - Keep session tokens in memory and drop them when they expire.
 - Store account tokens by the company's full `auth.issuer`, as for [user IDs](#agent-user-ids), so a token from one company hosted by a provider is never sent to another.
-- Include `resource` in every token request for an MCP server, and use the scheme `token_type` names (MUST, [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)). The company issues a Bearer token only for an MCP server whose protected resource metadata doesn't list `dpop_signing_alg_values_supported`. Bearer tokens can be used by anyone who copies them. Each one is limited to one MCP server by `resource`, and you can also narrow it with `scope`.
+- Include `resource` in every token request for an MCP server, and use the scheme `token_type` names (MUST, [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)). For an MCP server whose protected resource metadata doesn't list `dpop_signing_alg_values_supported`, exchange a DPoP session token for a Bearer one with the token exchange grant. Bearer tokens can be used by anyone who copies them. Each one is limited to one MCP server by `resource`, and you can also narrow it with `scope`.
 - When the company returns a new account token, you MUST use it from then on ([4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)). Replace the stored one right away.
 - After the user signs in again for more scopes, revoke the old account token ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
 - On `invalid_grant` for an account token, delete it and continue signed out.
@@ -155,6 +157,7 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
 - Open the authorization URL in the user's own browser, not in a browser you automate.
 - Make `state` random and single-use. Record which company and session it belongs to, and exchange the code only at that company's `token_endpoint`. Check that the redirect's `iss` matches that company's `auth.issuer` (MUST, [4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)).
 - Use PKCE with `code_challenge_method=S256` ([4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)).
+- Bind the code to the session key with `dpop_jkt` in the authorization URL, or with a proof on a pushed authorization request (MUST, [4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)). Exchange the code, and poll for device sign-in, with proofs signed with the same session key.
 - For device sign-in ([4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)), show `verification_uri_complete` as a link or QR code, and show `user_code` too so the user can confirm it matches. Keep `device_code` private. Show the link only if its host is the company's issuer host or the host of a URL in its `protected_resources`, or a subdomain of either, and show the company's name and domain with it (MUST, [4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)).
 - Poll no faster than `interval`. On `slow_down`, add 5 seconds to the interval, as [RFC 8628](https://www.rfc-editor.org/rfc/rfc8628#section-3.5) describes.
 
@@ -170,7 +173,7 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
 ### Native and distributed apps
 
 - Don't put your signing private key in an app you distribute. Anyone could extract it and act as your personal agent. Keep the key on your server, and have the app ask the server to sign assertions for the signed-in user.
-- DPoP keys are per user, so the app can generate and keep them on the device, in its platform keystore.
+- Session keys belong to one session, so the app can generate and keep them on the device, in its platform keystore.
 - Redirect URIs MUST be HTTPS URLs on your `client_id` domain ([4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)). To return the user to an app, use an HTTPS link the app claims, such as an iOS universal link or an Android app link, or use device sign-in.
 
 ### Web browsing
@@ -212,8 +215,21 @@ Section [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens) li
 - Require nonces if you want proofs that can't be made in advance. A nonce stays valid for a while, so it doesn't stop a proof being replayed. It doesn't replace the replay cache.
 - Check whether your authorization server can issue DPoP-bound tokens. If it can't, put a gateway in front of both your token endpoint and your APIs and conversation endpoint. It checks the proof on each token request, records the key for the token it issues, and checks that key on every later request. Checking a proof's signature alone isn't enough.
 - Accept a Bearer session token only at the MCP server whose `url` is its `resource`, not at other paths on the same host (MUST, [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)).
+- If you list an MCP server that doesn't support DPoP, support the token exchange grant (MUST, [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)). Issue Bearer tokens to personal agents only through it, and check that the subject token is bound to the proof's key.
 - Support DPoP on a new MCP server (SHOULD, [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)): list `dpop_signing_alg_values_supported` in its protected resource metadata, with ES256, and verify proofs as on your other APIs. Then issue personal agents only DPoP tokens for it. Keep accepting Bearer tokens from MCP clients that don't implement Poppy, and reject a DPoP token sent as a Bearer token.
 - Serve personal agent conversations only from your conversation endpoint ([7.2](https://personalagentprotocol.org/docs/0.3/spec#conversation-requests)). If your website chat or other channels can open the same conversations, they may not check DPoP, and anyone with a copied token could read them there.
+
+### Sessions and session keys
+
+A session is named by the thumbprint of its session key ([4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)). At the token endpoint:
+
+- Key your session records by the thumbprint of the key in each request's proof. A known key renews or signs in its session. A new key starts a new session.
+- Reject a key that names a session for a different `client_id` or user ID with `invalid_grant` ([4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions)).
+- Remember the keys of sessions you end, and reject them with `invalid_grant` (SHOULD, [4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions)). Otherwise a renewal with an ended session's key silently starts a new session. Keep them at least as long as your longest session lifetime.
+- Support `dpop_jkt` (MUST, [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)), and reject a code exchange whose proof key doesn't match the key the code is bound to.
+- Bind each `device_code` to the key of the first poll, and return `invalid_grant` to polls with any other key ([4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)).
+- Don't bind account tokens to a session key. One account token starts sessions with different keys ([4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)).
+- Most authorization servers can't key state by DPoP thumbprint, or start sessions from the JWT bearer grant with a user ID they haven't seen, without custom code. Plan for a hook or a small service in front of the token endpoint.
 
 ### Token lifetimes and sign-out
 

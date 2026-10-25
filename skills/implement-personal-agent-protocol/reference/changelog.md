@@ -26,6 +26,12 @@ The protocol no longer defines `poppy:read` and `poppy:write`. Each Company defi
 
 Personal Agents should use Direct or Device Sign-In rather than Mediated Sign-In when the Company offers it and it covers the task. Companies that offer Direct or Device Sign-In should make their scopes and APIs cover what Users need. Section 9.5 explains what a Company gives up when Personal Agents sign in with the User's credentials outside the protocol.
 
+#### Session Keys replace `session_id`
+
+Breaking · [Spec 2](https://personalagentprotocol.org/docs/0.3/spec#terms) · [Spec 4](https://personalagentprotocol.org/docs/0.3/spec#sessions) · [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Spec 4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in) · [Spec 4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in) · [Spec 4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in) · [Spec 4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens) · [Spec 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing) · [Guides: DPoP keys and proofs](https://personalagentprotocol.org/docs/0.3/guides#agent-dpop) · [Guides: Sessions and session keys](https://personalagentprotocol.org/docs/0.3/guides#company-session-keys)
+
+Each Session has its own DPoP key, the Session Key, and the key's thumbprint names the Session. The custom `session_id` parameter is removed from every token request and response, so Poppy's token requests are standard OAuth requests. A proof from a new key starts a new Session, and a proof from a known key renews or signs in that Session. Personal Agents use a new key for each Session instead of one for each User ID. Companies should remember the keys of Sessions they end and reject them with `invalid_grant`, so an ended Session's key doesn't silently start a new one. The browser assertion names the Session with a `jkt` claim.
+
 ### Minor changes
 
 #### `protected_resources` replaces `poppy_domains`
@@ -51,6 +57,24 @@ Personal Agents should request only the scopes a task needs, following RFC 9700 
 [Spec 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing) · [Guides: Enforcing scopes everywhere](https://personalagentprotocol.org/docs/0.3/guides#company-scopes)
 
 When a Company's website refuses an action because the Session lacks a scope, it should show a visible error that names the missing scopes, so the Personal Agent can request them.
+
+#### `invalid_session` becomes `invalid_grant`
+
+Breaking · [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens) · [Spec 4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out)
+
+A Session that has ended, or belongs to a different Personal Agent or User, now gets the standard `invalid_grant`. `account_mismatch` stays, so the Personal Agent can tell the User they signed in to a different account.
+
+#### Authorization codes bound to the Session Key
+
+Breaking · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens) · [Spec 4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in) · [Spec 4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in) · [Guides: Direct and device sign-in](https://personalagentprotocol.org/docs/0.3/guides#agent-direct-device) · [Guides: Sessions and session keys](https://personalagentprotocol.org/docs/0.3/guides#company-session-keys)
+
+Companies must support `dpop_jkt`, and Personal Agents must bind the authorization code to the Session Key with it, or with a proof on a pushed authorization request. A device code is bound to the key of the first poll.
+
+#### Bearer tokens for MCP servers by Token Exchange
+
+Breaking · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens) · [Guides: Storing tokens](https://personalagentprotocol.org/docs/0.3/guides#agent-tokens) · [Guides: Verifying DPoP](https://personalagentprotocol.org/docs/0.3/guides#company-dpop)
+
+A Personal Agent gets a Bearer token for an MCP server that doesn't support DPoP by exchanging a DPoP Session Token for it with the token exchange grant (RFC 8693), instead of leaving the proof out of a token request. Every other token request carries a proof. A Company that lists such an MCP server must support the grant. A request for the wrong token type gets `invalid_target`.
 
 #### User IDs as pairwise identifiers
 

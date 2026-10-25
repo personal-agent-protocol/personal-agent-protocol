@@ -21,19 +21,19 @@ test("redaction keeps a recognizable prefix and nothing else", () => {
         redactBody(
             JSON.stringify({
                 access_token: "opaque-secret",
-                session_id: "ses_1",
+                scope: "orders:read",
                 nested: { refresh_token: "r" },
             }),
         ),
     );
     assert.equal(json.access_token, "(redacted)");
-    assert.equal(json.session_id, "ses_1");
+    assert.equal(json.scope, "orders:read");
     assert.equal(json.nested.refresh_token, "(redacted)");
     const form = redactBody(
-        `grant_type=x&assertion=${JWT}&client_assertion=${JWT}&session_id=ses_1`,
+        `grant_type=x&assertion=${JWT}&subject_token=${JWT}&client_assertion=${JWT}&resource=r1`,
     );
     assert.doesNotMatch(form, /c2lnbmF0dXJl/);
-    assert.match(form, /session_id=ses_1/);
+    assert.match(form, /resource=r1/);
     assert.equal(
         redactUrl("https://a.example/x?access_token=secret123&y=1"),
         "https://a.example/x?access_token=(redacted)&y=1",

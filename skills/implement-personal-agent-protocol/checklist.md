@@ -28,6 +28,7 @@ are left out.
 - [ ] **MUST**: A provider that hosts several Companies MUST give each its own issuer, such as `https://auth.provider.example/shop-a`, even when they share servers.
 - [ ] **MUST**: The issuer MUST publish OAuth Authorization Server Metadata (RFC 8414), and `protected_resources` in it (RFC 9728 §4) MUST list `https://{domain}` for every domain whose `poppy.json` names the issuer, exactly in that form: the scheme and host only, with no path, port, or trailing slash, like the canonical server URI of the MCP authorization specification.
 - [ ] **MUST**: Required, and it MUST include `urn:ietf:params:oauth:grant-type:jwt-bearer` (4.2) and `refresh_token` (4.8).
+- [ ] **MUST**: It MUST include `urn:ietf:params:oauth:grant-type:token-exchange` if the Company lists an MCP server that doesn't support DPoP (4.3).
 - [ ] **MUST**: Required if the Company offers any type of sign-in, and it MUST then include every account scope a Personal Agent can request (4.4).
 - [ ] **MUST**: Companies MUST accept DPoP Proofs (4.3) signed with `ES256`, so every Personal Agent has an algorithm that works at every Company.
 - [ ] **MUST**: A Company MAY list the algorithms it accepts in `dpop_signing_alg_values_supported`, as RFC 9449 §5.1 defines, and the list MUST then include `ES256`.
@@ -42,18 +43,21 @@ are left out.
 - [ ] **MUST**: The Company MUST reject a `jti` it has already seen from the same `client_id` until the assertion expires, so a copied assertion can't be used again.
 - [ ] **MUST**: The Company chooses the value, and it MUST be greater than 0.
 - [ ] **SHOULD**: Session Tokens SHOULD last hours, not days.
+- [ ] **SHOULD**: To prevent that, a Company SHOULD remember the keys of the Sessions it ended, for as long as it chooses, and reject them with `invalid_grant`.
 - [ ] **MUST**: If it does, it MUST encrypt the token.
 
 ### Specification: [4.3 Using Session Tokens](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)
 
 - [ ] **MUST**: Companies MUST require DPoP everywhere else (below).
+- [ ] **MUST**: Companies MUST support `dpop_jkt` (RFC 9449 §10), and Personal Agents MUST bind the authorization code in Direct Sign-In to the Session Key (4.5).
 - [ ] **MUST**: The Company MUST validate every proof as RFC 9449 §4.3 describes.
 - [ ] **MUST**: At the token endpoint, the Company MUST reject a proof whose `jti` it has already accepted within the acceptance window, because a replayed proof there could get a new token.
-- [ ] **MUST NOT**: The Company MUST NOT issue a Personal Agent a Bearer Session Token for an MCP server that supports DPoP, so a request without a proof gets `invalid_dpop_proof`.
+- [ ] **MUST NOT**: The Company MUST NOT issue a Personal Agent a Bearer Session Token any other way.
 - [ ] **MUST**: Companies MUST accept a Bearer Session Token only at the MCP server whose `url` equals its `resource`, and MUST reject it at every other endpoint, including other paths on the same host.
 - [ ] **MUST**: Everywhere else, Companies MUST require DPoP, and MUST reject a DPoP Session Token sent with the `Bearer` scheme (RFC 9449 §7.1).
 - [ ] **SHOULD**: New MCP servers SHOULD support DPoP.
 - [ ] **MUST**: An MCP server that supports DPoP MUST list `ES256` in its `dpop_signing_alg_values_supported`, and Personal Agents sign proofs for it with `ES256` or with an algorithm from that list.
+- [ ] **MUST**: A Company that lists an MCP server that doesn't support DPoP MUST support the token exchange grant, and list `urn:ietf:params:oauth:grant-type:token-exchange` in `grant_types_supported` (3.2).
 - [ ] **MUST**: Companies MUST accept the token in the `Authorization` header without requiring cookies.
 - [ ] **MUST NOT**: Personal Agents MUST NOT send tokens in a URL, and Companies MUST NOT accept them from one.
 
@@ -131,6 +135,7 @@ Section 4.3 lists the checks you MUST make on every proof. To make them reliably
 - [ ] Require nonces if you want proofs that can't be made in advance. A nonce stays valid for a while, so it doesn't stop a proof being replayed. It doesn't replace the replay cache.
 - [ ] Check whether your authorization server can issue DPoP-bound tokens. If it can't, put a gateway in front of both your token endpoint and your APIs and conversation endpoint. It checks the proof on each token request, records the key for the token it issues, and checks that key on every later request. Checking a proof's signature alone isn't enough.
 - [ ] Accept a Bearer session token only at the MCP server whose `url` is its `resource`, not at other paths on the same host (MUST, 4.3).
+- [ ] If you list an MCP server that doesn't support DPoP, support the token exchange grant (MUST, 4.3). Issue Bearer tokens to personal agents only through it, and check that the subject token is bound to the proof's key.
 - [ ] Support DPoP on a new MCP server (SHOULD, 4.3): list `dpop_signing_alg_values_supported` in its protected resource metadata, with ES256, and verify proofs as on your other APIs. Then issue personal agents only DPoP tokens for it. Keep accepting Bearer tokens from MCP clients that don't implement Poppy, and reject a DPoP token sent as a Bearer token.
 - [ ] Serve personal agent conversations only from your conversation endpoint (7.2). If your website chat or other channels can open the same conversations, they may not check DPoP, and anyone with a copied token could read them there.
 

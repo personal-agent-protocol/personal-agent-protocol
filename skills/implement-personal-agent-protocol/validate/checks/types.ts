@@ -92,7 +92,6 @@ export type Discovered = {
 export type HeldToken = {
     accessToken: string;
     tokenType: string;
-    sessionId: string;
     dpopKey?: SigningKey;
     resource?: string;
 };

@@ -39,8 +39,8 @@ requested and allowed for the type. The User may approve fewer, but at least one
 a decline.
 
 **The sign-in response** (4.4). All types end with `refresh_token` (the Account Token), optionally
-`refresh_token_expires_in`, a signed-in Session Token for the current Session, the granted `scope`,
-and `session_id`.
+`refresh_token_expires_in`, a signed-in Session Token for the current Session, and the granted
+`scope`. The current Session is the one the request's Session Key names.
 
 **One account per Session** (4.4). A Session signed in to one account can't switch to another. If
 the User signs in to a different account, the code exchange, device poll, or Mediated Sign-In
@@ -58,15 +58,18 @@ unchanged.
   account, each scope in plain language, and how long access lasts. The User can approve some or
   all scopes, or decline.
 - Every redirect, success or error, carries `iss`.
-- The code exchange takes `session_id`, the client assertion, and a DPoP Proof, and checks the
-  Session belongs to the same `client_id`.
+- Support `dpop_jkt` on the authorization request, and bind the code to that key. With PAR, bind it
+  to the key of the pushed request's proof.
+- The code exchange takes the client assertion and a DPoP Proof from the key the code is bound to,
+  and signs in the Session that key names, after checking it belongs to the same `client_id`.
 
 **Device Sign-In** ([4.6](https://personalagentprotocol.org/docs/spec#device-sign-in)).
 
 - `device_authorization_endpoint` in the metadata, and
   `urn:ietf:params:oauth:grant-type:device_code` in its `grant_types_supported`.
-- The device authorization request with the client assertion. The poll at `token_endpoint` with
-  `session_id` and a DPoP Proof.
+- The device authorization request with the client assertion. The poll at `token_endpoint` with a
+  DPoP Proof. Bind the `device_code` to the key of the first poll, and refuse polls with any other
+  key with `invalid_grant`.
 - The verification page shows the Personal Agent and scopes. Opening the link or scanning the code
   never approves by itself.
 - Poll responses: `authorization_pending`, `slow_down`, `access_denied`, `expired_token`.
@@ -84,18 +87,19 @@ unchanged.
 
 **Account Tokens** ([4.8](https://personalagentprotocol.org/docs/spec#account-tokens)).
 
-- The `refresh_token` grant with the client assertion and DPoP Proof. With `session_id`, return a
-  token for that Session, signing it in if it was signed out. Without one, start a new signed-in
-  Session.
+- The `refresh_token` grant with the client assertion and DPoP Proof. With an existing Session's
+  key, return a token for that Session, signing it in if it was signed out. With a new key, start a
+  new signed-in Session. Don't bind the Account Token to a key.
 - Accept an Account Token only at `token_endpoint` and `revocation_endpoint`, and only from the
   `client_id` it was issued to.
 - The Session must belong to the same `client_id` and User ID and be signed out or signed in to the
-  same account. Otherwise `invalid_session` or `account_mismatch`.
+  same account. Otherwise `invalid_grant` or `account_mismatch`.
 - `scope` can narrow, never widen. Using the token doesn't extend its lifetime. Rotation is
   optional.
 - Expired or revoked: `invalid_grant`, and the Session continues signed out.
-- For MCP: the same grant with `resource` returns a token for that MCP server, a DPoP token with a
-  proof or a Bearer token without one ([4.3](https://personalagentprotocol.org/docs/spec#sending-tokens)).
+- For MCP: the same grant with `resource` returns a DPoP token for an MCP server that supports
+  DPoP. For one that doesn't, the Personal Agent exchanges the DPoP token for a Bearer one
+  ([4.3](https://personalagentprotocol.org/docs/spec#sending-tokens)).
 
 **Signing out** ([4.9](https://personalagentprotocol.org/docs/spec#sign-out)). RFC 7009 revocation
 with the client assertion. Revoke the Account Token and sign out every Session signed in with it.
@@ -178,8 +182,8 @@ test needs signed requests, without printing or copying the private key.
   Request an unknown scope and get `invalid_scope`. Decline and see `access_denied`.
 - Sign in to a second account in a Session already signed in to the first: `account_mismatch`, no
   tokens.
-- Use the Account Token with and without `session_id`, with a narrower `scope`, and from a different
-  `client_id` (refused).
+- Use the Account Token with an existing Session's key and with a new key, with a narrower `scope`,
+  and from a different `client_id` (refused).
 - Revoke it, then see the Session continue signed out, the old Session Token refused for account
   actions, and the Account Token refused with `invalid_grant`.
 - Disconnect from account settings and see the same.

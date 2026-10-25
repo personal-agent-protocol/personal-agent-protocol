@@ -8,6 +8,7 @@ export const REDACTED = "…(redacted)";
 const SECRET_FIELDS = new Set([
     "access_token",
     "refresh_token",
+    "subject_token",
     "id_token",
     "device_code",
     "assertion",
