@@ -207,7 +207,12 @@ Section 4.3 lists the checks you MUST make on every proof. To make them reliably
 
 - [ ] **MUST**: The parent conversation MUST be open, belong to the same owner (7.2), and not be a Direct Conversation itself.
 
-### Specification: [8. Feedback](https://personalagentprotocol.org/docs/0.3/spec#feedback)
+### Specification: [8.2 Alternatives](https://personalagentprotocol.org/docs/0.3/spec#alternatives)
+
+- [ ] **MUST**: An alternative MUST have at least one of `instructions` or `references`.
+- [ ] **MUST**: An `openapi` or `mcp` reference MUST name an API listed in the Company's `poppy.json`.
+
+### Specification: [8.3 Feedback](https://personalagentprotocol.org/docs/0.3/spec#feedback)
 
 - [ ] **MUST**: A Company MUST accept a report only with a Session Token, signed in or signed out, and needs no scope for it.
 - [ ] **MUST**: A Company MUST accept a `kind` it doesn't recognize, so later versions can add kinds.
@@ -237,6 +242,14 @@ Section 4.3 lists the checks you MUST make on every proof. To make them reliably
 - [ ] On a stream with nothing to send, send an SSE comment every 15 to 30 seconds, so proxies don't close it (7.6).
 - [ ] When a session signs out, answer a signed-out token on its conversations that used the account with `insufficient_scope`, including reads of their events, so their account details can't be read signed out (4.9, 7.11). Leave them open, so the user can sign in again and continue, or close them if your policy is to clear everything at sign-out.
 - [ ] Before closing an inactive conversation, say so in a message (7.12).
+
+### Recommended: [Excluded tasks and feedback](https://personalagentprotocol.org/docs/0.3/guides#company-excluded-tasks)
+
+- [ ] List the tasks you've chosen not to offer to personal agents, such as ones you allow only in your app for security or regulatory reasons (8.1). Personal agents then stop looking for a way to do them, and don't send feedback about them.
+- [ ] Write each task the way a customer would ask for it, such as "Send a wire transfer".
+- [ ] Give an alternative whenever there is one. Link to the page, or the screen in your app, where the user can do the task (8.2).
+- [ ] Set caching headers on the document, and update it when you add or remove a task.
+- [ ] When a feedback report asks for a task you do offer, answer with an alternative that says how, so the personal agent can finish the task (8.3).
 
 ### Recommended: [Error messages](https://personalagentprotocol.org/docs/0.3/guides#company-errors)
 

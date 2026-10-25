@@ -39,6 +39,8 @@ export type Flaws = {
     scopesInPoppy?: boolean;
     // Doesn't check which User ID a Session Key's Session belongs to.
     ignoreKeyUser?: boolean;
+    // An excluded task whose alternative references an API that poppy.json doesn't list.
+    unlistedAlternativeApi?: boolean;
 };
 
 export const ORIGIN = "https://shop.test";
@@ -310,6 +312,29 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
             { type: "openapi", url: `${ORIGIN}/openapi.json`, description: "Orders" },
             { type: "mcp", url: MCP, description: "Search" },
         ],
+        excluded_tasks: { url: `${ORIGIN}/poppy/excluded-tasks.json` },
+    });
+
+    const excludedTasks = () => ({
+        tasks: [
+            {
+                task: "Send a wire transfer",
+                alternative: {
+                    instructions: "Wire transfers can only be sent in the Shop app.",
+                    references: [
+                        { type: "web", url: `${ORIGIN}/transfers/wire` },
+                        {
+                            type: "openapi",
+                            url: flaws.unlistedAlternativeApi
+                                ? "https://payments.test/openapi.json"
+                                : `${ORIGIN}/openapi.json`,
+                            operation_id: "sendAchTransfer",
+                        },
+                    ],
+                },
+            },
+            { task: "Close an account" },
+        ],
     });
 
     return async (input, init) => {
@@ -343,6 +368,8 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
             (flaws.redirectToUpload && path === "/uploads/poppy.json")
         )
             return json(200, poppy(), { "cache-control": "max-age=300" });
+        if (path === "/poppy/excluded-tasks.json" && method === "GET")
+            return json(200, excludedTasks(), { "cache-control": "max-age=300" });
         if (path === "/.well-known/oauth-authorization-server") {
             return json(200, {
                 issuer: ORIGIN,

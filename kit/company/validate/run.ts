@@ -3,7 +3,12 @@
 import { CATALOG, MILESTONES, type Milestone } from "./catalog.ts";
 import { loadIdentity, verifyHosted } from "./identity.ts";
 import { checkConversations } from "./checks/conversations.ts";
-import { checkMetadata, checkPoppyDocument, checkPoppyOnline } from "./checks/discovery.ts";
+import {
+    checkExcludedTasks,
+    checkMetadata,
+    checkPoppyDocument,
+    checkPoppyOnline,
+} from "./checks/discovery.ts";
 import { checkMcp } from "./checks/mcp.ts";
 import { checkOpenApi } from "./checks/openapi.ts";
 import { checkResources } from "./checks/resource.ts";
@@ -37,6 +42,7 @@ export async function runChecks(
         checkPoppyDocument(ctx, r, undefined, [], options.fileText);
     } else {
         await checkPoppyOnline(ctx, r);
+        await checkExcludedTasks(ctx, r);
         await checkMetadata(ctx, r);
         const needsIdentity = wantsAny(ctx, ["session.", "dpop.", "mcp.", "conversations."]);
         if (needsIdentity && ctx.discovered.metadata?.token_endpoint) {

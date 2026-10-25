@@ -79,6 +79,27 @@ offer it to move to Direct or Device Sign-In.
 
 </Change>
 
+<Change title="Excluded tasks" sections="3, 3.1, 8, 8.1, 8.2, 9.1, guides#agent-excluded-tasks, guides#company-excluded-tasks">
+
+A Company can list the tasks it chose not to offer through this protocol, so Personal Agents tell
+the User right away instead of searching every interface for a way to do them. `excluded_tasks.url`
+in `poppy.json` points to a public JSON document of `tasks`, each a short `task` phrase and an
+optional `alternative`. An alternative has natural-language `instructions`, `references`, or both. A
+reference points to an OpenAPI operation by `operationId`, an MCP tool by name, or a web page, which
+can be a link that opens the Company's app. An `openapi` or `mcp` reference MUST name an API listed
+in `poppy.json`. Section 8 is now "Tasks a Company doesn't offer", with excluded tasks in 8.1,
+alternatives in 8.2, and feedback in 8.3.
+
+</Change>
+
+<Change title="Answering feedback with an alternative" sections="8.3, guides#agent-excluded-tasks, guides#company-excluded-tasks">
+
+A Company can answer a feedback report with HTTP 200 and an alternative (8.2) when the task can be
+done after all, instead of 202 with no body. Personal Agents MUST accept either response, and SHOULD
+NOT report a task the Company lists as excluded.
+
+</Change>
+
 <Change title="Secrets out of model context" breaking sections="9.2, 10, guides#both-secrets">
 
 Personal Agents must keep Session Tokens, private keys, authorization codes, PKCE code verifiers,

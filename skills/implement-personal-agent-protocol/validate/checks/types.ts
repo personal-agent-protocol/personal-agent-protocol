@@ -52,6 +52,7 @@ export type Poppy = {
     agent?: { protocols?: { type?: string; endpoint?: string; resource?: string }[] };
     web?: { browser_session_endpoint?: string };
     feedback?: { endpoint?: string };
+    excluded_tasks?: { url?: string };
     apis?: { type?: string; url?: string; description?: string; resource?: string }[];
     extensions?: Record<string, { version?: string }>;
 };

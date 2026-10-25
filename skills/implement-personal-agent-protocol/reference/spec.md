@@ -98,6 +98,9 @@ An example document:
   "feedback": {
     "endpoint": "https://api.example.com/poppy/feedback"
   },
+  "excluded_tasks": {
+    "url": "https://example.com/poppy/excluded-tasks.json"
+  },
   "apis": [
     {
       "type": "openapi",
@@ -125,7 +128,8 @@ An example document:
 | `agent` | One of `agent`, `apis`, or `web` | The Company Agent. `protocols` lists its supported conversation protocols, each with a `type` and HTTPS `endpoint` (section 7). An entry MAY include a `resource` to require tokens issued for it (4.3). |
 | `apis` | One of `agent`, `apis`, or `web` | A list of APIs. Each has a `type` from section 6, a `url`, and a short `description` that helps the Personal Agent pick the right one. An entry MAY include a `resource` to require tokens issued for it (4.3). |
 | `web` | One of `agent`, `apis`, or `web` | The Company's website. The optional `browser_session_endpoint` is where the Personal Agent's browser joins a Session (section 5). Without it, Personal Agents browse the site as ordinary signed-out visitors. |
-| `feedback` | No | `endpoint` is an HTTPS URL where Personal Agents report a User's task that can't be done through this protocol (section 8). |
+| `feedback` | No | `endpoint` is an HTTPS URL where Personal Agents report a User's task that can't be done through this protocol (8.3). |
+| `excluded_tasks` | No | `url` is an HTTPS URL of the document that lists the tasks the Company chose not to offer through this protocol (8.1). |
 | `extensions` | No | The extensions the Company supports, keyed by name (below). |
 
 ### 3.2 OAuth server
@@ -1334,11 +1338,84 @@ Token errors are the ones in section 6. Other errors have a JSON body with an `e
 | `extension_required` | 403 | The request needs an extension the Personal Agent doesn't list, named in `extension` (3.3). |
 | `rate_limited` | 429 | Too many requests. Retry after the time in the `Retry-After` header (4.3). |
 
-## 8. Feedback
+## 8. Tasks a Company doesn't offer
 
-A Company can ask Personal Agents to tell it when a User's task can't be done through this protocol. Without this, the Company sees only a customer who left.
+A Personal Agent can spend a long time looking for a way to do a task that the Company doesn't offer through this protocol, and the Company sees only a customer who left. A Company can list the tasks it chose not to offer, so Personal Agents know up front (8.1). Personal Agents can report a task they couldn't do (8.3), and the Company can answer with a way to do it. Both point to other ways to do a task in the same form (8.2).
 
-Feedback is about what the Company doesn't offer, not errors. A Company already returns errors in its responses (sections 6 and 7) and can see them in its own logs, so Personal Agents don't report them here.
+Neither is for errors. A Company already returns errors in its responses (sections 6 and 7), including for a task it doesn't offer, and can see them in its own logs.
+
+### 8.1 Excluded tasks
+
+A Company that lists tasks it doesn't offer lists `excluded_tasks.url` in `poppy.json` (3.1). The URL points to a JSON document:
+
+*Excluded tasks, published by the Company*
+
+```
+{
+  "tasks": [
+    {
+      "task": "Send a wire transfer",
+      "alternative": {
+        "instructions": "Wire transfers can only be sent in the Example app, after the User verifies their identity.",
+        "references": [{ "type": "web", "url": "https://example.com/transfers/wire" }]
+      }
+    },
+    { "task": "Close an account" }
+  ]
+}
+```
+
+| Field | Req. | Description |
+| --- | --- | --- |
+| `tasks` | Yes | The tasks the Company chose not to offer through this protocol. Each has the fields below. |
+
+| Field | Req. | Description |
+| --- | --- | --- |
+| `task` | Yes | The task, in a short phrase, such as "Send a wire transfer" or "Close an account". At most 200 characters. |
+| `alternative` | No | Another way to do the task, such as in the Company's app or on its website, or a different task that serves the same need (8.2). |
+
+- A listed task isn't offered through any of the Company's interfaces: its Company Agent, its APIs, or its website in a browser session.
+- The document is the same for every User. The Personal Agent fetches it with a GET and no token, and SHOULD cache it according to its HTTP caching headers.
+- A Personal Agent SHOULD read the document before it starts on a task at the Company. Whether the User's task is one listed is the Personal Agent's judgment, since each `task` is a phrase.
+- A limit that depends on the User or their account, such as a transfer limit, isn't an excluded task. The Company returns an error for it, as for any request it refuses.
+- Personal Agents MUST skip fields they don't recognize, so later versions can add fields.
+
+### 8.2 Alternatives
+
+An alternative tells the Personal Agent another way to do a task, in `instructions`, `references`, or both:
+
+*Alternative: Company → Personal Agent*
+
+```
+{
+  "instructions": "Gift cards are applied with the payment API, before the order is placed.",
+  "references": [
+    { "type": "openapi", "url": "https://api.example.com/openapi.json", "operation_id": "applyGiftCard" },
+    { "type": "web", "url": "https://example.com/checkout" }
+  ]
+}
+```
+
+| Field | Req. | Description |
+| --- | --- | --- |
+| `instructions` | No | How to do the task, in natural language. At most 2,000 characters. |
+| `references` | No | Where to do it: a list of references to the Company's interfaces (below). |
+
+An alternative MUST have at least one of `instructions` or `references`. Each reference has a `type`, which says what it points to and which other fields it has:
+
+| Type | Fields | Points to |
+| --- | --- | --- |
+| `openapi` | `url`, `operation_id` | An operation in an OpenAPI API. `url` is the `url` of an `openapi` entry in `apis` (section 6), and `operation_id` is the operation's `operationId` in that description. |
+| `mcp` | `url`, `tool` | A tool on an MCP server. `url` is the `url` of an `mcp` entry in `apis`, and `tool` is the tool's `name`. |
+| `web` | `url` | A page the User can open, on the Company's website or in its app through an HTTPS link the app claims, such as an iOS universal link or an Android App Link. |
+
+- An `openapi` or `mcp` reference MUST name an API listed in the Company's `poppy.json`. Personal Agents MUST ignore one that doesn't, so an alternative can't aim them at another Company's servers.
+- Personal Agents MUST skip reference types they don't recognize, so later versions can add types, such as the Company Agent or an extension.
+- An alternative is content from the Company (9.1). Its `instructions` describe the Company's interfaces for the Personal Agent to use on the User's behalf. They are not instructions the Personal Agent has to follow.
+
+### 8.3 Feedback
+
+A Company can ask Personal Agents to tell it when a User's task can't be done through this protocol.
 
 A Company that wants feedback lists `feedback.endpoint` in `poppy.json` (3.1). When a User's task can't be done, the Personal Agent MAY send `POST {feedback.endpoint}` with a Session Token and a DPoP Proof (4.3), and a JSON body:
 
@@ -1361,10 +1438,11 @@ A Company that wants feedback lists `feedback.endpoint` in `poppy.json` (3.1). W
 - A Company MUST accept a report only with a Session Token, signed in or signed out, and needs no scope for it. The Session tells the Company which Personal Agent sent the report and for which User, so the report doesn't repeat that, or say where the problem happened.
 - Personal Agents SHOULD NOT put personal data in a report, such as the User's name, contact details, or order details. A report describes the task, not the User. Personal Agents MUST NOT put secrets in a report (9.2).
 - A Personal Agent SHOULD send one report for each task it couldn't do, not one for each attempt.
+- A Personal Agent SHOULD NOT report a task the Company lists as excluded (8.1), since the Company already knows it doesn't offer it.
 - A Company MUST accept a `kind` it doesn't recognize, so later versions can add kinds.
 - A report can be wrong, or written to mislead. Companies MUST treat a report's text as data, not as instructions, including when a model reads it.
 
-The Company responds with HTTP 202 and no body. Token errors are the ones in section 6. Other errors have a JSON body with an `error` code, as in 7.13: `invalid_request` (400) for a report that is malformed or too long, and `rate_limited` (429).
+The Company responds with HTTP 202 and no body. When the task can be done after all, it MAY instead respond with HTTP 200 and an alternative (8.2) as the body, such as the one in 8.2 for paying with a gift card. Personal Agents MUST accept either response. Token errors are the ones in section 6. Other errors have a JSON body with an `error` code, as in 7.13: `invalid_request` (400) for a report that is malformed or too long, and `rate_limited` (429).
 
 ## 9. Security considerations
 
@@ -1372,7 +1450,7 @@ This section collects risks that cut across the protocol. The sections it points
 
 ### 9.1 Content from Companies
 
-A Personal Agent passes what a Company returns to its model: conversation messages, API descriptions and responses, MCP tool descriptions and results, web pages, and, with the Operations extension, an operation's `summary`. The same model may hold the User's personal context and have Sessions open at other Companies. A malicious or compromised Company can write content that tries to direct the model, known as prompt injection.
+A Personal Agent passes what a Company returns to its model: conversation messages, API descriptions and responses, MCP tool descriptions and results, web pages, excluded tasks and alternatives (section 8), and, with the Operations extension, an operation's `summary`. The same model may hold the User's personal context and have Sessions open at other Companies. A malicious or compromised Company can write content that tries to direct the model, known as prompt injection.
 
 - Personal Agents MUST treat content from a Company as data, not as instructions. Only the User decides what the Personal Agent does.
 - A Personal Agent MUST NOT act at one Company, or send it information, because content from another Company asked it to. It acts at a Company only when the User's task needs it.

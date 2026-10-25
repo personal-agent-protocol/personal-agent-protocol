@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "feedback-report.schema.json",
     "title": "Feedback report",
-    "description": "The JSON body a Personal Agent posts to {feedback.endpoint} to report a User's task that can't be done through the protocol. Spec section 8 (Feedback). Companies accept a kind they don't recognize.",
+    "description": "The JSON body a Personal Agent posts to {feedback.endpoint} to report a User's task that can't be done through the protocol. Spec 8.3 (Feedback). Companies accept a kind they don't recognize.",
     "type": "object",
     "required": ["kind", "task", "description"],
     "properties": {

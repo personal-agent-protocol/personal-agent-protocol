@@ -199,6 +199,12 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
 - Don't phone a company that publishes a `poppy.json`. Use the interfaces it lists instead.
 - Skip API types and conversation protocols you don't recognize ([section 6](https://personalagentprotocol.org/docs/0.3/spec#apis)).
 
+### Tasks a company doesn't offer
+
+- Read the company's excluded tasks before you try a task there. When the user's task is one of them, tell the user right away instead of trying each interface ([8.1](https://personalagentprotocol.org/docs/0.3/spec#excluded-tasks)).
+- Offer the alternative when there is one. When it's something the user does themselves, such as a page that opens the company's app, give the user the link instead of browsing it yourself ([8.2](https://personalagentprotocol.org/docs/0.3/spec#alternatives)).
+- When a company answers your feedback report with an alternative, try it before you tell the user the task can't be done ([8.3](https://personalagentprotocol.org/docs/0.3/spec#feedback)).
+
 ## For companies
 
 ### Verifying personal agents
@@ -351,6 +357,14 @@ Let a signed-out personal agent session do what a signed-out visitor can do on y
 - On a stream with nothing to send, send an SSE comment every 15 to 30 seconds, so proxies don't close it ([7.6](https://personalagentprotocol.org/docs/0.3/spec#streaming)).
 - When a session signs out, answer a signed-out token on its conversations that used the account with `insufficient_scope`, including reads of their events, so their account details can't be read signed out ([4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out), [7.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)). Leave them open, so the user can sign in again and continue, or close them if your policy is to clear everything at sign-out.
 - Before closing an inactive conversation, say so in a message ([7.12](https://personalagentprotocol.org/docs/0.3/spec#closing)).
+
+### Excluded tasks and feedback
+
+- List the tasks you've chosen not to offer to personal agents, such as ones you allow only in your app for security or regulatory reasons ([8.1](https://personalagentprotocol.org/docs/0.3/spec#excluded-tasks)). Personal agents then stop looking for a way to do them, and don't send feedback about them.
+- Write each task the way a customer would ask for it, such as "Send a wire transfer".
+- Give an alternative whenever there is one. Link to the page, or the screen in your app, where the user can do the task ([8.2](https://personalagentprotocol.org/docs/0.3/spec#alternatives)).
+- Set caching headers on the document, and update it when you add or remove a task.
+- When a feedback report asks for a task you do offer, answer with an alternative that says how, so the personal agent can finish the task ([8.3](https://personalagentprotocol.org/docs/0.3/spec#feedback)).
 
 ### Error messages
 

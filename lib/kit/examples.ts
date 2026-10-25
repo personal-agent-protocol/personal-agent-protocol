@@ -51,6 +51,8 @@ const EXAMPLES: Record<string, Target> = {
     "direct-conversations:1": "conversation-request.schema.json",
     "direct-conversations:2": "event.schema.json",
     "conversation-sign-in:1": "event.schema.json",
+    "excluded-tasks:1": "excluded-tasks.schema.json",
+    "alternatives:1": "alternative.schema.json",
     "feedback:1": "feedback-report.schema.json",
 };
 

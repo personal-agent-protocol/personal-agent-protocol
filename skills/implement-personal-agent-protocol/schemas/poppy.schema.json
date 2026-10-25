@@ -79,6 +79,13 @@
                 }
             }
         },
+        "excluded_tasks": {
+            "type": "object",
+            "required": ["url"],
+            "properties": {
+                "url": { "$ref": "#/$defs/https_url" }
+            }
+        },
         "web": {
             "type": "object",
             "properties": {

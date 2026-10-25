@@ -233,6 +233,7 @@ export function formatSurvey(s: SurveyReport): string {
                 `  api               ${api.type} ${api.url}${api.description ? ` — ${api.description}` : ""}`,
             );
         if (p?.feedback) out.push(`  feedback          ${p.feedback.endpoint}`);
+        if (p?.excluded_tasks) out.push(`  excluded_tasks    ${p.excluded_tasks.url}`);
         if (p?.extensions)
             out.push(
                 `  extensions        ${Object.entries(p.extensions)

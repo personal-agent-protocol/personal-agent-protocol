@@ -61,6 +61,8 @@ export const SECTION_NUMBERS: Record<string, string> = {
     "spec#conversation-sign-in": "7.11",
     "spec#closing": "7.12",
     "spec#conversation-errors": "7.13",
+    "spec#excluded-tasks": "8.1",
+    "spec#alternatives": "8.2",
 };
 
 function foundation(
@@ -144,6 +146,18 @@ export const CATALOG: CheckInfo[] = [
         "Each API's type is openapi or mcp",
         "spec#apis",
         "Each API's type MUST be one of these",
+    ),
+    foundation(
+        "discovery.excluded-tasks",
+        "The excluded-tasks document loads and has the fields in 8.1",
+        "spec#excluded-tasks",
+        "The Personal Agent fetches it with a GET and no token",
+    ),
+    foundation(
+        "discovery.alternative-references",
+        "Each openapi or mcp reference in an alternative names an API listed in poppy.json",
+        "spec#alternatives",
+        "An openapi or mcp reference MUST name an API listed in the Company's poppy.json.",
     ),
 
     // Milestone 1: OAuth server metadata (3.2).

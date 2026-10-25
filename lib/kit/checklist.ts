@@ -52,6 +52,9 @@ const SECTIONS: Record<string, Record<string, Milestone>> = {
         "conversation-sign-in": "sign-in",
         closing: "interfaces",
         "conversation-errors": "interfaces",
+        "unoffered-tasks": "interfaces",
+        "excluded-tasks": "interfaces",
+        alternatives: "interfaces",
         feedback: "interfaces",
         "untrusted-content": "foundation",
         secrets: "foundation",
@@ -81,6 +84,7 @@ const SECTIONS: Record<string, Record<string, Milestone>> = {
         "company-hosting": "foundation",
         "company-guest": "interfaces",
         "company-conversations": "interfaces",
+        "company-excluded-tasks": "interfaces",
         "company-errors": "interfaces",
         "operations-companies": "extensions",
     },
@@ -168,6 +172,8 @@ const OVERRIDES: [string, Party | "none"][] = [
     ["A standing permission MUST cover the Company", "agent"],
     ["It MUST NOT ask for a new proposal of the same action", "agent"],
     ["In a final state, result.summary MUST describe", "company"],
+    ["An alternative MUST have at least one of instructions or references", "company"],
+    ["An openapi or mcp reference MUST name an API listed", "company"],
 ];
 
 function override(text: string): Party | "none" | undefined {

@@ -53,6 +53,15 @@ test("a Company that follows the spec passes every check", async () => {
     assert.ok(results.filter((r) => r.status === "pass").length > 60);
 });
 
+test("an alternative that references an API poppy.json doesn't list fails discovery.alternative-references", async () => {
+    const { byId } = await run({ unlistedAlternativeApi: true }, "foundation", [
+        "discovery.alternative-references",
+    ]);
+    const result = byId("discovery.alternative-references");
+    assert.equal(result.status, "fail");
+    assert.match(result.got ?? "", /payments\.test/);
+});
+
 test("a token endpoint that accepts a replayed DPoP proof fails dpop.token-replay with full feedback", async () => {
     const { byId } = await run({ acceptReplayedTokenProof: true }, "foundation", [
         "dpop.token-replay",

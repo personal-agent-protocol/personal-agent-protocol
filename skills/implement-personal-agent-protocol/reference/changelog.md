@@ -44,6 +44,18 @@ The Personal Agent's browser no longer posts a signed browser assertion. Any bro
 
 Mediated Sign-In is a transitional step, not where the protocol is headed, like OAuth's password grant. Companies should offer it only until they can add Direct or Device Sign-In, and stop once those cover the same scopes. The protocol plans to remove it, on a date set when version 1.0 is published, and after that the community will look for ways to encourage the Companies that still offer it to move to Direct or Device Sign-In.
 
+#### Excluded tasks
+
+[Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) · [Spec 8](https://personalagentprotocol.org/docs/0.3/spec#unoffered-tasks) · [Spec 8.1](https://personalagentprotocol.org/docs/0.3/spec#excluded-tasks) · [Spec 8.2](https://personalagentprotocol.org/docs/0.3/spec#alternatives) · [Spec 9.1](https://personalagentprotocol.org/docs/0.3/spec#untrusted-content) · [Guides: Tasks a company doesn't offer](https://personalagentprotocol.org/docs/0.3/guides#agent-excluded-tasks) · [Guides: Excluded tasks and feedback](https://personalagentprotocol.org/docs/0.3/guides#company-excluded-tasks)
+
+A Company can list the tasks it chose not to offer through this protocol, so Personal Agents tell the User right away instead of searching every interface for a way to do them. `excluded_tasks.url` in `poppy.json` points to a public JSON document of `tasks`, each a short `task` phrase and an optional `alternative`. An alternative has natural-language `instructions`, `references`, or both. A reference points to an OpenAPI operation by `operationId`, an MCP tool by name, or a web page, which can be a link that opens the Company's app. An `openapi` or `mcp` reference MUST name an API listed in `poppy.json`. Section 8 is now "Tasks a Company doesn't offer", with excluded tasks in 8.1, alternatives in 8.2, and feedback in 8.3.
+
+#### Answering feedback with an alternative
+
+[Spec 8.3](https://personalagentprotocol.org/docs/0.3/spec#feedback) · [Guides: Tasks a company doesn't offer](https://personalagentprotocol.org/docs/0.3/guides#agent-excluded-tasks) · [Guides: Excluded tasks and feedback](https://personalagentprotocol.org/docs/0.3/guides#company-excluded-tasks)
+
+A Company can answer a feedback report with HTTP 200 and an alternative (8.2) when the task can be done after all, instead of 202 with no body. Personal Agents MUST accept either response, and SHOULD NOT report a task the Company lists as excluded.
+
 #### Secrets out of model context
 
 Breaking · [Spec 9.2](https://personalagentprotocol.org/docs/0.3/spec#secrets) · [Spec 10](https://personalagentprotocol.org/docs/0.3/spec#references) · [Guides: Handling secrets](https://personalagentprotocol.org/docs/0.3/guides#both-secrets)

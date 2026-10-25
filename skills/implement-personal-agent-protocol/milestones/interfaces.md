@@ -15,11 +15,14 @@ staging.
 - [Section 5, Web browsing](https://personalagentprotocol.org/docs/0.3/spec#web-browsing), for `web`
 - [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens) again: MCP tokens, narrower
   tokens, rate limits
+- [Section 8, Tasks a Company doesn't offer](https://personalagentprotocol.org/docs/0.3/spec#unoffered-tasks),
+  for excluded tasks and feedback
 - Guides: [Guest access](https://personalagentprotocol.org/docs/0.3/guides#company-guest),
   [Internal services](https://personalagentprotocol.org/docs/0.3/guides#company-internal),
   [Conversations](https://personalagentprotocol.org/docs/0.3/guides#company-conversations),
   [Browser sessions](https://personalagentprotocol.org/docs/0.3/guides#company-browsing),
-  [Error messages](https://personalagentprotocol.org/docs/0.3/guides#company-errors)
+  [Error messages](https://personalagentprotocol.org/docs/0.3/guides#company-errors),
+  [Excluded tasks and feedback](https://personalagentprotocol.org/docs/0.3/guides#company-excluded-tasks)
 
 Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
 `patterns/web-browsing.md`, `patterns/dpop.md`.
@@ -115,6 +118,19 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
 - While the browser carries that cookie, the website handles requests as that Session, whatever
   other cookies it has.
 
+## Excluded tasks and feedback
+
+Both are optional.
+
+- To list tasks you chose not to offer through Poppy, publish a JSON document with `tasks`, each a
+  `task` and an optional `alternative`, and list its URL in `excluded_tasks.url`
+  ([8.1](https://personalagentprotocol.org/docs/0.3/spec#excluded-tasks)). An alternative has
+  `instructions`, `references`, or both. An `openapi` or `mcp` reference names an API in `apis`
+  by its exact `url` ([8.2](https://personalagentprotocol.org/docs/0.3/spec#alternatives)).
+- To take feedback, list `feedback.endpoint` and accept reports with a Session Token
+  ([8.3](https://personalagentprotocol.org/docs/0.3/spec#feedback)). Answer 202 with no body, or 200
+  with an alternative when the task can be done after all.
+
 ## Decisions for this milestone
 
 - Per API and MCP server: whether it needs its own `resource` (4.3, "Narrower tokens").
@@ -122,6 +138,7 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
 - Event retention for conversations (the guides suggest at least 30 days), and whether to stream.
 - How handoff maps to the live-agent desk, and whether the Company Agent can ask for the User.
 - Cookie scope for browser sessions.
+- Which tasks, if any, to exclude, and the alternative for each.
 
 ## Common mistakes
 
