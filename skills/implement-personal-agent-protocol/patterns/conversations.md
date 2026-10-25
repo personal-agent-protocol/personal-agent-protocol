@@ -28,7 +28,8 @@ to `status` or `responder` ([7.7](https://personalagentprotocol.org/docs/0.3/spe
 ([7.4](https://personalagentprotocol.org/docs/0.3/spec#message-fields)). Pass `context` and `data` to
 the agent, and tell it whether a person is on the other side (`sender: "human"`,
 [7.8](https://personalagentprotocol.org/docs/0.3/spec#human-or-ai)). Company messages need `sender`:
-`agent` for the AI, `human` for a live agent.
+`agent` for the AI, `human` for a live agent. If the platform has several personas or live agents,
+you can name each in `speaker` with an `id`, `name`, and `image`.
 
 **Status and responder.** Map the platform's states: the agent working is `working`, waiting for
 the Personal Agent is `idle`, waiting for a live agent is `queued`, and closed is `closed`.

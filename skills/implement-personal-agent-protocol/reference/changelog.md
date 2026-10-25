@@ -178,6 +178,12 @@ When the Personal Agent revokes an Account Token, the Company should also invali
 
 A new section 4.10 lists what a Company's authorization server needs beyond standard OAuth, such as Sessions named by DPoP keys, one account per Session, and described scopes, and what the protocol adds outside OAuth. It adds no requirements.
 
+#### Speaker on Company messages
+
+[Spec 7.4](https://personalagentprotocol.org/docs/0.3/spec#message-fields) · [Spec 7.7](https://personalagentprotocol.org/docs/0.3/spec#status) · [Issue #19](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/19)
+
+A Company message can say which of the Company's people or AI personas wrote it, in an optional `speaker` object with an `id`, a display `name`, and an `image` URL, each optional.
+
 ### Guides
 
 Advice that goes with the spec. Guides aren't requirements.

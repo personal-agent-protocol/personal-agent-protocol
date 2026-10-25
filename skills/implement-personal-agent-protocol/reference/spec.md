@@ -1052,6 +1052,7 @@ Content-Type: application/json
 | `text` | No | The message in natural language. |
 | `data` | No | A JSON object for structured details that would need markup, like a list or a table, to fit in a sentence. The protocol doesn't define its keys. |
 | `context` | No | Facts about the User's situation, such as `locale`, `time_zone`, and `user_available` (below). |
+| `speaker` | No | Who at the Company wrote the message, for a Company with several people or AI personas (below). Only in Company messages. |
 
 A message MUST have at least one of `text`, `data`, or `context`.
 
@@ -1101,7 +1102,15 @@ Any message can carry `context`, and fields it leaves out keep their previous va
 }
 ```
 
-Company messages have `id`, `role`, `sender`, `text`, and `data`, with an ID the Company chooses. Only the Personal Agent sends `context`. Extensions can add fields, such as `operation` in the [Operations extension](https://personalagentprotocol.org/docs/0.3/extensions/operations#binding-conversations).
+Company messages have `id`, `role`, `sender`, `text`, `data`, and `speaker`, with an ID the Company chooses. Only the Personal Agent sends `context`. Extensions can add fields, such as `operation` in the [Operations extension](https://personalagentprotocol.org/docs/0.3/extensions/operations#binding-conversations).
+
+**Speaker.** A Company whose messages come from several people or AI personas MAY say which one wrote each message in `speaker`, an object whose fields are all optional:
+
+- `id` is a stable ID for the speaker, chosen by the Company, so the Personal Agent can tell the same speaker's messages apart from others'.
+- `name` is the speaker's display name, such as `Alex`.
+- `image` is the URL of the speaker's picture, for the Personal Agent to show next to the name.
+
+`sender` still says whether a person or an AI wrote the message (7.8). Like `text`, the speaker's name and picture are content from the Company (9.1).
 
 ### 7.5 Reading events
 
@@ -1225,6 +1234,7 @@ Each Company message MUST also include `sender`, with `agent` or `human`, to ide
         "id": "msg_t8Vn",
         "role": "company",
         "sender": "human",
+        "speaker": { "id": "spk_alex", "name": "Alex" },
         "text": "I've reviewed the exchange. Can you confirm which size the user wants?"
       }
     }

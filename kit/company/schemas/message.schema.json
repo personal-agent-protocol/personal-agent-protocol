@@ -11,6 +11,14 @@
         "sender": { "enum": ["agent", "human"] },
         "text": { "type": "string" },
         "data": { "type": "object" },
+        "speaker": {
+            "type": "object",
+            "properties": {
+                "id": { "$ref": "#/$defs/id" },
+                "name": { "type": "string", "minLength": 1 },
+                "image": { "type": "string", "pattern": "^https://" }
+            }
+        },
         "context": {
             "type": "object",
             "properties": {
