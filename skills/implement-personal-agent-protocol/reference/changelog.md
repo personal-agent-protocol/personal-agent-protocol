@@ -142,6 +142,12 @@ Section 4 lists the OAuth specifications the protocol builds on, instead of call
 
 Section 4.2 says where the assertion differs from draft-ietf-wimse-aims §10.4.2: AIMS names the agent in `sub`, and Poppy names it in `iss` and the User in `sub`.
 
+#### Custom work for the grant that starts a Session
+
+[Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 4.10](https://personalagentprotocol.org/docs/0.3/spec#oauth-additions) · [Guides: Verifying personal agents](https://personalagentprotocol.org/docs/0.3/guides#company-agents) · [Guides: Sessions and session keys](https://personalagentprotocol.org/docs/0.3/guides#company-session-keys) · [Guides: Starting sessions](https://personalagentprotocol.org/docs/0.3/guides#company-session-start)
+
+Section 4.2 says that off-the-shelf authorization servers generally don't accept the JWT bearer grant that starts a Session, because they accept an assertion only for a subject they already know. A Company needs some custom work for it. The requests after it are standard OAuth requests. A new guide compares an extension to the authorization server, a token service in front of the token endpoint, and creating a user record on first sight. The guides also note that not every authorization server supports client ID metadata documents, and what to do when yours needs agents registered first.
+
 #### User IDs as pairwise identifiers
 
 [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 10](https://personalagentprotocol.org/docs/0.3/spec#references)

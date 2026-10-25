@@ -227,6 +227,18 @@ agent in `sub`, and Poppy names it in `iss` and the User in `sub`.
 
 </Change>
 
+<Change title="Custom work for the grant that starts a Session" sections="4.2, 4.10, guides#company-agents, guides#company-session-keys, guides#company-session-start">
+
+Section 4.2 says that off-the-shelf authorization servers generally don't accept the JWT bearer
+grant that starts a Session, because they accept an assertion only for a subject they already know.
+A Company needs some custom work for it. The requests after it are standard OAuth requests. A new
+guide compares an extension to the authorization server, a token service in front of the token
+endpoint, and creating a user record on first sight. The guides also note that not every
+authorization server supports client ID metadata documents, and what to do when yours needs agents
+registered first.
+
+</Change>
+
 <Change title="User IDs as pairwise identifiers" sections="4.2, 10">
 
 Section 4.2 relates User IDs to OpenID Connect pairwise subject identifiers, which the Personal Agent

@@ -287,6 +287,8 @@ The Personal Agent holds the User IDs and Agent IDs of each of its Users at ever
 
 To start a Session, the Personal Agent requests a Session Token from the Company's `token_endpoint` with the JWT bearer grant ([RFC 7523](https://www.rfc-editor.org/rfc/rfc7523) §2.1). The assertion is a short-lived JWT signed with a key from its `jwks_uri`, naming itself in `iss` and the User in `sub`. Unlike most uses of this grant, the client issues the assertion itself: the Personal Agent obtains its own authorization, as [draft-ietf-wimse-aims](https://datatracker.ietf.org/doc/draft-ietf-wimse-aims/) §10.4.2 describes, for one User the Company knows only by User ID. AIMS names the agent in `sub`. Poppy names it in `iss` and the User in `sub`, because the token is for that User. Like every token request, it also carries the Personal Agent's client assertion (4.1) and a DPoP Proof (4.3). The Personal Agent creates a new Session Key for the Session and signs the proof with it.
 
+Off-the-shelf authorization servers generally don't accept this grant as it is. They accept a JWT bearer assertion only for a subject they already know, and the Company has usually never seen the User ID before. So a Company needs some custom work for this grant, such as an extension to its authorization server or a service in front of its token endpoint. The guides compare the options. The requests after it, for signing in, Account Tokens, and Token Exchange, are standard OAuth requests, though the Company's server still needs what 4.10 lists.
+
 *Request: Personal Agent → Company*
 
 ```
@@ -810,7 +812,7 @@ The User can also disconnect the Personal Agent from the Company's account setti
 Every request in this section is a standard OAuth request. What a Company's authorization server needs beyond the specifications listed at the start of this section:
 
 - **Sessions named by DPoP keys.** A proof from a new key starts a Session, and a proof from a known key renews it or signs it in (4.3). The Company keeps a record for each Session (4.4).
-- **Assertions the Personal Agent issues.** The Personal Agent signs its own JWT bearer assertion, naming itself in `iss`, the User ID in `sub`, and optionally one of its agents in `agent_id` (4.2).
+- **Assertions the Personal Agent issues.** The Personal Agent signs its own JWT bearer assertion, naming itself in `iss`, the User ID in `sub`, and optionally one of its agents in `agent_id` (4.2). Most authorization servers need custom work to accept it (4.2).
 - **One account per Session.** A Session that has been signed in to one account can't sign in to another. The token endpoint returns `account_mismatch` (4.4).
 - **Described scopes.** Each scope in `scopes_supported` has a description, in an OpenAPI description the Company lists or in `auth.scopes`, so the Personal Agent can choose the scopes a task needs (4.4).
 - **Account Tokens that start Sessions.** An Account Token isn't bound to a Session Key, so it can start new Sessions as well as renew existing ones (4.8).

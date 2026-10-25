@@ -212,6 +212,7 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
 - Fetch the `client_id` URL without following redirects. Its `client_id` MUST equal the URL you fetched ([4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)).
 - Cache client metadata and key sets, as described in [Fetching metadata safely](#both-fetching).
 - Keep allowlists or blocklists of `client_id` values, and rate-limit session creation and new `client_id` values ([4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)).
+- Check whether your authorization server supports client ID metadata documents. Some do, some support them only for clients an administrator registers by URL, and some don't yet. If yours needs registration, register the personal agents you accept by their `client_id` URL and reject others with `invalid_client`, which 4.1 allows. A token service in front of your token endpoint ([Starting sessions](#company-session-start)) can also fetch and check the metadata document itself.
 
 ### Verifying DPoP
 
@@ -238,7 +239,22 @@ A session is named by the thumbprint of its session key ([4.3](https://personala
 - Support `dpop_jkt` (MUST, [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)), and reject a code exchange whose proof key doesn't match the key the code is bound to.
 - Bind each `device_code` to the key of the first poll, and return `invalid_grant` to polls with any other key ([4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)).
 - Don't bind account tokens to a session key. One account token starts sessions with different keys ([4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)).
-- Most authorization servers can't key state by DPoP thumbprint, or start sessions from the JWT bearer grant with a user ID they haven't seen, without custom code. Plan for a hook or a small service in front of the token endpoint.
+- Most authorization servers can't key state by DPoP thumbprint without custom code. The same custom work that starts sessions can do it ([Starting sessions](#company-session-start)).
+
+### Starting sessions
+
+Most authorization servers accept a JWT bearer assertion only for a subject they already know, so they won't start a session for a user ID they've never seen ([4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions)). There are three ways to handle the grant:
+
+- **An extension to your authorization server,** such as a plugin or custom grant handler. It checks the assertion as 4.2 describes and issues the session token. This keeps everything in one server, if your server allows it.
+- **A token service in front of your token endpoint.** It handles the JWT bearer grant itself and passes every other request through. The session tokens it issues must be ones your APIs accept, so it signs them with your server's keys or has your server mint them.
+- **A user record on first sight.** The first assertion for a new user ID creates a user record, which your server then accepts as the assertion's subject.
+
+Records on first sight are the least custom code, but they have costs:
+
+- Your user directory fills with one record for every signed-out user, and every anonymous browsing session brings a new user ID ([4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions)). Keep these records apart from customer accounts, and delete ones that go unused.
+- Hosted authorization products that bill per active user may bill you for every signed-out user.
+
+Whichever you choose, the same records hold how a session and an account token link a user ID to an account ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
 
 ### Token lifetimes and sign-out
 

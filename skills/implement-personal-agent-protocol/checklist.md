@@ -123,6 +123,7 @@ Personal agents fetch `poppy.json` files and API descriptions. Companies fetch c
 - [ ] Fetch the `client_id` URL without following redirects. Its `client_id` MUST equal the URL you fetched (4.1).
 - [ ] Cache client metadata and key sets, as described in Fetching metadata safely.
 - [ ] Keep allowlists or blocklists of `client_id` values, and rate-limit session creation and new `client_id` values (4.1).
+- [ ] Check whether your authorization server supports client ID metadata documents. Some do, some support them only for clients an administrator registers by URL, and some don't yet. If yours needs registration, register the personal agents you accept by their `client_id` URL and reject others with `invalid_client`, which 4.1 allows. A token service in front of your token endpoint (Starting sessions) can also fetch and check the metadata document itself.
 
 ### Recommended: [Verifying DPoP](https://personalagentprotocol.org/docs/0.3/guides#company-dpop)
 
