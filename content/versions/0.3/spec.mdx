@@ -56,6 +56,18 @@ when they appear in capitals, as shown here.
 | Direct Conversation            | A new conversation, linked to an earlier one, in which the User talks with the Company through the Personal Agent's interface (7.10).                                                                                                                    |
 | Conversation ID                | Identifies one conversation, in the URL of each request about it. A conversation belongs to one Personal Agent and one User or account (7.2).                                                                                                            |
 
+**OAuth terms.** Poppy builds on OAuth (section 4) but names some things for what they do in a
+Session, because they're narrower than the OAuth terms:
+
+| Poppy term    | OAuth term                                          | Why the Poppy name                                                                                                                                                                                  |
+| ------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Session Token | Access token                                        | It is always for one Session, named by its Session Key, whether it is DPoP-bound or a Bearer token for an MCP server (4.3).                                                                         |
+| Account Token | Refresh token                                       | The Company issues one only when the User signs in to an account. A signed-out Session has none and renews with the Personal Agent's assertion instead (4.2). It can also start new Sessions (4.8). |
+| User ID       | Pairwise subject identifier, `sub` in the assertion | The Personal Agent assigns it, not the Company's OAuth server as in OpenID Connect (4.2).                                                                                                           |
+| Sign-in       | User authorization                                  | Mediated Sign-In isn't an OAuth grant (4.7).                                                                                                                                                        |
+| Sign-out      | Revoking the refresh token                          | It is the User ending the Personal Agent's access to their account. The Sessions continue signed out (4.9).                                                                                         |
+| Signed out    | Pseudonymous                                        | The Company recognizes the User by User ID but doesn't know who they are (4.2).                                                                                                                     |
+
 ## 3. Discovery {#discovery}
 
 A Company MUST publish its `poppy.json` document at `https://{domain}/.well-known/poppy.json` over

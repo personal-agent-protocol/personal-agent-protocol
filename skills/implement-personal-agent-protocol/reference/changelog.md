@@ -64,6 +64,12 @@ Personal Agents must keep Session Tokens, private keys, authorization codes, PKC
 
 ### Minor changes
 
+#### OAuth terms for Poppy names
+
+[Spec 2](https://personalagentprotocol.org/docs/0.3/spec#terms)
+
+Section 2 gives the OAuth term for Session Token, Account Token, User ID, sign-in, sign-out, and signed out, and says why Poppy keeps its own name for each.
+
 #### Discovery redirects end at the well-known path
 
 Breaking · [Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 9.3](https://personalagentprotocol.org/docs/0.3/spec#trust) · [Guides: Finding a company](https://personalagentprotocol.org/docs/0.3/guides#agent-discovery)
