@@ -157,6 +157,7 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
 - Open the authorization URL in the user's own browser, not in a browser you automate.
 - Make `state` random and single-use. Record which company and session it belongs to, and exchange the code only at that company's `token_endpoint`. Check that the redirect's `iss` matches that company's `auth.issuer` (MUST, [4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)).
 - Use PKCE with `code_challenge_method=S256` ([4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)).
+- If you can't receive the redirect on the device the user is talking to you on, send the authorization URL to the user, for example to their phone, with a redirect URI you control. Fall back to device sign-in only when that isn't possible ([4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)).
 - Bind the code to the session key with `dpop_jkt` in the authorization URL, or with a proof on a pushed authorization request (MUST, [4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)). Exchange the code, and poll for device sign-in, with proofs signed with the same session key.
 - For device sign-in ([4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)), show `verification_uri_complete` as a link or QR code, and show `user_code` too so the user can confirm it matches. Keep `device_code` private. Show the link only if its host is the company's issuer host or the host of a URL in its `protected_resources`, or a subdomain of either, and show the company's name and domain with it (MUST, [4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)).
 - Poll no faster than `interval`. On `slow_down`, add 5 seconds to the interval, as [RFC 8628](https://www.rfc-editor.org/rfc/rfc8628#section-3.5) describes.
@@ -265,6 +266,7 @@ The page where the user approves access, in direct and device sign-in ([4.5](htt
 
 ### Device sign-in
 
+- Follow the best practices for cross-device flows in [RFC 10027](https://www.rfc-editor.org/rfc/rfc10027) §2 (MUST, [4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)): assess the risk before offering device sign-in, and choose mitigations from its §6.1, such as short-lived single-use codes, rate limits, limited scopes, and a consent page that says which personal agent is asking and tells the user to decline a code they didn't ask for.
 - Opening the link MUST NOT approve the request by itself ([4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)). The same goes for scanning the QR code. The user signs in and approves on the page.
 - Ask the user to confirm that the code on the page matches the one the personal agent shows.
 - Return `slow_down` to personal agents that poll faster than `interval`, and limit wrong `user_code` entries.

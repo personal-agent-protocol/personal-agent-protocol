@@ -182,6 +182,17 @@ exactly the scopes requested. A sign-in where the User approves no scopes ends a
 
 </Change>
 
+<Change title="Device Sign-In follows RFC 10027" breaking sections="4.6, guides#agent-direct-device, guides#company-device">
+
+Device Sign-In is a cross-device flow, which is easier to use for phishing than Direct Sign-In.
+Companies that offer it and Personal Agents that use it must follow the best practices in RFC 10027
+(BCP 247) §2: a Company assesses the risk and chooses mitigations, and a Personal Agent uses Direct
+Sign-In when it can, as the RFC's protocol selection guidance says. The guides suggest sending the
+authorization URL to the User's phone when a Personal Agent can't receive the redirect on the
+User's device, and list mitigations for Companies.
+
+</Change>
+
 <Change title="`sign_in_required` becomes `insufficient_scope`" breaking sections="4.4, 4.9, 6, 7.11, Operations 3.2, guides#company-conversations">
 
 A request that needs the User's account and has a signed-out token gets `insufficient_scope`, the

@@ -866,6 +866,14 @@ It suits Personal Agents that can't receive a browser redirect, and Companies th
 this kind of sign-in. The Company's OAuth server metadata gives the `device_authorization_endpoint`
 (3.2).
 
+Device Sign-In is a cross-device flow, and it is easier to use for phishing than Direct Sign-In:
+whoever holds the `device_code` gets the tokens, so an attacker can start a request and persuade the
+User to approve it ([RFC 10027](https://www.rfc-editor.org/rfc/rfc10027) §4.1.1). Companies that
+offer Device Sign-In and Personal Agents that use it MUST follow the best practices in RFC 10027
+(BCP 247) §2. They include its protocol selection guidance, which says to use the device
+authorization grant only when other cross-device flows aren't viable (§6.2.1.5), so a Personal
+Agent uses Direct Sign-In when it can.
+
 **1. Start the request.** The Personal Agent sends the scopes it needs, with its client assertion:
 
 ```http label="Request: Personal Agent → Company"

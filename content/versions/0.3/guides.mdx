@@ -249,6 +249,9 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
   the code only at that company's `token_endpoint`. Check that the redirect's `iss` matches that
   company's `auth.issuer` (MUST, [4.5](/docs/spec#direct-sign-in)).
 - Use PKCE with `code_challenge_method=S256` ([4.5](/docs/spec#direct-sign-in)).
+- If you can't receive the redirect on the device the user is talking to you on, send the
+  authorization URL to the user, for example to their phone, with a redirect URI you control. Fall
+  back to device sign-in only when that isn't possible ([4.6](/docs/spec#device-sign-in)).
 - Bind the code to the session key with `dpop_jkt` in the authorization URL, or with a proof on a
   pushed authorization request (MUST, [4.5](/docs/spec#direct-sign-in)). Exchange the code, and poll
   for device sign-in, with proofs signed with the same session key.
@@ -436,6 +439,11 @@ The page where the user approves access, in direct and device sign-in
 
 ### Device sign-in {#company-device}
 
+- Follow the best practices for cross-device flows in [RFC
+  10027](https://www.rfc-editor.org/rfc/rfc10027) §2 (MUST, [4.6](/docs/spec#device-sign-in)):
+  assess the risk before offering device sign-in, and choose mitigations from its §6.1, such as
+  short-lived single-use codes, rate limits, limited scopes, and a consent page that says which
+  personal agent is asking and tells the user to decline a code they didn't ask for.
 - Opening the link MUST NOT approve the request by itself ([4.6](/docs/spec#device-sign-in)). The
   same goes for scanning the QR code. The user signs in and approves on the page.
 - Ask the user to confirm that the code on the page matches the one the personal agent shows.

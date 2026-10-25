@@ -112,6 +112,12 @@ Breaking · [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-
 
 Token responses no longer have `signed_in`. The grant says whether a token is signed in: the JWT bearer grant always returns a signed-out Session Token, and a sign-in or an Account Token always returns a signed-in one. `scope` follows RFC 6749: a signed-out token's response leaves it out, since an empty `scope` isn't valid OAuth, and a signed-in one includes it unless the Company granted exactly the scopes requested. A sign-in where the User approves no scopes ends as a decline.
 
+#### Device Sign-In follows RFC 10027
+
+Breaking · [Spec 4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in) · [Guides: Direct and device sign-in](https://personalagentprotocol.org/docs/0.3/guides#agent-direct-device) · [Guides: Device sign-in](https://personalagentprotocol.org/docs/0.3/guides#company-device)
+
+Device Sign-In is a cross-device flow, which is easier to use for phishing than Direct Sign-In. Companies that offer it and Personal Agents that use it must follow the best practices in RFC 10027 (BCP 247) §2: a Company assesses the risk and chooses mitigations, and a Personal Agent uses Direct Sign-In when it can, as the RFC's protocol selection guidance says. The guides suggest sending the authorization URL to the User's phone when a Personal Agent can't receive the redirect on the User's device, and list mitigations for Companies.
+
 #### `sign_in_required` becomes `insufficient_scope`
 
 Breaking · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Spec 4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out) · [Spec 6](https://personalagentprotocol.org/docs/0.3/spec#apis) · [Spec 7.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in) · [Operations 3.2](https://personalagentprotocol.org/docs/0.3/extensions/operations#ownership) · [Guides: Conversations](https://personalagentprotocol.org/docs/0.3/guides#company-conversations)

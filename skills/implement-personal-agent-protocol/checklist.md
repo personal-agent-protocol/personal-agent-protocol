@@ -310,6 +310,7 @@ The page where the user approves access, in direct and device sign-in (4.5, 4.6)
 
 ### Recommended: [Device sign-in](https://personalagentprotocol.org/docs/0.3/guides#company-device)
 
+- [ ] Follow the best practices for cross-device flows in RFC 10027 §2 (MUST, 4.6): assess the risk before offering device sign-in, and choose mitigations from its §6.1, such as short-lived single-use codes, rate limits, limited scopes, and a consent page that says which personal agent is asking and tells the user to decline a code they didn't ask for.
 - [ ] Opening the link MUST NOT approve the request by itself (4.6). The same goes for scanning the QR code. The user signs in and approves on the page.
 - [ ] Ask the user to confirm that the code on the page matches the one the personal agent shows.
 - [ ] Return `slow_down` to personal agents that poll faster than `interval`, and limit wrong `user_code` entries.
