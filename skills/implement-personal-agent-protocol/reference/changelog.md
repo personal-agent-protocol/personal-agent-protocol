@@ -124,6 +124,12 @@ A Personal Agent gets a Bearer token for an MCP server that doesn't support DPoP
 
 Section 4 lists the OAuth specifications the protocol builds on, instead of calling it standard OAuth: RFC 6749, RFC 7523, RFC 7636, RFC 8628, RFC 9449, RFC 8707, RFC 7009, and RFC 9700. Section 4.2 cites RFC 7523 §2.1 for the grant that starts a Session, and notes that the Personal Agent issues the assertion itself, as in draft-ietf-wimse-aims §10.4.2. The references add RFC 8693, which 4.3 already used, and draft-ietf-wimse-aims.
 
+#### The assertion's `sub` and AIMS
+
+[Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions)
+
+Section 4.2 says where the assertion differs from draft-ietf-wimse-aims §10.4.2: AIMS names the agent in `sub`, and Poppy names it in `iss` and the User in `sub`.
+
 #### User IDs as pairwise identifiers
 
 [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 10](https://personalagentprotocol.org/docs/0.3/spec#references)

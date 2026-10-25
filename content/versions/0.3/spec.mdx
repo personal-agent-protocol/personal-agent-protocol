@@ -421,9 +421,10 @@ is a short-lived JWT signed with a key from its `jwks_uri`, naming itself in `is
 `sub`. Unlike most uses of this grant, the client issues the assertion itself: the Personal Agent
 obtains its own authorization, as
 [draft-ietf-wimse-aims](https://datatracker.ietf.org/doc/draft-ietf-wimse-aims/) §10.4.2 describes,
-for one User the Company knows only by User ID. Like every token request, it also carries the
-Personal Agent's client assertion (4.1) and a DPoP Proof (4.3). The Personal Agent creates a new
-Session Key for the Session and signs the proof with it.
+for one User the Company knows only by User ID. AIMS names the agent in `sub`. Poppy names it in
+`iss` and the User in `sub`, because the token is for that User. Like every token request, it also
+carries the Personal Agent's client assertion (4.1) and a DPoP Proof (4.3). The Personal Agent
+creates a new Session Key for the Session and signs the proof with it.
 
 ```http label="Request: Personal Agent → Company"
 POST https://auth.example.com/oauth/token
