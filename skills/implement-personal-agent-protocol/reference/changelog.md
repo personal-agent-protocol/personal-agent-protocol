@@ -44,6 +44,12 @@ The Personal Agent's browser no longer posts a signed browser assertion. Any bro
 
 Mediated Sign-In is a transitional step, not where the protocol is headed, like OAuth's password grant. Companies should offer it only until they can add Direct or Device Sign-In, and stop once those cover the same scopes. The protocol plans to remove it, on a date set when version 1.0 is published, and after that the community will look for ways to encourage the Companies that still offer it to move to Direct or Device Sign-In.
 
+#### Secrets out of model context
+
+Breaking · [Spec 9.2](https://personalagentprotocol.org/docs/0.3/spec#secrets) · [Spec 10](https://personalagentprotocol.org/docs/0.3/spec#references) · [Guides: Handling secrets](https://personalagentprotocol.org/docs/0.3/guides#both-secrets)
+
+Personal Agents must keep Session Tokens, private keys, authorization codes, PKCE code verifiers, and device codes out of model context, as they already did Account Tokens. Before, these were a SHOULD. This follows the AI agent identity draft (draft-ietf-wimse-aims §8), which says the model must not have access to an agent's credentials. Other secrets, such as one-time codes, stay a SHOULD. The guides list authorization codes and PKCE code verifiers as secrets.
+
 ### Minor changes
 
 #### `protected_resources` replaces `poppy_domains`
@@ -88,6 +94,12 @@ Breaking · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-ser
 
 A Personal Agent gets a Bearer token for an MCP server that doesn't support DPoP by exchanging a DPoP Session Token for it with the token exchange grant (RFC 8693), instead of leaving the proof out of a token request. Every other token request carries a proof. A Company that lists such an MCP server must support the grant. A request for the wrong token type gets `invalid_target`.
 
+#### The OAuth specifications Poppy builds on
+
+[Spec 4](https://personalagentprotocol.org/docs/0.3/spec#sessions) · [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 10](https://personalagentprotocol.org/docs/0.3/spec#references)
+
+Section 4 lists the OAuth specifications the protocol builds on, instead of calling it standard OAuth: RFC 6749, RFC 7523, RFC 7636, RFC 8628, RFC 9449, RFC 8707, RFC 7009, and RFC 9700. Section 4.2 cites RFC 7523 §2.1 for the grant that starts a Session, and notes that the Personal Agent issues the assertion itself, as in draft-ietf-wimse-aims §10.4.2. The references add RFC 8693, which 4.3 already used, and draft-ietf-wimse-aims.
+
 #### User IDs as pairwise identifiers
 
 [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 10](https://personalagentprotocol.org/docs/0.3/spec#references)
@@ -99,6 +111,12 @@ Section 4.2 relates User IDs to OpenID Connect pairwise subject identifiers, whi
 Breaking · [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Spec 4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in)
 
 Token responses no longer have `signed_in`. `scope` is always present: empty for a signed-out Session Token, and with at least one scope for a signed-in one. A sign-in where the User approves no scopes ends as a decline.
+
+#### Sign-out invalidates Session Tokens
+
+[Spec 4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out)
+
+When the Personal Agent revokes an Account Token, the Company should also invalidate the Session Tokens issued under the same sign-in, as RFC 7009 §2.1 describes. Checking on each request whether the Session is still signed in, and short Session Token lifetimes, become the fallbacks.
 
 ## Version 0.2
 

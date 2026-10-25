@@ -16,11 +16,11 @@ These are secrets:
 
 - Session tokens and account tokens.
 - Private keys, client assertions, session assertions, and DPoP proofs.
-- Device codes, one-time sign-in codes, browser-session codes, and credentials sent in mediated sign-in.
+- Authorization codes, PKCE code verifiers, device codes, one-time sign-in codes, browser-session codes, and credentials sent in mediated sign-in.
 
 To handle them:
 
-- Keep them out of logs, telemetry, error reports, model context, conversation messages, and URLs. Tokens MUST NOT be sent in a URL ([4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)), and account tokens MUST NOT go in model context, messages, logs, or URLs ([4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)).
+- Keep them out of logs, telemetry, error reports, model context, conversation messages, and URLs. Tokens MUST NOT be sent in a URL ([4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)), account tokens MUST NOT go in model context, messages, logs, or URLs ([4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)), and tokens, private keys, authorization codes, PKCE code verifiers, and device codes MUST NOT go in model context ([9.2](https://personalagentprotocol.org/docs/0.3/spec#secrets)).
 - Redact the `Authorization`, `DPoP`, and `Cookie` headers and credential fields before a request reaches a logger or tracer.
 - Send `Cache-Control: no-store` on every response that carries a token or code.
 

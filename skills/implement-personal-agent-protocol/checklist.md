@@ -67,11 +67,11 @@ These are secrets:
 
 - Session tokens and account tokens.
 - Private keys, client assertions, session assertions, and DPoP proofs.
-- Device codes, one-time sign-in codes, browser-session codes, and credentials sent in mediated sign-in.
+- Authorization codes, PKCE code verifiers, device codes, one-time sign-in codes, browser-session codes, and credentials sent in mediated sign-in.
 
 To handle them:
 
-- [ ] Keep them out of logs, telemetry, error reports, model context, conversation messages, and URLs. Tokens MUST NOT be sent in a URL (4.3), and account tokens MUST NOT go in model context, messages, logs, or URLs (4.8).
+- [ ] Keep them out of logs, telemetry, error reports, model context, conversation messages, and URLs. Tokens MUST NOT be sent in a URL (4.3), account tokens MUST NOT go in model context, messages, logs, or URLs (4.8), and tokens, private keys, authorization codes, PKCE code verifiers, and device codes MUST NOT go in model context (9.2).
 - [ ] Redact the `Authorization`, `DPoP`, and `Cookie` headers and credential fields before a request reaches a logger or tracer.
 - [ ] Send `Cache-Control: no-store` on every response that carries a token or code.
 
@@ -271,8 +271,8 @@ Section 4.3 lists the checks you MUST make on every proof. To make them reliably
 
 ### Specification: [4.9 Signing out](https://personalagentprotocol.org/docs/0.3/spec#sign-out)
 
-- [ ] **SHOULD**: Companies SHOULD check on each request whether the Session is still signed in, so sign-out takes effect right away.
-- [ ] **SHOULD**: A Company that doesn't SHOULD use much shorter Session Token lifetimes, such as a few minutes.
+- [ ] **SHOULD**: As RFC 7009 §2.1 describes, the Company SHOULD also invalidate the Session Tokens issued under the same sign-in, so sign-out takes effect right away.
+- [ ] **SHOULD**: A Company that can't invalidate them SHOULD check on each request whether the Session is still signed in, and one that does neither SHOULD use much shorter Session Token lifetimes, such as a few minutes.
 
 ### Specification: [7.11 Sign-in during a conversation](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)
 

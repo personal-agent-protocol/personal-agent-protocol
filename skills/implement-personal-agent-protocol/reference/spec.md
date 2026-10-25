@@ -226,7 +226,7 @@ The steps, in the order they usually happen:
 | Use the Account Token (4.8) | `token_endpoint` with the Account Token | A signed-in Session Token, for a new or existing Session |
 | Sign out (4.9) | `revocation_endpoint` with the Account Token | The Account Token is revoked, and Sessions continue signed out |
 
-The endpoints come from the Company's OAuth server metadata (3.2). Everything except Mediated Sign-In is standard OAuth 2.0: Session Tokens are OAuth access tokens and Account Tokens are OAuth refresh tokens, so a Company can use its existing authorization server. The protocol adds the rules in this section. Token requests use only standard OAuth parameters: each Session is named by the key its tokens are bound to, the Session Key (4.3).
+The endpoints come from the Company's OAuth server metadata (3.2). Session Tokens are OAuth access tokens and Account Tokens are OAuth refresh tokens. Everything except Mediated Sign-In is built on OAuth 2.0 ([RFC 6749](https://www.rfc-editor.org/rfc/rfc6749)) with the JWT bearer grant and client authentication ([RFC 7523](https://www.rfc-editor.org/rfc/rfc7523)), PKCE ([RFC 7636](https://www.rfc-editor.org/rfc/rfc7636)), the device authorization grant ([RFC 8628](https://www.rfc-editor.org/rfc/rfc8628)), DPoP ([RFC 9449](https://www.rfc-editor.org/rfc/rfc9449)), resource indicators ([RFC 8707](https://www.rfc-editor.org/rfc/rfc8707)), and token revocation ([RFC 7009](https://www.rfc-editor.org/rfc/rfc7009)), and follows the OAuth 2.0 Security Best Current Practice ([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700)). A Company can use an existing authorization server that supports them. The protocol adds the rules in this section. Token requests use only standard OAuth parameters: each Session is named by the key its tokens are bound to, the Session Key (4.3).
 
 ### 4.1 Agent identity
 
@@ -268,7 +268,7 @@ A Personal Agent MAY instead give a User a new User ID for each anonymous browsi
 
 The Personal Agent holds the User IDs of each of its Users at every Company, and MUST keep that mapping confidential: it MUST NOT publish it or share it with third parties, other than service providers that process it on the Personal Agent's behalf.
 
-To start a Session, the Personal Agent requests a Session Token from the Company's `token_endpoint` with the JWT bearer grant ([RFC 7523](https://www.rfc-editor.org/rfc/rfc7523)). The assertion is a short-lived JWT signed with a key from its `jwks_uri`, naming itself in `iss` and the User in `sub`. Like every token request, it also carries the Personal Agent's client assertion (4.1) and a DPoP Proof (4.3). The Personal Agent creates a new Session Key for the Session and signs the proof with it.
+To start a Session, the Personal Agent requests a Session Token from the Company's `token_endpoint` with the JWT bearer grant ([RFC 7523](https://www.rfc-editor.org/rfc/rfc7523) §2.1). The assertion is a short-lived JWT signed with a key from its `jwks_uri`, naming itself in `iss` and the User in `sub`. Unlike most uses of this grant, the client issues the assertion itself: the Personal Agent obtains its own authorization, as [draft-ietf-wimse-aims](https://datatracker.ietf.org/doc/draft-ietf-wimse-aims/) §10.4.2 describes, for one User the Company knows only by User ID. Like every token request, it also carries the Personal Agent's client assertion (4.1) and a DPoP Proof (4.3). The Personal Agent creates a new Session Key for the Session and signs the proof with it.
 
 *Request: Personal Agent → Company*
 
@@ -772,7 +772,7 @@ token=pat_8Hk2…Wq1
 
 The Company revokes the Account Token and signs out every Session signed in with it. Usually those Sessions continue signed out, as described below: the Personal Agent renews them with its assertion (4.2) and gets signed-out Session Tokens. Such a Session can be signed in again only to the same account (4.4). A Company MAY end the Sessions instead, if its policy is to clear everything at sign-out. Renewal then returns `invalid_grant`, and the Personal Agent starts a new Session.
 
-Session Tokens issued before sign-out may still be valid. Companies SHOULD check on each request whether the Session is still signed in, so sign-out takes effect right away. A Company that doesn't SHOULD use much shorter Session Token lifetimes, such as a few minutes.
+As [RFC 7009](https://www.rfc-editor.org/rfc/rfc7009) §2.1 describes, the Company SHOULD also invalidate the Session Tokens issued under the same sign-in, so sign-out takes effect right away. A Company that can't invalidate them SHOULD check on each request whether the Session is still signed in, and one that does neither SHOULD use much shorter Session Token lifetimes, such as a few minutes.
 
 A Session Token expiring isn't a sign-out. Work the Company accepted with a valid token, such as a long-running job, can continue after that token expires. When the account's access is revoked, by sign-out or by the User disconnecting the Personal Agent, the Company MAY stop work in progress that uses the account, or let it finish.
 
@@ -1381,7 +1381,7 @@ A Personal Agent passes what a Company returns to its model: conversation messag
 
 ### 9.2 Secrets and the model
 
-A model can be led to repeat what is in its context, so a secret in context can leak through any message the Personal Agent sends. Account Tokens MUST NOT go in model context (4.8). Credentials from Mediated Sign-In are never shown back or sent anywhere except the Company, and once a sign-in ends they are discarded or kept only in a credential store the User chose (4.7). Personal Agents SHOULD keep every other secret out of model context too, including Session Tokens, private keys, device codes, and one-time codes, and sign and send requests in code the model can't read. The [guides](https://personalagentprotocol.org/docs/0.3/guides#both-secrets) list these secrets and how to handle them.
+A model can be led to repeat what is in its context, so a secret in context can leak through any message the Personal Agent sends. [draft-ietf-wimse-aims](https://datatracker.ietf.org/doc/draft-ietf-wimse-aims/) §8 says the model MUST NOT have access to an agent's credentials. Personal Agents MUST keep these out of model context: Session Tokens (4.3), Account Tokens (4.8), private keys, authorization codes and PKCE code verifiers (4.5), and device codes (4.6). Credentials from Mediated Sign-In are never shown back or sent anywhere except the Company, and once a sign-in ends they are discarded or kept only in a credential store the User chose (4.7). Personal Agents SHOULD keep every other secret out of model context too, such as one-time codes, and sign and send requests in code the model can't read. The [guides](https://personalagentprotocol.org/docs/0.3/guides#both-secrets) list these secrets and how to handle them.
 
 ### 9.3 What a domain vouches for
 
@@ -1410,8 +1410,8 @@ This draft uses these standards and versions:
 | Subject | References |
 | --- | --- |
 | Requirement words | [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119), [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174) |
-| OAuth | [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749), [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750), [RFC 7009](https://www.rfc-editor.org/rfc/rfc7009), [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414), [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728) |
-| Agent identity and assertions | [OAuth Client ID Metadata Document](https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/), [RFC 7519](https://www.rfc-editor.org/rfc/rfc7519), [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523), [draft-ietf-oauth-rfc7523bis](https://datatracker.ietf.org/doc/draft-ietf-oauth-rfc7523bis/), [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html) |
+| OAuth | [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749), [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750), [RFC 7009](https://www.rfc-editor.org/rfc/rfc7009), [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414), [RFC 8693](https://www.rfc-editor.org/rfc/rfc8693), [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728) |
+| Agent identity and assertions | [OAuth Client ID Metadata Document](https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/), [RFC 7519](https://www.rfc-editor.org/rfc/rfc7519), [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523), [draft-ietf-oauth-rfc7523bis](https://datatracker.ietf.org/doc/draft-ietf-oauth-rfc7523bis/), [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html), [draft-ietf-wimse-aims](https://datatracker.ietf.org/doc/draft-ietf-wimse-aims/) |
 | Sign-in | [RFC 7636](https://www.rfc-editor.org/rfc/rfc7636), [RFC 8628](https://www.rfc-editor.org/rfc/rfc8628), [RFC 9207](https://www.rfc-editor.org/rfc/rfc9207) |
 | Token binding and audience | [RFC 9449](https://www.rfc-editor.org/rfc/rfc9449), [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707) |
 | Web browsing | [RFC 9111](https://www.rfc-editor.org/rfc/rfc9111), [RFC 6265bis](https://datatracker.ietf.org/doc/draft-ietf-httpbis-rfc6265bis/) |

@@ -219,7 +219,7 @@ export const CATALOG: CheckInfo[] = [
         "session.start",
         "Token endpoint starts a Session with the JWT bearer grant",
         "spec#starting-sessions",
-        "To start a Session, the Personal Agent requests a Session Token from the Company's token_endpoint with the JWT bearer grant (RFC 7523).",
+        "To start a Session, the Personal Agent requests a Session Token from the Company's token_endpoint with the JWT bearer grant (RFC 7523 §2.1).",
     ),
     foundation(
         "session.response-schema",
