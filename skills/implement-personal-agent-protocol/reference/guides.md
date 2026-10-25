@@ -272,7 +272,7 @@ The page where the user approves access, in direct and device sign-in ([4.5](htt
 
 ### Mediated sign-in
 
-Mediated sign-in is transitional ([4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in)). Offer it only until you can add direct or device sign-in, and plan its removal: the protocol plans to remove it in the version published in February 2027.
+Mediated sign-in is transitional ([4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in)). Offer it only until you can add direct or device sign-in, and plan its removal: the protocol plans to remove it, on a date set when version 1.0 is published.
 
 If you offer mediated sign-in, you MUST rate-limit attempts and MUST NOT return credentials in any response. Also:
 

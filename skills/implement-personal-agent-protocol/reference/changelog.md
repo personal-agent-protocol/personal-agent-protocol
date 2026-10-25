@@ -42,7 +42,7 @@ The Personal Agent's browser no longer posts a signed browser assertion. Any bro
 
 [Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) · [Spec 4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in) · [Spec 9.5](https://personalagentprotocol.org/docs/0.3/spec#credentials) · [Guides: Mediated sign-in](https://personalagentprotocol.org/docs/0.3/guides#company-mediated)
 
-Mediated Sign-In is a transitional step, not where the protocol is headed, like OAuth's password grant. Companies should offer it only until they can add Direct or Device Sign-In, and stop once those cover the same scopes. The protocol plans to remove it in the version published in February 2027, and after that the community will look for ways to encourage the Companies that still offer it to move to Direct or Device Sign-In.
+Mediated Sign-In is a transitional step, not where the protocol is headed, like OAuth's password grant. Companies should offer it only until they can add Direct or Device Sign-In, and stop once those cover the same scopes. The protocol plans to remove it, on a date set when version 1.0 is published, and after that the community will look for ways to encourage the Companies that still offer it to move to Direct or Device Sign-In.
 
 ### Minor changes
 
