@@ -39,7 +39,7 @@ Add `client_id`, User ID, and Poppy fields to the records the website and OAuth 
   record, not only in the token endpoint.
 - Signing out revokes the Account Token and signs out every Session signed in with it (4.9).
   Conversations and operations that used the account then answer signed-out tokens with
-  `sign_in_required`, so record on each one whether it used the account.
+  `insufficient_scope`, so record on each one whether it used the account.
 - Session Tokens reflect the Session when issued. To make sign-out take effect right away, look up
   the Session on each request. If you can't, keep Session Tokens to a few minutes
   ([4.9](https://personalagentprotocol.org/docs/spec#sign-out),

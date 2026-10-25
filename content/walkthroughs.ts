@@ -195,8 +195,7 @@ Cache-Control: no-store
 {
   "access_token": "${TOKENS.manzanitaSignedOut}",
   "token_type": "DPoP",
-  "expires_in": 3600,
-  "scope": ""
+  "expires_in": 3600
 }`,
                     },
                     {
@@ -249,7 +248,8 @@ Content-Type: application/json
       "id": "evt_m3",
       "type": "authorization",
       "created_at": "2026-10-08T19:31:23-07:00",
-      "error": "sign_in_required"
+      "error": "insufficient_scope",
+      "scope": "orders:read orders:write"
     }
   ],
   "cursor": "evt_m3",

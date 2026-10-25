@@ -47,7 +47,7 @@ Company Agent's tools, and live agents' tools
 
 - **A policy function or service** that takes the verified Session (`client_id`, account, scopes)
   and an action, and answers allow or deny with the missing scopes. Each channel turns a denial into
-  its own error: `insufficient_scope` or `sign_in_required` in `WWW-Authenticate` for APIs
+  its own error: `insufficient_scope` in `WWW-Authenticate` for APIs
   ([section 6](https://personalagentprotocol.org/docs/spec#apis)), an `authorization` event in
   conversations ([7.11](https://personalagentprotocol.org/docs/spec#conversation-sign-in)), and a
   visible error naming the missing scopes on the website (SHOULD,

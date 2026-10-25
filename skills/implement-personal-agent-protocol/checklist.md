@@ -235,7 +235,7 @@ Section 4.3 lists the checks you MUST make on every proof. To make them reliably
 - [ ] Let your company agent do everything customers can do by phone, as fully as you can, so personal agents have no reason to call.
 - [ ] Keep a conversation's events for at least 30 days, so a personal agent that reconnects rarely hits `cursor_expired` (7.5).
 - [ ] On a stream with nothing to send, send an SSE comment every 15 to 30 seconds, so proxies don't close it (7.6).
-- [ ] When a session signs out, answer a signed-out token on its conversations that used the account with `sign_in_required`, including reads of their events, so their account details can't be read signed out (4.9, 7.11). Leave them open, so the user can sign in again and continue, or close them if your policy is to clear everything at sign-out.
+- [ ] When a session signs out, answer a signed-out token on its conversations that used the account with `insufficient_scope`, including reads of their events, so their account details can't be read signed out (4.9, 7.11). Leave them open, so the user can sign in again and continue, or close them if your policy is to clear everything at sign-out.
 - [ ] Before closing an inactive conversation, say so in a message (7.12).
 
 ### Recommended: [Error messages](https://personalagentprotocol.org/docs/0.3/guides#company-errors)

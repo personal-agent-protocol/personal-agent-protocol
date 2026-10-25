@@ -521,7 +521,7 @@ The Company keeps a record for each Account Token: the `client_id`, the User ID,
 
 A Session is signed in to at most one account. Once it has been, it can't switch to another, even after it is signed out (4.9): the Company returns `account_mismatch`, and the Personal Agent starts a new Session. This applies to every sign-in type. If the User signs in to a different account than the Session's, the code exchange, device poll, or Mediated Sign-In returns `account_mismatch` and issues no tokens. The User then signs in again in a new Session. A User with two accounts at the same Company, such as a personal and a business account, has an Account Token for each and uses separate Sessions for them.
 
-Each Session Token reflects the Session as it was when the token was issued. Several tasks can share one Session, so one may still hold a signed-out token after another task signed in. A request with that token is handled as signed out, and an account action fails with `sign_in_required`. Before starting a new sign-in, the Personal Agent SHOULD check whether it already holds an Account Token that covers the task (4.8).
+Each Session Token reflects the Session as it was when the token was issued. Several tasks can share one Session, so one may still hold a signed-out token after another task signed in. A request with that token is handled as signed out, and an account action fails with `insufficient_scope` (section 6). Before starting a new sign-in, the Personal Agent SHOULD check whether it already holds an Account Token that covers the task (4.8).
 
 ### 4.5 Direct Sign-In
 
@@ -777,13 +777,13 @@ A Session Token expiring isn't a sign-out. Work the Company accepted with a vali
 
 To end a Session without signing out, the Personal Agent stops using it. The Account Token is unaffected and can start new Sessions.
 
-The User can also disconnect the Personal Agent from the Company's account settings. That revokes the Personal Agent's Account Tokens for that account and signs out its Sessions. The Personal Agent finds out when a request fails with `invalid_token` or `sign_in_required`, or the token endpoint returns `invalid_grant` for the Account Token. It then continues signed out.
+The User can also disconnect the Personal Agent from the Company's account settings. That revokes the Personal Agent's Account Tokens for that account and signs out its Sessions. The Personal Agent finds out when a request fails with `invalid_token` or `insufficient_scope`, or the token endpoint returns `invalid_grant` for the Account Token. It then continues signed out.
 
 **After sign-out.** When a Session continues signed out, after the User signs out or disconnects the Personal Agent:
 
 - What doesn't need the account carries on, such as a cart or a conversation that hasn't used the account.
-- Anything that used the account, such as a conversation (7.11) or an operation ([Operations extension](https://personalagentprotocol.org/docs/0.3/extensions/operations#ownership)), stays as it is, but the Company answers a request on it with a signed-out token with `sign_in_required`. A conversation stays open, so the User can sign in again and continue it.
-- The Personal Agent SHOULD NOT sign in to that account again unless the User asks, even when a request gets `sign_in_required`.
+- Anything that used the account, such as a conversation (7.11) or an operation ([Operations extension](https://personalagentprotocol.org/docs/0.3/extensions/operations#ownership)), stays as it is, but the Company answers a request on it with a signed-out token with `insufficient_scope`. A conversation stays open, so the User can sign in again and continue it.
+- The Personal Agent SHOULD NOT sign in to that account again unless the User asks, even when a request gets `insufficient_scope`.
 
 ## 5. Web browsing
 
@@ -900,8 +900,7 @@ These errors are returned in the `WWW-Authenticate` header ([RFC 9449](https://w
 | `invalid_token` | 401 | The token is missing or expired. The Personal Agent gets a new one (4.2, 4.8). |
 | `invalid_dpop_proof` | 401 | The DPoP Proof is missing or invalid (4.3). |
 | `use_dpop_nonce` | 401 | The Company requires a nonce, given in the `DPoP-Nonce` header (4.3). The Personal Agent retries with a new proof that includes it. |
-| `sign_in_required` | 403 | The request needs a signed-in token. The Personal Agent uses its Account Token (4.8), or signs in (4.4) if it has none, and retries, unless the User signed out or disconnected it (4.9). |
-| `insufficient_scope` | 403 | The token lacks required account scopes. The response names them in the `scope` attribute. The Personal Agent uses an eligible sign-in type to request access (4.4). |
+| `insufficient_scope` | 403 | The token lacks the scopes the request needs, which the response names in the `scope` attribute. A signed-out token has no scopes, so this is also the answer to a request that needs the User's account. The Personal Agent uses an Account Token that covers them (4.8), or signs in (4.4), and retries, unless the User signed out or disconnected it (4.9). |
 | `extension_required` | 403 | The request needs an extension the Personal Agent doesn't list, named in the `extension` attribute (3.3). An MCP server returns it only to refuse the Personal Agent entirely, not for one tool. |
 
 Because every token is issued to a known `client_id` and User, the Company always knows a request comes from a Personal Agent, which one, and for which User.
@@ -1303,13 +1302,13 @@ With a signed-out token, the Company Agent can answer general questions. When th
 }
 ```
 
-`error` is `sign_in_required` or `insufficient_scope`, with the same meaning as the errors in section 6. For `insufficient_scope`, `scope` names the scopes needed. The Personal Agent responds as it would to that error, with its Account Token (4.8) or by signing in (4.4). It then continues the same conversation with the new token. The conversation stays open meanwhile.
+`error` is `insufficient_scope`, with the same meaning as the error in section 6, and `scope` names the scopes needed. The Personal Agent responds as it would to that error, with its Account Token (4.8) or by signing in (4.4). It then continues the same conversation with the new token. The conversation stays open meanwhile.
 
 A conversation isn't tied to one Session Token or Session. The Personal Agent MAY switch to a new Session Token partway through a conversation, after signing in, renewing, or signing out, or continue it in a new Session, as long as the token matches the conversation's owner (7.2). The conversation keeps its `conversation_id` throughout.
 
 A signed-in conversation also respects the token's scopes. Before reading account information or making a change, the Company Agent checks for the required scopes, whoever is handling the conversation. Sending a message does not authorize the requested account action.
 
-Once a conversation has used the User's account, a request on it from a token for the same User that isn't signed in to that account gets `sign_in_required`. After a sign-out, the conversation stays open, as 4.9 describes.
+Once a conversation has used the User's account, a request on it from a token for the same User that isn't signed in to that account gets `insufficient_scope`. After a sign-out, the conversation stays open, as 4.9 describes.
 
 ### 7.12 Closing
 

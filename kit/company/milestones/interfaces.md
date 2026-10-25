@@ -31,11 +31,11 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
 - Accept DPoP Session Tokens in the `Authorization` header with a proof, making every check in
   [4.3](https://personalagentprotocol.org/docs/spec#sending-tokens). Reject Bearer Session Tokens.
   Don't require cookies. Don't accept tokens in the URL.
-- Return token errors in the `WWW-Authenticate` header: `invalid_token` (401), `sign_in_required`
-  (403), `insufficient_scope` (403, with `scope`), and `extension_required` (403) (section 6).
+- Return token errors in the `WWW-Authenticate` header: `invalid_token` (401), `insufficient_scope`
+  (403, with `scope`), and `extension_required` (403) (section 6).
 - Signed out, allow what a signed-out website visitor can do
   ([guides](https://personalagentprotocol.org/docs/guides#company-guest)). Endpoints that need an
-  account return `sign_in_required`.
+  account return `insufficient_scope` with the scopes they need.
 - Verify the token at the edge and pass the verified `client_id`, User ID, account, and scopes
   inward. Don't forward the Session Token between services
   ([guides](https://personalagentprotocol.org/docs/guides#company-internal)).

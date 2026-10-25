@@ -38,13 +38,11 @@
         {
             "if": { "properties": { "type": { "const": "authorization" } } },
             "then": {
-                "required": ["error"],
+                "required": ["error", "scope"],
                 "properties": {
-                    "error": { "enum": ["sign_in_required", "insufficient_scope"] },
+                    "error": { "const": "insufficient_scope" },
                     "scope": { "type": "string" }
-                },
-                "if": { "properties": { "error": { "const": "insufficient_scope" } } },
-                "then": { "required": ["scope"] }
+                }
             }
         },
         {

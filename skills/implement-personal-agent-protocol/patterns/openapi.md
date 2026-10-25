@@ -26,7 +26,7 @@ A new API, or a subset of existing endpoints, designed for Personal Agents.
 ## What to watch for
 
 - Tokens only in the `Authorization` header, never from a URL, and no cookies required (4.3).
-- Token errors in `WWW-Authenticate`: `invalid_token`, `sign_in_required`, `insufficient_scope`
+- Token errors in `WWW-Authenticate`: `invalid_token`, `insufficient_scope`
   with `scope`, `extension_required` (section 6).
 - Bearer Session Tokens refused (4.3).
 - A `resource` on the `apis` entry if this API should accept only tokens issued for it (4.3,

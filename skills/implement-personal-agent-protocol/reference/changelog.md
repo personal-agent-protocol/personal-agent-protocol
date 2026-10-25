@@ -112,6 +112,12 @@ Breaking · [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-
 
 Token responses no longer have `signed_in`. The grant says whether a token is signed in: the JWT bearer grant always returns a signed-out Session Token, and a sign-in or an Account Token always returns a signed-in one. `scope` follows RFC 6749: a signed-out token's response leaves it out, since an empty `scope` isn't valid OAuth, and a signed-in one includes it unless the Company granted exactly the scopes requested. A sign-in where the User approves no scopes ends as a decline.
 
+#### `sign_in_required` becomes `insufficient_scope`
+
+Breaking · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Spec 4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out) · [Spec 6](https://personalagentprotocol.org/docs/0.3/spec#apis) · [Spec 7.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in) · [Operations 3.2](https://personalagentprotocol.org/docs/0.3/extensions/operations#ownership) · [Guides: Conversations](https://personalagentprotocol.org/docs/0.3/guides#company-conversations)
+
+A request that needs the User's account and has a signed-out token gets `insufficient_scope`, the RFC 6750 error, instead of the custom `sign_in_required`. A signed-out token has no scopes, so the error fits, and like any `insufficient_scope` it names the scopes the request needs in `scope`. The Personal Agent uses an Account Token that covers them, or signs in. The `authorization` conversation event and Operations use the same error.
+
 #### Sign-out invalidates Session Tokens
 
 [Spec 4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out)

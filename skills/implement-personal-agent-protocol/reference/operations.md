@@ -106,7 +106,7 @@ Terms can change before confirmation, for example when the User asks for a diffe
 
 ### 3.2 Who can use an operation
 
-An operation proposed in a signed-out Session can be used only in that Session. An operation proposed in a signed-in Session belongs to the account instead: any Session of the same Personal Agent and User can read, confirm, and cancel it while that Session is signed in to the same account, for example after the original Session has ended. The Company checks the Session's state at each request, so after the original Session signs out (spec 4.9), it can't use the operation either. A signed-out Session of the same Personal Agent and User gets `sign_in_required` (spec section 6). The Company returns `operation_not_found` to anyone else.
+An operation proposed in a signed-out Session can be used only in that Session. An operation proposed in a signed-in Session belongs to the account instead: any Session of the same Personal Agent and User can read, confirm, and cancel it while that Session is signed in to the same account, for example after the original Session has ended. The Company checks the Session's state at each request, so after the original Session signs out (spec 4.9), it can't use the operation either. A signed-out Session of the same Personal Agent and User gets `insufficient_scope` (spec section 6). The Company returns `operation_not_found` to anyone else.
 
 The Company MUST keep an operation readable at least until it is final. How long it keeps final operations is up to the Company.
 
@@ -227,7 +227,7 @@ Content-Type: application/json
 Before performing the action, the Company checks that:
 
 - The Session Token may use this operation (3.2).
-- The token has the scopes the action needs. If not, it returns `insufficient_scope` or `sign_in_required` (spec section 6).
+- The token has the scopes the action needs. If not, it returns `insufficient_scope` (spec section 6).
 - `revision` is the latest revision. If not, it returns `terms_changed` with the current operation.
 - `approved_by` is allowed for this operation. If not, it returns `user_approval_required`.
 - The operation is `proposed` and hasn't expired. If it is in any other state, the Company returns the operation as it is and does nothing else, so a repeated confirm is safe.

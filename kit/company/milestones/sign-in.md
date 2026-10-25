@@ -123,11 +123,11 @@ a visible error naming the scopes
 
 **Conversations** ([7.11](https://personalagentprotocol.org/docs/spec#conversation-sign-in)).
 
-- When the Company Agent needs the account, add an `authorization` event with `sign_in_required` or
-  `insufficient_scope` and `scope`, and also ask in a message.
+- When the Company Agent needs the account, add an `authorization` event with `insufficient_scope`
+  and the `scope` it needs, and also ask in a message.
 - Accept a new Session Token partway through a conversation, as long as it matches the owner.
 - Once a conversation has used the account, it belongs to the account (7.2). A token for the same
-  User that isn't signed in to that account gets `sign_in_required`.
+  User that isn't signed in to that account gets `insufficient_scope`.
 - The Company Agent and live agents check scopes before reading account information or making a
   change. A message never authorizes an account action.
 
@@ -145,7 +145,7 @@ new signed-in Session with no User ID, which ends when the sign-in is revoked or
   compromise).
 - Whether sign-out ends Sessions or lets them continue signed out.
 - Whether to close conversations that used the account when a Session signs out, or leave them open
-  and answer signed-out tokens with `sign_in_required`
+  and answer signed-out tokens with `insufficient_scope`
   ([4.9](https://personalagentprotocol.org/docs/spec#sign-out),
   [guides](https://personalagentprotocol.org/docs/guides#company-conversations)).
 - For Mediated Sign-In: attempt limits, when to require a one-time code, and how the User is told.

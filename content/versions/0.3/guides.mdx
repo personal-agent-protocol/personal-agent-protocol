@@ -567,7 +567,7 @@ rate limits by `client_id`, not by turning personal agents away.
 - On a stream with nothing to send, send an SSE comment every 15 to 30 seconds, so proxies don't
   close it ([7.6](/docs/spec#streaming)).
 - When a session signs out, answer a signed-out token on its conversations that used the account
-  with `sign_in_required`, including reads of their events, so their account details can't be read
+  with `insufficient_scope`, including reads of their events, so their account details can't be read
   signed out ([4.9](/docs/spec#sign-out), [7.11](/docs/spec#conversation-sign-in)). Leave them
   open, so the user can sign in again and continue, or close them if your policy is to clear
   everything at sign-out.
