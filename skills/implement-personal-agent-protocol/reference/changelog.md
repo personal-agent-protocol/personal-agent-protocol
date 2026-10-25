@@ -108,9 +108,9 @@ Section 4.2 relates User IDs to OpenID Connect pairwise subject identifiers, whi
 
 #### `signed_in` removed
 
-Breaking · [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Spec 4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in)
+Breaking · [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Spec 4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in) · [Guides: Choosing how to sign in](https://personalagentprotocol.org/docs/0.3/guides#agent-choosing-sign-in)
 
-Token responses no longer have `signed_in`. `scope` is always present: empty for a signed-out Session Token, and with at least one scope for a signed-in one. A sign-in where the User approves no scopes ends as a decline.
+Token responses no longer have `signed_in`. The grant says whether a token is signed in: the JWT bearer grant always returns a signed-out Session Token, and a sign-in or an Account Token always returns a signed-in one. `scope` follows RFC 6749: a signed-out token's response leaves it out, since an empty `scope` isn't valid OAuth, and a signed-in one includes it unless the Company granted exactly the scopes requested. A sign-in where the User approves no scopes ends as a decline.
 
 #### Sign-out invalidates Session Tokens
 

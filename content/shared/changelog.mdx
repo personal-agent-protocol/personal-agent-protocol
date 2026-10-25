@@ -172,11 +172,13 @@ assigns for each pair of User and Company. The rules for User IDs don't change.
 
 </Change>
 
-<Change title="`signed_in` removed" breaking sections="4.2, 4.3, 4.4, 4.7">
+<Change title="`signed_in` removed" breaking sections="4.2, 4.3, 4.4, 4.7, guides#agent-choosing-sign-in">
 
-Token responses no longer have `signed_in`. `scope` is always present: empty for a signed-out
-Session Token, and with at least one scope for a signed-in one. A sign-in where the User approves no
-scopes ends as a decline.
+Token responses no longer have `signed_in`. The grant says whether a token is signed in: the JWT
+bearer grant always returns a signed-out Session Token, and a sign-in or an Account Token always
+returns a signed-in one. `scope` follows RFC 6749: a signed-out token's response leaves it out,
+since an empty `scope` isn't valid OAuth, and a signed-in one includes it unless the Company granted
+exactly the scopes requested. A sign-in where the User approves no scopes ends as a decline.
 
 </Change>
 

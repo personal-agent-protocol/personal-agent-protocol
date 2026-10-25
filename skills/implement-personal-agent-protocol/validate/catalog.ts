@@ -248,9 +248,9 @@ export const CATALOG: CheckInfo[] = [
     ),
     foundation(
         "session.signed-out",
-        "A new Session is signed out, with no scopes",
+        "A new Session is signed out, with no scope",
         "spec#starting-sessions",
-        "scope is a space-separated string of the account scopes granted (4.4). It is always present. A signed-out token has none",
+        "There's no scope, because a Session started with the assertion is signed out and has no account scopes (4.4).",
     ),
     foundation(
         "session.no-store",

@@ -149,7 +149,7 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
 - Prefer direct sign-in, then device sign-in, then mediated sign-in (SHOULD, [4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). With direct and device sign-in, the user's password stays with the company.
 - Read each scope's description, from the company's OpenAPI description or `auth.scopes`, to pick the ones the task needs ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). Nothing marks a scope as read-only, so tell from the description whether a scope only reads.
 - Ask for the fewest scopes the task needs, not every scope the company offers. For a task that only looks things up, request a read-only session token from a broader account token ([4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)).
-- The user may approve fewer scopes than you asked for. Check `scope` in the response before continuing.
+- The user may approve fewer scopes than you asked for. Check `scope` in the response before continuing. A response without `scope` granted every scope you asked for.
 
 ### Direct and device sign-in
 

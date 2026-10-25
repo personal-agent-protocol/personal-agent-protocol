@@ -23,6 +23,7 @@ export type Flaws = {
     resourceDpopErrors400?: boolean;
     noDpopAlgs?: boolean;
     dpopAlgsWithoutEs256?: boolean;
+    emptyScope?: boolean;
     acceptTokenEndpointAud?: boolean;
     // The MCP server supports DPoP.
     mcpDpop?: boolean;
@@ -157,7 +158,7 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                 access_token: access,
                 token_type: type,
                 expires_in: 3600,
-                scope: "",
+                ...(flaws.emptyScope ? { scope: "" } : {}),
             },
             flaws.noStore ? {} : { "cache-control": "no-store" },
         );

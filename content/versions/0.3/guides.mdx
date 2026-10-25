@@ -237,7 +237,7 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
 - Ask for the fewest scopes the task needs, not every scope the company offers. For a task that only
   looks things up, request a read-only session token from a broader account token ([4.8](/docs/spec#account-tokens)).
 - The user may approve fewer scopes than you asked for. Check `scope` in the response before
-  continuing.
+  continuing. A response without `scope` granted every scope you asked for.
 
 ### Direct and device sign-in {#agent-direct-device}
 

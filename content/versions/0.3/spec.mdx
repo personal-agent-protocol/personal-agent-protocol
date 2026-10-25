@@ -451,8 +451,7 @@ Cache-Control: no-store
 {
   "access_token": "eyJhbGciOi…Lm9x",
   "token_type": "DPoP",
-  "expires_in": 3600,
-  "scope": ""
+  "expires_in": 3600
 }
 ```
 
@@ -460,9 +459,9 @@ Cache-Control: no-store
   don't support DPoP come from Token Exchange (4.3).
 - `expires_in` is the token's lifetime in seconds. The Company chooses the value, and it MUST be
   greater than 0. Session Tokens SHOULD last hours, not days.
-- `scope` is a space-separated string of the account scopes granted (4.4). It is always present. A
-  signed-out token has none, and a signed-in token has at least one, so `scope` also says whether
-  the Session is signed in to a Company account.
+- There's no `scope`, because a Session started with the assertion is signed out and has no account
+  scopes (4.4). The grant says whether a token is signed in: this grant always returns signed-out
+  tokens, and a sign-in (4.4) or an Account Token (4.8) always returns signed-in ones.
 
 **Renewing.** When a signed-out Session Token expires, the Personal Agent sends the same request
 with fresh assertions and a proof signed with the same Session Key:
@@ -751,8 +750,10 @@ scopes can't clash with ones it defines later.
 
 All three types end the same way: the Company returns an Account Token as `refresh_token`, and a
 signed-in Session Token for the current Session. The User may have approved fewer scopes than
-requested, so the Personal Agent checks `scope` before continuing. A sign-in grants at least one
-scope: if the User approves none, it ends as a decline.
+requested, so the Personal Agent checks `scope` before continuing. As [RFC
+6749](https://www.rfc-editor.org/rfc/rfc6749) §5.1 describes, the response leaves `scope` out only
+when the Company granted exactly the scopes requested. A sign-in grants at least one scope: if the
+User approves none, it ends as a decline.
 
 ```json label="Response: Company → Personal Agent"
 {

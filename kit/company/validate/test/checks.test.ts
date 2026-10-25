@@ -111,6 +111,11 @@ test("dpop_signing_alg_values_supported without ES256 fails metadata.dpop-algs",
     assert.equal(byId("metadata.dpop-algs").status, "fail");
 });
 
+test("an empty scope on a new Session fails session.signed-out", async () => {
+    const { byId } = await run({ emptyScope: true }, "foundation", ["session."]);
+    assert.equal(byId("session.signed-out").status, "fail");
+});
+
 test("a client assertion addressed to the token endpoint that's accepted fails", async () => {
     const { byId } = await run({ acceptTokenEndpointAud: true }, "foundation", ["session."]);
     assert.equal(byId("session.client-assertion-aud").status, "fail");
