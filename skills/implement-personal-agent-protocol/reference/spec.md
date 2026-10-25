@@ -241,7 +241,7 @@ The steps, in the order they usually happen:
 | Use the Account Token (4.8) | `token_endpoint` with the Account Token | A signed-in Session Token, for a new or existing Session |
 | Sign out (4.9) | `revocation_endpoint` with the Account Token | The Account Token is revoked, and Sessions continue signed out |
 
-The endpoints come from the Company's OAuth server metadata (3.2). Session Tokens are OAuth access tokens and Account Tokens are OAuth refresh tokens. Everything except Mediated Sign-In is built on OAuth 2.0 ([RFC 6749](https://www.rfc-editor.org/rfc/rfc6749)) with the JWT bearer grant and client authentication ([RFC 7523](https://www.rfc-editor.org/rfc/rfc7523)), PKCE ([RFC 7636](https://www.rfc-editor.org/rfc/rfc7636)), the device authorization grant ([RFC 8628](https://www.rfc-editor.org/rfc/rfc8628)), DPoP ([RFC 9449](https://www.rfc-editor.org/rfc/rfc9449)), resource indicators ([RFC 8707](https://www.rfc-editor.org/rfc/rfc8707)), and token revocation ([RFC 7009](https://www.rfc-editor.org/rfc/rfc7009)), and follows the OAuth 2.0 Security Best Current Practice ([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700)). A Company can use an existing authorization server that supports them. The protocol adds the rules in this section. Token requests use only standard OAuth parameters: each Session is named by the key its tokens are bound to, the Session Key (4.3).
+The endpoints come from the Company's OAuth server metadata (3.2). Session Tokens are OAuth access tokens and Account Tokens are OAuth refresh tokens. Everything except Mediated Sign-In is built on OAuth 2.0 ([RFC 6749](https://www.rfc-editor.org/rfc/rfc6749)) with the JWT bearer grant and client authentication ([RFC 7523](https://www.rfc-editor.org/rfc/rfc7523)), PKCE ([RFC 7636](https://www.rfc-editor.org/rfc/rfc7636)), the device authorization grant ([RFC 8628](https://www.rfc-editor.org/rfc/rfc8628)), DPoP ([RFC 9449](https://www.rfc-editor.org/rfc/rfc9449)), resource indicators ([RFC 8707](https://www.rfc-editor.org/rfc/rfc8707)), and token revocation ([RFC 7009](https://www.rfc-editor.org/rfc/rfc7009)), and follows the OAuth 2.0 Security Best Current Practice ([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700)). A Company can use an existing authorization server that supports them. The protocol adds the rules in this section, summarized in 4.10. Token requests use only standard OAuth parameters: each Session is named by the key its tokens are bound to, the Session Key (4.3).
 
 ### 4.1 Agent identity
 
@@ -801,6 +801,20 @@ The User can also disconnect the Personal Agent from the Company's account setti
 - What doesn't need the account carries on, such as a cart or a conversation that hasn't used the account.
 - Anything that used the account, such as a conversation (7.11) or an operation ([Operations extension](https://personalagentprotocol.org/docs/0.3/extensions/operations#ownership)), stays as it is, but the Company answers a request on it with a signed-out token with `insufficient_scope`. A conversation stays open, so the User can sign in again and continue it.
 - The Personal Agent SHOULD NOT sign in to that account again unless the User asks, even when a request gets `insufficient_scope`.
+
+### 4.10 What Poppy adds to OAuth
+
+Every request in this section is a standard OAuth request. What a Company's authorization server needs beyond the specifications listed at the start of this section:
+
+- **Sessions named by DPoP keys.** A proof from a new key starts a Session, and a proof from a known key renews it or signs it in (4.3). The Company keeps a record for each Session (4.4).
+- **Assertions the Personal Agent issues.** The Personal Agent signs its own JWT bearer assertion, naming itself in `iss` and the User ID in `sub` (4.2).
+- **One account per Session.** A Session that has been signed in to one account can't sign in to another. The token endpoint returns `account_mismatch` (4.4).
+- **Described scopes.** Each scope in `scopes_supported` has a description, in an OpenAPI description the Company lists or in `auth.scopes`, so the Personal Agent can choose the scopes a task needs (4.4).
+- **Account Tokens that start Sessions.** An Account Token isn't bound to a Session Key, so it can start new Sessions as well as renew existing ones (4.8).
+- **Bearer tokens only by Token Exchange,** each for one MCP server (4.3).
+- **A few fields and codes:** `refresh_token_expires_in` in token responses (4.4), `extension_required` in errors (3.3), and the reserved `poppy:` scope prefix (4.4).
+
+Outside OAuth, the protocol adds `poppy.json` (section 3), Mediated Sign-In (4.7), the browser join form (section 5), conversations (section 7), and extensions (3.3).
 
 ## 5. Web browsing
 

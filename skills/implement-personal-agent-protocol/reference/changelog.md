@@ -154,6 +154,12 @@ A request that needs the User's account and has a signed-out token gets `insuffi
 
 When the Personal Agent revokes an Account Token, the Company should also invalidate the Session Tokens issued under the same sign-in, as RFC 7009 §2.1 describes. Checking on each request whether the Session is still signed in, and short Session Token lifetimes, become the fallbacks.
 
+#### What Poppy adds to OAuth
+
+[Spec 4](https://personalagentprotocol.org/docs/0.3/spec#sessions) · [Spec 4.10](https://personalagentprotocol.org/docs/0.3/spec#oauth-additions)
+
+A new section 4.10 lists what a Company's authorization server needs beyond standard OAuth, such as Sessions named by DPoP keys, one account per Session, and described scopes, and what the protocol adds outside OAuth. It adds no requirements.
+
 ## Version 0.2
 
 Published October 24, 2026. It's frozen at [/docs/0.2/spec](https://personalagentprotocol.org/docs/0.2/spec). Major changes are design decisions. Minor changes fill gaps, make the text consistent, or follow an RFC. A change tagged "Breaking" can require an implementation that followed the 0.1 text to change, whether it's major or minor.
