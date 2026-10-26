@@ -23,9 +23,13 @@ permissions it grants:
   in the OAuth security scheme of an OpenAPI description you list, or in `auth.scopes`, a map from
   scope name to description in the same form.
 - Write descriptions in words a User understands, specific enough for a language model to pick the
-  scopes a task needs. Nothing marks a scope as read-only, so say whether it only reads, and
-  whether a write scope also allows reading
+  scopes a task needs. Say whether it only reads, whether a write scope also allows reading, which
+  actions can't be undone, and what personal data it shows
   ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-scope-descriptions)).
+- Add `auth.scope_hints` (MAY, 4.4): for each scope, `changes` (`none`, `reversible`, or
+  `irreversible`) and `personal_data` (`true` or `false`), both required (MUST, 4.4), judged by the
+  most consequential operation that requires the scope. Leave out a scope you're unsure about. Add a
+  column for the hints to the table.
 - On the consent page, present scopes in plain words, group related ones, and show which are new
   when the User already granted some
   ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-consent)).

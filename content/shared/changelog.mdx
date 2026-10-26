@@ -32,6 +32,18 @@ lists or in `auth.scopes`. Names starting with `poppy:` stay reserved.
 
 </Change>
 
+<Change title="Scope hints" sections="3, 3.1, 4.4, guides#agent-choosing-sign-in, guides#company-scope-descriptions, guides#company-consent">
+
+A Company can give hints about each scope in `auth.scope_hints`: whether its `changes` are `none`,
+`reversible`, or `irreversible`, and whether it touches `personal_data`, after MCP's tool
+annotations but for a whole scope. A Personal Agent can then decide before sign-in which scopes need
+the User's go-ahead, rather than catching each action. Each entry describes the most consequential
+operation that requires the scope. OAuth and OpenAPI have no place for this, since both describe a
+scope with one string, so it is a new field in `poppy.json`, and it covers scopes described in
+OpenAPI too.
+
+</Change>
+
 <Change title="Prefer delegated sign-in" sections="4.4, 9.5, guides#agent-choosing-sign-in">
 
 Personal Agents should use Direct or Device Sign-In rather than Mediated Sign-In when the Company

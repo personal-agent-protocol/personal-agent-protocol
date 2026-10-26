@@ -147,7 +147,9 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
 
 - Before asking the user to sign in, check whether an account token you hold already covers the task ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
 - Prefer direct sign-in, then device sign-in, then mediated sign-in (SHOULD, [4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). With direct and device sign-in, the user's password stays with the company.
-- Read each scope's description, from the company's OpenAPI description or `auth.scopes`, to pick the ones the task needs ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). Nothing marks a scope as read-only, so tell from the description whether a scope only reads.
+- Read each scope's description, from the company's OpenAPI description or `auth.scopes`, to pick the ones the task needs ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
+- Use `auth.scope_hints` to decide which scopes need the user's go-ahead before you request them ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). For example, request a scope whose `changes` is `irreversible`, or whose `personal_data` is `true`, only when the user agreed to that kind of access, and let the user set that preference once rather than for every sign-in. Treat a scope without hints as `irreversible` with personal data.
+- Hints describe a whole scope. The consequences of one action still come from the action itself, such as an MCP tool's annotations, or the HTTP method: a `GET` doesn't change anything.
 - Ask for the fewest scopes the task needs, not every scope the company offers. For a task that only looks things up, request a read-only session token from a broader account token ([4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)).
 - The user may approve fewer scopes than you asked for. Check `scope` in the response before continuing. A response without `scope` granted every scope you asked for.
 
@@ -273,6 +275,9 @@ Every scope in `scopes_supported` needs a description, in the OAuth security sch
 - Say what the scope lets the personal agent see or do, in words a user understands.
 - Be specific enough for a model to match a task to the scopes it needs. "See your orders and returns" works better than "Read access".
 - Say whether the scope only reads, and whether a write scope also allows reading.
+- Say in words which actions can't be undone and what personal data the scope shows.
+- Give each scope its hints in `auth.scope_hints` ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). Judge each scope by the most consequential operation that requires it: one operation that can't be undone makes the whole scope `irreversible`. When you're unsure about a scope, leave it out of `auth.scope_hints` rather than guess.
+- Splitting a scope can earn it a better hint. A personal agent may request `orders:read` freely but ask the user first before requesting a scope that can cancel orders.
 
 ### Describing APIs
 
@@ -287,6 +292,7 @@ The page where the user approves access, in direct and device sign-in ([4.5](htt
 
 - Show the personal agent's name and logo, and the domain of its `client_id`. The personal agent chooses its own name, so the domain is what the user can trust.
 - Show the account being connected, the requested scopes in plain language, and how long access lasts. Group related scopes rather than listing their names.
+- Point out scopes that allow changes that can't be undone or that show personal data, the scopes your `auth.scope_hints` mark `irreversible` or with `personal_data`.
 - When the user already granted some of the scopes, show which ones are new, so the user doesn't review the whole list again. A personal agent that needs more access requests every scope it needs again ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
 - Protect the page against cross-site request forgery, and against framing by other sites with `Content-Security-Policy: frame-ancestors`.
 - `redirect_uri` MUST exactly match an entry in the personal agent's `redirect_uris` ([4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)).

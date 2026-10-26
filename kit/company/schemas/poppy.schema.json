@@ -48,6 +48,18 @@
                     "description": "A description of each scope, keyed by scope name, in the same form as the scopes of an OpenAPI OAuth 2.0 security scheme. Every scope in scopes_supported needs a description here or in an OpenAPI description the Company lists.",
                     "type": "object",
                     "additionalProperties": { "type": "string", "minLength": 1 }
+                },
+                "scope_hints": {
+                    "description": "Hints about each scope, keyed by scope name, describing the most consequential operation that requires it.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "required": ["changes", "personal_data"],
+                        "properties": {
+                            "changes": { "enum": ["none", "reversible", "irreversible"] },
+                            "personal_data": { "type": "boolean" }
+                        }
+                    }
                 }
             }
         },

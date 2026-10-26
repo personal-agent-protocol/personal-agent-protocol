@@ -264,6 +264,7 @@ Section 4.3 lists the checks you MUST make on every proof. To make them reliably
 
 - [ ] **SHOULD**: In turn, a Company that offers Direct or Device Sign-In SHOULD make its scopes and APIs cover the tasks Users ask Personal Agents to do, so that Personal Agents don't need the User's credentials (9.5).
 - [ ] **MUST**: The Company MUST describe each scope in `scopes_supported`, so the Personal Agent can choose the ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it lists (section 6), or otherwise in `auth.scopes`.
+- [ ] **MUST**: A Company MUST include both fields in each entry.
 - [ ] **MUST NOT**: The Company MUST NOT grant scopes beyond those requested and allowed for the type used.
 
 ### Specification: [4.5 Direct Sign-In](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)
@@ -310,6 +311,9 @@ Every scope in `scopes_supported` needs a description, in the OAuth security sch
 - [ ] Say what the scope lets the personal agent see or do, in words a user understands.
 - [ ] Be specific enough for a model to match a task to the scopes it needs. "See your orders and returns" works better than "Read access".
 - [ ] Say whether the scope only reads, and whether a write scope also allows reading.
+- [ ] Say in words which actions can't be undone and what personal data the scope shows.
+- [ ] Give each scope its hints in `auth.scope_hints` (4.4). Judge each scope by the most consequential operation that requires it: one operation that can't be undone makes the whole scope `irreversible`. When you're unsure about a scope, leave it out of `auth.scope_hints` rather than guess.
+- [ ] Splitting a scope can earn it a better hint. A personal agent may request `orders:read` freely but ask the user first before requesting a scope that can cancel orders.
 
 ### Recommended: [Consent pages](https://personalagentprotocol.org/docs/0.3/guides#company-consent)
 
@@ -317,6 +321,7 @@ The page where the user approves access, in direct and device sign-in (4.5, 4.6)
 
 - [ ] Show the personal agent's name and logo, and the domain of its `client_id`. The personal agent chooses its own name, so the domain is what the user can trust.
 - [ ] Show the account being connected, the requested scopes in plain language, and how long access lasts. Group related scopes rather than listing their names.
+- [ ] Point out scopes that allow changes that can't be undone or that show personal data, the scopes your `auth.scope_hints` mark `irreversible` or with `personal_data`.
 - [ ] When the user already granted some of the scopes, show which ones are new, so the user doesn't review the whole list again. A personal agent that needs more access requests every scope it needs again (4.4).
 - [ ] Protect the page against cross-site request forgery, and against framing by other sites with `Content-Security-Policy: frame-ancestors`.
 - [ ] `redirect_uri` MUST exactly match an entry in the personal agent's `redirect_uris` (4.5).

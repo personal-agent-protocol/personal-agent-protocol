@@ -131,6 +131,11 @@ An example document:
       "orders:read": "See your orders, returns, and bookings",
       "orders:write": "Exchange or return items, and change bookings",
       "addresses": "See and change your saved shipping addresses"
+    },
+    "scope_hints": {
+      "orders:read": { "changes": "none", "personal_data": true },
+      "orders:write": { "changes": "irreversible", "personal_data": true },
+      "addresses": { "changes": "reversible", "personal_data": true }
     }
   },
   "agent": {
@@ -174,6 +179,7 @@ An example document:
 | `auth`             | If `agent`, `apis`, `feedback`, or `web.browser_session_endpoint` is present | `issuer` is the Company's OAuth issuer identifier, an HTTPS URL. It identifies the Company, and the Personal Agent finds the Company's OAuth endpoints, scopes, and Direct and Device Sign-In from it (3.2). Sessions need `auth`, so a Company without it can only be browsed as an ordinary website (section 5).                                                                                        |
 | `auth.mediated`    | If supported                                                                 | Transitional (4.7). `endpoint` is where the Personal Agent sends credentials, and `fields` lists them (4.7). `scopes` lists the scopes Mediated Sign-In can grant.                                                                                                                                                                                                                                        |
 | `auth.scopes`      | For scopes no OpenAPI description describes                                  | A description of each scope, keyed by scope name, in the same form as the `scopes` of an OAuth 2.0 security scheme in OpenAPI. It describes each scope in `scopes_supported` that no OpenAPI description the Company lists describes (4.4).                                                                                                                                                               |
+| `auth.scope_hints` | No                                                                           | Hints about what each scope allows, keyed by scope name: `changes` and `personal_data` (4.4). They apply to any scope in `scopes_supported`, wherever it is described.                                                                                                                                                                                                                                    |
 | `agent`            | One of `agent`, `apis`, or `web`                                             | The Company Agent. `protocols` lists its supported conversation protocols, each with a `type` and HTTPS `endpoint` (section 7). An entry MAY include a `resource` to require tokens issued for it (4.3).                                                                                                                                                                                                  |
 | `apis`             | One of `agent`, `apis`, or `web`                                             | A list of APIs. Each has a `type` from section 6, a `url`, and a short `description` that helps the Personal Agent pick the right one. An entry MAY include a `resource` to require tokens issued for it (4.3).                                                                                                                                                                                           |
 | `web`              | One of `agent`, `apis`, or `web`                                             | The Company's website. The optional `browser_session_endpoint` is where the Personal Agent's browser joins a Session (section 5). Without it, Personal Agents browse the site as ordinary signed-out visitors.                                                                                                                                                                                            |
@@ -778,8 +784,25 @@ scopes can't clash with ones it defines later.
   [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749#section-3.3) §3.3 allows.
 - The Company MUST describe each scope in `scopes_supported`, so the Personal Agent can choose the
   ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it
-  lists (section 6), or otherwise in `auth.scopes`. The protocol doesn't mark scopes as read-only:
-  the Personal Agent relies on the descriptions to tell what each scope allows.
+  lists (section 6), or otherwise in `auth.scopes`.
+- A Company MAY give hints about any scope in `auth.scope_hints`, so a Personal Agent can tell how
+  consequential a scope is before requesting it. Each entry is keyed by scope name and describes
+  the most consequential of the operations that require the scope, in two fields:
+    - `changes` is `none` if no operation changes the account or anything else, `reversible` if
+      every change can be undone, such as editing a saved address, and `irreversible` if any
+      change can't be undone, such as cancelling an order, deleting data, sending a message, or
+      paying.
+    - `personal_data` is `true` if any operation shows or changes the User's personal data, such
+      as contact details, addresses, or payment methods, and `false` otherwise.
+
+    A Company MUST include both fields in each entry. A scope with no entry has no hints, and a
+    Personal Agent can't tell what it allows. A Personal Agent MUST ignore fields it doesn't
+    recognize, and treat a `changes` value it doesn't recognize as `irreversible`, so later
+    versions can add both. The hints follow the `readOnlyHint` and `destructiveHint` annotations
+    of [MCP tools](https://modelcontextprotocol.io/specification/2025-06-18/server/tools), applied
+    to a scope rather than one tool. They don't replace descriptions, and like other content from a
+    Company (9.1), they are its claims, not the User's approval.
+
 - Companies decide which operations require each scope and enforce them across web browsing, APIs,
   and actions performed by the Company Agent.
 - Direct and Device Sign-In can grant any scope in `scopes_supported`. Mediated Sign-In can grant

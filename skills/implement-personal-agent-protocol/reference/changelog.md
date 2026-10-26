@@ -20,6 +20,12 @@ Breaking · [Spec 2](https://personalagentprotocol.org/docs/0.3/spec#terms) · [
 
 The protocol no longer defines `poppy:read` and `poppy:write`. Each Company defines its own scopes, usually the OAuth scopes it already has, and must describe each one, in an OpenAPI description it lists or in `auth.scopes`. Names starting with `poppy:` stay reserved.
 
+#### Scope hints
+
+[Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Guides: Choosing how to sign in](https://personalagentprotocol.org/docs/0.3/guides#agent-choosing-sign-in) · [Guides: Describing scopes](https://personalagentprotocol.org/docs/0.3/guides#company-scope-descriptions) · [Guides: Consent pages](https://personalagentprotocol.org/docs/0.3/guides#company-consent)
+
+A Company can give hints about each scope in `auth.scope_hints`: whether its `changes` are `none`, `reversible`, or `irreversible`, and whether it touches `personal_data`, after MCP's tool annotations but for a whole scope. A Personal Agent can then decide before sign-in which scopes need the User's go-ahead, rather than catching each action. Each entry describes the most consequential operation that requires the scope. OAuth and OpenAPI have no place for this, since both describe a scope with one string, so it is a new field in `poppy.json`, and it covers scopes described in OpenAPI too.
+
 #### Prefer delegated sign-in
 
 [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Spec 9.5](https://personalagentprotocol.org/docs/0.3/spec#credentials) · [Guides: Choosing how to sign in](https://personalagentprotocol.org/docs/0.3/guides#agent-choosing-sign-in)
