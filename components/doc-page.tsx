@@ -9,9 +9,9 @@ import { remarkChanges } from "../lib/changelog";
 import {
     escapeHeadingIds,
     rehypeDocs,
+    remarkCardNames,
     remarkHeadingIds,
     remarkVersionLinks,
-    remarkVideoNames,
 } from "../lib/mdx";
 import { NEW_ISSUE_URL } from "../lib/site";
 import { CodeBlock } from "./code-block";
@@ -22,6 +22,7 @@ import { PermalinkButton } from "./permalink-button";
 import { PronounceButton } from "./pronounce-button";
 import { SpecTable } from "./spec-table";
 import { VersionMenu } from "./version-menu";
+import { Demo, DemoGallery } from "./demo-gallery";
 import { Video, VideoGallery } from "./video-gallery";
 
 // A changelog entry, and one of its tags: "Breaking", a section, or an issue (lib/changelog.ts).
@@ -48,10 +49,24 @@ function PartnerList({ children }: { children?: ReactNode }) {
     );
 }
 
-// A link to open a GitHub issue on the protocol's repository. `cta` names the link in analytics.
-function IssueLink({ cta, children }: { cta: string; children?: ReactNode }) {
+// A link to open a GitHub issue on the protocol's repository, with the issue template `template`
+// when given, such as "1-feedback.yml". `cta` names the link in analytics.
+function IssueLink({
+    cta,
+    template,
+    children,
+}: {
+    cta: string;
+    template?: string;
+    children?: ReactNode;
+}) {
     return (
-        <a href={NEW_ISSUE_URL} target="_blank" rel="noopener noreferrer" data-cta={cta}>
+        <a
+            href={template ? `${NEW_ISSUE_URL}?template=${template}` : NEW_ISSUE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-cta={cta}
+        >
             {children}
         </a>
     );
@@ -85,6 +100,8 @@ const COMPONENTS: MDXComponents = {
     Change,
     CodeBlock,
     CommentingButton,
+    Demo,
+    DemoGallery,
     IssueLink,
     PartnerList,
     PermalinkButton,
@@ -102,7 +119,7 @@ export async function DocPage({ href }: { href: string }) {
         remarkPlugins: [
             remarkGfm,
             remarkHeadingIds,
-            remarkVideoNames,
+            remarkCardNames,
             remarkChanges(page.file),
             remarkVersionLinks(linkResolver(page)),
         ],

@@ -3174,6 +3174,86 @@ html:has(.video-lightbox[open]) {
     }
 }
 
+/* ---------- Demos ---------- */
+
+.doc .demo-gallery {
+    display: grid;
+    gap: 24px;
+    margin-top: 32px;
+}
+
+/* The screenshot beside the text, stacked on phones. */
+.demo-card {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: 24px;
+    align-items: start;
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+}
+
+.demo-shot {
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--bg-sunk);
+}
+
+.demo-shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    object-position: top left;
+}
+
+.doc .demo-card h2 {
+    font-size: 18px;
+    line-height: 1.35;
+    margin: 0 0 6px;
+    padding: 0;
+    border: none;
+}
+
+.doc .demo-card p {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--ink-2);
+    margin: 0 0 10px;
+}
+
+.doc .demo-card .demo-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    margin: 14px 0 0;
+    font-size: 14px;
+}
+
+.demo-meta a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+}
+
+.tag-current {
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+
+@media (max-width: 640px) {
+    .demo-card {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 16px;
+    }
+}
+
 @media print {
     * {
         -webkit-print-color-adjust: exact;

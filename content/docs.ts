@@ -149,6 +149,20 @@ const TABS: TabInfo[] = [
             },
         ],
     },
+    {
+        title: "Demos",
+        pages: [
+            {
+                slug: "demos",
+                navTitle: "Demos",
+                title: "Personal Agent Protocol: Community demos",
+                description:
+                    "Demos of Personal Agent Protocol built by the community: companies, personal agents, and stores you can try, with links to their source.",
+                outlineDepth: 2,
+                kit: false,
+            },
+        ],
+    },
 ];
 
 export type DocsVersion = {

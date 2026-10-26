@@ -1,0 +1,50 @@
+name: Community demo
+description: Suggest a demo of the protocol for the Demos page.
+labels: ["site"]
+body:
+    - type: markdown
+      attributes:
+          value: |
+              The [Demos page](https://personalagentprotocol.org/docs/demos) lists demos built by the community. Listing a demo doesn't mean the authors have reviewed or endorsed it.
+    - type: input
+      id: name
+      attributes:
+          label: Demo name
+      validations:
+          required: true
+    - type: input
+      id: url
+      attributes:
+          label: Demo URL
+          description: Where people can try it.
+      validations:
+          required: true
+    - type: input
+      id: repo
+      attributes:
+          label: Source repository
+          description: Optional. A public repository with the demo's code.
+    - type: dropdown
+      id: version
+      attributes:
+          label: Poppy version
+          description: The version of the protocol the demo implements.
+          options:
+              - "0.2"
+              - "0.1"
+      validations:
+          required: true
+    - type: textarea
+      id: description
+      attributes:
+          label: Description
+          description: Two or three sentences on what the demo is and what someone can try in it.
+      validations:
+          required: true
+    - type: textarea
+      id: screenshot
+      attributes:
+          label: Screenshot
+          description: A screenshot of the demo at work. Paste or drag an image here.
+      validations:
+          required: true

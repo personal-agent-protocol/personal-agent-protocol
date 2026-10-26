@@ -75,9 +75,12 @@ export function remarkHeadingIds() {
     };
 }
 
-// Gives each <Video> its heading's id and text as `id` and `title`, which name the video on its
-// card. Runs after remarkHeadingIds.
-export function remarkVideoNames() {
+// Components that are a card named by the heading inside them.
+const CARDS = new Set(["Video", "Demo"]);
+
+// Gives each <Video> and <Demo> its heading's id and text as `id` and `title`, which name it on
+// its card. Runs after remarkHeadingIds.
+export function remarkCardNames() {
     return (tree: Root) => {
         visit(tree, (node) => {
             const jsx = node as unknown as {
@@ -86,13 +89,13 @@ export function remarkVideoNames() {
                 attributes: { type: string; name: string; value: string }[];
                 children: Nodes[];
             };
-            if (jsx.type !== "mdxJsxFlowElement" || jsx.name !== "Video") {
+            if (jsx.type !== "mdxJsxFlowElement" || !jsx.name || !CARDS.has(jsx.name)) {
                 return;
             }
             const heading = jsx.children.find((c) => c.type === "heading");
             const id = heading?.type === "heading" ? headingId(heading) : undefined;
             if (!heading || !id) {
-                throw new Error("A <Video> needs a heading with an id");
+                throw new Error(`A <${jsx.name}> needs a heading with an id`);
             }
             jsx.attributes.push(
                 { type: "mdxJsxAttribute", name: "id", value: id },

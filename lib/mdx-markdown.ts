@@ -31,10 +31,11 @@ function lower(node: RootContent): RootContent[] {
             return [];
         }
         if (jsx.name === "IssueLink") {
+            const template = attribute(jsx, "template");
             return [
                 {
                     type: "link",
-                    url: NEW_ISSUE_URL,
+                    url: template ? `${NEW_ISSUE_URL}?template=${template}` : NEW_ISSUE_URL,
                     children: phrasing(jsx.children.flatMap(lower)) as PhrasingContent[],
                 },
             ];
@@ -55,6 +56,24 @@ function lower(node: RootContent): RootContent[] {
                 ],
             };
             return [...children, link];
+        }
+        if (jsx.name === "Demo") {
+            // The demo's heading and description, then links to it and its source, and its version.
+            const href = attribute(jsx, "href");
+            const repo = attribute(jsx, "repo");
+            const version = attribute(jsx, "version");
+            const label = attribute(jsx, "label") ?? "Try it";
+            const link = (url: string, value: string): PhrasingContent => ({
+                type: "link",
+                url,
+                children: [{ type: "text", value }],
+            });
+            const meta: PhrasingContent[] = [
+                ...(href ? [link(href, label)] : []),
+                ...(repo ? [{ type: "text" as const, value: " · " }, link(repo, "Source")] : []),
+                ...(version ? [{ type: "text" as const, value: ` · Version ${version}` }] : []),
+            ];
+            return [...jsx.children.flatMap(lower), { type: "paragraph", children: meta }];
         }
         return jsx.children.flatMap(lower);
     }
