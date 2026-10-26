@@ -143,7 +143,7 @@ const TABS: TabInfo[] = [
                 navTitle: "Videos",
                 title: "Personal Agent Protocol: Video tutorials",
                 description:
-                    "Short videos on what Personal Agent Protocol is, how a personal agent connects to a company, how users sign in, and how agents talk to company agents.",
+                    "Short videos on what Personal Agent Protocol is, how a personal agent connects to a company, how users sign in, how agents talk to company agents and MCP servers, and how they browse websites.",
                 outlineDepth: 2,
                 kit: false,
             },
