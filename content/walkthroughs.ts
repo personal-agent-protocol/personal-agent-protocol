@@ -209,7 +209,7 @@ Content-Type: application/json
 {
   "message": {
     "id": "msg_Jk4tR8wQ2nVb6YpL",
-    "sender": "agent",
+    "author": { "type": "agent" },
     "text": "The user's jacket keeps the rain out but isn't warm enough. They'd like to return it.",
     "context": { "locale": "en-US", "time_zone": "America/Los_Angeles", "user_available": true }
   }
@@ -228,7 +228,7 @@ Content-Type: application/json
       "message": {
         "id": "msg_Jk4tR8wQ2nVb6YpL",
         "role": "user",
-        "sender": "agent",
+        "author": { "type": "agent" },
         "text": "The user's jacket keeps the rain out but isn't warm enough. They'd like to return it.",
         "context": { "locale": "en-US", "time_zone": "America/Los_Angeles", "user_available": true }
       }
@@ -240,7 +240,7 @@ Content-Type: application/json
       "message": {
         "id": "msg_a7Qe",
         "role": "company",
-        "sender": "agent",
+        "author": { "type": "agent" },
         "text": "I can help with that. Please sign in so I can find the order."
       }
     },
@@ -380,7 +380,7 @@ Content-Type: application/json
 {
   "message": {
     "id": "msg_Wd8nC3kP5tGx1RqZ",
-    "sender": "agent",
+    "author": { "type": "agent" },
     "text": "The user has signed in. The order is SW-48213."
   }
 }
@@ -398,7 +398,7 @@ Content-Type: application/json
       "message": {
         "id": "msg_Wd8nC3kP5tGx1RqZ",
         "role": "user",
-        "sender": "agent",
+        "author": { "type": "agent" },
         "text": "The user has signed in. The order is SW-48213."
       }
     },
@@ -409,7 +409,7 @@ Content-Type: application/json
       "message": {
         "id": "msg_b3Lx",
         "role": "company",
-        "sender": "agent",
+        "author": { "type": "agent" },
         "text": "Thanks. I can exchange it for the Stormline Insulated at no extra cost, or issue a full refund.",
         "data": { "exchange_sku": "stormline-insulated-m", "price_difference": 0 }
       }
@@ -463,7 +463,7 @@ Content-Type: application/json
 {
   "message": {
     "id": "msg_Ue2hV9mJ4sKb7TfA",
-    "sender": "agent",
+    "author": { "type": "agent" },
     "text": "The user would like the exchange."
   }
 }
@@ -484,7 +484,7 @@ Content-Type: application/json
       "message": {
         "id": "msg_Ue2hV9mJ4sKb7TfA",
         "role": "user",
-        "sender": "agent",
+        "author": { "type": "agent" },
         "text": "The user would like the exchange."
       }
     },
@@ -495,7 +495,7 @@ Content-Type: application/json
       "message": {
         "id": "msg_c9Pt",
         "role": "company",
-        "sender": "agent",
+        "author": { "type": "agent" },
         "text": "Done. The new jacket ships tomorrow, and I've emailed the user a prepaid return label.",
         "data": { "exchange_id": "ex_48213", "return_code": "MZS-7K4Q" }
       }
@@ -752,7 +752,7 @@ Content-Type: application/json
 {
   "message": {
     "id": "msg_Rb5yN2qH8vLc4ZsE",
-    "sender": "agent",
+    "author": { "type": "agent" },
     "text": "The user's connection keeps dropping, 14 times today, and they have a call at 2. Please fix it from your end.",
     "data": { "modem_id": "mdm_92K", "dropouts_today": 14 },
     "context": { "time_zone": "America/Chicago", "user_available": true }
@@ -799,7 +799,7 @@ Content-Type: application/json
       "message": {
         "id": "msg_Rb5yN2qH8vLc4ZsE",
         "role": "user",
-        "sender": "agent",
+        "author": { "type": "agent" },
         "text": "The user's connection keeps dropping, 14 times today, and they have a call at 2. Please fix it from your end.",
         "data": { "modem_id": "mdm_92K", "dropouts_today": 14 },
         "context": { "time_zone": "America/Chicago", "user_available": true }
@@ -826,7 +826,7 @@ Content-Type: application/json
       "message": {
         "id": "msg_t8Vn",
         "role": "company",
-        "sender": "human",
+        "author": { "type": "human" },
         "text": "I'm a Laurel technician. I can see the dropouts. I need someone at home to check the modem lights with me."
       }
     },
@@ -899,7 +899,7 @@ Content-Type: application/json
   "parent_conversation_id": "cnv_2Lm0",
   "message": {
     "id": "msg_Pe6jWm3Kd0RtXc8V",
-    "sender": "human",
+    "author": { "type": "human" },
     "text": "Hi, I'm here. What should I check?"
   }
 }
@@ -909,7 +909,7 @@ Content-Type: application/json
 
 { "conversation_id": "cnv_9Dq4", "status": "idle", "responder": "human" }
 
-// sender "human" tells Laurel these are the user's own words.
+// author type "human" tells Laurel these are the user's own words.
 // The user's later messages go to cnv_9Dq4/messages the same way.`,
                     },
                     {
@@ -1132,7 +1132,7 @@ Content-Type: application/json
 {
   "message": {
     "id": "msg_Gt7rE1xM6kQa9WnD",
-    "sender": "agent",
+    "author": { "type": "agent" },
     "text": "The guest's flight moved to tomorrow morning. Could you move their stay by a day and waive tonight's charge?",
     "data": { "flight": "PA 518", "reason": "crew", "new_start": "2026-10-14" }
   }
@@ -1151,7 +1151,7 @@ Content-Type: application/json
       "message": {
         "id": "msg_Gt7rE1xM6kQa9WnD",
         "role": "user",
-        "sender": "agent",
+        "author": { "type": "agent" },
         "text": "The guest's flight moved to tomorrow morning. Could you move their stay by a day and waive tonight's charge?",
         "data": { "flight": "PA 518", "reason": "crew", "new_start": "2026-10-14" }
       }
@@ -1163,7 +1163,7 @@ Content-Type: application/json
       "message": {
         "id": "msg_d4Hs",
         "role": "company",
-        "sender": "agent",
+        "author": { "type": "agent" },
         "text": "Of course, given the flight delay. The stay now starts tomorrow, with check-in at 11.",
         "data": { "start": "2026-10-14", "check_in": "11:00", "change_fee": 0 }
       }

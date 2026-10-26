@@ -84,7 +84,7 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
   `cursor_expired` as 7.13 defines.
 - Record every accepted message as an event, and add a `state` event on every change to `status` or
   `responder` ([7.7](https://personalagentprotocol.org/docs/0.3/spec#status)). Every Company message has
-  `sender`.
+  `author.type`.
 - Streaming is optional ([7.6](https://personalagentprotocol.org/docs/0.3/spec#streaming)). If you
   stream, `Last-Event-ID` wins over `cursor`, and `text-delta` events have no SSE `id`.
 - Handoff ([7.9](https://personalagentprotocol.org/docs/0.3/spec#handoff)): 202, `queued` while finding

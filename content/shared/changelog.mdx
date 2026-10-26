@@ -301,10 +301,11 @@ adds outside OAuth. It adds no requirements.
 
 </Change>
 
-<Change title="Speaker on Company messages" sections="7.4, 7.7" issue="19">
+<Change title="`author` replaces `sender`" breaking sections="7.4, 7.7, 7.8, 7.10, Operations 4.3" issue="19">
 
-A Company message can say which of the Company's people or AI personas wrote it, in an optional
-`speaker` object with an `id`, a display `name`, and an `image` URL, each optional.
+Each message has an `author` object instead of `sender`. Its `type` takes `sender`'s values, `agent`
+or `human`. A Company message can also say which of the Company's people or AI personas wrote it,
+with an `id`, a display `name`, and an `image` URL, each optional.
 
 </Change>
 

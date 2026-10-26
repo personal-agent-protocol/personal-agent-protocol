@@ -180,7 +180,7 @@ A Company message carries the operation in `operation`, next to `text` and `data
   "message": {
     "id": "msg_r2Kq",
     "role": "company",
-    "sender": "agent",
+    "author": { "type": "agent" },
     "text": "I can exchange it for the insulated version for $70 more. Confirm whenever you're ready.",
     "operation": { "operation_id": "exc_5Rt2", "revision": 1, "state": "proposed", … }
   }

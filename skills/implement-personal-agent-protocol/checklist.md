@@ -202,7 +202,7 @@ Section 4.3 lists the checks you MUST make on every proof. To make them reliably
 ### Specification: [7.7 Status and responder](https://personalagentprotocol.org/docs/0.3/spec#status)
 
 - [ ] **MUST**: Every successful response to a `POST` or a read MUST include `status` and `responder`.
-- [ ] **MUST**: Each Company message MUST also include `sender`, with `agent` or `human`, to identify who wrote it.
+- [ ] **MUST**: Each Company message MUST also include `author.type`, with `agent` or `human`, to identify who wrote it.
 
 ### Specification: [7.10 Direct Conversations](https://personalagentprotocol.org/docs/0.3/spec#direct-conversations)
 

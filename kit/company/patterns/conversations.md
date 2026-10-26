@@ -24,12 +24,12 @@ platform's history on each request. Each event needs a stable, unique ID that wo
 Record every accepted message, with `role` set by the Company, and a `state` event on every change
 to `status` or `responder` ([7.7](https://personalagentprotocol.org/docs/spec#status)).
 
-**Mapping messages.** Personal Agent messages carry `sender`, `text`, `data`, and `context`
+**Mapping messages.** Personal Agent messages carry `author`, `text`, `data`, and `context`
 ([7.4](https://personalagentprotocol.org/docs/spec#message-fields)). Pass `context` and `data` to
-the agent, and tell it whether a person is on the other side (`sender: "human"`,
-[7.8](https://personalagentprotocol.org/docs/spec#human-or-ai)). Company messages need `sender`:
-`agent` for the AI, `human` for a live agent. If the platform has several personas or live agents,
-you can name each in `speaker` with an `id`, `name`, and `image`.
+the agent, and tell it whether a person is on the other side (`author.type` `human`,
+[7.8](https://personalagentprotocol.org/docs/spec#human-or-ai)). Company messages need
+`author.type`: `agent` for the AI, `human` for a live agent. If the platform has several personas
+or live agents, you can name each with the `author`'s `id`, `name`, and `image`.
 
 **Status and responder.** Map the platform's states: the agent working is `working`, waiting for
 the Personal Agent is `idle`, waiting for a live agent is `queued`, and closed is `closed`.

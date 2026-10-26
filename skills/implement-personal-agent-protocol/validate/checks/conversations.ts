@@ -114,7 +114,7 @@ export async function checkConversations(ctx: Context, r: Recorder): Promise<voi
         );
     }
 
-    const first = { id: syntheticMessageId(), sender: "agent", text: TEST_TEXT };
+    const first = { id: syntheticMessageId(), author: { type: "agent" }, text: TEST_TEXT };
     const start = await send("POST", endpoint, { message: first }, "starting a conversation");
     const startJson = start.json as { conversation_id?: string } | undefined;
     const startErrors = start.json ? check("conversation-response.schema.json", start.json) : [];
@@ -177,7 +177,7 @@ async function conversationChecks(
     _endpoint: string,
     conv: string,
     id: string,
-    first: { id: string; sender: string; text: string },
+    first: { id: string; author: { type: string }; text: string },
     send: (
         method: string,
         url: string,
@@ -234,7 +234,7 @@ async function conversationChecks(
         const ex = await send(
             "POST",
             `${conv}/messages`,
-            { message: { id: syntheticMessageId(), sender: "agent", text: TEST_TEXT } },
+            { message: { id: syntheticMessageId(), author: { type: "agent" }, text: TEST_TEXT } },
             "a second message",
         );
         const errors = ex.json ? check("conversation-response.schema.json", ex.json) : [];
@@ -251,7 +251,7 @@ async function conversationChecks(
         const ex = await send(
             "POST",
             `${conv}/messages`,
-            { message: { id: syntheticMessageId(), sender: "agent" } },
+            { message: { id: syntheticMessageId(), author: { type: "agent" } } },
             "a message with no text, data, or context",
         );
         expectError(
@@ -268,7 +268,7 @@ async function conversationChecks(
         const ex = await send(
             "POST",
             `${conv}/messages`,
-            { message: { id: "msg validator!", sender: "agent", text: TEST_TEXT } },
+            { message: { id: "msg validator!", author: { type: "agent" }, text: TEST_TEXT } },
             'a message with id "msg validator!"',
         );
         expectError(
@@ -440,7 +440,7 @@ async function conversationChecks(
         const ex = await send(
             "POST",
             `${conv}/messages`,
-            { message: { id: syntheticMessageId(), sender: "agent", text: TEST_TEXT } },
+            { message: { id: syntheticMessageId(), author: { type: "agent" }, text: TEST_TEXT } },
             "a message after closing",
         );
         expectError(

@@ -4,16 +4,17 @@
     "title": "Conversation message",
     "description": "A message in a Personal Agent Protocol conversation, from either side. Spec sections 7.3 (Sending messages) and 7.4 (Message fields). A message has at least one of text, data, or context. role is set by the Company when it records the message as an event; the Personal Agent doesn't send it. Unknown fields are allowed, for example ones an extension adds.",
     "type": "object",
-    "required": ["id", "sender"],
+    "required": ["id", "author"],
     "properties": {
         "id": { "$ref": "#/$defs/id" },
         "role": { "enum": ["user", "company"] },
-        "sender": { "enum": ["agent", "human"] },
         "text": { "type": "string" },
         "data": { "type": "object" },
-        "speaker": {
+        "author": {
             "type": "object",
+            "required": ["type"],
             "properties": {
+                "type": { "enum": ["agent", "human"] },
                 "id": { "$ref": "#/$defs/id" },
                 "name": { "type": "string", "minLength": 1 },
                 "image": { "type": "string", "pattern": "^https://" }

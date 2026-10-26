@@ -993,7 +993,7 @@ Content-Type: application/json
 {
   "message": {
     "id": "msg_Yq3v8LrT0aWc5NkE",
-    "sender": "agent",
+    "author": { "type": "agent" },
     "text": "The jacket from order #1042 isn't warm enough. The user wants to return it.",
     "context": { "locale": "en-US", "time_zone": "America/Los_Angeles", "user_available": true }
   }
@@ -1026,7 +1026,7 @@ DPoP: eyJ0eXAiOiJkcG9wK2p3dCIs…
 Content-Type: application/json
 
 {
-  "message": { "id": "msg_Hc72PwZn4eKs1QxB", "sender": "agent", "text": "Does the insulated version come in medium?" }
+  "message": { "id": "msg_Hc72PwZn4eKs1QxB", "author": { "type": "agent" }, "text": "Does the insulated version come in medium?" }
 }
 ```
 
@@ -1043,7 +1043,7 @@ DPoP: eyJ0eXAiOiJkcG9wK2p3dCIs…
 Content-Type: application/json
 
 {
-  "message": { "id": "msg_Tb5nRw8Ke2Lp0VsD", "sender": "agent", "text": "Medium, please." }
+  "message": { "id": "msg_Tb5nRw8Ke2Lp0VsD", "author": { "type": "agent" }, "text": "Medium, please." }
 }
 ```
 
@@ -1053,11 +1053,10 @@ Content-Type: application/json
 | --- | --- | --- |
 | `id` | Yes | The message's ID, chosen by the Personal Agent and unique for the User (7.3). |
 | `role` | No | `user` or `company`, the side the message came from. The Company sets it when it records the message as an event (7.5). The Personal Agent doesn't send it, and the Company ignores it if sent. |
-| `sender` | Yes | `agent` if the Personal Agent wrote the message, `human` if the User wrote it (7.8). |
+| `author` | Yes | Who wrote the message. `type` is `agent` if the Personal Agent wrote it, `human` if the User wrote it (7.8). Company messages can also name the writer (below). |
 | `text` | No | The message in natural language. |
 | `data` | No | A JSON object for structured details that would need markup, like a list or a table, to fit in a sentence. The protocol doesn't define its keys. |
 | `context` | No | Facts about the User's situation, such as `locale`, `time_zone`, and `user_available` (below). |
-| `speaker` | No | Who at the Company wrote the message, for a Company with several people or AI personas (below). Only in Company messages. |
 
 A message MUST have at least one of `text`, `data`, or `context`.
 
@@ -1070,7 +1069,7 @@ For example, choosing seats for a family of six, with their loyalty and security
 ```
 {
   "id": "msg_Ns8dXo1Gv6JpUa3C",
-  "sender": "agent",
+  "author": { "type": "agent" },
   "text": "The user would like seats together for their family of six on flight SB 482.",
   "data": {
     "travelers": [
@@ -1102,20 +1101,21 @@ Any message can carry `context`, and fields it leaves out keep their previous va
 ```
 {
   "id": "msg_Lw0eFj7Tc2RbVy5H",
-  "sender": "agent",
+  "author": { "type": "agent" },
   "context": { "user_available": false }
 }
 ```
 
-Company messages have `id`, `role`, `sender`, `text`, `data`, and `speaker`, with an ID the Company chooses. Only the Personal Agent sends `context`. Extensions can add fields, such as `operation` in the [Operations extension](https://personalagentprotocol.org/docs/0.3/extensions/operations#binding-conversations).
+Company messages have `id`, `role`, `author`, `text`, and `data`, with an ID the Company chooses. Only the Personal Agent sends `context`. Extensions can add fields, such as `operation` in the [Operations extension](https://personalagentprotocol.org/docs/0.3/extensions/operations#binding-conversations).
 
-**Speaker.** A Company whose messages come from several people or AI personas MAY say which one wrote each message in `speaker`, an object whose fields are all optional:
+**Author.** `author` is an object that says who wrote the message:
 
-- `id` is a stable ID for the speaker, chosen by the Company, so the Personal Agent can tell the same speaker's messages apart from others'.
-- `name` is the speaker's display name, such as `Alex`.
-- `image` is the URL of the speaker's picture, for the Personal Agent to show next to the name.
+- `type` is required: `agent` or `human`, as 7.8 describes.
+- `id` is a stable ID for the author, chosen by the Company, so the Personal Agent can tell the same author's messages apart from others'.
+- `name` is the author's display name, such as `Alex`.
+- `image` is the URL of the author's picture, for the Personal Agent to show next to the name.
 
-`sender` still says whether a person or an AI wrote the message (7.8). Like `text`, the speaker's name and picture are content from the Company (9.1).
+Only Company messages have `id`, `name`, and `image`, and each is optional. A Company whose messages come from several people or AI personas MAY use them to say which one wrote each message. Like `text`, the author's name and picture are content from the Company (9.1).
 
 ### 7.5 Reading events
 
@@ -1142,7 +1142,7 @@ DPoP: eyJ0eXAiOiJkcG9wK2p3dCIs…
       "message": {
         "id": "msg_r2Kq",
         "role": "company",
-        "sender": "agent",
+        "author": { "type": "agent" },
         "text": "I can do that. The insulated version would be warmer. Want to exchange instead for $70 more?",
         "data": { "replacement_sku": "stormline-insulated-m", "price_difference": 70 }
       }
@@ -1216,7 +1216,7 @@ The Personal Agent can show the pieces as they arrive, then replaces them with t
 
 Every successful response to a `POST` or a read MUST include `status` and `responder`. Every change to either one adds a `state` event with both, even if there is no new text. `human` means a person has joined. While the conversation is `queued`, `responder` stays `agent`. In a closed conversation, `responder` is whoever handled it last.
 
-Each Company message MUST also include `sender`, with `agent` or `human`, to identify who wrote it. This distinguishes earlier automated replies from human replies when both arrive in one response. The `role` stays `company` in either case.
+Each Company message MUST also include `author.type`, with `agent` or `human`, to identify who wrote it. This distinguishes earlier automated replies from human replies when both arrive in one response. The `role` stays `company` in either case.
 
 *Response: Company → Personal Agent*
 
@@ -1238,8 +1238,7 @@ Each Company message MUST also include `sender`, with `agent` or `human`, to ide
       "message": {
         "id": "msg_t8Vn",
         "role": "company",
-        "sender": "human",
-        "speaker": { "id": "spk_alex", "name": "Alex" },
+        "author": { "type": "human", "id": "aut_alex", "name": "Alex" },
         "text": "I've reviewed the exchange. Can you confirm which size the user wants?"
       }
     }
@@ -1253,9 +1252,9 @@ Each Company message MUST also include `sender`, with `agent` or `human`, to ide
 
 ### 7.8 Human or AI
 
-Both sides say whether a person or an AI is taking part. On the Personal Agent's side, the Personal Agent MUST set each message's `sender`: `agent` when the Personal Agent wrote it, and `human` only when it carries the User's own words. A summary, paraphrase, or translation of what the User said is `agent`. On the Company's side, `responder` and each message's `sender` do the same (7.7).
+Both sides say whether a person or an AI is taking part. On the Personal Agent's side, the Personal Agent MUST set each message's `author.type`: `agent` when the Personal Agent wrote it, and `human` only when it carries the User's own words. A summary, paraphrase, or translation of what the User said is `agent`. On the Company's side, `responder` and each message's `author.type` do the same (7.7).
 
-When the User steps in, the Personal Agent sends their words with `sender: "human"` in the same conversation:
+When the User steps in, the Personal Agent sends their words with `author.type` `human` in the same conversation:
 
 *Request: Personal Agent → Company*
 
@@ -1266,7 +1265,7 @@ DPoP: eyJ0eXAiOiJkcG9wK2p3dCIs…
 Content-Type: application/json
 
 {
-  "message": { "id": "msg_Fz4kQa9Ue1YoBs6R", "sender": "human", "text": "Medium, please." }
+  "message": { "id": "msg_Fz4kQa9Ue1YoBs6R", "author": { "type": "human" }, "text": "Medium, please." }
 }
 ```
 
@@ -1293,7 +1292,7 @@ The Personal Agent can keep sending messages while it waits, for example to expl
 
 ### 7.10 Direct Conversations
 
-A Direct Conversation lets the User talk with the Company themselves. It is a new conversation, linked to the one before it, so the User sees only the Direct Conversation, while the Company keeps the earlier history and can use it. The Personal Agent sends the User's messages as written, with `sender: "human"` (7.8), and shows the Company's replies to the User.
+A Direct Conversation lets the User talk with the Company themselves. It is a new conversation, linked to the one before it, so the User sees only the Direct Conversation, while the Company keeps the earlier history and can use it. The Personal Agent sends the User's messages as written, with `author.type` `human` (7.8), and shows the Company's replies to the User.
 
 **Starting one.** The Personal Agent starts a Direct Conversation like any other (7.3), adding `parent_conversation_id` with the earlier conversation's ID. The Company returns a new Conversation ID as usual:
 
@@ -1307,7 +1306,7 @@ Content-Type: application/json
 
 {
   "parent_conversation_id": "cnv_8f3Kd2",
-  "message": { "id": "msg_Pe6jWm3Kd0RtXc8V", "sender": "human", "text": "Hi, I have a question about the exchange." }
+  "message": { "id": "msg_Pe6jWm3Kd0RtXc8V", "author": { "type": "human" }, "text": "Hi, I have a question about the exchange." }
 }
 ```
 
