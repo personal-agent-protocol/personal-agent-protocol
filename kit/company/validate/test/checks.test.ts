@@ -7,10 +7,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { PROTOCOL_VERSION } from "../catalog.ts";
+import { TEST_REPORT, UNKNOWN_KIND } from "../checks/feedback.ts";
 import { newContext, type CheckResult } from "../checks/types.ts";
 import { createHttp } from "../http.ts";
 import { keygen, UsageError } from "../identity.ts";
 import { parseMilestones, runChecks } from "../run.ts";
+import { check } from "../schemas.ts";
 import { fakeCompany, ORIGIN, type Flaws } from "./fake-company.ts";
 
 const cwd = mkdtempSync(join(tmpdir(), "poppy-validator-test-"));
@@ -188,6 +190,62 @@ test("a Bearer token for an MCP server with DPoP fails", async () => {
     assert.equal(byId("mcp.dpop-server-no-bearer").status, "fail");
 });
 
+test("an MCP server without DPoP needs the token exchange grant in the metadata", async () => {
+    const { byId } = await run({ noTokenExchangeGrant: true }, "interfaces", ["mcp."]);
+    const r = byId("mcp.token-exchange-grant");
+    assert.equal(r.status, "fail");
+    assert.match(r.expected!, /token-exchange/);
+    const { byId: dpop } = await run({ mcpDpop: true, noTokenExchangeGrant: true }, "interfaces", [
+        "mcp.",
+    ]);
+    assert.equal(dpop("mcp.token-exchange-grant").status, "skip");
+});
+
+test("a token for an MCP server without DPoP from a renewal fails", async () => {
+    const { byId } = await run({ renewalTokenAtBearerMcp: true }, "interfaces", ["mcp."]);
+    const r = byId("mcp.bearer-server-no-dpop");
+    assert.equal(r.status, "fail");
+    assert.match(r.got!, /token_type DPoP/);
+    assert.equal(byId("mcp.bearer-token").status, "pass");
+});
+
+test("refusing the wrong kind of MCP token request without invalid_target fails", async () => {
+    const { byId } = await run({ mcpTargetInvalidRequest: true }, "interfaces", ["mcp."]);
+    assert.equal(byId("mcp.bearer-server-no-dpop").status, "fail");
+    const { byId: dpop } = await run(
+        { mcpDpop: true, mcpTargetInvalidRequest: true },
+        "interfaces",
+        ["mcp."],
+    );
+    const r = dpop("mcp.dpop-server-no-bearer");
+    assert.equal(r.status, "fail");
+    assert.equal(r.got, "400, error invalid_request");
+    assert.equal(r.expected, "400 invalid_target");
+});
+
+test("a feedback endpoint that takes reports without a token fails feedback.no-token", async () => {
+    const { byId } = await run({ feedbackWithoutToken: true }, "interfaces", ["feedback."]);
+    assert.equal(byId("feedback.no-token").status, "fail");
+    assert.equal(byId("feedback.accepted").status, "pass");
+    assert.equal(byId("feedback.unknown-kind").status, "pass");
+});
+
+test("a feedback endpoint that rejects unknown kinds fails feedback.unknown-kind", async () => {
+    const { byId } = await run({ rejectUnknownFeedbackKind: true }, "interfaces", ["feedback."]);
+    assert.equal(byId("feedback.accepted").status, "pass");
+    const r = byId("feedback.unknown-kind");
+    assert.equal(r.status, "fail");
+    assert.match(r.sent!, /poppy-validator-unknown-kind/);
+});
+
+test("the test feedback report matches the report schema", () => {
+    assert.deepEqual(check("feedback-report.schema.json", TEST_REPORT), []);
+    assert.deepEqual(
+        check("feedback-report.schema.json", { ...TEST_REPORT, kind: UNKNOWN_KIND }),
+        [],
+    );
+});
+
 test("a retried first message that starts a new conversation fails", async () => {
     const { byId } = await run({ retryCreatesNewConversation: true }, "interfaces", [
         "conversations.",
@@ -253,7 +311,7 @@ test("without an identity, checks that need one are skipped with one note", asyn
     assert.match(ctx.notes[0], /keygen/);
 });
 
-test("only safe requests: GETs, token requests, and conversation requests", async () => {
+test("only safe requests: GETs, token requests, conversation requests, and feedback reports", async () => {
     const { http } = await run();
     for (const ex of http.log) {
         const path = new URL(ex.url).pathname;
@@ -261,6 +319,7 @@ test("only safe requests: GETs, token requests, and conversation requests", asyn
             ex.method === "GET" ||
             path === "/oauth/token" ||
             path.startsWith("/poppy/conversations") ||
+            path === "/poppy/feedback" ||
             path === "/mcp";
         assert.ok(ok, `${ex.method} ${ex.url}`);
     }

@@ -9,6 +9,7 @@ import {
     checkPoppyDocument,
     checkPoppyOnline,
 } from "./checks/discovery.ts";
+import { checkFeedback } from "./checks/feedback.ts";
 import { checkMcp } from "./checks/mcp.ts";
 import { checkOpenApi } from "./checks/openapi.ts";
 import { checkResources } from "./checks/resource.ts";
@@ -44,7 +45,13 @@ export async function runChecks(
         await checkPoppyOnline(ctx, r);
         await checkExcludedTasks(ctx, r);
         await checkMetadata(ctx, r);
-        const needsIdentity = wantsAny(ctx, ["session.", "dpop.", "mcp.", "conversations."]);
+        const needsIdentity = wantsAny(ctx, [
+            "session.",
+            "dpop.",
+            "mcp.",
+            "conversations.",
+            "feedback.",
+        ]);
         if (needsIdentity && ctx.discovered.metadata?.token_endpoint) {
             const identity = await loadIdentity(options.cwd);
             const short = "Needs the test Personal Agent (see the note at the top).";
@@ -63,13 +70,14 @@ export async function runChecks(
                 } else ctx.identity = identity;
             }
         }
-        if (wantsAny(ctx, ["session.", "dpop.", "mcp.", "conversations."]))
+        if (wantsAny(ctx, ["session.", "dpop.", "mcp.", "conversations.", "feedback."]))
             await checkSessions(ctx, r);
         if (wantsAny(ctx, ["dpop."])) await checkResources(ctx, r);
         if (ctx.options.milestones.has("interfaces")) {
             if (wantsAny(ctx, ["openapi."])) await checkOpenApi(ctx, r);
             if (wantsAny(ctx, ["mcp."])) await checkMcp(ctx, r);
             if (wantsAny(ctx, ["conversations."])) await checkConversations(ctx, r);
+            if (wantsAny(ctx, ["feedback."])) await checkFeedback(ctx, r);
         }
     }
     // Anything that didn't run because an earlier step failed.

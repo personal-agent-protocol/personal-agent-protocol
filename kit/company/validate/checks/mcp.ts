@@ -1,6 +1,6 @@
 // Milestone 2: listed MCP servers (sections 4.3 and 6): protected resource metadata, Session Tokens
 // bound to each server's url (DPoP at a server that supports it, Bearer by Token Exchange otherwise),
-// and the general DPoP token refused.
+// invalid_target for the other kind of request, and the general DPoP token refused.
 
 import {
     authedRequest,
@@ -8,19 +8,29 @@ import {
     exchangeParams,
     heldToken,
     sessionParams,
+    TOKEN_EXCHANGE,
     tokenRequest,
 } from "../agent.ts";
-import { getFollowing, header, parseWwwAuthenticate, type Exchange } from "../http.ts";
+import { errorCode, getFollowing, header, parseWwwAuthenticate, type Exchange } from "../http.ts";
 import { formatSchemaErrors } from "../schema.ts";
 import { check } from "../schemas.ts";
 import { accepted as probeAccepted, findProbe } from "./resource.ts";
-import { skipRest, type Context, type Detail, type HeldToken, type Recorder } from "./types.ts";
+import {
+    offersGrant,
+    skipRest,
+    type Context,
+    type Detail,
+    type HeldToken,
+    type Recorder,
+} from "./types.ts";
 
 export const MCP_IDS = [
     "mcp.no-token",
     "mcp.metadata",
     "mcp.authorization-servers",
+    "mcp.token-exchange-grant",
     "mcp.bearer-token",
+    "mcp.bearer-server-no-dpop",
     "mcp.bearer-accepted",
     "mcp.dpop-server-token",
     "mcp.dpop-server-no-bearer",
@@ -42,6 +52,11 @@ export const INITIALIZE = {
 };
 
 const MCP_HEADERS = { Accept: "application/json, text/event-stream" };
+
+// Whether a token request was refused with 400 invalid_target.
+function invalidTarget(ex: Exchange): boolean {
+    return ex.status === 400 && errorCode(ex) === "invalid_target";
+}
 
 // Whether an MCP response is a successful initialize result (JSON or SSE).
 export function initializeOk(ex: Exchange): boolean {
@@ -212,6 +227,18 @@ export async function checkMcp(ctx: Context, r: Recorder): Promise<void> {
                 });
         }
 
+        const metadata = ctx.discovered.metadata;
+        if (!supportsDpop && metadata) {
+            if (offersGrant(metadata, TOKEN_EXCHANGE))
+                agg.add("mcp.token-exchange-grant", "pass", url);
+            else
+                agg.add("mcp.token-exchange-grant", "fail", url, {
+                    got: `grant_types_supported ${JSON.stringify(metadata.grant_types_supported)}`,
+                    expected: `grant_types_supported including ${TOKEN_EXCHANGE}`,
+                    cause: "The server's protected resource metadata has no dpop_signing_alg_values_supported, so Personal Agents get its tokens by Token Exchange, and read grant_types_supported to learn the Company supports it.",
+                });
+        }
+
         if (!ctx.session.token) continue;
         const subject = ctx.session.token;
 
@@ -241,14 +268,20 @@ export async function checkMcp(ctx: Context, r: Recorder): Promise<void> {
                     note: `exchanging the DPoP Session Token for a Bearer one, resource=${url}`,
                 })
             ).ex;
-            if (heldToken(bearerEx, undefined, url))
+            if (invalidTarget(bearerEx)) agg.add("mcp.dpop-server-no-bearer", "pass", url);
+            else if (heldToken(bearerEx, undefined, url))
                 agg.add("mcp.dpop-server-no-bearer", "fail", url, {
                     exchange: bearerEx,
                     got: "200 with a token",
                     expected: "400 invalid_target",
                     cause: "The server supports DPoP, so Personal Agents get only DPoP Session Tokens for it.",
                 });
-            else agg.add("mcp.dpop-server-no-bearer", "pass", url);
+            else
+                agg.add("mcp.dpop-server-no-bearer", "fail", url, {
+                    exchange: bearerEx,
+                    expected: "400 invalid_target",
+                    cause: "invalid_target tells the Personal Agent that the server needs a different type of token (4.2), so it can renew the Session for a DPoP one instead.",
+                });
             if (!token) continue;
         } else {
             // A server without DPoP: a Bearer token by Token Exchange.
@@ -273,6 +306,26 @@ export async function checkMcp(ctx: Context, r: Recorder): Promise<void> {
                 agg.add("mcp.bearer-token", "pass", url);
                 token = { ...issued, tokenType: "Bearer" };
             }
+
+            // Any other token request for the server gets invalid_target, not a token.
+            const renewEx = (
+                await tokenRequest(ctx, sessionParams(ctx, { resource: url }), {
+                    note: `renewing the Session with resource=${url}`,
+                })
+            ).ex;
+            if (invalidTarget(renewEx)) agg.add("mcp.bearer-server-no-dpop", "pass", url);
+            else {
+                const renewed = heldToken(renewEx, undefined, url);
+                agg.add("mcp.bearer-server-no-dpop", "fail", url, {
+                    exchange: renewEx,
+                    got: renewed ? `200 with token_type ${renewed.tokenType}` : undefined,
+                    expected: "400 invalid_target",
+                    cause: renewed
+                        ? "The server doesn't support DPoP, so the Company issues tokens for it only by Token Exchange."
+                        : "invalid_target tells the Personal Agent that the server needs a different type of token (4.2), so it can use Token Exchange instead.",
+                });
+            }
+
             if (!token) continue;
             bearer[url] = token;
         }
@@ -394,7 +447,9 @@ export async function checkMcp(ctx: Context, r: Recorder): Promise<void> {
         skipRest(
             r,
             [
+                "mcp.token-exchange-grant",
                 "mcp.bearer-token",
+                "mcp.bearer-server-no-dpop",
                 "mcp.bearer-accepted",
                 "mcp.other-resource-rejected",
                 "mcp.bearer-elsewhere-rejected",

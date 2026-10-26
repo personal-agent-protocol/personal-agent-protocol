@@ -165,9 +165,9 @@ Both are optional.
 node <skill-dir>/validate/index.ts check https://<staging-domain> --milestone interfaces
 ```
 
-This version of the validator checks the signed-out parts: MCP metadata and `resource` binding,
-OpenAPI descriptions loading, and the basics of conversations (messages, retries, events, cursors,
-status, and close). Fix every failure.
+This version of the validator checks the signed-out parts: MCP metadata, `resource` binding, and
+which token requests get `invalid_target`, OpenAPI descriptions loading, the basics of conversations
+(messages, retries, events, cursors, status, and close), and feedback reports. Fix every failure.
 
 It doesn't yet check handoff, Direct Conversations, streaming, or browser sessions. For those, go
 through the interfaces section of `checklist.md` and test by hand on staging. Where a test needs

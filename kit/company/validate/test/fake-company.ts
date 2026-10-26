@@ -33,6 +33,17 @@ export type Flaws = {
     bearerAtDpopMcp?: boolean;
     // Issues a DPoP token, not a Bearer one, in exchange for the MCP server without DPoP.
     dpopAtBearerMcp?: boolean;
+    // Leaves the token exchange grant out of grant_types_supported.
+    noTokenExchangeGrant?: boolean;
+    // Refuses a token request for the wrong kind of MCP server with invalid_request, not
+    // invalid_target.
+    mcpTargetInvalidRequest?: boolean;
+    // Issues a DPoP token for the MCP server without DPoP when the Session is renewed for it.
+    renewalTokenAtBearerMcp?: boolean;
+    // Accepts feedback reports without a Session Token.
+    feedbackWithoutToken?: boolean;
+    // Rejects feedback reports whose kind it doesn't recognize.
+    rejectUnknownFeedbackKind?: boolean;
     // A scope in scopes_supported with no description anywhere.
     undescribedScope?: boolean;
     // Describes its scopes in auth.scopes instead of the OpenAPI description.
@@ -47,6 +58,7 @@ export const ORIGIN = "https://shop.test";
 const TOKEN = `${ORIGIN}/oauth/token`;
 const CONV = `${ORIGIN}/poppy/conversations`;
 const MCP = `${ORIGIN}/mcp`;
+const FEEDBACK = `${ORIGIN}/poppy/feedback`;
 
 type Token = { type: "DPoP" | "Bearer"; jkt?: string; resource?: string };
 type Conversation = {
@@ -129,13 +141,14 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
             return json(401, { error: "invalid_client" });
         const resource = form.get("resource") ?? undefined;
         const grant = form.get("grant_type");
+        const wrongTarget = flaws.mcpTargetInvalidRequest ? "invalid_request" : "invalid_target";
         let type: Token["type"] = "DPoP";
         if (grant === "urn:ietf:params:oauth:grant-type:token-exchange") {
             const subject = tokens.get(form.get("subject_token") ?? "");
             if (!subject || subject.type !== "DPoP" || subject.jkt !== jkt)
                 return json(400, { error: "invalid_grant" });
             if (resource !== MCP || (flaws.mcpDpop && !flaws.bearerAtDpopMcp))
-                return json(400, { error: "invalid_target" });
+                return json(400, { error: wrongTarget });
             if (!flaws.dpopAtBearerMcp) type = "Bearer";
         } else if (grant === "urn:ietf:params:oauth:grant-type:jwt-bearer") {
             const assertion = form.get("assertion") ?? "";
@@ -151,8 +164,8 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
             if (owner && owner !== sub && !flaws.ignoreKeyUser)
                 return json(400, { error: "invalid_grant" });
             if (!owner) sessions.set(jkt, sub);
-            if (resource && (resource !== MCP || !flaws.mcpDpop))
-                return json(400, { error: "invalid_target" });
+            if (resource && (resource !== MCP || !(flaws.mcpDpop || flaws.renewalTokenAtBearerMcp)))
+                return json(400, { error: wrongTarget });
         } else return json(400, { error: "unsupported_grant_type" });
         const access = randomId(24);
         tokens.set(access, { type, jkt: type === "DPoP" ? jkt : undefined, resource });
@@ -313,6 +326,7 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
             { type: "mcp", url: MCP, description: "Search" },
         ],
         excluded_tasks: { url: `${ORIGIN}/poppy/excluded-tasks.json` },
+        feedback: { endpoint: FEEDBACK },
     });
 
     const excludedTasks = () => ({
@@ -387,7 +401,9 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                     "urn:ietf:params:oauth:grant-type:jwt-bearer",
                     "refresh_token",
                     "authorization_code",
-                    "urn:ietf:params:oauth:grant-type:token-exchange",
+                    ...(flaws.noTokenExchangeGrant
+                        ? []
+                        : ["urn:ietf:params:oauth:grant-type:token-exchange"]),
                 ],
                 scopes_supported: flaws.undescribedScope
                     ? ["orders:read", "addresses"]
@@ -453,6 +469,16 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                     serverInfo: { name: "shop" },
                 },
             });
+        }
+        if (url.toString() === FEEDBACK && method === "POST") {
+            if (!flaws.feedbackWithoutToken) {
+                const denied = await authorize(method, url.toString(), headers);
+                if (denied) return denied;
+            }
+            const report = JSON.parse(body) as { kind?: string };
+            if (report.kind !== "missing" && flaws.rejectUnknownFeedbackKind)
+                return json(400, { error: "invalid_request" });
+            return new Response(null, { status: 202 });
         }
         if (url.toString().startsWith(CONV)) {
             const denied = await authorize(method, url.toString(), headers);

@@ -68,17 +68,18 @@ allowlist.
 | Milestone     | Checks                                                                                                                                                             |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 1. Foundation | `discovery.*` poppy.json; `metadata.*` OAuth server metadata; `session.*` starting and renewing Sessions; `dpop.*` DPoP at the token endpoint and resource servers |
-| 2. Interfaces | `openapi.*` OpenAPI documents; `mcp.*` MCP servers and Bearer tokens; `conversations.*` the conversation endpoint                                                  |
+| 2. Interfaces | `openapi.*` OpenAPI documents; `mcp.*` MCP servers and Bearer tokens; `conversations.*` the conversation endpoint; `feedback.*` the feedback endpoint              |
 | 3. Sign-in    | Not in this version. Check sign-in by hand against `checklist.md`.                                                                                                 |
 
 `catalog.ts` lists every check with its requirement and section.
 
 ## Safety
 
-- Requests are limited to GETs, token requests, and conversation requests. The validator never calls
-  an API operation other than the GET named with `--probe`.
+- Requests are limited to GETs, token requests, conversation requests, and feedback reports. The
+  validator never calls an API operation other than the GET named with `--probe`.
 - Conversations carry only the text "Validator test message. Please ignore." and are closed at the
-  end of the run.
+  end of the run. Feedback reports, three at most, have the task "Validator test report" and no
+  details about anyone.
 - Tokens, assertions, proofs, and keys are never printed or saved. Anything shown is redacted, such
   as `eyJhbGci…(redacted)`. `.poppy/last-results.json` has no secrets.
 - `report` never sends anything. It prints a draft and a prefilled issue link; review the draft and

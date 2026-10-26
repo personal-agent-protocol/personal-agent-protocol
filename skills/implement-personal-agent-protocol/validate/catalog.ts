@@ -30,6 +30,7 @@ export const MILESTONES: { id: Milestone; number: number; title: string }[] = [
 
 // Section numbers for display, such as "spec 4.3".
 export const SECTION_NUMBERS: Record<string, string> = {
+    "spec#intro": "1",
     "spec#terms": "2",
     "spec#discovery": "3",
     "spec#fields": "3.1",
@@ -45,6 +46,7 @@ export const SECTION_NUMBERS: Record<string, string> = {
     "spec#mediated-sign-in": "4.7",
     "spec#account-tokens": "4.8",
     "spec#sign-out": "4.9",
+    "spec#oauth-additions": "4.10",
     "spec#web-browsing": "5",
     "spec#apis": "6",
     "spec#conversations": "7",
@@ -61,8 +63,18 @@ export const SECTION_NUMBERS: Record<string, string> = {
     "spec#conversation-sign-in": "7.11",
     "spec#closing": "7.12",
     "spec#conversation-errors": "7.13",
+    "spec#unoffered-tasks": "8",
     "spec#excluded-tasks": "8.1",
     "spec#alternatives": "8.2",
+    "spec#feedback": "8.3",
+    "spec#security": "9",
+    "spec#untrusted-content": "9.1",
+    "spec#secrets": "9.2",
+    "spec#trust": "9.3",
+    "spec#assertion-audience": "9.4",
+    "spec#credentials": "9.5",
+    "spec#browser-join": "9.6",
+    "spec#references": "10",
 };
 
 function foundation(
@@ -418,6 +430,18 @@ export const CATALOG: CheckInfo[] = [
         "A Company that lists an MCP server that doesn't support DPoP MUST support the token exchange grant",
     ),
     interfaces(
+        "mcp.token-exchange-grant",
+        "grant_types_supported includes the token exchange grant when an MCP server lacks DPoP",
+        "spec#sending-tokens",
+        "A Company that lists an MCP server that doesn't support DPoP MUST support the token exchange grant, and list urn:ietf:params:oauth:grant-type:token-exchange in grant_types_supported",
+    ),
+    interfaces(
+        "mcp.bearer-server-no-dpop",
+        "Token endpoint refuses other token requests for an MCP server without DPoP with invalid_target",
+        "spec#sending-tokens",
+        "It rejects a token exchange for an MCP server that supports DPoP, and any other token request for one that doesn't, with invalid_target.",
+    ),
+    interfaces(
         "mcp.bearer-accepted",
         "The MCP server accepts a Bearer Session Token issued for it",
         "spec#apis",
@@ -437,7 +461,7 @@ export const CATALOG: CheckInfo[] = [
     ),
     interfaces(
         "mcp.dpop-server-no-bearer",
-        "Token endpoint refuses a Bearer Session Token for an MCP server that supports DPoP",
+        "Token endpoint refuses a token exchange for an MCP server that supports DPoP with invalid_target",
         "spec#sending-tokens",
         "It rejects a token exchange for an MCP server that supports DPoP, and any other token request for one that doesn't, with invalid_target.",
     ),
@@ -458,6 +482,26 @@ export const CATALOG: CheckInfo[] = [
         "A Bearer token for the MCP server is rejected outside MCP",
         "spec#sending-tokens",
         "Companies MUST accept a Bearer Session Token only at the MCP server whose url equals its resource, and MUST reject it at every other endpoint, including other paths on the same host.",
+    ),
+
+    // Milestone 2: feedback (section 8.3).
+    interfaces(
+        "feedback.no-token",
+        "The feedback endpoint rejects a report without a Session Token",
+        "spec#feedback",
+        "A Company MUST accept a report only with a Session Token, signed in or signed out, and needs no scope for it.",
+    ),
+    interfaces(
+        "feedback.accepted",
+        "The feedback endpoint accepts a report with a signed-out Session Token",
+        "spec#feedback",
+        "A Company MUST accept a report only with a Session Token, signed in or signed out, and needs no scope for it.",
+    ),
+    interfaces(
+        "feedback.unknown-kind",
+        "The feedback endpoint accepts a kind it doesn't recognize",
+        "spec#feedback",
+        "A Company MUST accept a kind it doesn't recognize, so later versions can add kinds.",
     ),
 
     // Milestone 2: conversations (section 7), signed out.
