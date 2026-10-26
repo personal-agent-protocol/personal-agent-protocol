@@ -54,7 +54,7 @@ are left out.
 - [ ] **MUST**: At the token endpoint, the Company MUST reject a proof whose `jti` it has already accepted within the acceptance window, because a replayed proof there could get a new token.
 - [ ] **MUST NOT**: The Company MUST NOT issue a Personal Agent a Bearer Session Token any other way.
 - [ ] **MUST**: Companies MUST accept a Bearer Session Token only at the MCP server whose `url` equals its `resource`, and MUST reject it at every other endpoint, including other paths on the same host.
-- [ ] **MUST**: Everywhere else, Companies MUST require DPoP, and MUST reject a DPoP Session Token sent with the `Bearer` scheme (RFC 9449 §7.1).
+- [ ] **MUST**: Everywhere else, Companies MUST require DPoP, and MUST reject a DPoP Session Token sent with the `Bearer` scheme (RFC 9449 §7.2).
 - [ ] **SHOULD**: New MCP servers SHOULD support DPoP.
 - [ ] **MUST**: An MCP server that supports DPoP MUST list `ES256` in its `dpop_signing_alg_values_supported`, and Personal Agents sign proofs for it with `ES256` or with an algorithm from that list.
 - [ ] **MUST**: A Company that lists an MCP server that doesn't support DPoP MUST support the token exchange grant, and list `urn:ietf:params:oauth:grant-type:token-exchange` in `grant_types_supported` (3.2).

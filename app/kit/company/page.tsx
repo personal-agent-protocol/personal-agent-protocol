@@ -295,22 +295,23 @@ export default function Page() {
                         reject a reused one. Any store it already uses will do.
                     </li>
                     <li>
-                        <strong>Session records.</strong> A new table holds each Session, its
-                        scopes, and its Account Token, so every component can look up who a request
-                        is for and what it may do.
+                        <strong>Session records.</strong> New tables hold each Session, keyed by its
+                        Session Key&rsquo;s thumbprint, and each Account Token, so every component
+                        can look up who a request is for and what it may do.
                     </li>
                     <li>
                         <strong>APIs and MCP.</strong> The API gateway accepts Session Tokens,
                         checks DPoP proofs and scopes, and passes the User to backend services that
-                        don&rsquo;t change. If you have an MCP server, it stays as it is: the
-                        gateway accepts Bearer Session Tokens for it, as the protocol requires for
-                        MCP. The protocol doesn't require an MCP server.
+                        don&rsquo;t change. If you have an MCP server that can&rsquo;t verify DPoP
+                        yet, it stays as it is: the gateway accepts the Bearer Session Tokens that
+                        Personal Agents get for it by Token Exchange. The protocol doesn't require
+                        an MCP server.
                     </li>
                     <li>
-                        <strong>Web.</strong> A browser session endpoint in the web app turns a
-                        Personal Agent&rsquo;s signed assertion into the site&rsquo;s usual cookie,
-                        linked to the Session, and the cookie check applies the Session&rsquo;s
-                        scopes.
+                        <strong>Web.</strong> A browser session endpoint in the web app serves a
+                        one-time code, checks the Personal Agent&rsquo;s DPoP proof over it, and
+                        sets the site&rsquo;s usual cookie, linked to the Session. The cookie check
+                        applies the Session&rsquo;s scopes.
                     </li>
                     <li>
                         <strong>Conversations.</strong> A conversation endpoint carries messages

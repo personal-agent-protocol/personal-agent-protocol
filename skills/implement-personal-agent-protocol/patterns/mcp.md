@@ -40,7 +40,7 @@ A new MCP server whose tools call the existing APIs with the verified identity.
 - An MCP server's 401 responses carry a challenge for each scheme it accepts, each with
   `resource_metadata` (section 6).
 - An MCP server that supports DPoP rejects a DPoP Session Token sent with the `Bearer` scheme
-  (RFC 9449 §7.1). Otherwise a copied DPoP token works there without its key.
+  (RFC 9449 §7.2). Otherwise a copied DPoP token works there without its key.
 - MCP clients that don't implement Poppy can sign in through MCP's own authorization flow. The
   Company treats that as a new signed-in Session with no User ID, which ends when the sign-in is
   revoked or expires (section 6).

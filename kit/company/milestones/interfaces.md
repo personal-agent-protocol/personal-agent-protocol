@@ -184,10 +184,12 @@ printing or copying the private key, and keep the script out of the Company's pr
   parent closes an open Direct Conversation.
 - **Streaming,** if offered: events arrive with SSE `id`s, a reconnect with `Last-Event-ID` resumes
   after it, and idle streams stay open.
-- **Browser sessions:** load the endpoint in a browser, confirm its code with a Session Token, and
-  see the website show the Session's state, not an earlier visitor's. Send the same code again, an
-  expired code, a made-up code, and a valid code with a Bearer token: each gets an error. Load the
-  endpoint in a second browser and confirm the first browser's code: the second browser stays
-  signed out.
+- **Browser sessions:** load the endpoint in a browser, submit its code with a DPoP Proof signed
+  with the Session Key, and see the website show the Session's state, not an earlier visitor's.
+  Check the page's `Cache-Control`, `Content-Security-Policy`, `Cross-Origin-Opener-Policy`, and
+  join cookie. Send the same code again, an expired code, a made-up code, a proof with the wrong
+  `nonce` or `htu`, and a proof signed with a key that names no Session: each gets an error. Submit
+  the first browser's code and a valid proof from a second browser, which doesn't have the first
+  one's join cookie: the second browser stays signed out.
 
 Log anything unclear in `plan/feedback.md`.

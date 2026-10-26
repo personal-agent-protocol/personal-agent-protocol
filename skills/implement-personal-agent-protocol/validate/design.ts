@@ -76,7 +76,7 @@ export function progress(
             openapi: Boolean(poppy?.apis?.some((a) => a?.type === "openapi")),
             mcp: Boolean(poppy?.apis?.some((a) => a?.type === "mcp")),
             conversations: Boolean(poppy?.agent?.protocols?.some((p) => p?.type === "poppy")),
-            web: poppy?.web !== undefined,
+            web: poppy?.web?.browser_session_endpoint !== undefined,
         } as Record<string, boolean>,
         "sign-in": {
             direct: offersGrant(metadata, SIGN_IN_GRANTS.direct),

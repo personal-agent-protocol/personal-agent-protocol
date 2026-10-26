@@ -1,14 +1,17 @@
 # Pattern: the token endpoint
 
-The token endpoint starts and renews Sessions, completes sign-in, and exchanges Account Tokens
+The token endpoint starts and renews Sessions, completes sign-in, exchanges Account Tokens, and
+issues Bearer tokens for MCP servers by Token Exchange
 ([4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions),
+[4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens),
 [4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in),
 [4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)). Session Tokens are OAuth access
 tokens and Account Tokens are OAuth refresh tokens, so a Company can build on its existing OAuth
 server ([section 4](https://personalagentprotocol.org/docs/0.3/spec#sessions)). The choice here shapes
 most of the build.
 
-What Poppy adds to standard OAuth:
+What Poppy adds to standard OAuth, which
+[4.10](https://personalagentprotocol.org/docs/0.3/spec#oauth-additions) summarizes:
 
 - Clients identified by an HTTPS URL that returns their metadata, authenticated with
   `private_key_jwt` using keys from their `jwks_uri`

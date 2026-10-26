@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { formatSchemaErrors, validateSchema } from "../schema.ts";
+import { PROTOCOL_VERSION } from "../catalog.ts";
 import { check, loadSchemas } from "../schemas.ts";
 
 const poppy = {
-    protocol_version: "0.2",
+    protocol_version: PROTOCOL_VERSION,
     organization: { name: "Alpine Retail", domain: "alpine-retail.example" },
-    auth: { issuer: "https://auth.alpine-retail.example", direct: { scopes: ["orders:read"] } },
+    auth: {
+        issuer: "https://auth.alpine-retail.example",
+        scopes: { "orders:read": "See your orders and returns" },
+    },
     agent: {
         protocols: [
             { type: "poppy", endpoint: "https://api.alpine-retail.example/poppy/conversations" },

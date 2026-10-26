@@ -351,7 +351,7 @@ export const CATALOG: CheckInfo[] = [
         "dpop.bearer-scheme",
         "A DPoP Session Token sent with the Bearer scheme is rejected",
         "spec#sending-tokens",
-        "Everywhere else, Companies MUST require DPoP, and MUST reject a DPoP Session Token sent with the Bearer scheme (RFC 9449 §7.1).",
+        "Everywhere else, Companies MUST require DPoP, and MUST reject a DPoP Session Token sent with the Bearer scheme (RFC 9449 §7.2).",
     ),
     foundation(
         "dpop.wrong-ath",

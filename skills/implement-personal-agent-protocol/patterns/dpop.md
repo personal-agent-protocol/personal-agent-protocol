@@ -79,5 +79,7 @@ for path rewrites, such as a gateway that strips a prefix.
   It has no `ath`, and its `nonce` is the form's code
   ([section 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)). Share the verification
   code with the token endpoint and APIs.
-- Accept Bearer Session Tokens only on MCP APIs, and require DPoP everywhere else (4.3). An MCP server
-  that supports DPoP also accepts DPoP tokens, and rejects one sent with the `Bearer` scheme.
+- Accept a Bearer Session Token only at the MCP server without DPoP whose `url` is its `resource`,
+  and require DPoP everywhere else (4.3). Issue Bearer Session Tokens only by Token Exchange. An MCP
+  server that supports DPoP gets DPoP Session Tokens from Personal Agents, and rejects one sent with
+  the `Bearer` scheme.

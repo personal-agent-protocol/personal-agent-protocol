@@ -3,14 +3,14 @@
 The Company keeps a record for each Session and each Account Token ("How sign-in is remembered" in
 [4.4](https://personalagentprotocol.org/docs/spec#sign-in)):
 
-| Record  | Holds                                                           |
-| ------- | --------------------------------------------------------------- |
-| Session | `client_id`, User ID, and the account it's signed in to, if any |
+| Record        | Holds                                                           |
+| ------------- | --------------------------------------------------------------- |
+| Session       | `client_id`, User ID, and the account it's signed in to, if any |
+| Account Token | `client_id`, User ID, account, granted scopes, and expiry       |
 
 Find each Session record by the thumbprint of its Session Key
 ([4.3](https://personalagentprotocol.org/docs/spec#sending-tokens)). The token endpoint has no other
 way to tell which Session a request is for.
-| Account Token | `client_id`, User ID, account, granted scopes, and expiry |
 
 In practice a Session record also needs its expiry and the Account Token that signed it in, so
 sign-out can find its Sessions ([4.9](https://personalagentprotocol.org/docs/spec#sign-out)).

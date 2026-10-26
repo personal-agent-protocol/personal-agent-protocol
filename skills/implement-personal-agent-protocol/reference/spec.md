@@ -293,7 +293,7 @@ The Personal Agent holds the User IDs and Agent IDs of each of its Users at ever
 
 To start a Session, the Personal Agent requests a Session Token from the Company's `token_endpoint` with the JWT bearer grant ([RFC 7523](https://www.rfc-editor.org/rfc/rfc7523) §2.1). The assertion is a short-lived JWT signed with a key from its `jwks_uri`, naming itself in `iss` and the User in `sub`. Unlike most uses of this grant, the client issues the assertion itself: the Personal Agent obtains its own authorization, as [draft-ietf-wimse-aims](https://datatracker.ietf.org/doc/draft-ietf-wimse-aims/) §10.4.2 describes, for one User the Company knows only by User ID. AIMS names the agent in `sub`. Poppy names it in `iss` and the User in `sub`, because the token is for that User. Like every token request, it also carries the Personal Agent's client assertion (4.1) and a DPoP Proof (4.3). The Personal Agent creates a new Session Key for the Session and signs the proof with it.
 
-Off-the-shelf authorization servers generally don't accept this grant as it is. They accept a JWT bearer assertion only for a subject they already know, and the Company has usually never seen the User ID before. So a Company needs some custom work for this grant, such as an extension to its authorization server or a service in front of its token endpoint. The guides compare the options. The requests after it, for signing in, Account Tokens, and Token Exchange, are standard OAuth requests, though the Company's server still needs what 4.10 lists.
+Off-the-shelf authorization servers generally don't accept this grant as it is. They accept a JWT bearer assertion only for a subject they already know, and the Company has usually never seen the User ID before. So a Company needs some custom work for this grant, such as an extension to its authorization server or a service in front of its token endpoint. The guides compare the options. The requests after it, for Direct and Device Sign-In, Account Tokens, and Token Exchange, are standard OAuth requests, though the Company's server still needs what 4.10 lists.
 
 *Request: Personal Agent → Company*
 
@@ -450,7 +450,7 @@ A Company MAY require proofs to include a nonce it issued, as RFC 9449 describes
 - For an MCP server that supports DPoP, the Personal Agent sends the request that starts a Session (4.2, 4.8) or renews its token (4.2, or 4.8 for a signed-in Session), and the Company issues a DPoP Session Token, which the Personal Agent uses with proofs, as at any other API.
 - For an MCP server that doesn't support DPoP, the Personal Agent exchanges a DPoP Session Token for a `Bearer` one with the token exchange grant ([RFC 8693](https://www.rfc-editor.org/rfc/rfc8693)), described below. The Company MUST NOT issue a Personal Agent a Bearer Session Token any other way. It rejects a token exchange for an MCP server that supports DPoP, and any other token request for one that doesn't, with `invalid_target`.
 
-The Personal Agent MUST use the scheme that `token_type` names. A Session can have a token for each MCP server and one for its other APIs at the same time. Anyone who copies a Bearer token can use it, so each one works at only one MCP server. Companies MUST accept a Bearer Session Token only at the MCP server whose `url` equals its `resource`, and MUST reject it at every other endpoint, including other paths on the same host. Everywhere else, Companies MUST require DPoP, and MUST reject a DPoP Session Token sent with the `Bearer` scheme (RFC 9449 §7.1). Web pages, including the browser-session page, don't use Session Tokens. The browser carries a cookie instead (section 5).
+The Personal Agent MUST use the scheme that `token_type` names. A Session can have a token for each MCP server and one for its other APIs at the same time. Anyone who copies a Bearer token can use it, so each one works at only one MCP server. Companies MUST accept a Bearer Session Token only at the MCP server whose `url` equals its `resource`, and MUST reject it at every other endpoint, including other paths on the same host. Everywhere else, Companies MUST require DPoP, and MUST reject a DPoP Session Token sent with the `Bearer` scheme (RFC 9449 §7.2). Web pages, including the browser-session page, don't use Session Tokens. The browser carries a cookie instead (section 5).
 
 New MCP servers SHOULD support DPoP. Leaving it out is meant for existing MCP servers whose software can't verify DPoP Proofs yet. An MCP server that supports DPoP MUST list `ES256` in its `dpop_signing_alg_values_supported`, and Personal Agents sign proofs for it with `ES256` or with an algorithm from that list. It verifies proofs as this section describes, and rejects a DPoP Session Token sent with the `Bearer` scheme. It still accepts Bearer tokens from MCP clients that don't implement this protocol (section 6).
 
@@ -503,11 +503,11 @@ A Session does not require sign-in. When a task needs account access and the Per
 
 | Type | Who signs in | How |
 | --- | --- | --- |
-| `direct` | The User | The User signs in on the Company's own page in their browser and approves access. Standard OAuth 2.0 authorization code flow (4.5). |
-| `device` | The User | The Personal Agent shows the User a link and code. The User signs in on the Company's page on any device and approves access. Standard OAuth 2.0 device authorization grant (4.6). |
-| `mediated` | The Personal Agent, for the User | The Personal Agent sends the User's credentials to the Company's sign-in endpoint (4.7). |
+| Direct | The User | The User signs in on the Company's own page in their browser and approves access. Standard OAuth 2.0 authorization code flow (4.5). |
+| Device | The User | The Personal Agent shows the User a link and code. The User signs in on the Company's page on any device and approves access. Standard OAuth 2.0 device authorization grant (4.6). |
+| Mediated | The Personal Agent, for the User | The Personal Agent sends the User's credentials to the Company's sign-in endpoint (4.7). |
 
-A Company can't always verify which type actually happened. For example, a Personal Agent could complete a Direct Sign-In page itself. The types work on trust: a Personal Agent MUST use direct or Device Sign-In only when the User signs in themselves. Companies MAY revoke the `client_id` of a Personal Agent that doesn't (4.1).
+A Company can't always verify which type actually happened. For example, a Personal Agent could complete a Direct Sign-In page itself. The types work on trust: a Personal Agent MUST use Direct or Device Sign-In only when the User signs in themselves. Companies MAY revoke the `client_id` of a Personal Agent that doesn't (4.1).
 
 A Personal Agent SHOULD use Direct or Device Sign-In rather than Mediated Sign-In when the Company offers it and the scopes it can grant cover the task. With Direct and Device Sign-In, the User's password stays with the Company, and the User can see and revoke what they approved. In turn, a Company that offers Direct or Device Sign-In SHOULD make its scopes and APIs cover the tasks Users ask Personal Agents to do, so that Personal Agents don't need the User's credentials (9.5).
 
@@ -584,7 +584,7 @@ https://auth.example.com/oauth/authorize
 
 A Company that supports pushed authorization requests ([RFC 9126](https://www.rfc-editor.org/rfc/rfc9126)) lists `pushed_authorization_request_endpoint` in its metadata. There, the Personal Agent MAY instead push the request with a proof signed with the Session Key, and leave out `dpop_jkt` (RFC 9449 §10.1). Either way, the Company binds the code to that key.
 
-**2. The User signs in and approves.** The Company's page shows which Personal Agent is asking, using the name and logo from its metadata document. The User signs in however the Company allows, such as a password, a passkey, or a provider like Google or Apple. The page shows the requested scopes and lets the User approve some or all of them, or decline.
+**2. The User signs in and approves.** The Company's page shows which Personal Agent is asking, using the name and logo from its metadata document. The User signs in however the Company allows, such as a password, a passkey, or an account with another provider. The page shows the requested scopes and lets the User approve some or all of them, or decline.
 
 **3. The Company sends the User back.** The Company redirects the browser to `redirect_uri` with a one-time `code`, the same `state`, and its `auth.issuer` in `iss` ([RFC 9207](https://www.rfc-editor.org/rfc/rfc9207)). `redirect_uri` MUST exactly match an entry in the Personal Agent's `redirect_uris` (4.1), except for the port of a loopback redirect URI, as RFC 8252 §7.3 describes. If the User declines, the redirect carries `error=access_denied` and `iss` instead.
 
@@ -641,7 +641,9 @@ scope=orders%3Aread%20orders%3Awrite
 }
 ```
 
-**2. The User signs in and approves.** The Personal Agent shows the User `verification_uri` and `user_code`, or `verification_uri_complete` as a link or QR code. It keeps `device_code` private. Before showing them, the Personal Agent MUST check that the link's host is the host of `auth.issuer` or of a URL in the issuer's `protected_resources` (3.2), or a subdomain of either, and MUST show the Company's `organization.name` and domain with them. Otherwise a Company could pass off another Company's sign-in page as its own, and the User would approve a sign-in there for the Company that asked. The Company's page shows which Personal Agent is asking and the requested scopes, as in Direct Sign-In, and the User approves some or all of them, or declines. Opening the link MUST NOT approve the request by itself.
+**2. The User signs in and approves.** The Personal Agent shows the User `verification_uri` and `user_code`, or `verification_uri_complete` as a link or QR code. It keeps `device_code` private. Before showing them, the Personal Agent MUST check that the link's host is the host of `auth.issuer` or of a URL in the issuer's `protected_resources` (3.2), or a subdomain of either, and MUST show the Company's `organization.name` and domain with them. Otherwise a Company could pass off another Company's sign-in page as its own, and the User would approve a sign-in there for the Company that asked.
+
+The Company's page shows which Personal Agent is asking and the requested scopes, as in Direct Sign-In, and the User approves some or all of them, or declines. Opening the link MUST NOT approve the request by itself.
 
 **3. The Personal Agent waits.** Every `interval` seconds, the Personal Agent asks the `token_endpoint` whether the User has finished, with a proof signed with the Session Key:
 
@@ -745,7 +747,7 @@ A correct code returns `complete` with the tokens. A wrong code returns `code_re
 
 | Status | Meaning |
 | --- | --- |
-| `complete` | Signed in. The response includes the Account Token, the new Session Token, and the granted `scope`. |
+| `complete` | Signed in. The response includes the Account Token and the new Session Token, with `scope` as in 4.4. |
 | `code_required` | The Company sent the User a one-time code. Submit it to continue. |
 | `failed` | Sign-in didn't succeed, for example a wrong password or too many wrong codes. |
 | `expired` | The sign-in took longer than `expires_at`. Start again. |
@@ -828,7 +830,7 @@ The User can also disconnect the Personal Agent from the Company's account setti
 
 ### 4.10 What Poppy adds to OAuth
 
-Every request in this section is a standard OAuth request. What a Company's authorization server needs beyond the specifications listed at the start of this section:
+Every request in this section except Mediated Sign-In (4.7) is a standard OAuth request. What a Company's authorization server needs beyond the specifications listed at the start of this section:
 
 - **Sessions named by DPoP keys.** A proof from a new key starts a Session, and a proof from a known key renews it or signs it in (4.3). The Company keeps a record for each Session (4.4).
 - **Assertions the Personal Agent issues.** The Personal Agent signs its own JWT bearer assertion, naming itself in `iss`, the User ID in `sub`, and optionally one of its agents in `agent_id` (4.2). Most authorization servers need custom work to accept it (4.2).
@@ -1180,7 +1182,7 @@ Every event has an `id`, a `type`, and a `created_at` time ([RFC 3339](https://w
 | --- | --- |
 | `message` | `message`: a message from either side, as it was sent, with `role` set by the Company to `user` or `company` for the side it came from. Every message the Company accepts is recorded, including one with only `context`. |
 | `state` | `status` and `responder`, after either one changes. See 7.7 for their values. |
-| `authorization` | `error`, and `scope` when needed: the Company needs sign-in or more scopes (7.11). |
+| `authorization` | `error` and `scope`: the Company needs sign-in or more scopes (7.11). |
 | `user_requested` | `reason`: the Company asks to talk with the User directly (7.10). |
 | `direct_opened`, `direct_closed` | `conversation_id`: a Direct Conversation linked to this one opened or closed (7.10). |
 
@@ -1529,7 +1531,7 @@ A Personal Agent works with many Companies it has no prior relationship with, an
 
 ### 9.5 Signing in with the User's credentials
 
-Direct and Device Sign-In delegate access: the User approves scopes on the Company's own page, and the Company knows which Personal Agent acts and can limit or revoke it without affecting the User. Mediated Sign-In gives the Personal Agent the User's credentials, but the Company still knows which Personal Agent signed in, and limits it to `auth.mediated.scopes` (4.7). A Personal Agent that signs in on the Company's website with the User's credentials, outside this protocol, looks like the User: the Company can't limit what it does, and can only stop it by blocking it entirely. A Company that offers no Direct or Device Sign-In, or whose scopes don't cover what Users need, can expect Personal Agents to sign in that way. That is why 4.4 asks Personal Agents to prefer Direct and Device Sign-In over Mediated Sign-In, and Companies that offer them to make them cover what Users need. It is also why Mediated Sign-In is only a transitional step (4.7).
+Direct and Device Sign-In delegate access: the User approves scopes on the Company's own page, and the Company knows which Personal Agent acts and can limit or revoke it without affecting the User. Mediated Sign-In gives the Personal Agent the User's credentials, but the Company still knows which Personal Agent signed in, and limits it to `auth.mediated.scopes` (4.4). A Personal Agent that signs in on the Company's website with the User's credentials, outside this protocol, looks like the User: the Company can't limit what it does, and can only stop it by blocking it entirely. A Company that offers no Direct or Device Sign-In, or whose scopes don't cover what Users need, can expect Personal Agents to sign in that way. That is why 4.4 asks Personal Agents to prefer Direct and Device Sign-In over Mediated Sign-In, and Companies that offer them to make them cover what Users need. It is also why Mediated Sign-In is only a transitional step (4.7).
 
 ### 9.6 Joining a browser to a Session
 

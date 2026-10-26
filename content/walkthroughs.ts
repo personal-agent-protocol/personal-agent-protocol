@@ -545,9 +545,9 @@ Content-Type: application/json
                     },
                     {
                         t: "agent",
-                        text: "I'm signing in to Laurel with your saved login. They just texted you a code. What is it?",
+                        text: "I'm signing in to Laurel Fiber (laurelfiber.example) with your saved login. They just texted you a code. Enter it in the code box, which sends it straight to Laurel.",
                     },
-                    { t: "user", text: "482913" },
+                    { t: "user", text: "Done, I entered it." },
                     { t: "agent", text: "Thanks, I'm in. Checking your connection now." },
                 ],
                 company: {
@@ -621,7 +621,8 @@ Content-Type: application/json
   "expires_at": "2026-10-06T13:32:00-05:00"
 }
 
-// Atlas asks the user for the code and sends only the code:
+// Atlas collects the code in a field its model can't read, and
+// sends only the code:
 
 POST https://auth.laurelfiber.example/poppy/sign-in/sgn_8Qm2
 Authorization: DPoP ${TOKENS.laurelSignedOut}
@@ -1203,6 +1204,10 @@ Content-Type: application/json
                         body: `GET https://chaparralhotel.example/poppy/browser-session
 
 HTTP/1.1 200 OK
+Content-Type: text/html
+Cache-Control: no-store
+Content-Security-Policy: frame-ancestors 'none'
+Cross-Origin-Opener-Policy: same-origin
 Set-Cookie: __Host-ch_join=Lk40sB…; Path=/; Max-Age=60; Secure; HttpOnly; SameSite=Strict
 
 <form method="post" action="/poppy/browser-session">
@@ -1213,6 +1218,9 @@ Set-Cookie: __Host-ch_join=Lk40sB…; Path=/; Max-Age=60; Secure; HttpOnly; Same
 // Atlas signs a proof over the code with the Session Key of its
 // signed-in Chaparral session, and its browser submits the form:
 POST https://chaparralhotel.example/poppy/browser-session
+Content-Type: application/x-www-form-urlencoded
+Cookie: __Host-ch_join=Lk40sB…
+
 code=bc_8Jr2Lp0Qx5Tm1Wc7Ns4Ke&proof=eyJ0eXAiOiJkcG9wK2p3dCIs…
 
 HTTP/1.1 303 See Other

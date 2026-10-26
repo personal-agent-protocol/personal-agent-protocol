@@ -10,15 +10,15 @@ In progress, at [/docs/spec](https://personalagentprotocol.org/docs/0.3/spec). T
 
 #### Sign-in types from the OAuth server metadata
 
-Breaking · [Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)
+Breaking · [Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Spec 9.3](https://personalagentprotocol.org/docs/0.3/spec#trust) · [Guides: An issuer for personal agents](https://personalagentprotocol.org/docs/0.3/guides#company-agent-issuer)
 
-`auth.direct` and `auth.device` are removed from `poppy.json`. A Company offers Direct and Device Sign-In when `grant_types_supported` in its OAuth server metadata includes `authorization_code` or `urn:ietf:params:oauth:grant-type:device_code`, so there's no second list to drift out of sync with the issuer. `grant_types_supported` is now required, with the JWT bearer and refresh token grants. A Company whose issuer offers one of these grants to other clients offers it to Personal Agents too. Direct and Device Sign-In can grant any scope in `scopes_supported`. Only Mediated Sign-In keeps its own list, `auth.mediated.scopes`.
+`auth.direct` and `auth.device` are removed from `poppy.json`. A Company offers Direct and Device Sign-In when `grant_types_supported` in its OAuth server metadata includes `authorization_code` or `urn:ietf:params:oauth:grant-type:device_code`, so there's no second list to drift out of sync with the issuer. `grant_types_supported` is now required, with the JWT bearer and refresh token grants. A Company whose issuer offers one of these grants to other clients offers it to Personal Agents too, and the guides explain how to keep one from Personal Agents with an issuer only for them. Direct and Device Sign-In can grant any scope in `scopes_supported`. Only Mediated Sign-In keeps its own list, `auth.mediated.scopes`.
 
-#### Company-defined scopes only
+#### Company-defined scopes
 
-Breaking · [Spec 2](https://personalagentprotocol.org/docs/0.3/spec#terms) · [Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Guides: Enforcing scopes everywhere](https://personalagentprotocol.org/docs/0.3/guides#company-scopes)
+Breaking · [Spec 2](https://personalagentprotocol.org/docs/0.3/spec#terms) · [Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Guides: Enforcing scopes everywhere](https://personalagentprotocol.org/docs/0.3/guides#company-scopes) · [Guides: An issuer for personal agents](https://personalagentprotocol.org/docs/0.3/guides#company-agent-issuer)
 
-The protocol no longer defines `poppy:read` and `poppy:write`. Each Company defines its own scopes, usually the OAuth scopes it already has, and must describe each one, in an OpenAPI description it lists or in `auth.scopes`. Names starting with `poppy:` stay reserved.
+The protocol no longer defines `poppy:read` and `poppy:write`. Each Company defines its own scopes, usually the OAuth scopes it already has, and lists every scope a Personal Agent can request in `scopes_supported` in its OAuth server metadata, as RFC 8414 defines. Personal Agents request only scopes from that list. The Company must describe each scope, in the OAuth security scheme of an OpenAPI description it lists, or otherwise in `auth.scopes`, which replaces `auth.custom_scopes` and has the same form as the `scopes` of an OAuth 2.0 security scheme in OpenAPI. Names starting with `poppy:` stay reserved. `scopes_supported` may leave out scopes the Company doesn't offer Personal Agents, and the Company may limit the scopes it grants by client, so an issuer that serves other clients doesn't need a separate one for Personal Agents.
 
 #### Scope hints
 
@@ -34,9 +34,9 @@ Personal Agents should use Direct or Device Sign-In rather than Mediated Sign-In
 
 #### Session Keys replace `session_id`
 
-Breaking · [Spec 2](https://personalagentprotocol.org/docs/0.3/spec#terms) · [Spec 4](https://personalagentprotocol.org/docs/0.3/spec#sessions) · [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Spec 4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in) · [Spec 4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in) · [Spec 4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in) · [Spec 4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens) · [Guides: DPoP keys and proofs](https://personalagentprotocol.org/docs/0.3/guides#agent-dpop) · [Guides: Sessions and session keys](https://personalagentprotocol.org/docs/0.3/guides#company-session-keys)
+Breaking · [Spec 2](https://personalagentprotocol.org/docs/0.3/spec#terms) · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4](https://personalagentprotocol.org/docs/0.3/spec#sessions) · [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Spec 4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in) · [Spec 4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in) · [Spec 4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in) · [Spec 4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens) · [Guides: User IDs](https://personalagentprotocol.org/docs/0.3/guides#agent-user-ids) · [Guides: DPoP keys and proofs](https://personalagentprotocol.org/docs/0.3/guides#agent-dpop) · [Guides: Direct and device sign-in](https://personalagentprotocol.org/docs/0.3/guides#agent-direct-device) · [Guides: Native and distributed apps](https://personalagentprotocol.org/docs/0.3/guides#agent-native-apps) · [Guides: Sessions and session keys](https://personalagentprotocol.org/docs/0.3/guides#company-session-keys)
 
-Each Session has its own DPoP key, the Session Key, and the key's thumbprint names the Session. The custom `session_id` parameter is removed from every token request and response, so Poppy's token requests are standard OAuth requests. A proof from a new key starts a new Session, and a proof from a known key renews or signs in that Session. Personal Agents use a new key for each Session instead of one for each User ID. Companies should remember the keys of Sessions they end and reject them with `invalid_grant`, so an ended Session's key doesn't silently start a new one.
+Each Session has its own DPoP key, the Session Key, and the key's thumbprint names the Session. The custom `session_id` parameter is removed from every token request and response, so Poppy's token requests are standard OAuth requests. A proof from a new key starts a new Session, and a proof from a known key renews or signs in that Session. Personal Agents use a new key for each Session instead of one for each User ID, and a Session can't change its key. Account Tokens aren't bound to a key, so one can start Sessions with different keys. Companies must support `dpop_jkt`, and Personal Agents must bind the authorization code to the Session Key with it, or with a proof on a pushed authorization request, at a `pushed_authorization_request_endpoint` the metadata can now list. A device code is bound to the key of the first poll. Companies should remember the keys of Sessions they end and reject them, so an ended Session's key doesn't silently start a new one.
 
 #### Agent IDs for several agents
 
@@ -48,7 +48,7 @@ A Personal Agent that acts for a User through several agents can say which one a
 
 Breaking · [Spec 4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens) · [Spec 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing) · [Spec 9.4](https://personalagentprotocol.org/docs/0.3/spec#assertion-audience) · [Spec 9.6](https://personalagentprotocol.org/docs/0.3/spec#browser-join) · [Spec 10](https://personalagentprotocol.org/docs/0.3/spec#references) · [Guides: Handling secrets](https://personalagentprotocol.org/docs/0.3/guides#both-secrets) · [Guides: Web browsing](https://personalagentprotocol.org/docs/0.3/guides#agent-browsing) · [Guides: Browser sessions](https://personalagentprotocol.org/docs/0.3/guides#company-browsing)
 
-The Personal Agent's browser no longer posts a signed browser assertion. Any browser could post one, so a malicious Personal Agent could have a victim's browser join a Session signed in to the attacker's account. Now the browser loads `web.browser_session_endpoint` with a GET and gets a page with a form holding a one-time code, and a `SameSite=Strict` cookie that ties the code to that browser. The Personal Agent signs a DPoP Proof with its Session Key, with the code as its `nonce`, puts it in the form, and has the browser submit it. The Company checks the cookie, the code, and the proof, and sets the Session's cookie in its response. The page can't be framed or kept by the page that opened it. The Personal Agent takes the code only from its own browser, outside its model, and the guides list the code as a secret. The browser assertion, its `typ`, and `return_to` are removed. The Session's cookie SHOULD use the `__Host-` prefix, and `SameSite=Strict` is no longer ruled out. A new section 9.6 explains both attacks the design prevents, and the references add RFC 9111, RFC 6265bis, RFC 9700, and RFC 10027.
+The Personal Agent's browser no longer posts a signed browser assertion. Any browser could post one, so a malicious Personal Agent could have a victim's browser join a Session signed in to the attacker's account. Now the browser loads `web.browser_session_endpoint` with a GET and gets a page with a form holding a one-time code, and a `SameSite=Strict` cookie that ties the code to that browser. The Personal Agent signs a DPoP Proof with its Session Key, with the code as its `nonce`, puts it in the form, and has the browser submit it. The Company checks the cookie, the code, and the proof, and sets the Session's cookie in its response. The page can't be framed or kept by the page that opened it. The Personal Agent takes the code only from its own browser, outside its model, and the guides list the code as a secret. The browser assertion, its `typ`, and `return_to` are removed. The Session's cookie SHOULD use the `__Host-` prefix, and `SameSite=Strict` is no longer ruled out. A new section 9.6 explains both attacks the design prevents, and the references add RFC 9111 and RFC 6265bis.
 
 #### Mediated Sign-In is transitional
 
@@ -64,13 +64,13 @@ A Company can list the tasks it chose not to offer through this protocol, so Per
 
 #### Answering feedback with an alternative
 
-[Spec 8.3](https://personalagentprotocol.org/docs/0.3/spec#feedback) · [Guides: Tasks a company doesn't offer](https://personalagentprotocol.org/docs/0.3/guides#agent-excluded-tasks) · [Guides: Excluded tasks and feedback](https://personalagentprotocol.org/docs/0.3/guides#company-excluded-tasks)
+Breaking · [Spec 8.3](https://personalagentprotocol.org/docs/0.3/spec#feedback) · [Guides: Tasks a company doesn't offer](https://personalagentprotocol.org/docs/0.3/guides#agent-excluded-tasks) · [Guides: Excluded tasks and feedback](https://personalagentprotocol.org/docs/0.3/guides#company-excluded-tasks)
 
 A Company can answer a feedback report with HTTP 200 and an alternative (8.2) when the task can be done after all, instead of 202 with no body. Personal Agents MUST accept either response, and SHOULD NOT report a task the Company lists as excluded.
 
 #### Secrets out of model context
 
-Breaking · [Spec 9.2](https://personalagentprotocol.org/docs/0.3/spec#secrets) · [Spec 10](https://personalagentprotocol.org/docs/0.3/spec#references) · [Guides: Handling secrets](https://personalagentprotocol.org/docs/0.3/guides#both-secrets)
+Breaking · [Spec 9.2](https://personalagentprotocol.org/docs/0.3/spec#secrets) · [Guides: Handling secrets](https://personalagentprotocol.org/docs/0.3/guides#both-secrets)
 
 Personal Agents must keep Session Tokens, private keys, authorization codes, PKCE code verifiers, and device codes out of model context, as they already did Account Tokens. Before, these were a SHOULD. This follows the AI agent identity draft (draft-ietf-wimse-aims §8), which says the model must not have access to an agent's credentials. Other secrets, such as one-time codes, stay a SHOULD. The guides list authorization codes and PKCE code verifiers as secrets.
 
@@ -90,63 +90,21 @@ A redirect of the well-known URL can still go to another host, but the Personal 
 
 #### `protected_resources` replaces `poppy_domains`
 
-Breaking · [Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in) · [Spec 9.3](https://personalagentprotocol.org/docs/0.3/spec#trust) · [Guides: Direct and device sign-in](https://personalagentprotocol.org/docs/0.3/guides#agent-direct-device) · [Guides: Hosting several companies](https://personalagentprotocol.org/docs/0.3/guides#company-hosting)
+Breaking · [Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in) · [Spec 10](https://personalagentprotocol.org/docs/0.3/spec#references) · [Guides: Direct and device sign-in](https://personalagentprotocol.org/docs/0.3/guides#agent-direct-device) · [Guides: Hosting several companies](https://personalagentprotocol.org/docs/0.3/guides#company-hosting)
 
 The issuer confirms which domains name it with `protected_resources`, the field RFC 9728 registers in authorization server metadata, instead of the custom `poppy_domains`. It lists `https://{domain}` for each domain, exactly in that form with no path or trailing slash, and may list other resources, such as MCP servers. Personal Agents check that it includes `https://{organization.domain}` by exact string, ignoring case only in the host, and a device sign-in link's host is checked against the hosts of its entries.
 
 #### Loopback redirect URIs
 
-[Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity) · [Spec 4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in) · [Spec 10](https://personalagentprotocol.org/docs/0.3/spec#references) · [Guides: Native and distributed apps](https://personalagentprotocol.org/docs/0.3/guides#agent-native-apps) · [Issue #33](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/33)
+Breaking · [Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity) · [Spec 4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in) · [Spec 10](https://personalagentprotocol.org/docs/0.3/spec#references) · [Guides: Native and distributed apps](https://personalagentprotocol.org/docs/0.3/guides#agent-native-apps) · [Issue #33](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/33)
 
-A Personal Agent's `redirect_uris` can include loopback redirect URIs, as RFC 8252 §7.3 defines, so an app on the User's computer can receive the authorization response. A loopback redirect URI matches an entry with any port. Every other entry is still an HTTPS URL on the `client_id` domain.
-
-#### `scopes_supported` and `auth.scopes`
-
-Breaking · [Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Guides: An issuer for personal agents](https://personalagentprotocol.org/docs/0.3/guides#company-agent-issuer)
-
-A Company lists every scope a Personal Agent can request in `scopes_supported` in its OAuth server metadata, as RFC 8414 defines, and Personal Agents request only scopes from it. A Company describes its scopes in the OAuth security scheme of an OpenAPI description it lists, or otherwise in `auth.scopes`, which replaces `auth.custom_scopes` and has the same form as the `scopes` of an OAuth 2.0 security scheme in OpenAPI. `scopes_supported` may leave out scopes the Company doesn't offer Personal Agents, and the Company may limit the scopes it grants by client, so an issuer that serves other clients doesn't need a separate one for Personal Agents. The guides explain when a separate issuer is still useful.
-
-#### Requesting and describing scopes
-
-[Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Guides: Choosing how to sign in](https://personalagentprotocol.org/docs/0.3/guides#agent-choosing-sign-in) · [Guides: Describing scopes](https://personalagentprotocol.org/docs/0.3/guides#company-scope-descriptions) · [Guides: Consent pages](https://personalagentprotocol.org/docs/0.3/guides#company-consent)
-
-Personal Agents should request only the scopes a task needs, following RFC 9700 §2.3. The guides add advice on writing scope descriptions a User and a language model can understand, and on consent pages that present scopes in plain words and show which are new.
-
-#### Missing scopes on the website
-
-[Spec 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing) · [Guides: Enforcing scopes everywhere](https://personalagentprotocol.org/docs/0.3/guides#company-scopes)
-
-When a Company's website refuses an action because the Session lacks a scope, it should show a visible error that names the missing scopes, so the Personal Agent can request them.
-
-#### `invalid_session` becomes `invalid_grant`
-
-Breaking · [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens) · [Spec 4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out)
-
-A Session that has ended, or belongs to a different Personal Agent or User, now gets the standard `invalid_grant`. `account_mismatch` stays, so the Personal Agent can tell the User they signed in to a different account.
-
-#### Authorization codes bound to the Session Key
-
-Breaking · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens) · [Spec 4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in) · [Spec 4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in) · [Guides: Direct and device sign-in](https://personalagentprotocol.org/docs/0.3/guides#agent-direct-device) · [Guides: Sessions and session keys](https://personalagentprotocol.org/docs/0.3/guides#company-session-keys)
-
-Companies must support `dpop_jkt`, and Personal Agents must bind the authorization code to the Session Key with it, or with a proof on a pushed authorization request. A device code is bound to the key of the first poll.
-
-#### Bearer tokens for MCP servers by Token Exchange
-
-Breaking · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens) · [Guides: Storing tokens](https://personalagentprotocol.org/docs/0.3/guides#agent-tokens) · [Guides: Verifying DPoP](https://personalagentprotocol.org/docs/0.3/guides#company-dpop)
-
-A Personal Agent gets a Bearer token for an MCP server that doesn't support DPoP by exchanging a DPoP Session Token for it with the token exchange grant (RFC 8693), instead of leaving the proof out of a token request. Every other token request carries a proof. A Company that lists such an MCP server must support the grant. A request for the wrong token type gets `invalid_target`.
+A Personal Agent's `redirect_uris` can include loopback redirect URIs, as RFC 8252 §7.3 defines, so an app on the User's computer can receive the authorization response. Companies accept them, and match a loopback redirect URI to an entry with any port. Every other entry is still an HTTPS URL on the `client_id` domain. The references add RFC 8252.
 
 #### The OAuth specifications Poppy builds on
 
 [Spec 4](https://personalagentprotocol.org/docs/0.3/spec#sessions) · [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 10](https://personalagentprotocol.org/docs/0.3/spec#references)
 
-Section 4 lists the OAuth specifications the protocol builds on, instead of calling it standard OAuth: RFC 6749, RFC 7523, RFC 7636, RFC 8628, RFC 9449, RFC 8707, RFC 7009, and RFC 9700. Section 4.2 cites RFC 7523 §2.1 for the grant that starts a Session, and notes that the Personal Agent issues the assertion itself, as in draft-ietf-wimse-aims §10.4.2. The references add RFC 8693, which 4.3 already used, and draft-ietf-wimse-aims.
-
-#### The assertion's `sub` and AIMS
-
-[Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions)
-
-Section 4.2 says where the assertion differs from draft-ietf-wimse-aims §10.4.2: AIMS names the agent in `sub`, and Poppy names it in `iss` and the User in `sub`.
+Section 4 lists the OAuth specifications the protocol builds on, instead of calling it standard OAuth: RFC 6749, RFC 7523, RFC 7636, RFC 8628, RFC 9449, RFC 8707, RFC 7009, and RFC 9700. Section 4.2 cites RFC 7523 §2.1 for the grant that starts a Session, and notes that the Personal Agent issues the assertion itself, as in draft-ietf-wimse-aims §10.4.2, except that AIMS names the agent in `sub`, and Poppy names it in `iss` and the User in `sub`. The references add RFC 9700 and draft-ietf-wimse-aims.
 
 #### Custom work for the grant that starts a Session
 
@@ -158,7 +116,7 @@ Section 4.2 says that off-the-shelf authorization servers generally don't accept
 
 [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 10](https://personalagentprotocol.org/docs/0.3/spec#references)
 
-Section 4.2 relates User IDs to OpenID Connect pairwise subject identifiers, which the Personal Agent assigns for each pair of User and Company. The rules for User IDs don't change.
+Section 4.2 relates User IDs to OpenID Connect pairwise subject identifiers, which the Personal Agent assigns for each pair of User and Company. The rules for User IDs don't change. The references add OpenID Connect Core.
 
 #### Session assertion audience and rfc7523bis
 
@@ -166,23 +124,41 @@ Section 4.2 relates User IDs to OpenID Connect pairwise subject identifiers, whi
 
 Section 4.2 notes that the Session assertion's audience is narrower than draft-ietf-oauth-rfc7523bis, which also allows the token endpoint URL for an authorization grant. The rule doesn't change.
 
+#### `invalid_session` becomes `invalid_grant`
+
+Breaking · [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens) · [Spec 4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out)
+
+A Session Key whose Session has ended, or belongs to a different Personal Agent or User, now gets the standard `invalid_grant`. With an Account Token and an existing Session's key, `invalid_grant` can mean that the Account Token or the Session has ended, and the Personal Agent tells them apart by renewing the Session with its assertion. `account_mismatch` stays, so the Personal Agent can tell the User they signed in to a different account.
+
 #### `signed_in` removed
 
 Breaking · [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Spec 4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in) · [Guides: Choosing how to sign in](https://personalagentprotocol.org/docs/0.3/guides#agent-choosing-sign-in)
 
 Token responses no longer have `signed_in`. The grant says whether a token is signed in: the JWT bearer grant always returns a signed-out Session Token, and a sign-in or an Account Token always returns a signed-in one. `scope` follows RFC 6749: a signed-out token's response leaves it out, since an empty `scope` isn't valid OAuth, and a signed-in one includes it unless the Company granted exactly the scopes requested. A sign-in where the User approves no scopes ends as a decline.
 
-#### Device Sign-In follows RFC 10027
+#### Bearer tokens for MCP servers by Token Exchange
 
-Breaking · [Spec 4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in) · [Guides: Direct and device sign-in](https://personalagentprotocol.org/docs/0.3/guides#agent-direct-device) · [Guides: Device sign-in](https://personalagentprotocol.org/docs/0.3/guides#company-device)
+Breaking · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.2](https://personalagentprotocol.org/docs/0.3/spec#starting-sessions) · [Spec 4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens) · [Spec 10](https://personalagentprotocol.org/docs/0.3/spec#references) · [Guides: Storing tokens](https://personalagentprotocol.org/docs/0.3/guides#agent-tokens) · [Guides: Verifying DPoP](https://personalagentprotocol.org/docs/0.3/guides#company-dpop)
 
-Device Sign-In is a cross-device flow, which is easier to use for phishing than Direct Sign-In. Companies that offer it and Personal Agents that use it must follow the best practices in RFC 10027 (BCP 247) §2: a Company assesses the risk and chooses mitigations, and a Personal Agent uses Direct Sign-In when it can, as the RFC's protocol selection guidance says. The guides suggest sending the authorization URL to the User's phone when a Personal Agent can't receive the redirect on the User's device, and list mitigations for Companies.
+A Personal Agent gets a Bearer token for an MCP server that doesn't support DPoP by exchanging a DPoP Session Token for it with the token exchange grant (RFC 8693), instead of leaving the proof out of a token request. Every other token request carries a proof. A Company that lists such an MCP server must support the grant and list it in `grant_types_supported`. A request for the wrong token type gets `invalid_target`. The references add RFC 8693.
+
+#### Requesting and describing scopes
+
+[Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Guides: Choosing how to sign in](https://personalagentprotocol.org/docs/0.3/guides#agent-choosing-sign-in) · [Guides: Describing scopes](https://personalagentprotocol.org/docs/0.3/guides#company-scope-descriptions) · [Guides: Consent pages](https://personalagentprotocol.org/docs/0.3/guides#company-consent)
+
+Personal Agents should request only the scopes a task needs, following RFC 9700 §2.3. The guides add advice on writing scope descriptions a User and a language model can understand, and on consent pages that present scopes in plain words and show which are new.
 
 #### `sign_in_required` becomes `insufficient_scope`
 
-Breaking · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Spec 4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out) · [Spec 6](https://personalagentprotocol.org/docs/0.3/spec#apis) · [Spec 7.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in) · [Operations 3.2](https://personalagentprotocol.org/docs/0.3/extensions/operations#ownership) · [Guides: Conversations](https://personalagentprotocol.org/docs/0.3/guides#company-conversations)
+Breaking · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in) · [Spec 4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out) · [Spec 6](https://personalagentprotocol.org/docs/0.3/spec#apis) · [Spec 7.5](https://personalagentprotocol.org/docs/0.3/spec#reading-events) · [Spec 7.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in) · [Operations 3.2](https://personalagentprotocol.org/docs/0.3/extensions/operations#ownership) · [Operations 5.2](https://personalagentprotocol.org/docs/0.3/extensions/operations#confirm) · [Guides: Conversations](https://personalagentprotocol.org/docs/0.3/guides#company-conversations)
 
-A request that needs the User's account and has a signed-out token gets `insufficient_scope`, the RFC 6750 error, instead of the custom `sign_in_required`. A signed-out token has no scopes, so the error fits, and like any `insufficient_scope` it names the scopes the request needs in `scope`. The Personal Agent uses an Account Token that covers them, or signs in. The `authorization` conversation event and Operations use the same error.
+A request that needs the User's account and has a signed-out token gets `insufficient_scope`, the RFC 6750 error, instead of the custom `sign_in_required`. A signed-out token has no scopes, so the error fits, and like any `insufficient_scope` it names the scopes the request needs in `scope`. The Personal Agent uses an Account Token that covers them, or signs in. The `authorization` conversation event, which now always has `scope`, and Operations use the same error.
+
+#### Device Sign-In follows RFC 10027
+
+Breaking · [Spec 4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in) · [Spec 10](https://personalagentprotocol.org/docs/0.3/spec#references) · [Guides: Direct and device sign-in](https://personalagentprotocol.org/docs/0.3/guides#agent-direct-device) · [Guides: Device sign-in](https://personalagentprotocol.org/docs/0.3/guides#company-device)
+
+Device Sign-In is a cross-device flow, which is easier to use for phishing than Direct Sign-In. Companies that offer it and Personal Agents that use it must follow the best practices in RFC 10027 (BCP 247) §2: a Company assesses the risk and chooses mitigations, and a Personal Agent uses Direct Sign-In when it can, as the RFC's protocol selection guidance says. The guides suggest sending the authorization URL to the User's phone when a Personal Agent can't receive the redirect on the User's device, and list mitigations for Companies. The references add RFC 10027.
 
 #### Sign-out invalidates Session Tokens
 
@@ -196,9 +172,15 @@ When the Personal Agent revokes an Account Token, the Company should also invali
 
 A new section 4.10 lists what a Company's authorization server needs beyond standard OAuth, such as Sessions named by DPoP keys, one account per Session, and described scopes, and what the protocol adds outside OAuth. It adds no requirements.
 
+#### Missing scopes on the website
+
+[Spec 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing) · [Guides: Enforcing scopes everywhere](https://personalagentprotocol.org/docs/0.3/guides#company-scopes)
+
+When a Company's website refuses an action because the Session lacks a scope, it should show a visible error that names the missing scopes, so the Personal Agent can request them.
+
 #### `author` replaces `sender`
 
-Breaking · [Spec 7.4](https://personalagentprotocol.org/docs/0.3/spec#message-fields) · [Spec 7.7](https://personalagentprotocol.org/docs/0.3/spec#status) · [Spec 7.8](https://personalagentprotocol.org/docs/0.3/spec#human-or-ai) · [Spec 7.10](https://personalagentprotocol.org/docs/0.3/spec#direct-conversations) · [Operations 4.3](https://personalagentprotocol.org/docs/0.3/extensions/operations#binding-conversations) · [Issue #19](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/19)
+Breaking · [Spec 7.3](https://personalagentprotocol.org/docs/0.3/spec#sending-messages) · [Spec 7.4](https://personalagentprotocol.org/docs/0.3/spec#message-fields) · [Spec 7.5](https://personalagentprotocol.org/docs/0.3/spec#reading-events) · [Spec 7.7](https://personalagentprotocol.org/docs/0.3/spec#status) · [Spec 7.8](https://personalagentprotocol.org/docs/0.3/spec#human-or-ai) · [Spec 7.10](https://personalagentprotocol.org/docs/0.3/spec#direct-conversations) · [Operations 4.3](https://personalagentprotocol.org/docs/0.3/extensions/operations#binding-conversations) · [Issue #19](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/19)
 
 Each message has an `author` object instead of `sender`. Its `type` takes `sender`'s values, `agent` or `human`. A Company message can also say which of the Company's people or AI personas wrote it, with an `id`, a display `name`, and an `image` URL, each optional.
 

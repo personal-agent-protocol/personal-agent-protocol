@@ -106,8 +106,8 @@ export function HomeContent() {
                                 </li>
                                 <li>
                                     <strong>Sign in directly and control permissions:</strong> users
-                                    sign in on the company's own page and choose whether their
-                                    personal agent can view their account, make changes, or both.
+                                    sign in on the company's own page and choose what their personal
+                                    agent can see and do in their account.
                                 </li>
                                 <li>
                                     <strong>Get things done faster</strong> when their personal
@@ -151,8 +151,8 @@ export function HomeContent() {
                                 </li>
                                 <li>
                                     <strong>Control what agents can and can't do:</strong> which
-                                    personal agents to allow, how users sign in, and whether agents
-                                    can view accounts or make changes.
+                                    personal agents to allow, how users sign in, and which scopes of
+                                    account access agents can request.
                                 </li>
                             </ul>
                         </div>
@@ -202,10 +202,11 @@ export function HomeContent() {
                                 <h3>One session across interfaces</h3>
                                 <p>
                                     One session covers API calls, conversations, and web browsing.
-                                    APIs and conversations use a short-lived session token, a signed
-                                    JWT. Signing in gives the personal agent lasting access, within
-                                    the scopes the company allows for that sign-in type, until the
-                                    user or the company revokes it.
+                                    APIs and conversations use a short-lived session token, bound to
+                                    a key only the personal agent holds. Signing in gives the
+                                    personal agent lasting access, within the scopes the company
+                                    allows for that sign-in type, until it expires or the user or
+                                    the company revokes it.
                                 </p>
                             </div>
                         </div>

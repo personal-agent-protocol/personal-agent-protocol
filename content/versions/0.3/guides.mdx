@@ -127,10 +127,10 @@ calls, at any hour. Existing HTTP patterns handle most of this.
 
 When the company you reach is on a different domain from the one the user asked for, tell the user
 which company you're dealing with, its `organization.name` and domain, before you sign in or act for
-them. A well-known URL can redirect to any host's `/.well-known/poppy.json`
-([section 3](/docs/spec#discovery)). A rebrand, such as
-`thefacebook.com` redirecting to `facebook.com`, then costs one line, and a domain that sends you to
-another company can't move the user's task there without them noticing.
+them. A well-known URL can redirect to any host's `/.well-known/poppy.json` ([section
+3](/docs/spec#discovery)). A rebrand, such as `oldname.example` redirecting to `newname.example`,
+then costs one line, and a domain that sends you to another company can't move the user's task there
+without them noticing.
 
 ### User IDs {#agent-user-ids}
 
@@ -229,9 +229,9 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
 
 - Before asking the user to sign in, check whether an account token you hold already covers the task
   ([4.4](/docs/spec#sign-in)).
-- Prefer direct sign-in, then device sign-in, then mediated sign-in (SHOULD,
-  [4.4](/docs/spec#sign-in)). With direct and device sign-in, the user's password stays with the
-  company.
+- Prefer direct or device sign-in to mediated sign-in (SHOULD, [4.4](/docs/spec#sign-in)), and
+  direct to device sign-in ([4.6](/docs/spec#device-sign-in)). With direct and device sign-in, the
+  user's password stays with the company.
 - Read each scope's description, from the company's OpenAPI description or `auth.scopes`, to pick
   the ones the task needs ([4.4](/docs/spec#sign-in)).
 - Use `auth.scope_hints` to decide which scopes need the user's go-ahead before you request them
@@ -242,7 +242,8 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
 - Hints describe a whole scope. The consequences of one action still come from the action itself,
   such as an MCP tool's annotations, or the HTTP method: a `GET` doesn't change anything.
 - Ask for the fewest scopes the task needs, not every scope the company offers. For a task that only
-  looks things up, request a read-only session token from a broader account token ([4.8](/docs/spec#account-tokens)).
+  looks things up, request a read-only session token from a broader account token
+  ([4.8](/docs/spec#account-tokens)).
 - The user may approve fewer scopes than you asked for. Check `scope` in the response before
   continuing. A response without `scope` granted every scope you asked for.
 
@@ -265,8 +266,8 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
 - For device sign-in ([4.6](/docs/spec#device-sign-in)), show `verification_uri_complete` as a link
   or QR code, and show `user_code` too so the user can confirm it matches. Keep `device_code`
   private. Show the link only if its host is the company's issuer host or the host of a URL in its
-  `protected_resources`, or a subdomain of either, and show the company's name and domain with it (MUST,
-  [4.6](/docs/spec#device-sign-in)).
+  `protected_resources`, or a subdomain of either, and show the company's name and domain with it
+  (MUST, [4.6](/docs/spec#device-sign-in)).
 - Poll no faster than `interval`. On `slow_down`, add 5 seconds to the interval, as [RFC
   8628](https://www.rfc-editor.org/rfc/rfc8628#section-3.5) describes.
 
@@ -600,8 +601,8 @@ though it runs on the same servers.
 
 - Publish metadata for each issuer at its own URL, such as
   `https://auth.platform.example/.well-known/oauth-authorization-server/outfitters`
-  ([3.2](/docs/spec#oauth-server)). Its `issuer` is the full issuer, and its `protected_resources` lists
-  only that company's storefronts and resources, such as `https://outfitters.example`.
+  ([3.2](/docs/spec#oauth-server)). Its `issuer` is the full issuer, and its `protected_resources`
+  lists only that company's storefronts and resources, such as `https://outfitters.example`.
 - Serve each storefront's `poppy.json` on the storefront's own domain. A document redirected to the
   platform's domain speaks for the platform, not the storefront ([3.1](/docs/spec#fields)).
 - Companies can share a token endpoint, servers, and signing keys. Only the issuer decides which

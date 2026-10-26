@@ -65,11 +65,16 @@ unchanged.
 
 **Device Sign-In** ([4.6](https://personalagentprotocol.org/docs/spec#device-sign-in)).
 
+- Follow the best practices for cross-device flows in RFC 10027 §2 (MUST): assess the risk, and
+  choose mitigations with the engineer.
+
 - `device_authorization_endpoint` in the metadata, and
   `urn:ietf:params:oauth:grant-type:device_code` in its `grant_types_supported`.
 - The device authorization request with the client assertion. The poll at `token_endpoint` with a
   DPoP Proof. Bind the `device_code` to the key of the first poll, and refuse polls with any other
   key with `invalid_grant`.
+- Put the verification page on the host of `auth.issuer` or of a URL in `protected_resources`, or
+  a subdomain of either. Personal Agents don't show a link anywhere else.
 - The verification page shows the Personal Agent and scopes. Opening the link or scanning the code
   never approves by itself.
 - Poll responses: `authorization_pending`, `slow_down`, `access_denied`, `expired_token`.

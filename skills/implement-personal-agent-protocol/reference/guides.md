@@ -82,7 +82,7 @@ Personal agents change the shape of web traffic: one user's request can turn int
 
 ### Finding a company
 
-When the company you reach is on a different domain from the one the user asked for, tell the user which company you're dealing with, its `organization.name` and domain, before you sign in or act for them. A well-known URL can redirect to any host's `/.well-known/poppy.json` ([section 3](https://personalagentprotocol.org/docs/0.3/spec#discovery)). A rebrand, such as `thefacebook.com` redirecting to `facebook.com`, then costs one line, and a domain that sends you to another company can't move the user's task there without them noticing.
+When the company you reach is on a different domain from the one the user asked for, tell the user which company you're dealing with, its `organization.name` and domain, before you sign in or act for them. A well-known URL can redirect to any host's `/.well-known/poppy.json` ([section 3](https://personalagentprotocol.org/docs/0.3/spec#discovery)). A rebrand, such as `oldname.example` redirecting to `newname.example`, then costs one line, and a domain that sends you to another company can't move the user's task there without them noticing.
 
 ### User IDs
 
@@ -146,7 +146,7 @@ Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
 ### Choosing how to sign in
 
 - Before asking the user to sign in, check whether an account token you hold already covers the task ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
-- Prefer direct sign-in, then device sign-in, then mediated sign-in (SHOULD, [4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). With direct and device sign-in, the user's password stays with the company.
+- Prefer direct or device sign-in to mediated sign-in (SHOULD, [4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)), and direct to device sign-in ([4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)). With direct and device sign-in, the user's password stays with the company.
 - Read each scope's description, from the company's OpenAPI description or `auth.scopes`, to pick the ones the task needs ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
 - Use `auth.scope_hints` to decide which scopes need the user's go-ahead before you request them ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). For example, request a scope whose `changes` is `irreversible`, or whose `personal_data` is `true`, only when the user agreed to that kind of access, and let the user set that preference once rather than for every sign-in. Treat a scope without hints as `irreversible` with personal data.
 - Hints describe a whole scope. The consequences of one action still come from the action itself, such as an MCP tool's annotations, or the HTTP method: a `GET` doesn't change anything.

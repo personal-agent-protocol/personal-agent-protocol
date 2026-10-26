@@ -34,9 +34,13 @@ with `protocol_version`, `organization`, and `web`, and no `auth`
 - `organization.domain` is the host that serves the document after any redirects. If `example.com`
   redirects to `www.example.com`, the domain is `www.example.com`.
 - `auth.issuer` is the OAuth issuer, exactly as it appears in the issuer's metadata.
-- List only the interfaces and sign-in types that are live. During this milestone that's usually
-  `auth` with no sign-in types. Add `agent`, `apis`, `web`, and sign-in types as later milestones
-  ship them.
+- List only the interfaces that are live. During this milestone that's usually just `auth`. Add
+  `agent`, `apis`, `web`, and `auth.mediated` as later milestones ship them.
+- Direct and Device Sign-In aren't listed in `poppy.json`. Personal Agents treat them as offered
+  when the issuer's `grant_types_supported` includes `authorization_code` or the device code grant
+  ([4.4](https://personalagentprotocol.org/docs/spec#sign-in)). If an existing issuer already lists
+  them for other clients, they're offered from this milestone on, so plan for that with the
+  engineer.
 - Serve it on the Company's own domain. A redirect to a provider's domain doesn't work, because the
   document speaks for the host that serves it. See `patterns/poppy-json.md`.
 - Check the file offline before deploying, with `check --file ./poppy.json` (below).
@@ -70,8 +74,8 @@ sign-in milestone.
 - Treat `sub` as the User ID: opaque, never shown, stored with the Session.
 - Find the Session by the thumbprint of the proof's key, the Session Key
   ([4.3](https://personalagentprotocol.org/docs/spec#sending-tokens)). A new key starts a new Session.
-- Return `access_token`, `token_type: "DPoP"`, `expires_in` (greater than 0; hours, not days), and
-  `scope: ""`, with `Cache-Control: no-store`.
+- Return `access_token`, `token_type: "DPoP"`, and `expires_in` (greater than 0; hours, not days),
+  with no `scope`, and with `Cache-Control: no-store`.
 - Renewal: the same request with a proof from the same key. Check the Session belongs to the same
   `client_id` and User ID. Return `invalid_grant` if it doesn't match, or if it has ended and you
   still remember its key. Remembering ended keys is a SHOULD: decide with the engineer how long.

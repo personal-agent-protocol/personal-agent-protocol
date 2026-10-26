@@ -120,7 +120,7 @@ For each milestone in the design's plan, in order:
 | Milestone                  | Builds                                                                                                                             | Spec                 |
 | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
 | `milestones/foundation.md` | `poppy.json`, OAuth server metadata, verifying Personal Agents, signed-out Sessions, DPoP, the token endpoint replay cache, errors | 3, 4.1–4.3           |
-| `milestones/interfaces.md` | What the design chose: OpenAPI with DPoP, MCP with Bearer and DPoP, conversations, web browsing. Signed out first.                 | 5, 6, 7              |
+| `milestones/interfaces.md` | What the design chose: OpenAPI with DPoP, MCP with Bearer and DPoP, conversations, web browsing. Signed out first.                 | 5, 6, 7, 8           |
 | `milestones/sign-in.md`    | The chosen sign-in types, Account Tokens, sign-out, scope enforcement on every channel, account settings                           | 4.4–4.9, 7.11        |
 | `milestones/extensions.md` | Optional. Extensions the design chose, such as Operations.                                                                         | 3.3, extension pages |
 
