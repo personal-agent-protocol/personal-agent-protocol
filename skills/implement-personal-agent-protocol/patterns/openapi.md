@@ -1,19 +1,18 @@
 # Pattern: OpenAPI APIs
 
-A listed OpenAPI API accepts DPoP Session Tokens
-([section 6](https://personalagentprotocol.org/docs/0.3/spec#apis),
-[4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)), and its `url` points to an
+A listed OpenAPI API accepts the Session header and the Company's access tokens, and enforces their
+scopes ([section 7](https://personalagentprotocol.org/docs/0.3/spec#apis)). Its `url` points to an
 OpenAPI 3.0 or 3.1 description.
 
 ## A. Existing APIs behind a Poppy-aware gateway
 
-The gateway verifies the Session Token and DPoP Proof (`patterns/dpop.md`), then calls the existing
-API with the verified identity or an internal credential.
+The gateway verifies the Session header (`patterns/session-header.md`) and the access token, then
+calls the existing API with the verified identity or an internal credential.
 
 - Fits: existing customer-facing APIs that already sit behind a gateway.
-- Trade-offs: no changes to the APIs themselves. The description may need editing to show the DPoP
-  scheme and to leave out endpoints Personal Agents shouldn't use.
-- Watch for: internal credentials that allow more than the Session Token
+- Trade-offs: no changes to the APIs themselves. The description may need editing to show the OAuth
+  scheme and its scopes, and to leave out endpoints Personal Agents shouldn't use.
+- Watch for: internal credentials that allow more than the access token
   ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-internal)).
 
 ## B. A dedicated API for Personal Agents
@@ -25,14 +24,17 @@ A new API, or a subset of existing endpoints, designed for Personal Agents.
 
 ## What to watch for
 
-- Tokens only in the `Authorization` header, never from a URL, and no cookies required (4.3).
-- Token errors in `WWW-Authenticate`: `invalid_token`, `insufficient_scope`
-  with `scope`, `extension_required` (section 6).
-- Bearer Session Tokens refused (4.3).
-- A `resource` on the `apis` entry if this API should accept only tokens issued for it (4.3,
-  "Narrower tokens").
+- The Session JWT in `Poppy-Session` and the access token in `Authorization`, never from a URL, and
+  no cookies required ([5.6](https://personalagentprotocol.org/docs/0.3/spec#sending-requests)).
+- A Personal Agent's access token without the Session header refused
+  ([5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification)).
+- Access token errors in `WWW-Authenticate`: a 401 challenge with `scope` and no error code for a
+  signed-out request that needs the account, `invalid_token`, `insufficient_scope` with `scope`,
+  and `extension_required`. `invalid_session` is a 400 JSON body (section 7).
+- Protected resource metadata if this API should accept only tokens issued for it
+  ([4.5](https://personalagentprotocol.org/docs/0.3/spec#access-tokens), "Tokens for one service").
 - Signed-out Sessions can do what a signed-out visitor can
   ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-guest)).
-- Rate limits return 429 with `Retry-After`. The API keeps its own body (4.3, "Rate limits").
+- Rate limits return 429 with `Retry-After`. The API keeps its own body (5.6, "Rate limits").
 - Accept `Idempotency-Key` on writes
   ([guides](https://personalagentprotocol.org/docs/0.3/guides#both-retries)).

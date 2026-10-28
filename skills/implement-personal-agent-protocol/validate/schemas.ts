@@ -22,7 +22,7 @@ export function loadSchemas(dir: string = SCHEMA_DIR): Record<string, object> {
 }
 
 // Validates a value against a schema by file name, such as "poppy.schema.json", or a fragment of
-// one, such as "dpop-proof.schema.json#/$defs/header".
+// one, such as "poppy.schema.json#/$defs/https_url".
 export function check(name: string, value: unknown): SchemaError[] {
     const schemas = loadSchemas();
     const [file] = name.split("#");

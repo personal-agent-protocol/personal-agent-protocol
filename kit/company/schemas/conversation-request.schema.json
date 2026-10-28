@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "conversation-request.schema.json",
     "title": "Conversation request",
-    "description": "The JSON body of POST {endpoint} (start a conversation, spec 7.3, or a Direct Conversation with parent_conversation_id, 7.10) and POST {endpoint}/{id}/messages (send another message, 7.3).",
+    "description": "The JSON body of POST {endpoint} (start a conversation, spec 8.3, or a Direct Conversation with parent_conversation_id, 8.10) and POST {endpoint}/{id}/messages (send another message, 8.3).",
     "type": "object",
     "required": ["message"],
     "properties": {

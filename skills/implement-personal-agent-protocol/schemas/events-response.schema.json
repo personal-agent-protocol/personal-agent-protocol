@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "events-response.schema.json",
     "title": "Events response",
-    "description": "The response to GET {endpoint}/{id}/events, and to a POST with the wait query parameter. Spec section 7.5 (Reading events). Every successful read includes conversation_id, events, cursor, has_more, status, and responder, with events empty when there are none. cursor is the last event returned, or the request's cursor if there were none; the spec doesn't say what it is for an empty read without a cursor, so null is allowed.",
+    "description": "The response to GET {endpoint}/{id}/events, and to a POST with the wait query parameter. Spec section 8.5 (Reading events). Every successful read includes conversation_id, events, cursor, has_more, status, and responder, with events empty when there are none. cursor is the last event returned, or the request's cursor if there were none; the spec doesn't say what it is for an empty read without a cursor, so null is allowed.",
     "type": "object",
     "required": ["conversation_id", "events", "cursor", "has_more", "status", "responder"],
     "properties": {

@@ -1,7 +1,11 @@
 // Reads the ```json poppy-design block in plan/design.md, and reports progress against it.
 
 import {
+    apisOf,
+    extensionsOf,
+    fieldOf,
     offersGrant,
+    protocolsOf,
     SIGN_IN_GRANTS,
     type CheckResult,
     type Metadata,
@@ -63,6 +67,7 @@ const PREFIX: Record<string, string> = {
     openapi: "openapi.",
     mcp: "mcp.",
     conversations: "conversations.",
+    web: "web.",
 };
 
 export function progress(
@@ -73,18 +78,17 @@ export function progress(
 ): ProgressItem[] {
     const live = {
         interface: {
-            openapi: Boolean(poppy?.apis?.some((a) => a?.type === "openapi")),
-            mcp: Boolean(poppy?.apis?.some((a) => a?.type === "mcp")),
-            conversations: Boolean(poppy?.agent?.protocols?.some((p) => p?.type === "poppy")),
-            web: poppy?.web?.browser_session_endpoint !== undefined,
+            openapi: apisOf(poppy).some((a) => a.type === "openapi"),
+            mcp: apisOf(poppy).some((a) => a.type === "mcp"),
+            conversations: protocolsOf(poppy).some((p) => p.type === "poppy"),
+            web: fieldOf(poppy, "web", "browser_session_endpoint") !== undefined,
         } as Record<string, boolean>,
         "sign-in": {
             direct: offersGrant(metadata, SIGN_IN_GRANTS.direct),
             device: offersGrant(metadata, SIGN_IN_GRANTS.device),
-            mediated: poppy?.auth?.mediated !== undefined,
         } as Record<string, boolean>,
         extension: Object.fromEntries(
-            Object.keys(poppy?.extensions ?? {}).map((k) => [k, true]),
+            Object.keys(extensionsOf(poppy)).map((k) => [k, true]),
         ) as Record<string, boolean>,
     };
     const planned = {
@@ -104,7 +108,7 @@ export function progress(
             const prefix =
                 kind === "interface"
                     ? PREFIX[name]
-                    : kind === "sign-in" && name !== "mediated"
+                    : kind === "sign-in"
                       ? `metadata.${name === "direct" ? "authorization" : "device-authorization"}-endpoint`
                       : undefined;
             const failing = prefix

@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "conversation-response.schema.json",
     "title": "Conversation response",
-    "description": "The response to POST {endpoint} (201), POST {endpoint}/{id}/messages (202), POST {endpoint}/{id}/handoff (202), and POST {endpoint}/{id}/close (200). Spec sections 7.3, 7.7, 7.9, and 7.12. Every successful response includes status and responder; starting a conversation also returns conversation_id. With the wait query parameter, a POST responds as a read of events would (events-response.schema.json), which also matches this schema.",
+    "description": "The response to POST {endpoint} (201), POST {endpoint}/{id}/messages (202), POST {endpoint}/{id}/handoff (202), and POST {endpoint}/{id}/close (200). Spec sections 8.3, 8.7, 8.9, and 8.12. Every successful response includes status and responder; starting a conversation also returns conversation_id. With the wait query parameter, a POST responds as a read of events would (events-response.schema.json), which also matches this schema.",
     "type": "object",
     "required": ["status", "responder"],
     "properties": {

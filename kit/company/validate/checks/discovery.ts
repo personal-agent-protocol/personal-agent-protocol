@@ -6,8 +6,13 @@ import { formatSchemaErrors } from "../schema.ts";
 import { check } from "../schemas.ts";
 import { loadOpenApi } from "./openapi.ts";
 import {
+    apisOf,
+    apiUrls,
     describeGot,
     describeSent,
+    extensionsOf,
+    isObject,
+    mediatedSignIn,
     skipRest,
     type Context,
     offersGrant,
@@ -15,6 +20,7 @@ import {
     type Metadata,
     type Poppy,
     type Recorder,
+    type ResourceMetadata,
 } from "./types.ts";
 
 export const DISCOVERY_IDS = [
@@ -25,26 +31,29 @@ export const DISCOVERY_IDS = [
     "discovery.schema",
     "discovery.protocol-version",
     "discovery.domain-matches-host",
-    "discovery.auth-present",
     "discovery.interface-present",
-    "discovery.api-types",
+    "discovery.extension-names",
 ];
 
 export const EXCLUDED_TASKS_IDS = ["discovery.excluded-tasks", "discovery.alternative-references"];
 
 export const METADATA_IDS = [
+    "metadata.issuer-required",
+    "metadata.resource-metadata",
+    "metadata.issuer-chosen",
     "metadata.published",
     "metadata.schema",
     "metadata.issuer-matches",
     "metadata.protected-resources",
     "metadata.token-endpoint",
     "metadata.revocation-endpoint",
-    "metadata.dpop-algs",
     "metadata.grant-types",
     "metadata.authorization-endpoint",
     "metadata.device-authorization-endpoint",
     "metadata.scopes-supported",
     "metadata.scopes-described",
+    "metadata.same-auth",
+    "metadata.mediated-grant",
 ];
 
 // The origin to check, from a URL or a bare domain.
@@ -69,6 +78,11 @@ function chainText(chain: Exchange[]): string {
     return chain.map((ex) => `${ex.url} → ${ex.error ? ex.error : ex.status}`).join(", ");
 }
 
+// Marks poppy.json unusable, so checks that depend on it skip with this reason.
+function blockPoppy(ctx: Context, reason: string): void {
+    ctx.blocked.poppy ??= reason;
+}
+
 // Fetches and checks poppy.json, filling ctx.discovered.poppy.
 export async function checkPoppyOnline(ctx: Context, r: Recorder): Promise<void> {
     const url = wellKnownPoppy(ctx.target!);
@@ -85,11 +99,11 @@ export async function checkPoppyOnline(ctx: Context, r: Recorder): Promise<void>
             expected: "Every redirect to an https:// URL",
             cause: "A redirect rule sends the well-known path to http://. This is often a proxy or CDN rule that builds the Location from the scheme it received internally. Redirect to https:// explicitly.",
         });
-        skipRest(
-            r,
-            DISCOVERY_IDS,
+        blockPoppy(
+            ctx,
             "poppy.json couldn't be loaded over HTTPS (see discovery.redirects-https).",
         );
+        skipRest(r, DISCOVERY_IDS, ctx.blocked.poppy!);
         return;
     }
     if (redirects.length) {
@@ -102,10 +116,12 @@ export async function checkPoppyOnline(ctx: Context, r: Recorder): Promise<void>
         const ex = final.error ? final : first;
         r.fail("discovery.https", {
             exchange: ex,
+            transportIsResult: !ex.refused && !ex.rateLimited,
             expected: `200 with poppy.json at ${url}`,
             cause: `The request failed before a response (${ex.error}). Check that ${new URL(ex.url).host} resolves, serves HTTPS with a valid certificate, and is reachable from the internet.`,
         });
-        skipRest(r, DISCOVERY_IDS, "poppy.json couldn't be loaded (see discovery.https).");
+        blockPoppy(ctx, "poppy.json couldn't be loaded (see discovery.https).");
+        skipRest(r, DISCOVERY_IDS, ctx.blocked.poppy!);
         return;
     }
     if (final.status !== 200) {
@@ -121,7 +137,8 @@ export async function checkPoppyOnline(ctx: Context, r: Recorder): Promise<void>
                   ? `Nothing is published at ${final.url}. Serve poppy.json at /.well-known/poppy.json on the domain Personal Agents look up. Some frameworks and static hosts skip dot-directories like .well-known unless configured to serve them.`
                   : `The well-known URL returned ${final.status}. Personal Agents treat anything other than 200 as no poppy.json.`,
         });
-        skipRest(r, DISCOVERY_IDS, "poppy.json couldn't be loaded (see discovery.https).");
+        blockPoppy(ctx, "poppy.json couldn't be loaded (see discovery.https).");
+        skipRest(r, DISCOVERY_IDS, ctx.blocked.poppy!);
         return;
     }
     r.pass("discovery.https", {
@@ -137,11 +154,11 @@ export async function checkPoppyOnline(ctx: Context, r: Recorder): Promise<void>
             expected: "The last URL's path is exactly /.well-known/poppy.json, with no query",
             cause: "Personal Agents ignore a poppy.json served from any other path, so a file uploaded elsewhere on a domain can't speak for it. Redirect to /.well-known/poppy.json on the target host.",
         });
-        skipRest(
-            r,
-            DISCOVERY_IDS,
+        blockPoppy(
+            ctx,
             "Personal Agents won't use this poppy.json (see discovery.redirects-well-known).",
         );
+        skipRest(r, DISCOVERY_IDS, ctx.blocked.poppy!);
         return;
     }
     r.pass("discovery.redirects-well-known", {
@@ -196,18 +213,19 @@ export function checkPoppyDocument(
                 ? "The URL serves something other than the JSON document, such as an HTML page from a catch-all route, or JSON with a syntax error."
                 : `The file isn't a JSON object${notes.length ? ` (${notes.join("; ")})` : ""}.`,
         });
-        skipRest(r, DISCOVERY_IDS, "poppy.json isn't a JSON object (see discovery.json).");
+        blockPoppy(ctx, "poppy.json isn't a JSON object (see discovery.json).");
+        skipRest(r, DISCOVERY_IDS, ctx.blocked.poppy!);
         return;
     }
     r.pass("discovery.json", { notes });
     const poppy = doc as Poppy;
     ctx.discovered.poppy = poppy;
+    // Checks that failed, so Personal Agents wouldn't use the document.
+    const unusable: string[] = [];
 
-    // Schema errors, leaving out the two rules that have their own checks below.
+    // Schema errors, leaving out the rule that has its own check below.
     const errors = check("poppy.schema.json", poppy).filter(
-        (e) =>
-            !(e.path === "" && e.message.startsWith("must include at least one of")) &&
-            !(e.path === "/auth" && e.message === "is required"),
+        (e) => !(e.path === "" && e.message.startsWith("must include at least one of")),
     );
     if (errors.length) {
         r.fail("discovery.schema", {
@@ -218,6 +236,7 @@ export function checkPoppyDocument(
                 "Every field in the form section 3.1 describes (kit/company/schemas/poppy.schema.json)",
             cause: "Fix each field listed. Unknown fields are fine; these are fields the spec defines with the wrong type or form, or required ones that are missing.",
         });
+        unusable.push("discovery.schema");
     } else {
         r.pass("discovery.schema");
     }
@@ -231,6 +250,7 @@ export function checkPoppyDocument(
             expected: `A string "major.minor", such as "${PROTOCOL_VERSION}"`,
             cause: `Set protocol_version to "${PROTOCOL_VERSION}", the draft this validator checks.`,
         });
+        unusable.push("discovery.protocol-version");
     } else if (version !== PROTOCOL_VERSION) {
         r.fail("discovery.protocol-version", {
             exchange: ex,
@@ -238,6 +258,7 @@ export function checkPoppyDocument(
             expected: `protocol_version ${PROTOCOL_VERSION}`,
             cause: `Before 1.0, each version can break the one before, so Personal Agents that support only draft ${PROTOCOL_VERSION} won't use this document. This validator checks draft ${PROTOCOL_VERSION}: set protocol_version to "${PROTOCOL_VERSION}" once the implementation follows it. See https://personalagentprotocol.org/docs/changelog for what changed.`,
         });
+        unusable.push("discovery.protocol-version");
     } else {
         r.pass("discovery.protocol-version", { summary: `protocol_version ${version}.` });
     }
@@ -255,6 +276,7 @@ export function checkPoppyDocument(
             expected: `organization.domain "${ctx.discovered.finalHost}"`,
             cause: "Add organization.domain with the host that serves poppy.json.",
         });
+        unusable.push("discovery.domain-matches-host");
     } else if (domain.toLowerCase() !== ctx.discovered.finalHost!.toLowerCase()) {
         const host = ctx.discovered.finalHost!;
         const wwwOnly =
@@ -268,33 +290,10 @@ export function checkPoppyDocument(
                 ? `Domains are compared ignoring case and nothing else, so ${domain} and ${host} are different domains. Either set organization.domain to "${host}", or serve poppy.json from ${domain} (for example, stop redirecting the well-known path there).`
                 : `The document names a different domain than the host that serves it. Set organization.domain to "${host}", or serve this document from ${domain}. A provider hosting poppy.json must serve it on the Company's own domain.`,
         });
+        unusable.push("discovery.domain-matches-host");
     } else {
         r.pass("discovery.domain-matches-host", {
             summary: `organization.domain ${domain} matches the host.`,
-        });
-    }
-
-    const needsAuth =
-        poppy.agent !== undefined ||
-        poppy.apis !== undefined ||
-        poppy.feedback !== undefined ||
-        poppy.web?.browser_session_endpoint !== undefined;
-    if (needsAuth && poppy.auth === undefined) {
-        const present = [
-            poppy.agent !== undefined ? "agent" : "",
-            poppy.apis !== undefined ? "apis" : "",
-            poppy.feedback !== undefined ? "feedback" : "",
-            poppy.web?.browser_session_endpoint !== undefined ? "web.browser_session_endpoint" : "",
-        ].filter(Boolean);
-        r.fail("discovery.auth-present", {
-            exchange: ex,
-            got: `${present.join(", ")} present, but no auth`,
-            expected: "auth with an issuer",
-            cause: "Sessions need auth.issuer: Session Tokens for the Company Agent, APIs, feedback, and browser sessions come from the issuer's token endpoint. Add auth, or remove the entries that need it.",
-        });
-    } else {
-        r.pass("discovery.auth-present", {
-            summary: needsAuth ? "auth is present." : "Nothing requires auth.",
         });
     }
 
@@ -309,33 +308,61 @@ export function checkPoppyDocument(
         r.pass("discovery.interface-present");
     }
 
-    const apis = Array.isArray(poppy.apis) ? poppy.apis : [];
-    const badTypes = apis
-        .map((api, i) => ({ i, type: api?.type }))
-        .filter((a) => a.type !== "openapi" && a.type !== "mcp");
-    if (badTypes.length) {
-        r.fail("discovery.api-types", {
-            exchange: ex,
-            got: badTypes.map((a) => `apis[${a.i}].type ${JSON.stringify(a.type)}`).join(", "),
-            expected: 'Each type "openapi" or "mcp"',
-            cause: "Section 6 defines only openapi and mcp. Personal Agents skip other types, so they can't use these entries.",
-        });
-    } else {
-        r.pass("discovery.api-types", { summary: apis.length ? undefined : "No APIs listed." });
-    }
+    checkExtensionNames(r, poppy, ex);
+
+    // Personal Agents skip API types they don't recognize (section 7), so another type isn't a
+    // problem for the Company, but this validator can't check it.
+    const otherTypes = apisOf(poppy)
+        .map((api) => api.type)
+        .filter((type) => type !== "openapi" && type !== "mcp");
+    if (otherTypes.length)
+        ctx.notes.push(
+            `poppy.json lists API types this version doesn't define (${[...new Set(otherTypes.map((t) => JSON.stringify(t)))].join(", ")}). That's allowed, and Personal Agents that don't recognize them skip them, so the validator doesn't check them.`,
+        );
+
+    if (unusable.length)
+        blockPoppy(
+            ctx,
+            `Personal Agents wouldn't use this poppy.json (see ${unusable.join(", ")}), so checks that depend on it are skipped.`,
+        );
 }
 
-// Fetches and checks the excluded-tasks document that poppy.json names, if any (spec 8.1, 8.2).
-export async function checkExcludedTasks(ctx: Context, r: Recorder): Promise<void> {
-    const poppy = ctx.discovered.poppy;
-    if (!poppy) {
-        skipRest(r, EXCLUDED_TASKS_IDS, "poppy.json wasn't loaded.");
+// The extensions this version of the protocol defines, whose plain names are reserved for them.
+export const PROTOCOL_EXTENSIONS = ["mediated-sign-in", "operations"];
+
+// An extension name that starts with a domain, such as example.com/gift-wrap.
+const DOMAIN_NAME =
+    /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+\/\S+$/;
+
+// Extension names: plain names are reserved for the protocol's own extensions, and anyone else
+// starts the name with a domain (3.3).
+function checkExtensionNames(r: Recorder, poppy: Poppy, ex: Exchange | undefined): void {
+    const names = Object.keys(extensionsOf(poppy));
+    if (names.length === 0) {
+        r.skip("discovery.extension-names", "poppy.json lists no extensions.");
         return;
     }
-    const url = poppy.excluded_tasks?.url;
+    const bad = names.filter((n) => !PROTOCOL_EXTENSIONS.includes(n) && !DOMAIN_NAME.test(n));
+    if (bad.length === 0) r.pass("discovery.extension-names");
+    else
+        r.fail("discovery.extension-names", {
+            exchange: ex,
+            got: `extensions ${bad.map((n) => JSON.stringify(n)).join(", ")}`,
+            expected: `Either an extension this protocol defines (${PROTOCOL_EXTENSIONS.join(", ")}), or a name that starts with a domain, such as example.com/gift-wrap`,
+            cause: "Plain names are reserved for extensions defined with this protocol, so a Company's own extension can't clash with one the protocol adds later. Start the name with a domain you control.",
+        });
+}
+
+// Fetches and checks the excluded-tasks document that poppy.json names, if any (spec 9.1, 9.2).
+export async function checkExcludedTasks(ctx: Context, r: Recorder): Promise<void> {
+    const poppy = ctx.discovered.poppy;
+    if (!poppy || ctx.blocked.poppy) {
+        skipRest(r, EXCLUDED_TASKS_IDS, ctx.blocked.poppy ?? "poppy.json wasn't loaded.");
+        return;
+    }
+    const url = isObject(poppy.excluded_tasks) ? poppy.excluded_tasks.url : undefined;
     if (url === undefined) {
-        r.pass("discovery.excluded-tasks", { summary: "No excluded_tasks listed." });
-        r.pass("discovery.alternative-references", { summary: "No excluded_tasks listed." });
+        skipRest(r, EXCLUDED_TASKS_IDS, "poppy.json lists no excluded_tasks.");
         return;
     }
     if (typeof url !== "string" || !url.startsWith("https://")) {
@@ -349,7 +376,7 @@ export async function checkExcludedTasks(ctx: Context, r: Recorder): Promise<voi
     const follow = await getFollowing(ctx.http, url, { headers: { Accept: "application/json" } });
     const ex = follow.final!;
     const doc = ex.json as { tasks?: { task?: unknown; alternative?: unknown }[] } | undefined;
-    if (ex.error || ex.status !== 200 || !doc || typeof doc !== "object" || Array.isArray(doc)) {
+    if (ex.error || ex.status !== 200 || !isObject(doc)) {
         r.fail("discovery.excluded-tasks", {
             exchange: follow.chain,
             expected: `200 with a JSON object at ${url}`,
@@ -367,7 +394,7 @@ export async function checkExcludedTasks(ctx: Context, r: Recorder): Promise<voi
         r.fail("discovery.excluded-tasks", {
             exchange: ex,
             got: formatSchemaErrors(errors).join("; "),
-            expected: "The fields in 8.1 and 8.2 (kit/company/schemas/excluded-tasks.schema.json)",
+            expected: "The fields in 9.1 and 9.2 (kit/company/schemas/excluded-tasks.schema.json)",
             cause: "Fix each field listed.",
         });
     } else {
@@ -375,15 +402,18 @@ export async function checkExcludedTasks(ctx: Context, r: Recorder): Promise<voi
         r.pass("discovery.excluded-tasks", { summary: `${count} excluded task(s).` });
     }
 
-    const listed = new Set(
-        (Array.isArray(poppy.apis) ? poppy.apis : []).map((api) => `${api?.type} ${api?.url}`),
-    );
+    const listed = new Set(apisOf(poppy).map((api) => `${api.type} ${api.url}`));
     const unlisted: string[] = [];
     for (const [i, entry] of (Array.isArray(doc.tasks) ? doc.tasks : []).entries()) {
-        const alternative = entry?.alternative as { references?: unknown } | undefined;
+        const alternative = (isObject(entry) ? entry.alternative : undefined) as
+            | { references?: unknown }
+            | undefined;
         const references = Array.isArray(alternative?.references) ? alternative.references : [];
         for (const [j, ref] of references.entries()) {
-            const { type, url: refUrl } = (ref ?? {}) as { type?: unknown; url?: unknown };
+            const { type, url: refUrl } = (isObject(ref) ? ref : {}) as {
+                type?: unknown;
+                url?: unknown;
+            };
             if ((type === "openapi" || type === "mcp") && !listed.has(`${type} ${refUrl}`)) {
                 unlisted.push(`tasks[${i}].alternative.references[${j}] (${type} ${refUrl})`);
             }
@@ -402,22 +432,136 @@ export async function checkExcludedTasks(ctx: Context, r: Recorder): Promise<voi
     }
 }
 
-// Fetches and checks the issuer's RFC 8414 metadata, filling ctx.discovered.metadata.
+// What in poppy.json needs an issuer (spec 3.2).
+export function needsIssuer(poppy: Poppy): string[] {
+    return [
+        poppy.agent !== undefined ? "agent" : "",
+        poppy.apis !== undefined ? "apis" : "",
+        poppy.feedback !== undefined ? "feedback" : "",
+        poppy.web?.browser_session_endpoint !== undefined ? "web.browser_session_endpoint" : "",
+        mediatedSignIn(poppy) !== undefined ? "extensions.mediated-sign-in" : "",
+    ].filter(Boolean);
+}
+
+// Finds the issuer from the domain's protected resource metadata (RFC 9728) and auth.issuer
+// (spec 3.1, 3.2), filling ctx.discovered.issuer. Returns false when there's no issuer to check.
+async function discoverIssuer(ctx: Context, r: Recorder): Promise<boolean> {
+    const poppy = ctx.discovered.poppy!;
+    const domain = poppy.organization?.domain;
+    if (typeof domain !== "string") {
+        skipRest(r, METADATA_IDS, "poppy.json has no organization.domain (see discovery.schema).");
+        return false;
+    }
+    const needs = needsIssuer(poppy);
+    const resource = `https://${domain}`;
+    const url = `${resource}/.well-known/oauth-protected-resource`;
+    const follow = await getFollowing(ctx.http, url, {
+        max: 3,
+        headers: { Accept: "application/json" },
+    });
+    const ex = follow.final!;
+    const doc = ex.json as ResourceMetadata | undefined;
+    if (ex.status !== 200 || !doc || typeof doc !== "object" || Array.isArray(doc)) {
+        if (needs.length === 0) {
+            skipRest(
+                r,
+                METADATA_IDS,
+                "poppy.json lists nothing that needs an issuer, and the domain publishes no protected resource metadata, so it can only be browsed as an ordinary website.",
+            );
+            return false;
+        }
+        r.fail("metadata.issuer-required", {
+            exchange: follow.chain,
+            got: `${needs.join(", ")} in poppy.json, but no protected resource metadata at ${url}`,
+            expected: `200 with JSON protected resource metadata at ${url}`,
+            cause: ex.error
+                ? `The request failed (${ex.error}).`
+                : "Personal Agents find the Company's issuer from the domain's protected resource metadata (RFC 9728). Publish it with resource and authorization_servers, or remove the entries that need an issuer.",
+        });
+        skipRest(r, METADATA_IDS, "No issuer was found (see metadata.issuer-required).");
+        return false;
+    }
+    r.pass("metadata.issuer-required", {
+        summary: needs.length ? undefined : "Nothing in poppy.json needs an issuer.",
+    });
+    ctx.discovered.resourceMetadata = doc;
+
+    const errors = check("protected-resource-metadata.schema.json", doc);
+    const servers = Array.isArray(doc.authorization_servers)
+        ? doc.authorization_servers.filter((s): s is string => typeof s === "string")
+        : [];
+    const resourceMatches =
+        typeof doc.resource === "string" && doc.resource.toLowerCase() === resource.toLowerCase();
+    if (errors.length || !resourceMatches || servers.length === 0) {
+        r.fail("metadata.resource-metadata", {
+            exchange: ex,
+            got: [
+                ...formatSchemaErrors(errors),
+                resourceMatches ? "" : `resource ${JSON.stringify(doc.resource)}`,
+            ]
+                .filter(Boolean)
+                .join("; "),
+            expected: `resource "${resource}" and authorization_servers naming the issuer`,
+            cause: resourceMatches
+                ? "authorization_servers lists the Company's issuer, as an HTTPS URL."
+                : `resource is exactly https:// and organization.domain, with no path or trailing slash. Personal Agents use the metadata only when it's for ${resource}.`,
+        });
+        if (servers.length === 0) {
+            skipRest(r, METADATA_IDS, "No issuer was found (see metadata.resource-metadata).");
+            return false;
+        }
+    } else r.pass("metadata.resource-metadata");
+
+    const chosen = poppy.auth?.issuer;
+    let issuer: string;
+    if (servers.length === 1) {
+        issuer = servers[0];
+        if (chosen !== undefined && chosen !== issuer)
+            r.fail("metadata.issuer-chosen", {
+                exchange: ex,
+                got: `auth.issuer ${JSON.stringify(chosen)}, authorization_servers ${JSON.stringify(servers)}`,
+                expected: `auth.issuer "${issuer}", or no auth.issuer`,
+                cause: "auth.issuer must be in the protected resource metadata's authorization_servers. With one server, it can be left out.",
+            });
+        else r.pass("metadata.issuer-chosen", { summary: `One authorization server, ${issuer}.` });
+    } else if (typeof chosen === "string" && servers.includes(chosen)) {
+        issuer = chosen;
+        r.pass("metadata.issuer-chosen", { summary: `auth.issuer ${issuer}.` });
+    } else {
+        r.fail("metadata.issuer-chosen", {
+            exchange: ex,
+            got:
+                chosen === undefined
+                    ? `no auth.issuer, and authorization_servers ${JSON.stringify(servers)}`
+                    : `auth.issuer ${JSON.stringify(chosen)}, not in authorization_servers ${JSON.stringify(servers)}`,
+            expected: "auth.issuer, exactly as one of authorization_servers",
+            cause: "With more than one authorization server, auth.issuer in poppy.json names the one Personal Agents use. Personal Agents stop here otherwise.",
+        });
+        skipRest(r, METADATA_IDS, "No issuer was found (see metadata.issuer-chosen).");
+        return false;
+    }
+    if (!issuer.startsWith("https://")) {
+        skipRest(r, METADATA_IDS, `The issuer ${issuer} isn't an HTTPS URL.`);
+        return false;
+    }
+    ctx.discovered.issuer = issuer;
+    return true;
+}
+
+// Finds the issuer, then fetches and checks its RFC 8414 metadata, filling ctx.discovered.metadata.
 export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
     const poppy = ctx.discovered.poppy;
-    const issuer = poppy?.auth?.issuer;
-    if (!poppy) {
-        skipRest(r, METADATA_IDS, "poppy.json wasn't loaded.");
+    if (!poppy || ctx.blocked.poppy) {
+        skipRest(r, METADATA_IDS, ctx.blocked.poppy ?? "poppy.json wasn't loaded.");
         return;
     }
-    if (poppy.auth === undefined) {
-        skipRest(r, METADATA_IDS, "poppy.json has no auth, so there's no OAuth server to check.");
+    if (!(await discoverIssuer(ctx, r))) {
+        ctx.blocked.issuer ??= "No usable issuer was found (see the metadata checks).";
         return;
     }
-    if (typeof issuer !== "string" || !issuer.startsWith("https://")) {
-        skipRest(r, METADATA_IDS, "auth.issuer isn't an HTTPS URL (see discovery.schema).");
-        return;
-    }
+    // Checks that failed, so Personal Agents wouldn't trust the issuer.
+    const untrusted: string[] = [];
+    const issuer = ctx.discovered.issuer!;
     const url = metadataUrlFor(issuer);
     ctx.discovered.metadataUrl = url;
     const follow = await getFollowing(ctx.http, url, {
@@ -453,11 +597,9 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
                 .filter(Boolean)
                 .join(" "),
         });
-        skipRest(
-            r,
-            METADATA_IDS,
-            "The OAuth server metadata couldn't be loaded (see metadata.published).",
-        );
+        ctx.blocked.issuer =
+            "The issuer's OAuth server metadata couldn't be loaded (see metadata.published).";
+        skipRest(r, METADATA_IDS, ctx.blocked.issuer);
         return;
     }
     r.pass("metadata.published", { summary: `Loaded from ${ex.url}.` });
@@ -481,6 +623,7 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
                 "The fields section 3.2 lists, in the right forms (kit/company/schemas/authorization-server-metadata.schema.json)",
             cause: "Fix each field listed. Other RFC 8414 fields are fine.",
         });
+        untrusted.push("metadata.schema");
     } else {
         r.pass("metadata.schema");
     }
@@ -494,11 +637,12 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
         r.fail("metadata.issuer-matches", {
             exchange: ex,
             got: `issuer ${JSON.stringify(json.issuer)}`,
-            expected: `issuer "${issuer}", exactly as auth.issuer in poppy.json`,
+            expected: `issuer "${issuer}", exactly as the protected resource metadata names it`,
             cause: slash
                 ? "They differ only by a trailing slash, but the comparison is exact. Use the same string in both places."
-                : "poppy.json and the metadata name different issuers. Personal Agents stop here, because any domain could otherwise claim this issuer. Make auth.issuer the issuer your OAuth server reports.",
+                : "The protected resource metadata and the issuer's metadata name different issuers. Personal Agents stop here, because any domain could otherwise claim this issuer. Name the issuer your OAuth server reports.",
         });
+        untrusted.push("metadata.issuer-matches");
     }
 
     const domain = poppy.organization?.domain;
@@ -516,6 +660,7 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
             expected: `protected_resources, an array that includes "${resource}"`,
             cause: "protected_resources is the RFC 9728 field that lists the resources an authorization server serves. If your OAuth server can't publish it, serve this document from a small handler or a gateway in front of it.",
         });
+        untrusted.push("metadata.protected-resources");
     } else if (
         typeof domain === "string" &&
         !resources.some(
@@ -526,11 +671,14 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
             exchange: ex,
             got: `protected_resources ${JSON.stringify(resources)}`,
             expected: `protected_resources including "${resource}" (https:// and organization.domain)`,
-            cause: `Add "${resource}" to protected_resources. It must list https://{domain} for every domain whose poppy.json names this issuer, exactly as organization.domain says, with no path or trailing slash (case doesn't matter, www. does).`,
+            cause: `Add "${resource}" to protected_resources. It must list https://{domain} for every domain whose issuer it is, exactly as organization.domain says, with no path or trailing slash (case doesn't matter, www. does).`,
         });
+        untrusted.push("metadata.protected-resources");
     } else {
         r.pass("metadata.protected-resources");
     }
+    if (untrusted.length)
+        ctx.blocked.issuer = `Personal Agents wouldn't use this issuer (see ${untrusted.join(", ")}), so checks that depend on it are skipped.`;
 
     for (const [id, field] of [
         ["metadata.token-endpoint", "token_endpoint"],
@@ -545,31 +693,15 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
                 expected: `${field}, an HTTPS URL`,
                 cause:
                     field === "revocation_endpoint"
-                        ? "Personal Agents sign out by revoking Account Tokens here (RFC 7009). Add the endpoint, even before you offer sign-in."
-                        : "Personal Agents start Sessions at the token endpoint. Add it to the metadata.",
+                        ? "Personal Agents sign out by revoking refresh tokens here (RFC 7009). Add the endpoint, even before you offer sign-in."
+                        : "Personal Agents get access and refresh tokens at the token endpoint. Add it to the metadata.",
             });
         }
     }
 
-    const algs = json.dpop_signing_alg_values_supported;
-    if (algs === undefined) {
-        r.pass("metadata.dpop-algs", {
-            summary: "No dpop_signing_alg_values_supported, so Personal Agents sign with ES256.",
-        });
-    } else if (!Array.isArray(algs) || !algs.includes("ES256")) {
-        r.fail("metadata.dpop-algs", {
-            exchange: ex,
-            got: JSON.stringify(algs),
-            expected: "a list that includes ES256",
-            cause: "Every Company must accept ES256, so every Personal Agent has an algorithm that works everywhere.",
-        });
-    } else r.pass("metadata.dpop-algs");
-
     const grants = json.grant_types_supported;
     const missingGrants = Array.isArray(grants)
-        ? ["urn:ietf:params:oauth:grant-type:jwt-bearer", "refresh_token"].filter(
-              (g) => !grants.includes(g),
-          )
+        ? ["refresh_token"].filter((g) => !grants.includes(g))
         : undefined;
     if (missingGrants?.length === 0) {
         r.pass("metadata.grant-types");
@@ -580,10 +712,9 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
                 grants === undefined
                     ? "no grant_types_supported"
                     : `grant_types_supported ${JSON.stringify(grants)}`,
-            expected:
-                "grant_types_supported including urn:ietf:params:oauth:grant-type:jwt-bearer and refresh_token",
+            expected: "grant_types_supported including refresh_token",
             cause: missingGrants
-                ? `Add ${missingGrants.join(" and ")}. Personal Agents start Sessions with the JWT bearer grant and use Account Tokens with the refresh token grant.`
+                ? `Add ${missingGrants.join(" and ")}. Personal Agents use refresh tokens to get access tokens (4.4). Signed-out requests need nothing from the authorization server.`
                 : "Personal Agents read grant_types_supported to learn which grants, and which of Direct and Device Sign-In, the Company offers. RFC 8414's default when it's missing doesn't include the grants Poppy uses.",
         });
     }
@@ -607,14 +738,18 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
         }
     }
 
-    const mediated = poppy.auth?.mediated?.scopes;
+    const mediated = mediatedSignIn(poppy)?.scopes;
     const signsIn =
         offersGrant(json, SIGN_IN_GRANTS.direct) ||
         offersGrant(json, SIGN_IN_GRANTS.device) ||
-        poppy.auth?.mediated !== undefined;
+        mediatedSignIn(poppy) !== undefined;
     const supported = json.scopes_supported;
     if (!signsIn) {
         r.skip("metadata.scopes-supported", "The Company offers no type of sign-in.");
+        // Scopes it publishes anyway still need descriptions.
+        if (Array.isArray(supported) && supported.length)
+            await checkScopesDescribed(ctx, r, supported);
+        else r.skip("metadata.scopes-described", "scopes_supported lists no scopes.");
     } else if (!Array.isArray(supported) || supported.length === 0) {
         r.fail("metadata.scopes-supported", {
             exchange: ex,
@@ -625,6 +760,7 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
             expected: "scopes_supported, listing every scope a Personal Agent can request",
             cause: "Personal Agents request only scopes from scopes_supported.",
         });
+        r.skip("metadata.scopes-described", "scopes_supported lists no scopes.");
     } else {
         const missing = Array.isArray(mediated)
             ? mediated.filter((scope) => !supported.includes(scope))
@@ -634,11 +770,121 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
                 exchange: ex,
                 got: `scopes_supported ${JSON.stringify(supported)}`,
                 expected: `scopes_supported including ${missing.join(", ")}`,
-                cause: "auth.mediated.scopes lists scopes that scopes_supported doesn't. Add them, so Personal Agents can request them.",
+                cause: "The mediated-sign-in extension's scopes lists scopes that scopes_supported doesn't. Add them, so Personal Agents can request them.",
             });
         } else r.pass("metadata.scopes-supported");
         await checkScopesDescribed(ctx, r, supported);
     }
+    checkMediatedGrant(r, poppy, json, ex);
+    await checkSameAuth(ctx, r, json, ex);
+}
+
+const MEDIATED_GRANT = "https://personalagentprotocol.org/grant/mediated-sign-in";
+
+// A Company that lists Mediated Sign-In lists its grant type (Mediated Sign-In 2).
+function checkMediatedGrant(r: Recorder, poppy: Poppy, json: Metadata, ex: Exchange): void {
+    if (!mediatedSignIn(poppy)) {
+        r.skip("metadata.mediated-grant", "poppy.json doesn't list Mediated Sign-In version 1.");
+        return;
+    }
+    if (offersGrant(json, MEDIATED_GRANT)) r.pass("metadata.mediated-grant");
+    else
+        r.fail("metadata.mediated-grant", {
+            exchange: ex,
+            got: `grant_types_supported ${JSON.stringify(json.grant_types_supported)}`,
+            expected: `grant_types_supported including ${MEDIATED_GRANT}`,
+            cause: "poppy.json lists Mediated Sign-In, so the issuer's metadata lists its grant type. Personal Agents read grant_types_supported to learn which grants the token endpoint accepts.",
+        });
+}
+
+// Other domains with the same issuer are the same Company, and their poppy.json documents have
+// the same auth (3.2). The validator reads each other domain's document, up to a few.
+const MAX_OTHER_DOMAINS = 5;
+
+async function checkSameAuth(
+    ctx: Context,
+    r: Recorder,
+    json: Metadata,
+    ex: Exchange,
+): Promise<void> {
+    if (!r.wants("metadata.same-auth")) return;
+    const poppy = ctx.discovered.poppy!;
+    const own = String(poppy.organization?.domain ?? "").toLowerCase();
+    const others = (Array.isArray(json.protected_resources) ? json.protected_resources : [])
+        .filter((u): u is string => typeof u === "string" && /^https:\/\/[^/?#:@\s]+$/i.test(u))
+        .map((u) => u.slice("https://".length).toLowerCase())
+        .filter((d, i, all) => d !== own && all.indexOf(d) === i);
+    if (others.length === 0) {
+        r.skip("metadata.same-auth", "The issuer's protected_resources lists no other domain.");
+        return;
+    }
+    const checked = others.slice(0, MAX_OTHER_DOMAINS);
+    const different: string[] = [];
+    const unread: string[] = [];
+    const exchanges: Exchange[] = [ex];
+    for (const domain of checked) {
+        const follow = await getFollowing(ctx.http, `https://${domain}/.well-known/poppy.json`, {
+            max: 3,
+            headers: { Accept: "application/json" },
+        });
+        const other = follow.final!;
+        const doc = other.json as Poppy | undefined;
+        if (other.status !== 200 || !isObject(doc) || follow.problem) {
+            unread.push(`${domain} (${other.refused ?? other.error ?? other.status})`);
+            continue;
+        }
+        if (String(doc.organization?.domain ?? "").toLowerCase() !== domain) {
+            unread.push(
+                `${domain} (its document names organization.domain ${JSON.stringify(doc.organization?.domain)})`,
+            );
+            continue;
+        }
+        if (!sameJson(doc.auth, poppy.auth)) {
+            different.push(domain);
+            exchanges.push(other);
+        }
+    }
+    const notes = [
+        ...(others.length > checked.length
+            ? [`Only the first ${MAX_OTHER_DOMAINS} of ${others.length} other domains were read.`]
+            : []),
+        ...(unread.length
+            ? [`These domains' poppy.json couldn't be compared: ${unread.join(", ")}.`]
+            : []),
+    ];
+    if (different.length)
+        r.fail("metadata.same-auth", {
+            exchange: exchanges,
+            got: `auth differs on ${different.join(", ")}`,
+            expected: "The same auth in the poppy.json of every domain with this issuer",
+            cause: "Domains with the same issuer are one Company: the same User IDs, Sessions, and refresh tokens apply to all of them, so their documents have the same auth (issuer, scopes, and scope hints).",
+            notes,
+        });
+    else if (unread.length === checked.length)
+        r.inconclusive("metadata.same-auth", {
+            exchange: ex,
+            got: `no other domain's poppy.json could be read: ${unread.join(", ")}`,
+            cause: "The validator couldn't compare auth with any other domain that has this issuer.",
+        });
+    else
+        r.pass("metadata.same-auth", {
+            summary: `Compared with ${checked.length - unread.length} other domain(s).`,
+            notes,
+        });
+}
+
+function sameJson(a: unknown, b: unknown): boolean {
+    if (a === b) return true;
+    if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+    if (Array.isArray(a) !== Array.isArray(b)) return false;
+    const ka = Object.keys(a as object);
+    const kb = Object.keys(b as object);
+    return (
+        ka.length === kb.length &&
+        ka.every((k) =>
+            sameJson((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]),
+        )
+    );
 }
 
 // Every scope in scopes_supported is described in auth.scopes or in a listed OpenAPI description.
@@ -648,7 +894,12 @@ async function checkScopesDescribed(
     supported: unknown[],
 ): Promise<void> {
     const poppy = ctx.discovered.poppy!;
-    const described = new Set(Object.keys(poppy.auth?.scopes ?? {}));
+    const scopes = isObject(poppy.auth) ? poppy.auth.scopes : undefined;
+    const described = new Set(
+        isObject(scopes)
+            ? Object.keys(scopes).filter((k) => typeof scopes[k] === "string" && scopes[k] !== "")
+            : [],
+    );
     let missing = supported.filter((s): s is string => typeof s === "string" && !described.has(s));
     if (missing.length === 0) {
         r.pass("metadata.scopes-described", {
@@ -656,23 +907,39 @@ async function checkScopesDescribed(
         });
         return;
     }
-    const apis = (poppy.apis ?? []).filter(
-        (a) => a?.type === "openapi" && typeof a.url === "string",
-    );
-    const loaded = await Promise.all(apis.map((a) => loadOpenApi(ctx, a.url!)));
+    const loaded = await Promise.all(apiUrls(poppy, "openapi").map((url) => loadOpenApi(ctx, url)));
     for (const l of loaded) for (const s of l.scopes ?? []) described.add(s);
     missing = missing.filter((s) => !described.has(s));
     if (missing.length === 0) {
         r.pass("metadata.scopes-described");
-    } else if (loaded.some((l) => !l.problem && l.scopes === undefined)) {
-        r.skip(
-            "metadata.scopes-described",
-            `${missing.join(", ")} isn't in auth.scopes, and the validator can't read scopes from a YAML OpenAPI description. Check by hand.`,
-        );
+    } else if (loaded.some((l) => l.inconclusive || l.unresolved?.length)) {
+        const unread = loaded.filter((l) => l.inconclusive || l.unresolved?.length);
+        r.inconclusive("metadata.scopes-described", {
+            exchange: unread.map((l) => l.exchange),
+            got: `no description found for ${missing.join(", ")}`,
+            cause: `Not every OpenAPI description could be read (${unread
+                .map(
+                    (l) =>
+                        `${l.url}: ${l.problem ?? `security schemes with $refs the validator couldn't resolve: ${l.unresolved!.join(", ")}`}`,
+                )
+                .join("; ")}), so the validator couldn't tell whether they describe these scopes.`,
+        });
     } else {
+        const notStrings = loaded.flatMap((l) =>
+            (l.badScopes ?? []).filter((s) => missing.includes(s)).map((s) => `${s} in ${l.url}`),
+        );
+        const broken = loaded.filter((l) => l.problem).map((l) => `${l.url}: ${l.problem}`);
         r.fail("metadata.scopes-described", {
             exchange: loaded.map((l) => l.exchange),
-            got: `no description for ${missing.join(", ")}`,
+            got: [
+                `no description for ${missing.join(", ")}`,
+                notStrings.length
+                    ? `descriptions that aren't strings: ${notStrings.join(", ")}`
+                    : "",
+                broken.length ? `descriptions that couldn't be used: ${broken.join("; ")}` : "",
+            ]
+                .filter(Boolean)
+                .join("; "),
             expected: "a description of every scope in scopes_supported",
             cause: "Personal Agents choose scopes by their descriptions. Describe each scope in the OAuth 2.0 security scheme of an OpenAPI description listed in apis, or in auth.scopes in poppy.json.",
         });

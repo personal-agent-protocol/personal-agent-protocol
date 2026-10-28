@@ -20,7 +20,7 @@ in. If the draft is too long for a link, it prints Markdown to paste into the is
 Show the engineer the full draft. Before they file it, check together that it contains none of:
 
 - hostnames, URLs, or IP addresses of the Company's systems (spec links are fine);
-- tokens, keys, client assertions, DPoP Proofs, credentials, or one-time codes;
+- tokens, keys, client assertions, Session JWTs, credentials, or one-time codes;
 - customer or user data of any kind;
 - internal service names, vendor details, security controls, or other internal details the engineer
   hasn't approved for sharing.

@@ -11,8 +11,9 @@ approve, build it one milestone at a time, check each milestone with the validat
 implementation report. The engineer makes the decisions this skill marks as theirs. You recommend.
 
 Always call it "Personal Agent Protocol" or "Poppy". Use the spec's capitalized terms as the spec
-does: Personal Agent, Company, User, Session, Session Token, Account Token, DPoP Proof, Direct
-Sign-In, Device Sign-In, Mediated Sign-In, Company Agent, Direct Conversation.
+does: Personal Agent, Company, User, User ID, Session, Session header, Delegated key, Direct
+Sign-In, Device Sign-In, Mediated Sign-In, Company Agent, Direct Conversation. Tokens keep their
+OAuth names: access token and refresh token.
 
 **Done** means the validator passes for everything in the approved design, you have gone through
 `checklist.md` for what the validator can't see, and the engineer has a report draft to file.
@@ -38,7 +39,7 @@ repository first, and use the `implement-personal-agent-protocol` folder in it a
 | `validate/`             | The validator. Run it, don't edit it.                                                                           |
 
 The spec on the site is the same text as `reference/spec.md`. Links in this skill point to the site,
-such as [4.3](https://personalagentprotocol.org/docs/spec#sending-tokens). Read the local copy when
+such as [5.6](https://personalagentprotocol.org/docs/spec#sending-requests). Read the local copy when
 you can't fetch the site.
 
 ## The validator
@@ -117,15 +118,15 @@ For each milestone in the design's plan, in order:
    lists.
 5. Tell the engineer what you built, what passed, and what you checked by hand.
 
-| Milestone                  | Builds                                                                                                                             | Spec                 |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| `milestones/foundation.md` | `poppy.json`, OAuth server metadata, verifying Personal Agents, signed-out Sessions, DPoP, the token endpoint replay cache, errors | 3, 4.1–4.3           |
-| `milestones/interfaces.md` | What the design chose: OpenAPI with DPoP, MCP with Bearer and DPoP, conversations, web browsing. Signed out first.                 | 5, 6, 7, 8           |
-| `milestones/sign-in.md`    | The chosen sign-in types, Account Tokens, sign-out, scope enforcement on every channel, account settings                           | 4.4–4.9, 7.11        |
-| `milestones/extensions.md` | Optional. Extensions the design chose, such as Operations.                                                                         | 3.3, extension pages |
+| Milestone                  | Builds                                                                                                                                    | Spec                                     |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| `milestones/foundation.md` | `poppy.json`, protected resource and OAuth server metadata, verifying Personal Agents and the Session header, signed-out Sessions, errors | 3, 4.1, 5.1–5.3, 5.6                     |
+| `milestones/interfaces.md` | What the design chose: OpenAPI, MCP, conversations, web browsing, feedback. Signed out first.                                             | 6–9                                      |
+| `milestones/sign-in.md`    | The chosen sign-in types, refresh and access tokens, sign-out, scope enforcement on every channel, account settings                       | 4.2–4.7, 5.4–5.5, 8.11, Mediated Sign-In |
+| `milestones/extensions.md` | Optional. Extensions the design chose.                                                                                                    | 3.3                                      |
 
-A Company that offers only its website stops after publishing `poppy.json` without `auth`
-([3.1](https://personalagentprotocol.org/docs/spec#fields)).
+A Company that offers only its website stops after publishing `poppy.json` without `auth` and
+without `web.browser_session_endpoint` ([3.1](https://personalagentprotocol.org/docs/spec#fields)).
 
 ### 4. Verify
 
@@ -156,7 +157,7 @@ in step 5 is built from it.
 - Change existing systems as little as the design allows. Poppy is built to sit on top of what the
   Company has.
 - Keep secrets out of code, logs, test output, plan files, and the report: tokens, keys, client
-  assertions, DPoP Proofs, credentials, and one-time codes
+  assertions, Session JWTs, credentials, and one-time codes
   ([guides](https://personalagentprotocol.org/docs/guides#both-secrets)).
 - Ask before changing anything in production, shared infrastructure, or a vendor's configuration.
 - Don't modify the validator to make a check pass. If you think a check is wrong, log it and tell

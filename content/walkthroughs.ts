@@ -31,8 +31,8 @@ const MADRONE = {
 };
 const LAUREL = { name: "Laurel Fiber", domain: "laurelfiber.example", color: "#5f3dc4", logo: "L" };
 
-// Session Tokens are company-issued and opaque, shortened here. Signing in replaces the signed-out
-// token with a signed-in one.
+// Signed-out Session Tokens are agent-issued JWTs. Signed-in tokens are company-issued and opaque.
+// Both are shortened here. Signing in replaces the token and keeps the Session Key.
 const TOKENS = {
     manzanitaSignedOut: "eyJhbGciOi…Lm9x",
     manzanita: "eyJhbGciOi…Qp4w",
@@ -63,7 +63,7 @@ export const walkthroughs: Walkthrough[] = [
                 time: "Thu 7:31 PM",
                 title: "Finding Manzanita",
                 caption:
-                    "The user wants to return a jacket. Atlas reads poppy.json, a file Manzanita publishes on its website, to learn how to reach Manzanita's own agent.",
+                    "The user wants to return a jacket. Atlas reads poppy.json, a file Manzanita publishes on its website, to learn how to reach Manzanita's own agent. Both list Operations version 2 in their metadata, so Atlas can get the user's approval before an exchange.",
                 chat: [
                     {
                         t: "user",
@@ -111,7 +111,19 @@ Content-Type: application/json
         "endpoint": "https://api.manzanitasupply.example/poppy/conversations"
       }
     ]
+  },
+  "extensions": {
+    "operations": { "version": "2" }
   }
+}`,
+                    },
+                    {
+                        dir: "Manzanita → atlas.example",
+                        kind: "client metadata excerpt",
+                        body: `// Atlas's client metadata document at https://atlas.example/agent.json
+// advertises the same version of the Operations extension.
+"extensions": {
+  "operations": { "version": "2" }
 }`,
                     },
                     {
@@ -128,7 +140,6 @@ Content-Type: application/json
   "revocation_endpoint": "https://auth.manzanitasupply.example/oauth/revoke",
   "authorization_endpoint": "https://auth.manzanitasupply.example/oauth/authorize",
   "grant_types_supported": [
-    "urn:ietf:params:oauth:grant-type:jwt-bearer",
     "refresh_token",
     "authorization_code"
   ],
@@ -146,7 +157,7 @@ Content-Type: application/json
                 time: "Thu 7:31 PM",
                 title: "Starting signed out",
                 caption:
-                    "Atlas starts a session: Manzanita's record of this user working through Atlas. It starts signed out, so Atlas can ask about the return right away. Manzanita replies that it needs the user to sign in.",
+                    "Atlas signs a token for a session: Manzanita's record of this user working through Atlas. It starts signed out, so Atlas can ask about the return right away. Manzanita replies that it needs the user to sign in.",
                 chat: [
                     {
                         t: "agent",
@@ -173,30 +184,23 @@ Content-Type: application/json
                 },
                 wire: [
                     {
-                        dir: "Atlas ↔ auth.manzanitasupply.example",
-                        kind: "start a session",
-                        body: `POST https://auth.manzanitasupply.example/oauth/token
-Content-Type: application/x-www-form-urlencoded
-DPoP: ${DPOP}
-
-grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer
-&assertion=eyJhbGciOiJFUzI1NiIs…
-${CLIENT_AUTH}
-
-// The assertion names Atlas in iss, and this user's
-// Manzanita User ID in sub. The DPoP Proof is signed
-// with a new key for this Session. Manzanita binds the
-// token to it, and the key names the Session from now on.
-
-HTTP/1.1 200 OK
-Content-Type: application/json
-Cache-Control: no-store
-
+                        dir: "Atlas signs a token",
+                        kind: "signed-out session token",
+                        body: `// Atlas signs this JWT with its published agent key.
+// It sends the token directly to Manzanita with DPoP.
+// cnf.jkt names the key of this Session.
 {
-  "access_token": "${TOKENS.manzanitaSignedOut}",
-  "token_type": "DPoP",
-  "expires_in": 3600
-}`,
+  "iss": "https://atlas.example/agent.json",
+  "sub": "usr_Q7c1vK",
+  "aud": "https://auth.manzanitasupply.example",
+  "iat": 1790900000,
+  "exp": 1790900060,
+  "cnf": { "jkt": "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I" }
+}
+
+// Manzanita verifies the token with Atlas's published
+// keys and the proof with the Session Key. A new key
+// creates a Session. There is no token endpoint request.`,
                     },
                     {
                         dir: "Atlas ↔ api.manzanitasupply.example",
@@ -537,7 +541,7 @@ Content-Type: application/json
                 time: "Tue 1:22 PM",
                 title: "Signing in for the user",
                 caption:
-                    "Laurel lets Atlas sign in with the user's saved Laurel login, which the protocol calls Mediated Sign-In. Laurel also texts the user a one-time code, and Atlas asks for it.",
+                    "Laurel lets Atlas sign in with the user's saved Laurel login, through the Mediated Sign-In extension. Laurel also texts the user a one-time code, and Atlas asks for it.",
                 chat: [
                     {
                         t: "user",
@@ -572,14 +576,6 @@ Content-Type: application/json
   "organization": { "name": "Laurel Fiber", "domain": "laurelfiber.example" },
   "auth": {
     "issuer": "https://auth.laurelfiber.example",
-    "mediated": {
-      "endpoint": "https://auth.laurelfiber.example/poppy/sign-in",
-      "fields": [
-        { "name": "email", "label": "Email", "secret": false },
-        { "name": "password", "label": "Password", "secret": true }
-      ],
-      "scopes": ["account:read", "account:write"]
-    },
     "scopes": {
       "account:read": "See your plan, bills, and service appointments",
       "account:write": "Change your plan and book or move service appointments"
@@ -592,6 +588,17 @@ Content-Type: application/json
   },
   "web": {
     "browser_session_endpoint": "https://laurelfiber.example/poppy/browser-session"
+  },
+  "extensions": {
+    "mediated-sign-in": {
+      "version": "1",
+      "endpoint": "https://auth.laurelfiber.example/poppy/sign-in",
+      "fields": [
+        { "name": "email", "label": "Email", "secret": false },
+        { "name": "password", "label": "Password", "secret": true }
+      ],
+      "scopes": ["account:read", "account:write"]
+    }
   }
 }
 
@@ -679,17 +686,18 @@ Set-Cookie: __Host-lf_join=Jq7mW2…; Path=/; Max-Age=60; Secure; HttpOnly; Same
 
 <form method="post" action="/poppy/browser-session">
   <input type="hidden" name="code" value="bc_Vn3qT8xLw2Rk9mZ4yHc1Ad">
+  <input type="text" name="token">
   <input type="text" name="proof">
 </form>
 
 // Atlas reads the code from its own browser, signs a DPoP Proof
 // with its Laurel Session Key and the code as the nonce, puts it
-// in the form, and submits it:
+// in the form with a signed-out token, and submits it:
 POST https://laurelfiber.example/poppy/browser-session
 Content-Type: application/x-www-form-urlencoded
 Cookie: __Host-lf_join=Jq7mW2…
 
-code=bc_Vn3qT8xLw2Rk9mZ4yHc1Ad&proof=eyJ0eXAiOiJkcG9wK2p3dCIs…
+code=bc_Vn3qT8xLw2Rk9mZ4yHc1Ad&token=eyJhbGciOiJFUzI1NiIs…&proof=eyJ0eXAiOiJkcG9wK2p3dCIs…
 
 HTTP/1.1 303 See Other
 Location: https://laurelfiber.example/
@@ -1212,16 +1220,18 @@ Set-Cookie: __Host-ch_join=Lk40sB…; Path=/; Max-Age=60; Secure; HttpOnly; Same
 
 <form method="post" action="/poppy/browser-session">
   <input type="hidden" name="code" value="bc_8Jr2Lp0Qx5Tm1Wc7Ns4Ke">
+  <input type="text" name="token">
   <input type="text" name="proof">
 </form>
 
 // Atlas signs a proof over the code with the Session Key of its
-// signed-in Chaparral session, and its browser submits the form:
+// signed-in Chaparral session, adds a signed-out token, and its
+// browser submits the form:
 POST https://chaparralhotel.example/poppy/browser-session
 Content-Type: application/x-www-form-urlencoded
 Cookie: __Host-ch_join=Lk40sB…
 
-code=bc_8Jr2Lp0Qx5Tm1Wc7Ns4Ke&proof=eyJ0eXAiOiJkcG9wK2p3dCIs…
+code=bc_8Jr2Lp0Qx5Tm1Wc7Ns4Ke&token=eyJhbGciOiJFUzI1NiIs…&proof=eyJ0eXAiOiJkcG9wK2p3dCIs…
 
 HTTP/1.1 303 See Other
 Location: https://chaparralhotel.example/

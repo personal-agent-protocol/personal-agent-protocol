@@ -87,6 +87,16 @@
             "permanent": false
         },
         {
+            "source": "/docs/extensions/mediated-sign-in",
+            "destination": "/docs/0.3/extensions/mediated-sign-in",
+            "permanent": false
+        },
+        {
+            "source": "/docs/extensions/mediated-sign-in.md",
+            "destination": "/docs/0.3/extensions/mediated-sign-in.md",
+            "permanent": false
+        },
+        {
             "source": "/docs/guides",
             "destination": "/docs/0.3/guides",
             "permanent": false

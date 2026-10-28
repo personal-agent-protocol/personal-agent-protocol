@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "event.schema.json",
     "title": "Conversation event",
-    "description": "One event in a conversation, as returned by GET {endpoint}/{id}/events or streamed. Spec sections 7.5 (Reading events), 7.7, 7.10, and 7.11. Every event has id, type, and created_at, and its type says which other fields it has. Personal Agents skip types they don't recognize, so other types are allowed.",
+    "description": "One event in a conversation, as returned by GET {endpoint}/{id}/events or streamed. Spec sections 8.5 (Reading events), 8.7, 8.10, and 8.11. Every event has id, type, and created_at, and its type says which other fields it has. Personal Agents skip types they don't recognize, so other types are allowed.",
     "type": "object",
     "required": ["id", "type", "created_at"],
     "properties": {
@@ -10,7 +10,8 @@
         "type": { "type": "string", "minLength": 1 },
         "created_at": {
             "type": "string",
-            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}[Tt][0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?([Zz]|[+-][0-9]{2}:[0-9]{2})$"
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}[Tt][0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?([Zz]|[+-][0-9]{2}:[0-9]{2})$",
+            "format": "date-time"
         }
     },
     "allOf": [

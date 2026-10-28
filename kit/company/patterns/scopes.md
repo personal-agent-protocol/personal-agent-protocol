@@ -1,10 +1,9 @@
 # Pattern: scopes
 
 Scopes say what account access a sign-in grants
-([4.4](https://personalagentprotocol.org/docs/spec#sign-in)). The protocol defines none: each
-Company defines its own, usually the OAuth scopes it already has. Names starting with `poppy:` are
-reserved. Companies decide which operations need each scope and enforce them on the website, APIs,
-and actions the Company Agent performs (4.4).
+([4.7](https://personalagentprotocol.org/docs/spec#scopes)). The protocol defines none: each
+Company defines its own, usually the OAuth scopes it already has. Companies decide which actions need each scope and enforce them on the website, APIs,
+and actions the Company Agent performs (4.7).
 
 ## Choosing and describing scopes
 
@@ -19,30 +18,30 @@ permissions it grants:
 - Start from the scopes the Company's OAuth server already has, and from what a signed-in customer
   can do. Decide what a Personal Agent shouldn't do under any scope, such as changing sign-in
   credentials or closing the account.
-- List every scope in `scopes_supported` in the OAuth metadata, and describe every one (MUST, 4.4):
+- List every scope in `scopes_supported` in the OAuth metadata, and describe every one (MUST, 4.7):
   in the OAuth security scheme of an OpenAPI description you list, or in `auth.scopes`, a map from
   scope name to description in the same form.
 - Write descriptions in words a User understands, specific enough for a language model to pick the
   scopes a task needs. Say whether it only reads, whether a write scope also allows reading, which
   actions can't be undone, and what personal data it shows
   ([guides](https://personalagentprotocol.org/docs/guides#company-scope-descriptions)).
-- Add `auth.scope_hints` (MAY, 4.4): for each scope, `changes` (`none`, `reversible`, or
-  `irreversible`) and `personal_data` (`true` or `false`), both required (MUST, 4.4), judged by the
+- Add `auth.scope_hints` (MAY, 4.7): for each scope, `changes` (`none`, `reversible`, or
+  `irreversible`) and `personal_data` (`true` or `false`), both required (MUST, 4.7), judged by the
   most consequential operation that requires the scope. Leave out a scope you're unsure about. Add a
   column for the hints to the table.
 - On the consent page, present scopes in plain words, group related ones, and show which are new
   when the User already granted some
   ([guides](https://personalagentprotocol.org/docs/guides#company-consent)).
 - If the issuer also serves other OAuth clients, leave scopes you don't offer Personal Agents out of
-  `scopes_supported`, and limit the scopes you grant by client (3.2, 4.4). Keeping Direct or Device
+  `scopes_supported`, and limit the scopes you grant by client (3.2, 4.7). Keeping Direct or Device
   Sign-In from Personal Agents needs an issuer only for them, chosen before launch, because changing
-  `auth.issuer` later breaks every existing Session
+  the issuer later makes every User look new to the Company
   ([guides](https://personalagentprotocol.org/docs/guides#company-agent-issuer)).
 - Direct and Device Sign-In can grant any scope in `scopes_supported`. Decide which Mediated Sign-In
-  can grant, in `auth.mediated.scopes`. It often grants less.
+  can grant, in its extension's `scopes`. It often grants less.
 - Make the scopes cover what Users ask Personal Agents to do, so they don't fall back to the User's
-  credentials (SHOULD, [4.4](https://personalagentprotocol.org/docs/spec#sign-in),
-  [9.5](https://personalagentprotocol.org/docs/spec#credentials)).
+  credentials (SHOULD, [5.4](https://personalagentprotocol.org/docs/spec#sign-in),
+  [10.5](https://personalagentprotocol.org/docs/spec#credentials)).
 
 ## One shared check
 
@@ -52,11 +51,12 @@ Company Agent's tools, and live agents' tools
 
 - **A policy function or service** that takes the verified Session (`client_id`, account, scopes)
   and an action, and answers allow or deny with the missing scopes. Each channel turns a denial into
-  its own error: `insufficient_scope` in `WWW-Authenticate` for APIs
-  ([section 6](https://personalagentprotocol.org/docs/spec#apis)), an `authorization` event in
-  conversations ([7.11](https://personalagentprotocol.org/docs/spec#conversation-sign-in)), and a
+  its own error: for APIs, a 401 challenge with `scope` when signed out, or `insufficient_scope`
+  when the access token lacks the scopes, in `WWW-Authenticate`
+  ([section 7](https://personalagentprotocol.org/docs/spec#apis)), an `authorization` event in
+  conversations ([8.11](https://personalagentprotocol.org/docs/spec#conversation-sign-in)), and a
   visible error naming the missing scopes on the website (SHOULD,
-  [section 5](https://personalagentprotocol.org/docs/spec#web-browsing)).
+  [section 6](https://personalagentprotocol.org/docs/spec#web-browsing)).
 - **Existing permission checks, fed from scopes.** If services already check permissions, derive
   the permission set from the token's scopes at the edge, and let existing checks do the rest
   ([guides](https://personalagentprotocol.org/docs/guides#company-internal)).
@@ -66,9 +66,9 @@ Company Agent's tools, and live agents' tools
 - The Company Agent's tools check scopes on every call. Don't rely on the model to decide
   ([guides](https://personalagentprotocol.org/docs/guides#company-scopes)).
 - A live agent who takes over is held to the same scopes
-  ([7.9](https://personalagentprotocol.org/docs/spec#handoff)). Their tools need the same check,
+  ([8.9](https://personalagentprotocol.org/docs/spec#handoff)). Their tools need the same check,
   which may mean changes to the live-agent desk.
-- A message never authorizes an account action (7.11).
-- The website applies the Session's scopes through the browser-session cookie
-  ([section 5](https://personalagentprotocol.org/docs/spec#web-browsing)).
-- Never grant beyond what was requested and allowed for the sign-in type (4.4).
+- A message never authorizes an account action (8.11).
+- The website applies the scopes authorized when the browser joined, through its cookie
+  ([section 6](https://personalagentprotocol.org/docs/spec#web-browsing)).
+- Never grant beyond what was requested and allowed for the sign-in type (4.7).

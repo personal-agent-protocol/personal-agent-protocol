@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "message.schema.json",
     "title": "Conversation message",
-    "description": "A message in a Personal Agent Protocol conversation, from either side. Spec sections 7.3 (Sending messages) and 7.4 (Message fields). A message has at least one of text, data, or context. role is set by the Company when it records the message as an event; the Personal Agent doesn't send it. Unknown fields are allowed, for example ones an extension adds.",
+    "description": "A message in a Personal Agent Protocol conversation, from either side. Spec sections 8.3 (Sending messages) and 8.4 (Message fields). A message has text, data, or context, or a content field from a supported extension. This schema also covers Operations version 2: operation only from the Company, and approval only from the Personal Agent (Operations extension 4, 6). role is set by the Company when it records the message as an event; the Personal Agent doesn't send it. Unknown fields are allowed, for example ones an extension adds.",
     "type": "object",
     "required": ["id", "author"],
     "properties": {
@@ -15,9 +15,9 @@
             "required": ["type"],
             "properties": {
                 "type": { "enum": ["agent", "human"] },
-                "id": { "$ref": "#/$defs/id" },
+                "id": { "type": "string", "minLength": 1 },
                 "name": { "type": "string", "minLength": 1 },
-                "image": { "type": "string", "pattern": "^https://" }
+                "image": { "type": "string", "pattern": "^https://", "format": "uri" }
             }
         },
         "context": {
@@ -27,9 +27,17 @@
                 "time_zone": { "type": "string", "minLength": 1 },
                 "user_available": { "type": "boolean" }
             }
-        }
+        },
+        "operation": { "$ref": "operation.schema.json" },
+        "approval": { "$ref": "approval.schema.json" }
     },
-    "anyOf": [{ "required": ["text"] }, { "required": ["data"] }, { "required": ["context"] }],
+    "anyOf": [
+        { "required": ["text"] },
+        { "required": ["data"] },
+        { "required": ["context"] },
+        { "required": ["operation"] },
+        { "required": ["approval"] }
+    ],
     "$defs": {
         "id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,256}$" }
     }

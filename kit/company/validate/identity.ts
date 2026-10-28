@@ -1,10 +1,15 @@
 // The test Personal Agent's identity, kept in .poppy/ in the current directory:
 //
-//   private-key.jwk   the ES256 signing key (mode 0600, never printed)
+//   private-key.jwk   the ES256 key in jwks.json, which signs delegations (mode 0600, never printed)
+//   private-key-rsa.jwk  a PS384 key in jwks.json, which signs a delegation the way a blind
+//                     signature would come out (spec 10.7) (mode 0600, never printed)
 //   agent.json        client metadata, hosted at <base-url>/agent.json
-//   jwks.json         the public key, hosted at <base-url>/jwks.json
+//   jwks.json         their public keys, hosted at <base-url>/jwks.json
 //   config.json       client_id, and a random User ID for each Company issuer
 //   last-results.json the latest check results, without secrets
+//
+// Each run creates a delegated key in memory, with a delegation for it signed by the key in
+// jwks.json, and signs its Session JWTs with the delegated key (spec 5.2).
 
 import {
     existsSync,
@@ -20,11 +25,17 @@ import type { Http } from "./http.ts";
 import { formatSchemaErrors } from "./schema.ts";
 import {
     generateKey,
+    generateRsaKey,
     importPrivateJwk,
+    importRsaPrivateJwk,
     randomId,
+    signDelegation,
     thumbprint,
     type EcPrivateJwk,
     type EcPublicJwk,
+    type RsaKey,
+    type RsaPrivateJwk,
+    type RsaPublicJwk,
     type SigningKey,
 } from "./jose.ts";
 
@@ -33,7 +44,7 @@ export const POPPY_DIR = ".poppy";
 export type Config = {
     client_id: string;
     base_url: string;
-    // A random User ID for each Company, keyed by auth.issuer.
+    // A random User ID for each Company, keyed by its issuer.
     user_ids: Record<string, string>;
 };
 
@@ -42,9 +53,17 @@ export type Identity = {
     clientId: string;
     jwksUri: string;
     redirectUri: string;
+    // The key in jwks.json. It signs delegations and client assertions.
+    rootKey: SigningKey;
+    // The delegated key that signs Session JWTs, and the delegation that vouches for it.
     key: SigningKey;
+    delegation: string;
+    // The PS384 key in jwks.json, and a delegation it signed for `key`. Missing for a .poppy/ from
+    // before the RSA key was added.
+    rsaRootKey?: RsaKey;
+    rsaDelegation?: string;
     agent: Record<string, unknown>;
-    jwks: { keys: EcPublicJwk[] };
+    jwks: { keys: (EcPublicJwk | RsaPublicJwk)[] };
     config: Config;
 };
 
@@ -98,6 +117,15 @@ export async function keygen(
     const kid = (await thumbprint(generated.publicJwk)).slice(0, 16);
     const privateJwk: EcPrivateJwk = { ...generated.privateJwk!, kid, alg: "ES256", use: "sig" };
     const publicJwk: EcPublicJwk = { ...generated.publicJwk, kid, alg: "ES256", use: "sig" };
+    const rsa = await generateRsaKey();
+    const rsaKid = `rsa-${randomId(8)}`;
+    const rsaPrivateJwk: RsaPrivateJwk = {
+        ...rsa.privateJwk,
+        kid: rsaKid,
+        alg: "PS384",
+        use: "sig",
+    };
+    const rsaPublicJwk: RsaPublicJwk = { ...rsa.publicJwk, kid: rsaKid, alg: "PS384", use: "sig" };
 
     const clientId = `${baseUrl}/agent.json`;
     const agent = {
@@ -107,10 +135,13 @@ export async function keygen(
         redirect_uris: [`${baseUrl}/callback`],
         token_endpoint_auth_method: "private_key_jwt",
     };
-    const jwks = { keys: [publicJwk] };
+    const jwks = { keys: [publicJwk, rsaPublicJwk] };
 
     writeFileSync(keyFile, JSON.stringify(privateJwk, null, 2) + "\n", { mode: 0o600 });
     chmodSync(keyFile, 0o600);
+    const rsaKeyFile = join(dir, "private-key-rsa.jwk");
+    writeFileSync(rsaKeyFile, JSON.stringify(rsaPrivateJwk, null, 2) + "\n", { mode: 0o600 });
+    chmodSync(rsaKeyFile, 0o600);
     writeFileSync(join(dir, "agent.json"), JSON.stringify(agent, null, 2) + "\n");
     writeFileSync(join(dir, "jwks.json"), JSON.stringify(jwks, null, 2) + "\n");
 
@@ -185,17 +216,44 @@ export async function loadIdentity(
             unknown
         >;
         const jwks = JSON.parse(readFileSync(join(dir, "jwks.json"), "utf8")) as {
-            keys: EcPublicJwk[];
+            keys: (EcPublicJwk | RsaPublicJwk)[];
         };
         const config = JSON.parse(readFileSync(join(dir, "config.json"), "utf8")) as Config;
         config.user_ids ??= {};
-        const key = await importPrivateJwk(privateJwk);
+        const rootKey = await importPrivateJwk(privateJwk);
+        const generated = await generateKey(false);
+        const key: SigningKey = {
+            privateKey: generated.privateKey,
+            publicJwk: { ...generated.publicJwk, kid: await thumbprint(generated.publicJwk) },
+        };
+        const delegation = await signDelegation({
+            root: rootKey,
+            delegated: key.publicJwk,
+            iss: String(agent.client_id),
+        });
+        const rsaKeyFile = join(dir, "private-key-rsa.jwk");
+        const rsaRootKey = existsSync(rsaKeyFile)
+            ? await importRsaPrivateJwk(
+                  JSON.parse(readFileSync(rsaKeyFile, "utf8")) as RsaPrivateJwk,
+              )
+            : undefined;
+        const rsaDelegation = rsaRootKey
+            ? await signDelegation({
+                  root: rsaRootKey,
+                  delegated: key.publicJwk,
+                  iss: String(agent.client_id),
+              })
+            : undefined;
         return {
             dir,
             clientId: String(agent.client_id),
             jwksUri: String(agent.jwks_uri),
             redirectUri: Array.isArray(agent.redirect_uris) ? String(agent.redirect_uris[0]) : "",
+            rootKey,
             key,
+            delegation,
+            rsaRootKey,
+            rsaDelegation,
             agent,
             jwks,
             config,
@@ -207,7 +265,7 @@ export async function loadIdentity(
     }
 }
 
-// The test User ID for a Company, created at random on first use (spec 4.2).
+// The test User ID for a Company, created at random on first use (spec 5.1).
 export function userIdFor(identity: Identity, issuer: string): string {
     let id = identity.config.user_ids[issuer];
     if (!id) {
@@ -279,7 +337,7 @@ export async function verifyHosted(identity: Identity, http: Http): Promise<stri
         );
     } else {
         const keys = (jwksEx.json as { keys?: unknown } | undefined)?.keys;
-        const local = identity.key.publicJwk;
+        const local = identity.rootKey.publicJwk;
         if (!Array.isArray(keys)) {
             problems.push(
                 `${identity.jwksUri} isn't a JWK Set (no "keys" array). Host .poppy/jwks.json there unchanged.`,
@@ -291,6 +349,18 @@ export async function verifyHosted(identity: Identity, http: Http): Promise<stri
         ) {
             problems.push(
                 `${identity.jwksUri} doesn't contain the local public key (kid ${local.kid}). The hosted jwks.json is probably from an earlier keygen run, or a cache is serving an old copy. Host .poppy/jwks.json there.`,
+            );
+        } else if (
+            identity.rsaRootKey &&
+            !keys.some(
+                (k: RsaPublicJwk) =>
+                    k &&
+                    k.n === identity.rsaRootKey!.publicJwk.n &&
+                    k.kid === identity.rsaRootKey!.publicJwk.kid,
+            )
+        ) {
+            problems.push(
+                `${identity.jwksUri} doesn't contain the local RSA public key (kid ${identity.rsaRootKey.publicJwk.kid}). The hosted jwks.json is probably from an earlier keygen run, or a cache is serving an old copy. Host .poppy/jwks.json there.`,
             );
         } else if (keys.some((k: Record<string, unknown>) => k && "d" in k)) {
             problems.push(

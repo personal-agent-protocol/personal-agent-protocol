@@ -107,7 +107,7 @@ const AFTER: Node[] = [
         col: 2,
         row: 2,
         title: "Token endpoint",
-        detail: "Verifies agents, issues tokens",
+        detail: "Verifies agents, plain OAuth",
         status: "added",
     },
     {
@@ -115,7 +115,7 @@ const AFTER: Node[] = [
         col: 3,
         row: 2,
         title: "Session records",
-        detail: "Sessions, scopes, tokens",
+        detail: "Sessions, refresh tokens",
         status: "added",
     },
     {
@@ -123,7 +123,7 @@ const AFTER: Node[] = [
         col: 1,
         row: 3,
         title: "API gateway",
-        detail: "+ Session Tokens, DPoP",
+        detail: "+ Session header",
         status: "changed",
     },
     { id: "backend", col: 2, row: 3, title: "Backend services", detail: "Orders, bookings, …" },

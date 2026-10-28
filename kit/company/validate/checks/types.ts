@@ -8,10 +8,9 @@ import {
     type CheckInfo,
     type Milestone,
 } from "../catalog.ts";
-import { errorCode, type Exchange, type Http } from "../http.ts";
+import { errorCode, noResponse, type Exchange, type Http } from "../http.ts";
 import type { Identity } from "../identity.ts";
-import type { SigningKey } from "../jose.ts";
-import { redactBody, redactHeaders, redactUrl, redactText } from "../redact.ts";
+import { redactBody, redactHeaders, redactSetCookie, redactUrl, redactText } from "../redact.ts";
 
 export type Status = "pass" | "fail" | "warn" | "skip";
 
@@ -35,6 +34,9 @@ export type CheckResult = CheckInfo & {
     cause?: string;
     // Why a check was skipped.
     reason?: string;
+    // A warning because the validator couldn't decide: no usable response, a rate limit, or the
+    // Company declined the validator by policy. Not a finding against the Company.
+    inconclusive?: boolean;
     notes?: string[];
     exchanges?: ExchangeSummary[];
     specUrl: string;
@@ -46,15 +48,20 @@ export type Poppy = {
     organization?: { name?: string; domain?: string };
     auth?: {
         issuer?: string;
-        mediated?: { endpoint?: string; fields?: unknown[]; scopes?: string[] };
         scopes?: Record<string, string>;
     };
-    agent?: { protocols?: { type?: string; endpoint?: string; resource?: string }[] };
+    agent?: { protocols?: { type?: string; endpoint?: string }[] };
     web?: { browser_session_endpoint?: string };
     feedback?: { endpoint?: string };
     excluded_tasks?: { url?: string };
-    apis?: { type?: string; url?: string; description?: string; resource?: string }[];
-    extensions?: Record<string, { version?: string }>;
+    apis?: { type?: string; url?: string; description?: string }[];
+    extensions?: Record<string, { version?: string }> & {
+        "mediated-sign-in"?: {
+            version?: string;
+            fields?: unknown[];
+            scopes?: string[];
+        };
+    };
 };
 
 export type Metadata = {
@@ -63,7 +70,6 @@ export type Metadata = {
     revocation_endpoint?: string;
     authorization_endpoint?: string;
     device_authorization_endpoint?: string;
-    dpop_signing_alg_values_supported?: unknown;
     grant_types_supported?: unknown;
     scopes_supported?: unknown;
     protected_resources?: unknown;
@@ -81,36 +87,31 @@ export function offersGrant(metadata: Metadata | undefined, grant: string): bool
     return Array.isArray(grants) && grants.includes(grant);
 }
 
+// The domain's protected resource metadata (RFC 9728), which names the issuer (spec 3.2).
+export type ResourceMetadata = {
+    resource?: unknown;
+    authorization_servers?: unknown;
+    [field: string]: unknown;
+};
+
 export type Discovered = {
     poppy?: Poppy;
     poppyUrl?: string;
     finalHost?: string;
+    resourceMetadata?: ResourceMetadata;
+    // The Company's issuer, from the protected resource metadata and auth.issuer (spec 3.2).
+    issuer?: string;
     metadata?: Metadata;
     metadataUrl?: string;
 };
 
-// A Session Token the validator holds.
-export type HeldToken = {
-    accessToken: string;
-    tokenType: string;
-    dpopKey?: SigningKey;
-    resource?: string;
-};
-
 export type SessionState = {
-    // The DPoP key for this run's Sessions.
-    dpopKey?: SigningKey;
-    // The latest DPoP nonce from each origin.
-    nonces: Record<string, string>;
-    // Where the Company asked for a nonce, with the exchange that asked.
-    nonceRequests: { origin: string; exchange: Exchange }[];
-    // The token from session.start, and the request that got it.
-    token?: HeldToken;
-    startExchange?: Exchange;
-    startProof?: string;
+    // This run's Session ID (spec 5.2).
+    sid?: string;
     userId?: string;
-    // Tokens issued for a resource, by resource URL.
-    resourceTokens: Record<string, HeldToken>;
+    // Whether a resource accepted the Session (session.start), and the request it accepted.
+    started?: boolean;
+    startExchange?: Exchange;
 };
 
 export type CheckOptions = {
@@ -130,6 +131,19 @@ export type Context = {
     discovered: Discovered;
     session: SessionState;
     notes: string[];
+    // Why a prerequisite isn't usable, by name, such as "poppy" or "issuer". Checks that depend on
+    // it skip with the reason.
+    blocked: Record<string, string>;
+    // Conversations this run created, so they can all be closed at the end (spec 8.8).
+    created: CreatedConversation[];
+};
+
+export type CreatedConversation = {
+    endpoint: string;
+    id: string;
+    // The User the conversation belongs to: this run's User or the other one (spec 8.2).
+    sub: string;
+    closed?: boolean;
 };
 
 export function newContext(http: Http, options: CheckOptions, target?: string): Context {
@@ -138,8 +152,10 @@ export function newContext(http: Http, options: CheckOptions, target?: string): 
         target,
         options,
         discovered: {},
-        session: { nonces: {}, nonceRequests: [], resourceTokens: {} },
+        session: {},
         notes: [],
+        blocked: {},
+        created: [],
     };
 }
 
@@ -192,11 +208,23 @@ export function summarizeExchange(ex: Exchange): ExchangeSummary {
         return Object.keys(out).length ? redactHeaders(out) : undefined;
     };
     const body = ex.body ?? "";
+    const responseHeaders = pick(ex.responseHeaders, [
+        "content-type",
+        "www-authenticate",
+        "cache-control",
+        "content-security-policy",
+        "x-frame-options",
+        "cross-origin-opener-policy",
+        "location",
+        "retry-after",
+    ]);
+    // Each Set-Cookie is redacted on its own, since joined ones can't be split reliably.
+    const cookies = ex.setCookies.map(redactSetCookie);
     return {
         request: `${ex.method} ${redactUrl(ex.url)}`,
         requestHeaders: pick(ex.requestHeaders, [
+            "poppy-session",
             "authorization",
-            "dpop",
             "content-type",
             "accept",
         ]),
@@ -204,14 +232,13 @@ export function summarizeExchange(ex: Exchange): ExchangeSummary {
         response: ex.error
             ? `no response: ${ex.error}`
             : `${ex.status} ${ex.statusText ?? ""}`.trim(),
-        responseHeaders: pick(ex.responseHeaders, [
-            "content-type",
-            "www-authenticate",
-            "dpop-nonce",
-            "cache-control",
-            "location",
-            "retry-after",
-        ]),
+        responseHeaders:
+            responseHeaders || cookies.length
+                ? {
+                      ...responseHeaders,
+                      ...(cookies.length ? { "set-cookie": cookies.join("\n") } : {}),
+                  }
+                : undefined,
         responseBody: body ? excerpt(redactBody(body), 400) : undefined,
     };
 }
@@ -228,7 +255,10 @@ export function describeSent(ex: Exchange): string {
 
 // "400 Bad Request, error invalid_grant" or "no response: timed out".
 export function describeGot(ex: Exchange): string {
+    if (ex.refused) return `not sent: ${ex.refused}`;
     if (ex.error) return `no response: ${ex.error}`;
+    if (ex.rateLimited)
+        return `${ex.status} Too Many Requests${ex.rateLimited.retryAfter !== undefined ? `, Retry-After ${ex.rateLimited.retryAfter} s` : ""}`;
     const code = errorCode(ex);
     const status = `${ex.status}${ex.statusText ? " " + ex.statusText : ""}`;
     if (code) return `${status}, error ${code}`;
@@ -243,7 +273,20 @@ export type Detail = {
     cause?: string;
     notes?: string[];
     exchange?: Exchange | Exchange[];
+    // A failed request is the result, as for discovery.https: don't make it inconclusive.
+    transportIsResult?: boolean;
 };
+
+// Why an exchange can't decide a check, or undefined if it can.
+export function inconclusiveCause(ex: Exchange | undefined): string | undefined {
+    if (!ex || !noResponse(ex)) return undefined;
+    if (ex.refused) return `The validator didn't send the request: ${ex.refused}.`;
+    if (ex.status === 429)
+        return ex.rateLimited?.retryAfter !== undefined
+            ? `The Company rate-limited the request with a Retry-After of ${ex.rateLimited.retryAfter} seconds, longer than the validator waits, so it couldn't tell. Run it again later.`
+            : "The Company rate-limited the request without a Retry-After the validator could wait out, so it couldn't tell. Run it again later.";
+    return `The request failed (${ex.error}), so the validator couldn't tell. This is a network or transport problem, not a finding.`;
+}
 
 export type Recorder = {
     results: CheckResult[];
@@ -252,13 +295,22 @@ export type Recorder = {
     fail(id: string, detail: Detail): void;
     // A check that can't be decided, or a SHOULD that isn't met.
     warn(id: string, detail: Detail): void;
+    // A check the validator couldn't decide, such as when the Company declined the validator by
+    // policy or didn't respond. Reported as a warning marked inconclusive.
+    inconclusive(id: string, detail: Detail): void;
     skip(id: string, reason: string): void;
     // Whether this check is selected, so it's worth sending its requests.
     wants(id: string): boolean;
 };
 
 export function recorder(ctx: Context, results: CheckResult[] = []): Recorder {
-    const add = (id: string, status: Status, detail: Detail = {}, reason?: string) => {
+    const add = (
+        id: string,
+        status: Status,
+        detail: Detail = {},
+        reason?: string,
+        inconclusive = false,
+    ) => {
         const info = checkInfo(id);
         if (!ctx.options.milestones.has(info.milestone) || !selected(ctx.options, id)) return;
         if (results.some((r) => r.id === id)) return;
@@ -268,6 +320,15 @@ export function recorder(ctx: Context, results: CheckResult[] = []): Recorder {
                 : [detail.exchange]
             : [];
         const last = exchanges[exchanges.length - 1];
+        const transport =
+            (status === "fail" || status === "warn") && !detail.transportIsResult
+                ? inconclusiveCause(last)
+                : undefined;
+        if (transport) {
+            status = "warn";
+            inconclusive = true;
+            detail = { ...detail, cause: transport, expected: undefined };
+        }
         const result: CheckResult = {
             ...info,
             status: status === "fail" && info.level === "SHOULD" ? "warn" : status,
@@ -283,6 +344,7 @@ export function recorder(ctx: Context, results: CheckResult[] = []): Recorder {
             if (exchanges.length) result.exchanges = exchanges.map(summarizeExchange);
         }
         if (reason) result.reason = reason;
+        if (inconclusive) result.inconclusive = true;
         if (detail.notes?.length) result.notes = detail.notes.map(redactText);
         results.push(result);
     };
@@ -291,6 +353,7 @@ export function recorder(ctx: Context, results: CheckResult[] = []): Recorder {
         pass: (id, detail) => add(id, "pass", detail),
         fail: (id, detail) => add(id, "fail", detail),
         warn: (id, detail) => add(id, "warn", detail),
+        inconclusive: (id, detail) => add(id, "warn", detail, undefined, true),
         skip: (id, reason) => add(id, "skip", {}, reason),
         wants: (id) => {
             const info = checkInfo(id);
@@ -302,4 +365,80 @@ export function recorder(ctx: Context, results: CheckResult[] = []): Recorder {
 // Skips every listed check that hasn't produced a result yet.
 export function skipRest(r: Recorder, ids: string[], reason: string): void {
     for (const id of ids) r.skip(id, reason);
+}
+
+// Skips each check, or the rest of them, when a prerequisite is blocked. Returns whether it was.
+export function blockedBy(ctx: Context, r: Recorder, names: string[], ids: string[]): boolean {
+    const reason = names.map((n) => ctx.blocked[n]).find(Boolean);
+    if (!reason) return false;
+    skipRest(r, ids, reason);
+    return true;
+}
+
+// Safe readers for a poppy.json that may not match its schema, so a malformed document never
+// crashes the run.
+
+export function isObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+export type ApiEntry = { type?: unknown; url?: unknown; description?: unknown };
+
+// The entries of apis that are objects.
+export function apisOf(poppy: Poppy | undefined): ApiEntry[] {
+    const apis = (poppy as { apis?: unknown } | undefined)?.apis;
+    return Array.isArray(apis) ? apis.filter(isObject) : [];
+}
+
+// The HTTPS URLs of the APIs of a type, such as "openapi".
+export function apiUrls(poppy: Poppy | undefined, type: string): string[] {
+    return apisOf(poppy)
+        .filter((a) => a.type === type && isHttpsUrl(a.url))
+        .map((a) => a.url as string);
+}
+
+export function protocolsOf(poppy: Poppy | undefined): { type?: unknown; endpoint?: unknown }[] {
+    const agent = (poppy as { agent?: unknown } | undefined)?.agent;
+    const protocols = isObject(agent) ? agent.protocols : undefined;
+    return Array.isArray(protocols) ? protocols.filter(isObject) : [];
+}
+
+// The conversation endpoint: agent.protocols' entry with type poppy (spec 8.1).
+export function conversationEndpoint(poppy: Poppy | undefined): string | undefined {
+    const entry = protocolsOf(poppy).find((p) => p.type === "poppy" && isHttpsUrl(p.endpoint));
+    return entry ? (entry.endpoint as string).replace(/\/+$/, "") : undefined;
+}
+
+// A string field inside an object field of poppy.json, such as feedback.endpoint.
+export function fieldOf(poppy: Poppy | undefined, object: string, field: string): unknown {
+    const value = (poppy as Record<string, unknown> | undefined)?.[object];
+    return isObject(value) ? value[field] : undefined;
+}
+
+// The extensions object, if it is one.
+export function extensionsOf(poppy: Poppy | undefined): Record<string, unknown> {
+    const value = (poppy as { extensions?: unknown } | undefined)?.extensions;
+    return isObject(value) ? value : {};
+}
+
+// The Mediated Sign-In extension, when it's listed with a version this validator supports, "1".
+export function mediatedSignIn(
+    poppy: Poppy | undefined,
+): { version: "1"; fields?: unknown; scopes?: unknown } | undefined {
+    const entry = extensionsOf(poppy)["mediated-sign-in"];
+    return isObject(entry) && entry.version === "1"
+        ? (entry as { version: "1"; fields?: unknown; scopes?: unknown })
+        : undefined;
+}
+
+// Whether a value is an HTTPS URL with a valid host and port, and no spaces or userinfo.
+export function isHttpsUrl(value: unknown): value is string {
+    if (typeof value !== "string" || /\s/.test(value) || !value.startsWith("https://"))
+        return false;
+    try {
+        const url = new URL(value);
+        return url.protocol === "https:" && url.hostname !== "" && !url.username && !url.password;
+    } catch {
+        return false;
+    }
 }

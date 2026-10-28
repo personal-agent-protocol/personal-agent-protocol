@@ -15,6 +15,7 @@ test("redaction keeps a recognizable prefix and nothing else", () => {
     assert.equal(redactValue(JWT), "eyJhbGci…(redacted)");
     assert.equal(redactHeader("Authorization", `DPoP ${JWT}`), "DPoP eyJhbGci…(redacted)");
     assert.equal(redactHeader("DPoP", JWT), "eyJhbGci…(redacted)");
+    assert.equal(redactHeader("Poppy-Session", JWT), "eyJhbGci…(redacted)");
     assert.equal(redactHeader("Authorization", "Bearer abcdefghij"), "Bearer (redacted)");
     assert.equal(redactText(`token ${JWT} here`), "token eyJhbGci…(redacted) here");
     const json = JSON.parse(
@@ -43,22 +44,26 @@ test("redaction keeps a recognizable prefix and nothing else", () => {
 function failingResult() {
     const ctx = newContext(createHttp(), { milestones: parseMilestones("all")! });
     const r = recorder(ctx);
-    r.fail("dpop.token-replay", {
+    r.fail("session.unknown-key", {
         exchange: {
             method: "POST",
             url: "https://auth.example/token",
-            requestHeaders: { DPoP: JWT, "Content-Type": "application/x-www-form-urlencoded" },
+            requestHeaders: {
+                "Poppy-Session": JWT,
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
             requestBody: `grant_type=x&assertion=${JWT}`,
             responseHeaders: { "content-type": "application/json" },
+            setCookies: [],
             status: 200,
             statusText: "OK",
             body: JSON.stringify({ access_token: "opaque-access-token", token_type: "DPoP" }),
             json: { access_token: "opaque-access-token", token_type: "DPoP" },
             ms: 5,
         },
-        got: "200 OK, a new Session Token",
-        expected: "400 invalid_dpop_proof",
-        cause: "No replay cache.",
+        got: "200 OK, the request was handled",
+        expected: '400 {"error": "invalid_session"}',
+        cause: "The Session JWT's signature isn't checked.",
     });
     return r.results[0];
 }
@@ -104,8 +109,14 @@ test("color only when enabled", () => {
 test("a failed SHOULD check is a warning", () => {
     const ctx = newContext(createHttp(), { milestones: parseMilestones("all")! });
     const r = recorder(ctx);
-    r.fail("session.no-store", { got: "Cache-Control missing" });
-    assert.equal(r.results[0].status, "warn");
+    const info = { ...CATALOG[0], id: "test.should", level: "SHOULD" as const };
+    CATALOG.push(info);
+    try {
+        r.fail(info.id, { got: "Recommendation not met" });
+        assert.equal(r.results[0].status, "warn");
+    } finally {
+        CATALOG.pop();
+    }
 });
 
 test("the catalog has unique ids and page#id sections", () => {
@@ -152,7 +163,7 @@ test("the report replaces the Company's domains and tokens", () => {
     assert.match(report.fields.problems, /auth\.example\.com/);
     const url = new URL(report.url);
     assert.equal(url.searchParams.get("template"), "2-implementation-report.yml");
-    assert.match(url.searchParams.get("milestones")!, /Failing: dpop\.token-replay/);
+    assert.match(url.searchParams.get("milestones")!, /Failing: session\.unknown-key/);
     const long = draftReport({ feedback: "## Notes\n\n" + "x".repeat(9000) });
     assert.equal(
         long.url,

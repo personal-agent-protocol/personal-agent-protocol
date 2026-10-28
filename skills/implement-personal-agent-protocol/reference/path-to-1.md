@@ -34,6 +34,7 @@ These are larger areas the draft doesn't cover yet, listed so it's clear they ar
 - **Payments.** How a personal agent makes payments in a way that fits the protocol, including how that works with existing payment protocols.
 - **Push notifications.** How a company reaches the personal agent when no request is open, for example when an order ships or a person replies hours later.
 - **Versions.** How a company serves personal agents that implement different versions at the same time, and how the two sides agree on one, once 1.0 promises compatibility between minor versions.
+- **Signed approvals.** How the user approves an operation with a key on their own device, such as a passkey, so the company can verify the approval instead of trusting the personal agent. That proves more only if the company knows the key is the user's, for example because the user registered it on the company's website, and the device shows the user the terms it signs.
 - **Attachments.** How company messages carry more than text and data, such as receipts, return labels, product images, or forms for the user to fill in.
 - **Self-hosted personal agents.** How a personal agent that runs on the user's own devices, such as a desktop app, a phone app, or a browser extension, identifies itself and signs in without a server that learns which companies each user works with, and how it can act in the browser where the user is already signed in.
 

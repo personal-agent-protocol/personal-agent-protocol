@@ -12,135 +12,281 @@ major or minor.
 
 ### Major changes {#v0-3-major}
 
-<Change title="Sign-in types from the OAuth server metadata" breaking sections="3.1, 3.2, 4.4, 9.3, guides#company-agent-issuer">
+<Change title="Company-defined scopes" breaking sections="2, 3, 3.1, 3.2, 4.7, guides#company-scopes, guides#company-agent-issuer">
 
-`auth.direct` and `auth.device` are removed from `poppy.json`. A Company offers Direct and Device
-Sign-In when `grant_types_supported` in its OAuth server metadata includes `authorization_code` or
-`urn:ietf:params:oauth:grant-type:device_code`, so there's no second list to drift out of sync with
-the issuer. `grant_types_supported` is now required, with the JWT bearer and refresh token grants.
-A Company whose issuer offers one of these grants to other clients offers it to Personal Agents too,
-and the guides explain how to keep one from Personal Agents with an issuer only for them. Direct and
-Device Sign-In can grant any scope in `scopes_supported`. Only Mediated Sign-In keeps its own list,
-`auth.mediated.scopes`.
-
-</Change>
-
-<Change title="Company-defined scopes" breaking sections="2, 3, 3.1, 3.2, 4.4, guides#company-scopes, guides#company-agent-issuer">
-
-The protocol no longer defines `poppy:read` and `poppy:write`. Each Company defines its own scopes,
-usually the OAuth scopes it already has, and lists every scope a Personal Agent can request in
-`scopes_supported` in its OAuth server metadata, as RFC 8414 defines. Personal Agents request only
-scopes from that list. The Company must describe each scope, in the OAuth security scheme of an
-OpenAPI description it lists, or otherwise in `auth.scopes`, which replaces `auth.custom_scopes` and
-has the same form as the `scopes` of an OAuth 2.0 security scheme in OpenAPI. Names starting with
-`poppy:` stay reserved. `scopes_supported` may leave out scopes the Company doesn't offer Personal
-Agents, and the Company may limit the scopes it grants by client, so an issuer that serves other
-clients doesn't need a separate one for Personal Agents.
+The protocol no longer defines `poppy:read` and `poppy:write`, or reserves names starting with
+`poppy:`. Each Company defines its own scopes, usually the OAuth scopes it already has, and lists
+every scope a Personal Agent can request in `scopes_supported` in its OAuth server metadata, as RFC
+8414 defines. Personal Agents request only scopes from that list. The Company must describe each
+scope, in the OAuth security scheme of an OpenAPI description it lists, or otherwise in
+`auth.scopes`, which replaces `auth.custom_scopes` and has the same form as the `scopes` of an OAuth
+2.0 security scheme in OpenAPI. `scopes_supported` may leave out scopes the Company doesn't offer
+Personal Agents, and the Company may limit the scopes it grants by client, so an issuer that serves
+other clients doesn't need a separate one for Personal Agents.
 
 </Change>
 
-<Change title="Scope hints" sections="3, 3.1, 4.4, guides#agent-choosing-sign-in, guides#company-scope-descriptions, guides#company-consent">
+<Change title="Sign-in types from the OAuth server metadata" breaking sections="3.1, 3.2, 4, 10.3, guides#company-agent-issuer">
+
+`auth.direct`, `auth.device`, and their `scopes` are removed from `poppy.json`. A Company offers
+Direct and Device Sign-In when `grant_types_supported` in its OAuth server metadata includes
+`authorization_code` or `urn:ietf:params:oauth:grant-type:device_code`, so there's no second list to
+drift out of sync with the issuer. `grant_types_supported` is now required, and includes
+`refresh_token`. A Company whose issuer offers one of these grants to other clients offers it to
+Personal Agents too, and the guides explain how to keep one from Personal Agents with an issuer only
+for them. Direct and Device Sign-In can grant any scope in `scopes_supported`. Only Mediated Sign-In
+keeps its own list of scopes, now in its extension.
+
+</Change>
+
+<Change title="Scope hints" sections="3, 3.1, 4.7, guides#agent-choosing-sign-in, guides#company-scope-descriptions, guides#company-consent">
 
 A Company can give hints about each scope in `auth.scope_hints`: whether its `changes` are `none`,
 `reversible`, or `irreversible`, and whether it touches `personal_data`, after MCP's tool
-annotations but for a whole scope. A Personal Agent can then decide before sign-in which scopes need
-the User's go-ahead, rather than catching each action. Each entry describes the most consequential
-operation that requires the scope. OAuth and OpenAPI have no place for this, since both describe a
-scope with one string, so it is a new field in `poppy.json`, and it covers scopes described in
-OpenAPI too.
+annotations but for a whole scope. Each entry describes the most consequential action that requires
+the scope. A Personal Agent can then decide before sign-in which scopes need the User's go-ahead,
+rather than catching each action, and treats a `changes` value it doesn't recognize as
+`irreversible`. OAuth and OpenAPI describe a scope with one string, so the hints are a field in
+`poppy.json`, and they cover scopes described in OpenAPI too.
 
 </Change>
 
-<Change title="Prefer delegated sign-in" sections="4.4, 9.5, guides#agent-choosing-sign-in">
+<Change title="OAuth and Sessions sections" sections="1, 4, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 5, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 7, 11">
 
-Personal Agents should use Direct or Device Sign-In rather than Mediated Sign-In when the Company
-offers it and it covers the task. Companies that offer Direct or Device Sign-In should make their
-scopes and APIs cover what Users need. Section 9.5 explains what a Company gives up when Personal
-Agents sign in with the User's credentials outside the protocol.
+Section 4, "Sessions and authorization", is now two sections, so the spec reads as standard OAuth
+with Poppy on top. Section 4, "OAuth", has agent identity, Direct and Device Sign-In, refresh
+tokens, access tokens, revocation, and scopes and token responses, and ends with a list of what
+Poppy adds to OAuth (4.8), including the choices where it is stricter than OAuth. Section 5,
+"Sessions", has User IDs, the Session header, its verification, signing in, ending Sessions, and
+sending requests. Browser join is summarized in the section 5 introduction and defined in section 6. The MCP rules moved to section 7, with the other API rules. Sections 5 to 10 are now 6 to 11.
 
-</Change>
-
-<Change title="Session Keys replace `session_id`" breaking sections="2, 3.2, 4, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, guides#agent-user-ids, guides#agent-dpop, guides#agent-direct-device, guides#agent-native-apps, guides#company-session-keys">
-
-Each Session has its own DPoP key, the Session Key, and the key's thumbprint names the Session. The
-custom `session_id` parameter is removed from every token request and response, so Poppy's token
-requests are standard OAuth requests. A proof from a new key starts a new Session, and a proof from
-a known key renews or signs in that Session. Personal Agents use a new key for each Session instead
-of one for each User ID, and a Session can't change its key. Account Tokens aren't bound to a key,
-so one can start Sessions with different keys. Companies must support `dpop_jkt`, and Personal
-Agents must bind the authorization code to the Session Key with it, or with a proof on a pushed
-authorization request, at a `pushed_authorization_request_endpoint` the metadata can now list. A
-device code is bound to the key of the first poll.
-Companies should remember the keys of Sessions they end and reject them, so an ended Session's key
-doesn't silently start a new one.
+The OAuth flows now cite their RFCs instead of restating them. Each one summarizes the grant, shows
+one example, and lists only the rules Poppy adds. Rules that were stated in more than one place are
+now stated once. The references add RFC 9700.
 
 </Change>
 
-<Change title="Agent IDs for several agents" sections="4.2, 4.10" issue="36">
+<Change title="Session header separate from OAuth" breaking sections="2, 3, 3.2, 4, 4.2, 4.3, 4.4, 4.5, 4.7, 4.8, 5, 5.2, 5.3, 5.4, 5.5, 5.6, 6, 7, 8.2, 8.6, 8.11, 8.13, 9.3, 10.4, 11, Operations 6, guides#both-secrets, guides#both-signing, guides#agent-user-ids, guides#agent-session-header, guides#agent-tokens, guides#agent-direct-device, guides#company-agents, guides#company-session-header, guides#company-sessions, guides#company-lifetimes">
+
+Sessions and account access are now separate. Every request a Personal Agent sends to a Company's
+APIs, conversations, and protocol and extension endpoints carries a `Poppy-Session` header: a JWT,
+typed `poppy-session+jwt`, that the Personal Agent signs for that one request. It names the Personal
+Agent in `iss`, the Company's issuer in `aud`, the Session in `sid`, a random ID the Personal Agent
+chooses, the User ID in `sub`, and the optional Agent ID, and covers the request's method and URL in
+`htm` and `htu`, as a DPoP proof does. When the request carries an access token, `ath` covers it
+too. A request with only the Session header is signed out, and one that also carries an access
+token is signed in. The Company checks the JWT before it starts or continues a Session. It returns
+`invalid_session` (HTTP 400, JSON body) at every endpoint that takes the header when a check fails,
+when it refuses the `client_id`, or when the Session has ended, and may include an
+`error_description`. The Personal Agent then starts a new Session once, and stops if that fails
+too. The references list RFC
+8725, for the JWT's `typ`, instead of RFC 7519.
+
+Account access is plain OAuth, with OAuth's names: a refresh token, which was the Account Token,
+and an access token, which was the signed-in Session Token. Sign-in, refresh, and revocation don't
+know the Session, so one sign-in can serve several Sessions, and `session_id` is removed. So are the
+JWT bearer grant for signed-out Session Tokens, its renewal, and its Session assertion. Binding
+access tokens with DPoP is the Company's choice, and Personal Agents should support it. A Personal
+Agent that does sends a DPoP proof with its token requests when the issuer's metadata lists
+`dpop_signing_alg_values_supported`, as RFC 9449 §5.1 describes. The DPoP rules Poppy added to RFC
+9449 are removed: that Companies accept `ES256` proofs, that Personal Agents support nonces and use a
+separate DPoP key for each User ID, and that the token endpoint rejects a reused proof `jti`. So is
+the rule that a Company encrypts Session Tokens that carry its own credentials. The Company rejects
+an access token it issued to a Personal Agent when it comes without the Session header, so a copied
+access token is useless without the Personal Agent's key, even as a Bearer token.
+
+The Company checks the User ID and Agent ID on every request, and may remember the `sid`s of
+Sessions it ends, so they don't start again. The authorization server doesn't see User IDs.
+
+MCP servers take the Company's access tokens, requested with `resource` set to the server's `url`,
+as before, and the rules on which MCP servers get Bearer tokens and which get DPoP-bound ones are
+removed. An MCP server may ignore the Session header. Its calls then belong to no Session, and it
+can't take signed-out calls from Personal Agents. One that accepts the header can. Requests from MCP
+clients that don't implement this protocol belong to no Session, instead of each sign-in starting a
+signed-in Session without a User ID.
+
+</Change>
+
+<Change title="Agent IDs for several agents" sections="5.1, 5.2, 5.3" issue="36">
 
 A Personal Agent that acts for a User through several agents can say which one a Session is for in
-an optional `agent_id` claim in the Session assertion. The Agent ID follows the rules for User IDs
-and doesn't name a separate party. Companies may use it to tell the agents apart, but the agents
-share the User's account, Account Tokens, and conversations. A Session keeps the Agent ID it started
-with.
+an optional `agent_id` claim in its Session JWTs. The Agent ID follows the rules for User IDs and
+doesn't name a separate party. Companies may use it to tell the agents apart, but the agents share
+the User's account, refresh tokens, and conversations. Every Session JWT for a Session carries the
+same Agent ID, or none, and the Company rejects one that differs from the Session's.
 
 </Change>
 
-<Change title="Browsers join a Session with a signed one-time code" breaking sections="4.3, 5, 9.4, 9.6, 10, guides#both-secrets, guides#agent-browsing, guides#company-browsing">
+<Change title="Session JWTs signed with delegated keys" breaking sections="2, 4.1, 4.8, 5.2, 10.7, 11, guides#both-signing, guides#both-key-rotation, guides#agent-session-header, guides#agent-native-apps">
+
+The keys in a Personal Agent's `jwks_uri`, which signed Session and browser assertions in 0.2, don't
+sign Session JWTs. They sign delegations: JWTs, typed `pap-delegation+jwt`, that vouch for a
+delegated key in an RFC 7800 `cnf` claim and last at most 24 hours. The Personal Agent signs its
+Session JWTs with the delegated key and carries the delegation in the JWT's `pap_dlg` header, and
+the Company verifies the delegation, then the JWT. A delegation carries nothing about the User or
+Companies, so the keys in `jwks_uri` sign only delegations and client assertions, and say nothing
+about which Companies a User uses. Each delegated key signs for one User ID, so a leaked one exposes
+one User at one Company, and Companies can't match Users by their keys. Companies don't expect a
+delegated key to stay the same, and the guides suggest rounding a delegation's times. 10.7 says what
+delegations hide from the Personal Agent's own systems, and what they don't. The references add RFC
+7638 and RFC 7800.
+
+</Change>
+
+<Change title="Refused account changes" breaking sections="5.4, 10.4, guides#agent-tokens, guides#company-sessions">
+
+The `account_mismatch` error is removed, and so is the rule that a Session signed in to one account
+can never use another. A Company may refuse a request whose access token is for a different account
+than its Session used before, with `invalid_session`. A Personal Agent should start a new Session
+rather than use a second account in one Session, so accounts don't get mixed up across Sessions.
+
+</Change>
+
+<Change title="Browsers join a Session with an authorized one-time code" breaking sections="3, 5, 6, 10.4, 10.6, 11, guides#both-secrets, guides#agent-browsing, guides#company-browsing">
 
 The Personal Agent's browser no longer posts a signed browser assertion. Any browser could post one,
 so a malicious Personal Agent could have a victim's browser join a Session signed in to the
 attacker's account. Now the browser loads `web.browser_session_endpoint` with a GET and gets a page
-with a form holding a one-time code, and a `SameSite=Strict` cookie that ties the code to that
-browser. The Personal Agent signs a DPoP Proof with its Session Key, with the code as its `nonce`,
-puts it in the form, and has the browser submit it. The Company checks the cookie, the code, and the
-proof, and sets the Session's cookie in its response. The page can't be framed or kept by the page
-that opened it. The Personal Agent takes the code only from its own browser, outside its model, and
-the guides list the code as a secret. The browser assertion, its `typ`, and `return_to` are removed.
-The Session's cookie SHOULD use the `__Host-` prefix, and `SameSite=Strict` is no longer ruled out.
-A new section 9.6 explains both attacks the design prevents, and the references add RFC 9111 and
-RFC 6265bis.
+with a form holding a one-time code, and a cookie that ties the code to that browser, which forms on
+other sites don't send and other hosts on the Company's domain can't set. Caches can't store the
+page, and it can't be framed or kept by the page that opened it. The Personal Agent authorizes the
+code in its own request to `{browser_session_endpoint}/authorize`, with the Session header and, if
+signed in, its access token, so the access token never reaches the browser. Redirects from that
+endpoint never carry the protocol's secrets. The browser then submits the form, which holds only the
+code. The Company checks the cookie and that the code was authorized, and sets the Session's cookie
+when it redirects the browser, signed in to the authorized account if there was one. The Personal
+Agent takes the code only from its own browser, outside its model. The guides suggest values, such
+as a 128-bit code that expires within 60 seconds, a `__Host-` cookie with `SameSite=Strict`, the
+response headers, and a `303` redirect, and list the code as a secret.
+
+The browser assertion, its `typ`, and `return_to` are removed. The spec no longer sets the Session
+cookie's attributes: the guides suggest `Secure`, `HttpOnly`, and the `__Host-` prefix, and
+`SameSite=Strict` is no longer ruled out. The cookie acts for the account and scopes authorized at
+`/authorize`, instead of following the Session's state, so the Personal Agent joins again after
+signing in or to change its scopes. A new section 10.6 explains both attacks the design prevents,
+and the references add RFC 9111 and RFC 6265bis.
 
 </Change>
 
-<Change title="Mediated Sign-In is transitional" sections="3.1, 4.7, 9.5, guides#company-mediated">
+<Change title="Excluded tasks" sections="1, 3, 3.1, 9, 9.1, 9.2, 10.1, guides#agent-excluded-tasks, guides#company-excluded-tasks">
+
+A Company can list the tasks it chose not to offer through this protocol, so Personal Agents tell
+the User right away instead of searching every interface for a way to do them. `excluded_tasks.url`
+in `poppy.json` points to a public JSON document of `tasks`, each a short `task` phrase and an
+optional `alternative`. Personal Agents should read it before starting a task at the Company. An
+alternative has natural-language `instructions`, `references`, or both. A reference points to an
+OpenAPI operation by `operationId`, an MCP tool by name, or a web page, which can be a link that
+opens the Company's app. An `openapi` or `mcp` reference must name an API listed in `poppy.json`.
+Section 8, "Feedback", is now section 9, "Task coverage", with excluded tasks in 9.1, alternatives
+in 9.2, and feedback in 9.3.
+
+</Change>
+
+<Change title="Answering feedback with an alternative" breaking sections="9.3, guides#agent-excluded-tasks, guides#company-excluded-tasks">
+
+A Company can answer a feedback report with HTTP 200 and an alternative (9.2) when the task can be
+done after all, instead of 202 with no body. Personal Agents must accept either response, and should
+not report a task the Company lists as excluded.
+
+</Change>
+
+<Change title="Secrets out of model context" breaking sections="10.2, guides#both-secrets">
+
+Personal Agents must keep access tokens, Session JWTs, private keys, authorization codes, PKCE code
+verifiers, and device codes out of model context, as they already did refresh tokens, which 0.2
+called Account Tokens. Before, these were a SHOULD. This follows the AI agent identity draft
+(draft-ietf-wimse-aims §8), which says the model must not have access to an agent's credentials.
+Other secrets, such as one-time codes, stay a SHOULD. The guides list authorization codes and PKCE
+code verifiers as secrets.
+
+</Change>
+
+<Change title="Blind signing" breaking sections="4.1, 4.4, 5.2, 10.7, 11, guides#both-signing">
+
+Companies must accept client assertions and delegations signed with `ES256` and with `PS384`. A
+Personal Agent should have the keys in its `jwks_uri` sign both blindly, unless its own systems need
+to see which Companies a User works with. It uses RFC 9474 RSA blind signatures, whose
+RSABSSA-SHA384-PSS-Deterministic variant produces ordinary `PS384` signatures, so its own systems
+don't see which Company a client assertion names and can't recognize a delegation a Company shows
+them. That variant is safe only when the message has a value the signer can't guess, so a Personal
+Agent that signs blindly generates each `jti` on the User's device, and signs both kinds blindly,
+because a blind key signs whatever a device sends. 10.7 explains that any of its Users can then
+authenticate as the Personal Agent, so a refresh or access token stolen from one User works for
+another. The references add RFC 9474.
+
+</Change>
+
+<Change title="Operations version 2: retry with approval" breaking sections="8.4, 8.13, Operations 1, Operations 2, Operations 3, Operations 4, Operations 5, Operations 6, Operations 7, Operations 8.1, Operations 9, guides#agent-operations, guides#company-operations">
+
+The optional `operations` extension moves from version 1 to incompatible version 2. Both the Company
+and Personal Agent list `version` `"2"` to use it. When the Personal Agent doesn't, the Company
+handles approval itself or refuses with `extension_required`. When only the Personal Agent does, it
+uses the Company's interfaces without the extension. Operations still need the User's approval of
+exact terms and run at most once.
+
+Instead of returning a proposed operation with HTTP 202 and having the Personal Agent confirm it at
+an operations endpoint, a Company refuses the request with the operation, and the Personal Agent
+makes the same request again with the User's approval: in the `Poppy-Approval` header (an RFC 9651
+Dictionary) at APIs, in `_meta` for MCP tools, and in a message's new `approval` field in
+conversations. APIs return the new `approval_required` error (403), in a JSON body with the
+operation. Section 8.4 lets an extension define message content, so a message can carry only
+`operation` or `approval`. The Company checks that the request matches the approved revision,
+performs it at most once, and responds as it would have without operations. While it is being
+performed, or its outcome is unknown, a retry gets HTTP 503 with `Retry-After`.
+
+The `operation_id` names the action and stays the same when the terms change, and the `revision` is
+now an opaque string that changes with the terms. A Company can compute both from the request, as
+the guides describe, so it only stores operations it has performed, and any revision it returned can
+be approved, not only the latest. `expires_at` is always present, and should leave the User long
+enough to decide. The Company remembers a performed operation until its approved revision expires,
+so a retry before then gets the first response. A Personal Agent asks the User about every
+operation, so `approved_by`, standing permissions, and `user_approval_required` are removed. A
+Company that wants Users to allow some actions in advance can offer its own rules, as the guides
+describe. A `summary` can use basic Markdown, without links or images, and the Personal Agent checks
+`terms` and may show them.
+
+The operations endpoint, the extension entry's `endpoint` and `resource`, the operation's `state`,
+`url`, `confirmation`, and `result`, tracking, cancelling, and the errors `operation_not_found` and
+`terms_changed` are removed. Operations 8.1 explains what an approval proves, and points to
+approvals the User signs as an open topic in Path to 1.0.
+
+</Change>
+
+<Change title="Mediated Sign-In is an extension grant" breaking sections="2, 3, 3.1, 4.7, 4.8, 10.2, 10.3, 10.5, Mediated Sign-In, guides#agent-choosing-sign-in, guides#agent-mediated, guides#company-mediated">
+
+Mediated Sign-In moves out of the specification into the [Mediated Sign-In
+extension](/docs/extensions/mediated-sign-in), version 1, so the core protocol is OAuth and
+Sessions. A Company lists it in `extensions` in `poppy.json`, with the `fields` and `scopes` that
+were in `auth.mediated`, which is removed. It is now an OAuth extension grant at the Company's
+token endpoint, `https://personalagentprotocol.org/grant/mediated-sign-in`, which the Company lists
+in `grant_types_supported`, so it uses OAuth's client authentication, errors, and token responses.
+The Personal Agent sends the credentials as form parameters with its client assertion and `scope`,
+instead of as JSON with a Session Token, and `auth.mediated.endpoint` is removed. A field's `name`
+can't be `grant_type`, `scope`, `resource`, a client authentication parameter, or a parameter the
+extension defines. Personal Agents send credentials only to the issuer's token endpoint.
+
+A one-time code is the OAuth error `code_required`, with `sign_in_id`, `sent_to`, which was
+`code.sent_to`, and `expires_in`, which replaces `expires_at`. The Personal Agent sends the grant
+again with `sign_in_id` and `one_time_code`, without the credentials or `scope`, and the sign-in
+keeps the first request's scopes. Only the `client_id` that started a sign-in can finish it, instead
+of the Session. Failures are `invalid_grant`, `expired_token`, `access_denied`, and `invalid_scope`.
+The `status` field, which returned every result with HTTP 200, and the errors `account_mismatch` and
+`sign_in_not_found` are removed. The Personal Agent doesn't need to list the extension in its client
+metadata, because the Company recognizes it from the grant type (3.3).
+
+</Change>
+
+<Change title="Mediated Sign-In is transitional" sections="10.5, Mediated Sign-In 1, Mediated Sign-In 6, guides#agent-choosing-sign-in, guides#company-api-descriptions, guides#company-mediated">
 
 Mediated Sign-In is a transitional step, not where the protocol is headed, like OAuth's password
 grant. Companies should offer it only until they can add Direct or Device Sign-In, and stop once
 those cover the same scopes. The protocol plans to remove it, on a date set when version 1.0 is
 published, and after that the community will look for ways to encourage the Companies that still
-offer it to move to Direct or Device Sign-In.
-
-</Change>
-
-<Change title="Excluded tasks" sections="3, 3.1, 8, 8.1, 8.2, 9.1, guides#agent-excluded-tasks, guides#company-excluded-tasks">
-
-A Company can list the tasks it chose not to offer through this protocol, so Personal Agents tell
-the User right away instead of searching every interface for a way to do them. `excluded_tasks.url`
-in `poppy.json` points to a public JSON document of `tasks`, each a short `task` phrase and an
-optional `alternative`. An alternative has natural-language `instructions`, `references`, or both. A
-reference points to an OpenAPI operation by `operationId`, an MCP tool by name, or a web page, which
-can be a link that opens the Company's app. An `openapi` or `mcp` reference MUST name an API listed
-in `poppy.json`. Section 8 is now "Tasks a Company doesn't offer", with excluded tasks in 8.1,
-alternatives in 8.2, and feedback in 8.3.
-
-</Change>
-
-<Change title="Answering feedback with an alternative" breaking sections="8.3, guides#agent-excluded-tasks, guides#company-excluded-tasks">
-
-A Company can answer a feedback report with HTTP 200 and an alternative (8.2) when the task can be
-done after all, instead of 202 with no body. Personal Agents MUST accept either response, and SHOULD
-NOT report a task the Company lists as excluded.
-
-</Change>
-
-<Change title="Secrets out of model context" breaking sections="9.2, guides#both-secrets">
-
-Personal Agents must keep Session Tokens, private keys, authorization codes, PKCE code verifiers,
-and device codes out of model context, as they already did Account Tokens. Before, these were a
-SHOULD. This follows the AI agent identity draft (draft-ietf-wimse-aims §8), which says the model
-must not have access to an agent's credentials. Other secrets, such as one-time codes, stay a
-SHOULD. The guides list authorization codes and PKCE code verifiers as secrets.
+offer it to move to Direct or Device Sign-In. Personal Agents should use Direct or Device Sign-In
+rather than Mediated Sign-In when the Company offers it and its scopes cover the task, where 0.2 only
+suggested this in the guides. A new section 10.5 explains what a Company gives up when Personal
+Agents sign in with the User's credentials outside the protocol, and the guides suggest that
+Companies that offer Direct or Device Sign-In make their scopes and APIs cover what Users need.
 
 </Change>
 
@@ -148,12 +294,12 @@ SHOULD. The guides list authorization codes and PKCE code verifiers as secrets.
 
 <Change title="OAuth terms for Poppy names" sections="2">
 
-Section 2 gives the OAuth term for Session Token, Account Token, User ID, sign-in, sign-out, and
-signed out, and says why Poppy keeps its own name for each.
+Section 2 gives the OAuth term for User ID, sign-in, sign-out, and signed out, and says why Poppy
+keeps its own name for each. Tokens use their OAuth names.
 
 </Change>
 
-<Change title="Discovery redirects end at the well-known path" breaking sections="3, 9.3, guides#agent-discovery">
+<Change title="Discovery redirects end at the well-known path" breaking sections="3, 10.3, guides#agent-discovery">
 
 A redirect of the well-known URL can still go to another host, but the Personal Agent uses the
 document only when the last URL's path is exactly `/.well-known/poppy.json`, with no query. Before,
@@ -162,18 +308,79 @@ publish a `poppy.json` there that spoke for the Company, with endpoints on their
 
 </Change>
 
-<Change title="`protected_resources` replaces `poppy_domains`" breaking sections="3, 3.2, 4.6, 10, guides#agent-direct-device, guides#company-hosting">
+<Change title="Restated rules and freedoms removed" sections="3, 3.2, 4.1, 4.4, 5, 5.5, 8.2, 8.9, 8.10, 8.11">
 
-The issuer confirms which domains name it with `protected_resources`, the field RFC 9728 registers
-in authorization server metadata, instead of the custom `poppy_domains`. It lists `https://{domain}`
-for each domain, exactly in that form with no path or trailing slash, and may list other resources,
-such as MCP servers. Personal Agents check that it includes `https://{organization.domain}` by exact
-string, ignoring case only in the host, and a device sign-in link's host is checked against the
-hosts of its entries.
+Sentences that restated an RFC, or a freedom the Company already has, are removed. The spec no
+longer says Personal Agents should cache `poppy.json` and the OAuth metadata by their HTTP caching
+headers, which RFC 9111 covers and the guides already advise. Section 4.1 says a Company decides
+which Personal Agents it accepts, and how it approves them is outside the spec, instead of listing
+registration, allowlists, blocklists, revocation, and rate limits, and keeps the error a refused
+Personal Agent gets. Section 4.4 no longer says the Company accepts a refresh token only at its
+token and revocation endpoints and from the client it was issued to, which OAuth already requires.
+Also removed: that Companies may limit what a Personal Agent can do in a Session; that work accepted
+with a valid token can continue after it expires, and that the Company may stop work in progress
+after sign-out; that a person at the Company is held to the Company Agent's scopes and that it
+checks them whoever handles the conversation, which 4.7 already covers; that the Company Agent in a
+parent conversation knows what was said in its Direct Conversation; and the suggestion that
+conversation, message, and event IDs start with a prefix such as `cnv_`.
 
 </Change>
 
-<Change title="Loopback redirect URIs" breaking sections="3, 4.1, 4.5, 10, guides#agent-native-apps" issue="33">
+<Change title="The issuer from protected resource metadata" breaking sections="3, 3.1, 3.2, 10.3, guides#company-hosting">
+
+The Personal Agent finds the Company's issuer the standard way, from the protected resource
+metadata (RFC 9728) of `https://{organization.domain}`, at its `/.well-known/oauth-protected-resource`.
+Its `resource` must be exactly `https://{organization.domain}`, and its `authorization_servers`
+names the issuer. `auth.issuer` in `poppy.json` is required only when that list has more than one
+entry, to say which one Personal Agents use, because RFC 9728 leaves the choice among several to the
+client, while User IDs and refresh tokens belong to one issuer. With one entry it is optional, and
+if present must name that server. `auth` is optional. A Company needs an issuer when its
+`poppy.json` lists `agent`, `apis`, `feedback`, `web.browser_session_endpoint`, or an extension that
+uses the issuer.
+
+</Change>
+
+<Change title="`protected_resources` replaces `poppy_domains`" breaking sections="3, 3.2, 4.3, 11, guides#agent-direct-device, guides#company-hosting">
+
+The issuer lists the domains whose issuer it is in `protected_resources`, the field RFC 9728
+registers in authorization server metadata, instead of the custom `poppy_domains`. It lists
+`https://{domain}` for each domain, with no path, port, or trailing slash, and may list other
+resources, such as MCP servers. Personal Agents check that it includes
+`https://{organization.domain}`, compared as RFC 9728 §3.3 describes except that the host ignores
+case, and check a device sign-in link's host against the hosts of its entries.
+
+</Change>
+
+<Change title="Other API types allowed" breaking sections="3.1, 7">
+
+A Company may list APIs with types other than `openapi` and `mcp`, which are the types this version
+defines. Before, the type had to be one of them. Personal Agents should skip types they don't
+recognize, as before, so one that didn't must now.
+
+</Change>
+
+<Change title="Tokens for one service from protected resource metadata" breaking sections="3.1, 4.5, 4.7, 7, guides#agent-tokens">
+
+The `resource` field of `agent.protocols` and `apis` entries in `poppy.json` is removed. A service
+that accepts only tokens issued for it publishes protected resource metadata (RFC 9728) whose
+`resource` isn't the domain's own, as MCP servers do. The domain's own metadata, which names the
+issuer, doesn't count. Before its first signed-in call to an API or conversation endpoint, the
+Personal Agent fetches that metadata, and if its `resource` is another one, requests a token with
+it. An MCP server's `resource` must equal its `url`. The Company returns `invalid_target` for a
+`resource` it doesn't serve, and a service that gets a token not issued for it returns
+`invalid_token` with `resource_metadata`, so a Personal Agent with stale metadata learns about it.
+
+</Change>
+
+<Change title="Extensions recognized from the request" sections="3.3, Mediated Sign-In 2">
+
+A Personal Agent doesn't need to list an extension the Company recognizes from the request itself,
+such as one with its own grant type, and a Company can't refuse such a request with
+`extension_required`.
+
+</Change>
+
+<Change title="Loopback redirect URIs" breaking sections="3, 4.1, 4.2, 11, guides#agent-native-apps" issue="33">
 
 A Personal Agent's `redirect_uris` can include loopback redirect URIs, as RFC 8252 §7.3 defines, so
 an app on the User's computer can receive the authorization response. Companies accept them, and
@@ -182,94 +389,30 @@ the `client_id` domain. The references add RFC 8252.
 
 </Change>
 
-<Change title="The OAuth specifications Poppy builds on" sections="4, 4.2, 10">
+<Change title="Client assertions follow RFC 7523" sections="4.1, guides#both-signing">
 
-Section 4 lists the OAuth specifications the protocol builds on, instead of calling it standard
-OAuth: RFC 6749, RFC 7523, RFC 7636, RFC 8628, RFC 9449, RFC 8707, RFC 7009, and RFC 9700. Section
-4.2 cites RFC 7523 §2.1 for the grant that starts a Session, and notes that the Personal Agent
-issues the assertion itself, as in draft-ietf-wimse-aims §10.4.2, except that AIMS names the agent
-in `sub`, and Poppy names it in `iss` and the User in `sub`. The references add RFC 9700 and
-draft-ietf-wimse-aims.
+A client assertion needs a unique, unguessable `jti`, instead of one with at least 128 random bits,
+and is short-lived, instead of lasting at most five minutes. A Company may reject a reused client
+assertion `jti`, as RFC 7523 §3 allows, where it had to before. The guides suggest 128 bits, five
+minutes, and rejecting reuse.
 
 </Change>
 
-<Change title="Custom work for the grant that starts a Session" sections="4.2, 4.10, guides#company-agents, guides#company-session-keys, guides#company-session-start">
+<Change title="Advice moved to the guides" sections="4.2, 5.4, 8.4, 8.5, 8.6, 8.8, 8.11, Mediated Sign-In 6, Operations 4, guides#agent-conversations, guides#company-mediated, guides#company-conversations, guides#company-operations">
 
-Section 4.2 says that off-the-shelf authorization servers generally don't accept the JWT bearer
-grant that starts a Session, because they accept an assertion only for a subject they already know.
-A Company needs some custom work for it. The requests after it are standard OAuth requests. A new
-guide compares an extension to the authorization server, a token service in front of the token
-endpoint, and creating a user record on first sight. The guides also note that not every
-authorization server supports client ID metadata documents, and what to do when yours needs agents
-registered first.
-
-</Change>
-
-<Change title="User IDs as pairwise identifiers" sections="4.2, 10">
-
-Section 4.2 relates User IDs to OpenID Connect pairwise subject identifiers, which the Personal Agent
-assigns for each pair of User and Company. The rules for User IDs don't change. The references add
-OpenID Connect Core.
+Advice that doesn't affect how the two sides work together moves from the specification and
+extensions to the guides, where it is a recommendation. It covers the consent page's contents, which
+the guides already had; checking for a refresh token before a new sign-in; no markup in message
+`text`; telling the User when part of a conversation is missing; acting only on complete messages,
+not `text-delta` pieces; writing for an AI or a person; asking in a message as well as with an
+`authorization` event; the Company's rate limits and one-time codes in Mediated Sign-In; and saying
+in an OpenAPI description which endpoints return operations. "Personal Agents should share only what
+the task needs" in 8.4 is removed, since 10.1 says it, and so is Mediated Sign-In's rule that a
+Company doesn't return credentials in a response.
 
 </Change>
 
-<Change title="Session assertion audience and rfc7523bis" sections="4.2" issue="30">
-
-Section 4.2 notes that the Session assertion's audience is narrower than
-draft-ietf-oauth-rfc7523bis, which also allows the token endpoint URL for an authorization grant.
-The rule doesn't change.
-
-</Change>
-
-<Change title="`invalid_session` becomes `invalid_grant`" breaking sections="4.2, 4.8, 4.9">
-
-A Session Key whose Session has ended, or belongs to a different Personal Agent or User, now gets
-the standard `invalid_grant`. With an Account Token and an existing Session's key, `invalid_grant`
-can mean that the Account Token or the Session has ended, and the Personal Agent tells them apart
-by renewing the Session with its assertion. `account_mismatch` stays, so the Personal Agent can
-tell the User they signed in to a different account.
-
-</Change>
-
-<Change title="`signed_in` removed" breaking sections="4.2, 4.3, 4.4, 4.7, guides#agent-choosing-sign-in">
-
-Token responses no longer have `signed_in`. The grant says whether a token is signed in: the JWT
-bearer grant always returns a signed-out Session Token, and a sign-in or an Account Token always
-returns a signed-in one. `scope` follows RFC 6749: a signed-out token's response leaves it out,
-since an empty `scope` isn't valid OAuth, and a signed-in one includes it unless the Company granted
-exactly the scopes requested. A sign-in where the User approves no scopes ends as a decline.
-
-</Change>
-
-<Change title="Bearer tokens for MCP servers by Token Exchange" breaking sections="3.2, 4.2, 4.3, 10, guides#agent-tokens, guides#company-dpop">
-
-A Personal Agent gets a Bearer token for an MCP server that doesn't support DPoP by exchanging a
-DPoP Session Token for it with the token exchange grant (RFC 8693), instead of leaving the proof out
-of a token request. Every other token request carries a proof. A Company that lists such an MCP
-server must support the grant and list it in `grant_types_supported`. A request for the wrong token
-type gets `invalid_target`. The references add RFC 8693.
-
-</Change>
-
-<Change title="Requesting and describing scopes" sections="4.4, guides#agent-choosing-sign-in, guides#company-scope-descriptions, guides#company-consent">
-
-Personal Agents should request only the scopes a task needs, following RFC 9700 §2.3. The guides
-add advice on writing scope descriptions a User and a language model can understand, and on consent
-pages that present scopes in plain words and show which are new.
-
-</Change>
-
-<Change title="`sign_in_required` becomes `insufficient_scope`" breaking sections="4.4, 4.9, 6, 7.5, 7.11, Operations 3.2, Operations 5.2, guides#company-conversations">
-
-A request that needs the User's account and has a signed-out token gets `insufficient_scope`, the
-RFC 6750 error, instead of the custom `sign_in_required`. A signed-out token has no scopes, so the
-error fits, and like any `insufficient_scope` it names the scopes the request needs in `scope`.
-The Personal Agent uses an Account Token that covers them, or signs in. The `authorization`
-conversation event, which now always has `scope`, and Operations use the same error.
-
-</Change>
-
-<Change title="Device Sign-In follows RFC 10027" breaking sections="4.6, 10, guides#agent-direct-device, guides#company-device">
+<Change title="Device Sign-In follows RFC 10027" breaking sections="4.3, 11, guides#agent-direct-device, guides#company-device">
 
 Device Sign-In is a cross-device flow, which is easier to use for phishing than Direct Sign-In.
 Companies that offer it and Personal Agents that use it must follow the best practices in RFC 10027
@@ -280,30 +423,78 @@ User's device, and list mitigations for Companies. The references add RFC 10027.
 
 </Change>
 
-<Change title="Sign-out invalidates Session Tokens" sections="4.9">
+<Change title="Sign-out and access tokens" breaking sections="4.6, 4.7, 5.5, 6, guides#company-lifetimes">
 
-When the Personal Agent revokes an Account Token, the Company should also invalidate the Session
-Tokens issued under the same sign-in, as RFC 7009 §2.1 describes. Checking on each request whether
-the Session is still signed in, and short Session Token lifetimes, become the fallbacks.
-
-</Change>
-
-<Change title="What Poppy adds to OAuth" sections="4, 4.10">
-
-A new section 4.10 lists what a Company's authorization server needs beyond standard OAuth, such as
-Sessions named by DPoP keys, one account per Session, and described scopes, and what the protocol
-adds outside OAuth. It adds no requirements.
+What happens to access tokens issued under a revoked refresh token follows RFC 7009 §2.1, which says
+a Company that can revoke access tokens should invalidate them too. This replaces the SHOULD to
+check on each request whether the Session is still signed in, or else use much shorter token
+lifetimes, which moves to the guides with the suggested lifetimes. The Sessions continue signed out.
+Sign-out now means revoking every refresh token the Personal Agent holds for the account, so
+revoking one that a new sign-in replaced isn't sign-out and doesn't sign out the website cookie.
 
 </Change>
 
-<Change title="Missing scopes on the website" sections="5, guides#company-scopes">
+<Change title="Token responses follow RFC 6749" breaking sections="4.7, 5.4, Mediated Sign-In 3, guides#agent-choosing-sign-in">
+
+Token responses no longer have `signed_in`, or `refresh_token_expires_in`, which no OAuth RFC
+defines. A request is signed in when it carries an access token, and signed out otherwise. As in RFC
+6749, `expires_in` is recommended rather than required, `scope` is left out only when the Company
+granted exactly the scopes requested, and access tokens are opaque to the client, so the rule that
+Personal Agents don't depend on their contents is removed. A sign-in where the User approves no
+scopes ends as a decline.
+
+</Change>
+
+<Change title="Requesting and describing scopes" sections="4.7, guides#agent-choosing-sign-in, guides#company-scope-descriptions, guides#company-consent">
+
+Personal Agents should request only the scopes a task needs, following RFC 9700 §2.3. The guides
+add advice on writing scope descriptions a User and a language model can understand, and on consent
+pages that present scopes in plain words and show which are new.
+
+</Change>
+
+<Change title="User IDs as pairwise identifiers" sections="5.1, 11">
+
+Section 5.1 relates User IDs to OpenID Connect pairwise subject identifiers, which the Personal Agent
+assigns for each pair of User and Company. The rules for User IDs don't change. The references add
+OpenID Connect Core.
+
+</Change>
+
+<Change title="Client metadata fetched without redirects" breaking sections="5.3, guides#company-agents">
+
+A Company fetches the client metadata document at `client_id` without following redirects, as the
+CIMD draft (§5) requires, so a Personal Agent serves it at exactly that URL. In 0.2 only the guides
+said so.
+
+</Change>
+
+<Change title="`sign_in_required` replaced by OAuth challenges" breaking sections="5.4, 5.5, 7, 8.5, 8.11, Operations 3, guides#company-conversations">
+
+The custom `sign_in_required` error is removed. A request that needs the User's account and has no
+access token gets a 401 challenge without an error code, with a `scope` attribute naming the scopes
+it needs, as RFC 6750 §3.1 describes, and the Personal Agent handles it as `insufficient_scope`. An
+access token without the needed scopes gets `insufficient_scope`. The Personal Agent uses a refresh
+token that covers them, or signs in. The `authorization` conversation event, which now always has
+`scope`, uses `insufficient_scope` whether or not the request had an access token.
+
+</Change>
+
+<Change title="`rate_limited` removed" breaking sections="5.6, 8.13, 9.3, Mediated Sign-In 5">
+
+Rate limits are HTTP 429 with `Retry-After` everywhere, without the custom `rate_limited` body at
+the token endpoint and the protocol's and extensions' endpoints.
+
+</Change>
+
+<Change title="Missing scopes on the website" sections="6, guides#company-scopes">
 
 When a Company's website refuses an action because the Session lacks a scope, it should show a
 visible error that names the missing scopes, so the Personal Agent can request them.
 
 </Change>
 
-<Change title="`author` replaces `sender`" breaking sections="7.3, 7.4, 7.5, 7.7, 7.8, 7.10, Operations 4.3" issue="19">
+<Change title="`author` replaces `sender`" breaking sections="8.3, 8.4, 8.5, 8.7, 8.8, 8.10, Operations 4" issue="19">
 
 Each message has an `author` object instead of `sender`. Its `type` takes `sender`'s values, `agent`
 or `human`. A Company message can also say which of the Company's people or AI personas wrote it,
@@ -311,14 +502,44 @@ with an `id`, a display `name`, and an `image` URL, each optional.
 
 </Change>
 
+<Change title="Unknown status and responder values" sections="8.7">
+
+A Personal Agent treats a conversation `status` it doesn't recognize as `working`, and a `responder`
+it doesn't recognize as `human`, so later versions can add values.
+
+</Change>
+
+<Change title="`kind` removed from feedback" breaking sections="9.3">
+
+Feedback reports no longer have `kind`, whose only value was `missing`, and Companies no longer have
+to accept kinds they don't recognize. Every report is about a task that can't be done through this
+protocol. A later version can add a field when there is a second kind of report.
+
+</Change>
+
 ### Guides {#v0-3-guides}
 
 Advice that goes with the spec. Guides aren't requirements.
 
-<Change title="Account token lifetimes, API descriptions, and one feedback channel" sections="guides#company-lifetimes, guides#company-api-descriptions, guides#company-excluded-tasks" issue="27">
+<Change title="Verifying the user by sign-in in conversations" sections="guides#agent-conversations, guides#company-conversations" issue="35">
 
-Companies send `refresh_token_expires_in` so a personal agent can tell an expired account token
-from a revoked one. They write API and MCP tool descriptions for the language model that reads
+A company agent verifies the user by sending an `authorization` event, not by asking for codes or
+personal details in messages. Personal agents ask for sign-in when a company agent asks those
+questions.
+
+</Change>
+
+<Change title="Authorization servers without client ID metadata documents" sections="guides#company-agents">
+
+Not every authorization server supports client ID metadata documents. One that needs registration
+can register the personal agents a company accepts by their `client_id` URL, and reject others with
+`invalid_client`.
+
+</Change>
+
+<Change title="API descriptions and one feedback channel" sections="guides#company-api-descriptions, guides#company-excluded-tasks" issue="27">
+
+Companies write API and MCP tool descriptions for the language model that reads
 them: clear about what each operation does, and small enough for its context. They take feedback
 only at `feedback.endpoint`, not also through an operation in their APIs.
 

@@ -1,6 +1,7 @@
 // A small JSON Schema 2020-12 validator for the subset the Poppy schemas use: type, properties,
 // required, additionalProperties, items, enum, const, pattern, minLength, maxLength, minimum,
-// maximum, exclusiveMinimum, minItems, maxItems, anyOf, oneOf, allOf, not, if/then/else, and $ref to
+// maximum, exclusiveMinimum, minItems, maxItems, anyOf, oneOf, allOf, not, if/then/else, format
+// ("date-time" and "uri", checked rather than only annotated), and $ref to
 // "#/$defs/..." or to another schema by file name ("message.schema.json" or
 // "message.schema.json#/$defs/id"), resolved through `refs`.
 //
@@ -196,6 +197,11 @@ function validate(schema: Schema, value: unknown, path: string, scope: Scope): S
         }
     }
 
+    if (typeof value === "string" && typeof s.format === "string") {
+        const problem = formatProblem(s.format, value);
+        if (problem) errors.push({ path, message: `${problem} (got ${JSON.stringify(value)})` });
+    }
+
     if (typeof value === "number") {
         if (typeof s.minimum === "number" && value < s.minimum) {
             errors.push({ path, message: `must be ${s.minimum} or more (got ${value})` });
@@ -333,4 +339,43 @@ function dedupe(errors: SchemaError[]): SchemaError[] {
 // Formats errors as lines such as "/auth/issuer must be an HTTPS URL".
 export function formatSchemaErrors(errors: SchemaError[]): string[] {
     return errors.map((e) => `${e.path || "(the document)"} ${e.message}`);
+}
+
+// RFC 3339 date-times, checked against the calendar: 2026-02-30T00:00:00Z matches the pattern but
+// isn't a date.
+export function isDateTime(value: string): boolean {
+    const m =
+        /^([0-9]{4})-([0-9]{2})-([0-9]{2})[Tt]([0-9]{2}):([0-9]{2}):([0-9]{2})(\.[0-9]+)?([Zz]|([+-])([0-9]{2}):([0-9]{2}))$/.exec(
+            value,
+        );
+    if (!m) return false;
+    const [year, month, day, hour, minute, second] = m.slice(1, 7).map(Number);
+    const leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+    const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
+    if (!days || day < 1 || day > days) return false;
+    if (hour > 23 || minute > 59 || second > 60) return false;
+    if (m[9] && (Number(m[10]) > 23 || Number(m[11]) > 59)) return false;
+    return true;
+}
+
+// Absolute URLs: parsed by the URL standard, with a host, and without spaces, control characters,
+// or a user name or password.
+export function isUri(value: string): boolean {
+    if (/[\s\x00-\x1f\x7f]/.test(value)) return false;
+    let url: URL;
+    try {
+        url = new URL(value);
+    } catch {
+        return false;
+    }
+    if ((url.protocol === "https:" || url.protocol === "http:") && !url.hostname) return false;
+    return !url.username && !url.password;
+}
+
+function formatProblem(format: string, value: string): string | undefined {
+    if (format === "date-time" && !isDateTime(value))
+        return "must be an RFC 3339 date and time that exists, such as 2026-10-02T17:15:00-07:00";
+    if (format === "uri" && !isUri(value))
+        return "must be a URL with a valid host, and no spaces, user name, or password";
+    return undefined;
 }

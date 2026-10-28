@@ -116,8 +116,16 @@ const TABS: TabInfo[] = [
                 navTitle: "Operations",
                 title: "Personal Agent Protocol: Operations extension",
                 description:
-                    "How a company asks a personal agent to confirm an action before performing it, with approval tied to exact terms, one record across channels, and no duplicate execution.",
+                    "How a company asks a personal agent to confirm an action before performing it, with approval tied to exact terms and no duplicate execution.",
                 outlineDepth: 3,
+            },
+            {
+                slug: "extensions/mediated-sign-in",
+                navTitle: "Mediated Sign-In",
+                title: "Personal Agent Protocol: Mediated Sign-In extension",
+                description:
+                    "A transitional way for a personal agent to sign in with credentials the user gave it, at companies that don't offer OAuth sign-in yet.",
+                outlineDepth: 2,
             },
         ],
     },

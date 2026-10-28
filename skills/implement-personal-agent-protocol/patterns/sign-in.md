@@ -1,9 +1,10 @@
 # Pattern: sign-in pages
 
 Direct and Device Sign-In use the Company's own sign-in and consent pages
-([4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in),
-[4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)). Mediated Sign-In is an endpoint
-that checks credentials ([4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in)).
+([4.2](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in),
+[4.3](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)). Mediated Sign-In is an
+extension grant at the token endpoint that checks credentials
+([Mediated Sign-In extension](https://personalagentprotocol.org/docs/0.3/extensions/mediated-sign-in)).
 
 ## Direct and Device Sign-In: reuse the existing sign-in, add a consent page
 
@@ -20,25 +21,29 @@ method the Company allows) and then to a consent page for the Personal Agent.
   request forgery and framing. For Device Sign-In, opening the link never approves by itself
   ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-device)).
 
-## Mediated Sign-In: an endpoint over the existing credential check
+## Mediated Sign-In: a grant over the existing credential check
 
-The endpoint calls the same credential check and one-time code service the website uses, then
-signs in the Session.
+The grant handler at `token_endpoint` calls the same credential check and one-time code service the
+website uses, then returns the usual token response. A second step is the OAuth error
+`code_required` with a `sign_in_id`.
 
 - Fits: Companies that decide to accept credentials from Personal Agents, usually for Personal
   Agents that can't use a browser.
-- Needs: a credential check callable from a service, a one-time code sender, and rate limits by
-  account, `client_id`, and User ID
+- Needs: a credential check callable from a service, a way to add a grant type to the token
+  endpoint, a one-time code sender, and rate limits by account and `client_id`
   ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-mediated)).
-- Watch for: the duties in 4.7 (rate-limit attempts, never return credentials, require a one-time
-  code when a sign-in looks unusual), the same `failed` for unknown account and wrong password, and
+- Watch for: the protections in the guides (rate-limit attempts, require a one-time code when a
+  sign-in looks unusual), the same `invalid_grant` for unknown account and wrong password, and
   never storing raw credentials or codes, including in logs, traces, and idempotency records.
 
 ## For every type
 
-- The result is the same: an Account Token and a signed-in Session Token for the current Session
-  ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
-- `account_mismatch` when the User signs in to a different account than the Session's (4.4).
+- The result is the same token response: an access token and a refresh token
+  ([4.7](https://personalagentprotocol.org/docs/0.3/spec#scopes)). Sign-in doesn't know the Session;
+  the Personal Agent sends the access token with its Session header afterwards
+  ([5.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
+- Each sign-in request and poll carries the client assertion, checked as at any token request
+  (`patterns/token-endpoint.md`).
 - Tell the User when a Personal Agent connects, for example by email
   ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-mediated) suggest it for Mediated
   Sign-In).

@@ -1,7 +1,13 @@
 [
     {
         "id": "0.3",
-        "pages": ["spec", "extensions", "extensions/operations", "guides"]
+        "pages": [
+            "spec",
+            "extensions",
+            "extensions/operations",
+            "extensions/mediated-sign-in",
+            "guides"
+        ]
     },
     {
         "id": "0.2",

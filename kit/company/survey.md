@@ -7,8 +7,8 @@ It combines two sources:
 
 - **What you can see**: code, config, infrastructure definitions, and docs in the repos you have.
 - **What's live**: `node <skill-dir>/validate/index.ts survey https://<domain>`. It fetches the
-  domain's well-known documents (`poppy.json`, OAuth and OpenID metadata, MCP protected resource
-  metadata) and reports what they say.
+  domain's well-known documents (`poppy.json`, protected resource metadata, OAuth and OpenID
+  metadata, MCP protected resource metadata) and reports what they say.
 
 Anything you can't confirm is a question for the engineer. Many Companies run their identity
 provider, API gateway, or support platform as a vendor service, which you can't see from code.
@@ -25,6 +25,11 @@ serves the document after redirects
 that should be one Company share one issuer
 ([3.2](https://personalagentprotocol.org/docs/spec#oauth-server)).
 
+**The domain's protected resource metadata.** Whether
+`https://{domain}/.well-known/oauth-protected-resource` exists, and which authorization servers it
+lists. Personal Agents find the issuer there
+([3.2](https://personalagentprotocol.org/docs/spec#oauth-server)).
+
 **The OAuth server or identity provider.** This decides the token endpoint pattern
 (`patterns/token-endpoint.md`). Find out whether it:
 
@@ -34,16 +39,14 @@ that should be one Company share one issuer
   `jwks_uri`;
 - accepts clients it hasn't registered, identified by a URL (Client ID Metadata Documents), or has a
   hook to resolve them;
-- supports the JWT bearer grant with a `sub` it hasn't seen before, or custom grant types or token
-  hooks that can create a Session from it;
-- can key server-side state by a DPoP key's thumbprint, or expose the thumbprint to a hook, so it can
-  find the Session a token request is for;
-- supports `dpop_jkt` on authorization requests (RFC 9449 §10), and pushed authorization requests
-  (RFC 9126);
-- issues DPoP-bound tokens (RFC 9449), with nonces;
+- issues access tokens that resources can tie to the `client_id` they were issued to (by
+  introspection or a claim), which the Session header check needs
+  ([5.3](https://personalagentprotocol.org/docs/spec#session-verification));
+- issues DPoP-bound access tokens (RFC 9449), if the Company wants them (optional,
+  [4.5](https://personalagentprotocol.org/docs/spec#access-tokens));
 - supports refresh tokens, their lifetimes, and rotation;
 - supports the device authorization grant (RFC 8628), PKCE with S256, `iss` in redirects (RFC 9207),
-  revocation (RFC 7009), resource indicators (RFC 8707), and token exchange (RFC 8693);
+  revocation (RFC 7009), and resource indicators (RFC 8707);
 - issues opaque or JWT access tokens, and how resource servers validate them (introspection, JWKS,
   or a shared session store).
 
@@ -58,7 +61,11 @@ one-time codes), any existing OAuth consent page, and rate limiting and fraud ch
 per-endpoint checks. Where those checks live. This drives the scope mapping (`patterns/scopes.md`).
 
 **APIs.** Customer-facing APIs, their OpenAPI descriptions, which gateway or proxy is in front, how
-they authenticate today, and which operations need an account.
+they authenticate today, and which endpoints need an account.
+
+**Confirmations.** Actions customers confirm before they happen today, such as exchanges,
+cancellations, or booking changes, where the confirmation happens, and how a retry is kept from
+performing an action twice. This drives which actions become operations (Operations extension).
 
 **MCP servers.** Any MCP server, its transport and MCP version, how it authorizes, and whether it
 publishes protected resource metadata (RFC 9728).
@@ -67,8 +74,9 @@ publishes protected resource metadata (RFC 9728).
 conversations and messages are stored and for how long, the live-agent desk and how handoff works
 today, and which account actions the agent's tools can perform and how they authorize them.
 
-**Shared infrastructure.** A shared key-value store or cache that every server can reach (for the
-DPoP replay cache), secret storage, logging and tracing (and whether they redact headers), rate
+**Shared infrastructure.** A gateway or edge proxy in front of the APIs and conversation endpoint
+(a place to verify the Session header once), a shared store every server can reach (for Session
+records, and a replay cache if you want one), secret storage, logging and tracing (and whether they redact headers), rate
 limiting, and how staging is set up.
 
 **Somewhere to host the test identity.** An HTTPS location the Company controls, such as a staging
@@ -83,8 +91,8 @@ Date: <YYYY-MM-DD>. Surveyed by: <agent> with <engineer>.
 
 ## Live today
 
-<Summary of `validate/index.ts survey https://<domain>`: what poppy.json, OAuth/OpenID metadata, and
-MCP metadata exist, and anything notable such as redirects.>
+<Summary of `validate/index.ts survey https://<domain>`: what poppy.json, protected resource
+metadata, OAuth/OpenID metadata, and MCP metadata exist, and anything notable such as redirects.>
 
 ## Domains
 
@@ -101,15 +109,15 @@ MCP metadata exist, and anything notable such as redirects.>
 | RFC 8414 metadata, can add fields              |                                 |                                             |
 | `private_key_jwt` with keys from `jwks_uri`    |                                 |                                             |
 | Clients identified by URL, not registered      |                                 |                                             |
-| JWT bearer grant or custom grant types         |                                 |                                             |
+| Standard OAuth sign-in and refresh grants      |                                 |                                             |
 | Token hooks (add response fields, read params) |                                 |                                             |
-| DPoP-bound tokens, nonces                      |                                 |                                             |
+| Access tokens tied to `client_id` at resources |                                 |                                             |
+| DPoP-bound access tokens (optional)            |                                 |                                             |
 | Refresh tokens, lifetime, rotation             |                                 |                                             |
 | Device authorization grant                     |                                 |                                             |
 | PKCE S256, `iss` in redirects                  |                                 |                                             |
 | Revocation (RFC 7009)                          |                                 |                                             |
 | Resource indicators (RFC 8707)                 |                                 |                                             |
-| Token exchange (RFC 8693)                      |                                 |                                             |
 | Access token format and validation             |                                 |                                             |
 
 ## Website sessions and accounts
@@ -141,7 +149,7 @@ handoff, account actions the agent can take and how they're authorized.>
 
 ## Shared infrastructure
 
-<Shared cache for replay protection, secret storage, logging and redaction, rate limiting, staging.>
+<Gateway, shared store for Sessions and replay protection, secret storage, logging and redaction, rate limiting, staging.>
 
 ## Test identity hosting
 

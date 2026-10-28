@@ -11,7 +11,9 @@ import {
 import { protectedResourceMetadataUrl } from "./checks/mcp.ts";
 import { loadOpenApi } from "./checks/openapi.ts";
 import {
+    apisOf,
     newContext,
+    protocolsOf,
     offersGrant,
     recorder,
     SIGN_IN_GRANTS,
@@ -29,6 +31,8 @@ export type SurveyReport = {
         status?: number | string;
         document?: Poppy;
     };
+    // The issuer the domain's protected resource metadata names (spec 3.2).
+    issuer?: string;
     authorizationServer?: {
         url: string;
         found: boolean;
@@ -123,10 +127,11 @@ export async function survey(http: Http, target: string): Promise<SurveyReport> 
             .map((x) => ({ id: x.id, status: x.status, got: x.got, cause: x.cause })),
     };
 
-    const issuer = poppy?.auth?.issuer;
-    if (typeof issuer === "string" && issuer.startsWith("https://")) {
+    const issuer = ctx.discovered.issuer;
+    if (issuer) {
         const url = metadataUrlFor(issuer);
         const meta = ctx.discovered.metadata;
+        report.issuer = issuer;
         report.authorizationServer = {
             url,
             found: meta !== undefined,
@@ -164,7 +169,7 @@ export async function survey(http: Http, target: string): Promise<SurveyReport> 
         });
     }
 
-    for (const api of poppy?.apis ?? []) {
+    for (const api of apisOf(poppy)) {
         if (typeof api?.url !== "string" || !api.url.startsWith("https://")) continue;
         if (api.type === "mcp") {
             const metadataUrl = protectedResourceMetadataUrl(api.url);
@@ -203,32 +208,31 @@ export function formatSurvey(s: SurveyReport): string {
         );
         out.push(`  protocol_version  ${p?.protocol_version}`);
         out.push(`  organization      ${p?.organization?.name} (${p?.organization?.domain})`);
-        if (p?.auth) {
-            out.push(`  auth.issuer       ${p.auth.issuer}`);
+        if (s.issuer) {
+            out.push(`  issuer            ${s.issuer} (from the protected resource metadata)`);
             const meta = s.authorizationServer?.fields as Metadata | undefined;
             const direct = offersGrant(meta, SIGN_IN_GRANTS.direct);
             const device = offersGrant(meta, SIGN_IN_GRANTS.device);
             if (direct)
                 out.push("  sign-in direct    authorization_code in the OAuth server metadata");
             if (device) out.push("  sign-in device    device_code in the OAuth server metadata");
-            if (p.auth.mediated)
+            const mediated = p?.extensions?.["mediated-sign-in"];
+            if (mediated)
                 out.push(
-                    `  sign-in mediated  scopes ${JSON.stringify(p.auth.mediated.scopes)}, endpoint ${p.auth.mediated.endpoint}`,
+                    `  sign-in mediated  scopes ${JSON.stringify(mediated.scopes)}, at the token endpoint`,
                 );
-            if (!direct && !device && !p.auth.mediated)
+            if (!direct && !device && !mediated)
                 out.push("  sign-in           none (signed-out Sessions only)");
-            if (p.auth.scopes)
-                out.push(`  scopes            ${Object.keys(p.auth.scopes).join(", ")}`);
-        } else out.push("  auth              none");
-        for (const proto of p?.agent?.protocols ?? [])
-            out.push(
-                `  conversations     ${proto.type} ${proto.endpoint}${proto.resource ? ` (resource ${proto.resource})` : ""}`,
-            );
+        } else out.push("  issuer            none found");
+        if (p?.auth?.scopes)
+            out.push(`  scopes            ${Object.keys(p.auth.scopes).join(", ")}`);
+        for (const proto of protocolsOf(p))
+            out.push(`  conversations     ${proto.type} ${proto.endpoint}`);
         if (p?.web)
             out.push(
                 `  web               ${p.web.browser_session_endpoint ? `browser_session_endpoint ${p.web.browser_session_endpoint}` : "listed, no browser_session_endpoint"}`,
             );
-        for (const api of p?.apis ?? [])
+        for (const api of apisOf(p))
             out.push(
                 `  api               ${api.type} ${api.url}${api.description ? ` — ${api.description}` : ""}`,
             );

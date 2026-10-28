@@ -43,7 +43,7 @@ Append entries to `plan/feedback.md` in this form. Start the file with the first
 ### <Label>: <short title>
 
 - Date: <YYYY-MM-DD>
-- Section: <spec link with heading id, such as [4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens), or "Kit: <file>", such as "Kit: milestones/foundation.md">
+- Section: <spec link with heading id, such as [5.6](https://personalagentprotocol.org/docs/0.3/spec#sending-requests), or "Kit: <file>", such as "Kit: milestones/foundation.md">
 - What happened: <what you read, tried, or saw, in a few sentences>
 - What we did: <the interpretation or workaround you chose, or "asked the engineer: …">
 - Suggestion: <optional: a change to the spec or kit>

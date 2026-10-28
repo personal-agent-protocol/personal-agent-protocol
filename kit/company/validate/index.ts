@@ -28,15 +28,20 @@ Commands:
   help                    Show this help.
 
 check options:
-  --milestone <m>         foundation (1), interfaces (2), sign-in (3), or all (default).
+  --milestone <m>         foundation (1), interfaces (2), sign-in (3), extensions (4), or
+                          all (default).
                           Each milestone includes the ones before it.
   --design <path>         Report progress against the poppy-design block in plan/design.md.
                           Its domain is the default url.
   --file <poppy.json>     Offline: check a local poppy.json (schema and field rules only).
   --only <id or prefix>   Only these checks, such as session.start or conversations. Repeatable.
-  --probe <url>           A GET operation in your API that needs a Session Token, used for
-                          the DPoP checks when there's no conversation endpoint.
+  --probe <url>           A GET operation in your API that takes the Session header signed
+                          out. Used for the Session header checks instead of the
+                          conversation endpoint.
   --json                  Print results as JSON.
+  --allow-private-addresses
+                          Also connect to loopback, private, and link-local addresses, to
+                          test a local deployment. Same as POPPY_VALIDATOR_ALLOW_PRIVATE=1.
 
 keygen options:
   --base-url <url>        The HTTPS URL where you'll host agent.json and jwks.json.
@@ -66,9 +71,12 @@ async function main(argv: string[]): Promise<number> {
             json: { type: "boolean" },
             "base-url": { type: "string" },
             force: { type: "boolean" },
+            "allow-private-addresses": { type: "boolean" },
         },
     });
-    const http = createHttp();
+    const http = createHttp(
+        values["allow-private-addresses"] ? { allowPrivateAddresses: true } : {},
+    );
 
     if (command === "survey") {
         if (!positionals[0])
@@ -147,6 +155,7 @@ async function main(argv: string[]): Promise<number> {
             http.log.map((e) => new URL(e.url).host),
             milestones,
             results,
+            notices,
         );
         if (values.json) {
             console.log(
@@ -207,6 +216,7 @@ function saveResults(
     hosts: string[],
     milestones: Set<string>,
     results: CheckResult[],
+    notes: string[],
 ): void {
     const dir = poppyDir();
     mkdirSync(dir, { recursive: true });
@@ -217,6 +227,8 @@ function saveResults(
         target,
         hosts: [...new Set(hosts)],
         milestones: [...milestones],
+        // Includes whether the test conversations the run started were all closed.
+        notes,
         results,
     };
     writeFileSync(join(dir, "last-results.json"), JSON.stringify(data, null, 2) + "\n");

@@ -13,14 +13,15 @@ The rules are in [the specification's Extensions section](https://personalagentp
 - A company lists the extensions it supports in `extensions` in its `poppy.json`, with each extension's settings, such as an endpoint.
 - A personal agent lists the extensions it supports in `extensions` in its client metadata document, so the company knows what it can use.
 - Each entry has a `version`, the extension's major version. It changes only when an update would break existing implementations.
-- Extensions defined on this site have plain names, such as `operations`. Anyone can define their own, named with a domain they control, such as `example.com/gift-wrap`.
+- Plain names are reserved for extensions defined on this site. Anyone can define their own, named with a domain they control, such as `example.com/gift-wrap`.
 - A company that won't do something without an extension refuses that request with `extension_required`.
 
 ## Extensions
 
 | Extension | Version | What it adds |
 | --- | --- | --- |
-| [`operations`](https://personalagentprotocol.org/docs/0.3/extensions/operations) | 1 | The personal agent confirms an action before the company performs it. Approval covers the exact terms, the action has one record across channels, and a retry never performs it twice. |
+| [`operations`](https://personalagentprotocol.org/docs/0.3/extensions/operations) | 2 | The personal agent gets the user's approval of exact terms and retries the request with it. Retries never perform the action twice. |
+| [`mediated-sign-in`](https://personalagentprotocol.org/docs/0.3/extensions/mediated-sign-in) | 1 | Transitional. The personal agent signs in with credentials the user gave it, at a company that doesn't offer Direct or Device Sign-In yet. |
 
 ---
 

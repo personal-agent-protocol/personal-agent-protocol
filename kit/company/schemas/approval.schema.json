@@ -1,0 +1,12 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "approval.schema.json",
+    "title": "Approval",
+    "description": "The User's approval of one revision of an operation, sent by the Personal Agent. Operations extension 5 and 6. In a conversation message's approval field, or in an MCP tool call's _meta under personalagentprotocol.org/approval. At APIs, the same members go in the Poppy-Approval header as a Dictionary Structured Field. Unknown members are ignored.",
+    "type": "object",
+    "required": ["operation_id", "revision"],
+    "properties": {
+        "operation_id": { "$ref": "message.schema.json#/$defs/id" },
+        "revision": { "$ref": "message.schema.json#/$defs/id" }
+    }
+}

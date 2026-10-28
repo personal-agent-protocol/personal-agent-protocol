@@ -1,43 +1,18 @@
-// Milestone 2: listed MCP servers (sections 4.3 and 6): protected resource metadata, Session Tokens
-// bound to each server's url (DPoP at a server that supports it, Bearer by Token Exchange otherwise),
-// invalid_target for the other kind of request, and the general DPoP token refused.
+// Milestone 2: MCP servers' protected resource metadata and challenges (section 7). Signed-in
+// tokens need account access and are checked by hand. An MCP server MAY ignore the Session header,
+// so signed-out calls aren't required.
 
-import {
-    authedRequest,
-    dpopKey,
-    exchangeParams,
-    heldToken,
-    sessionParams,
-    TOKEN_EXCHANGE,
-    tokenRequest,
-} from "../agent.ts";
-import { errorCode, getFollowing, header, parseWwwAuthenticate, type Exchange } from "../http.ts";
+import { randomId } from "../jose.ts";
+import { getFollowing, header, parseChallenges, type Challenge, type Exchange } from "../http.ts";
 import { formatSchemaErrors } from "../schema.ts";
 import { check } from "../schemas.ts";
-import { accepted as probeAccepted, findProbe } from "./resource.ts";
-import {
-    offersGrant,
-    skipRest,
-    type Context,
-    type Detail,
-    type HeldToken,
-    type Recorder,
-} from "./types.ts";
+import { apiUrls, skipRest, type Context, type Detail, type Recorder } from "./types.ts";
 
 export const MCP_IDS = [
     "mcp.no-token",
+    "mcp.invalid-token",
     "mcp.metadata",
     "mcp.authorization-servers",
-    "mcp.token-exchange-grant",
-    "mcp.bearer-token",
-    "mcp.bearer-server-no-dpop",
-    "mcp.bearer-accepted",
-    "mcp.dpop-server-token",
-    "mcp.dpop-server-no-bearer",
-    "mcp.dpop-server-accepted",
-    "mcp.dpop-token-rejected",
-    "mcp.other-resource-rejected",
-    "mcp.bearer-elsewhere-rejected",
 ];
 
 export const INITIALIZE = {
@@ -53,27 +28,58 @@ export const INITIALIZE = {
 
 const MCP_HEADERS = { Accept: "application/json, text/event-stream" };
 
-// Whether a token request was refused with 400 invalid_target.
-function invalidTarget(ex: Exchange): boolean {
-    return ex.status === 400 && errorCode(ex) === "invalid_target";
-}
-
-// Whether an MCP response is a successful initialize result (JSON or SSE).
-export function initializeOk(ex: Exchange): boolean {
-    if (ex.status !== 200) return false;
-    let json = ex.json as { result?: unknown } | undefined;
-    if (!json && ex.body) {
-        for (const line of ex.body.split("\n")) {
-            if (!line.startsWith("data:")) continue;
-            try {
-                json = JSON.parse(line.slice(5).trim());
-                break;
-            } catch {
-                // Not JSON.
-            }
+// The JSON-RPC response to the initialize request in an MCP response, JSON or SSE.
+export function initializeResponse(ex: Exchange): unknown {
+    if (ex.json !== undefined) return ex.json;
+    for (const event of (ex.body ?? "").split(/\r?\n\r?\n/)) {
+        const data = event
+            .split(/\r?\n/)
+            .filter((line) => line.startsWith("data:"))
+            .map((line) => line.slice(5).replace(/^ /, ""))
+            .join("\n");
+        if (!data) continue;
+        try {
+            const json = JSON.parse(data) as { id?: unknown };
+            if (json && typeof json === "object" && json.id === INITIALIZE.id) return json;
+        } catch {
+            // Not JSON.
         }
     }
-    return Boolean(json && typeof json === "object" && "result" in json);
+    return undefined;
+}
+
+// Whether the body read so far holds the initialize response, so reading can stop.
+export function hasInitializeResponse(body: string): boolean {
+    return initializeResponse({ body } as Exchange) !== undefined;
+}
+
+// Why an MCP response isn't a meaningful initialize result, if it isn't: a JSON-RPC result with
+// the protocol version, the server's capabilities, and its info.
+export function initializeProblem(ex: Exchange): string | undefined {
+    if (ex.status !== 200) return `HTTP ${ex.status}`;
+    const json = initializeResponse(ex) as { jsonrpc?: unknown; result?: unknown } | undefined;
+    if (!json || typeof json !== "object") return "no JSON-RPC response in the body";
+    const result = json.result as
+        | { protocolVersion?: unknown; capabilities?: unknown; serverInfo?: unknown }
+        | undefined;
+    if (!result || typeof result !== "object") return "a JSON-RPC response without a result";
+    const missing = [
+        typeof result.protocolVersion === "string" ? "" : "protocolVersion",
+        result.capabilities && typeof result.capabilities === "object" ? "" : "capabilities",
+        result.serverInfo && typeof result.serverInfo === "object" ? "" : "serverInfo",
+    ].filter(Boolean);
+    return missing.length ? `an initialize result without ${missing.join(", ")}` : undefined;
+}
+
+export function initializeOk(ex: Exchange): boolean {
+    return initializeProblem(ex) === undefined;
+}
+
+// The Bearer challenge in a response, if any.
+function bearer(ex: Exchange): Challenge | undefined {
+    return parseChallenges(header(ex, "www-authenticate")).find(
+        (c) => c.scheme.toLowerCase() === "bearer",
+    );
 }
 
 export function protectedResourceMetadataUrl(url: string): string {
@@ -136,60 +142,106 @@ function aggregator(r: Recorder) {
 }
 
 export async function checkMcp(ctx: Context, r: Recorder): Promise<void> {
-    const servers = (ctx.discovered.poppy?.apis ?? [])
-        .filter((a) => a?.type === "mcp" && typeof a.url === "string")
-        .map((a) => a.url!);
+    const servers = apiUrls(ctx.discovered.poppy, "mcp");
     if (servers.length === 0) {
         skipRest(r, MCP_IDS, "poppy.json lists no MCP servers.");
         return;
     }
-    const issuer = ctx.discovered.poppy?.auth?.issuer;
+    const issuer = ctx.discovered.issuer;
     const agg = aggregator(r);
-    const bearer: Record<string, HeldToken> = {};
-    let dpopServers = 0;
 
     for (const url of servers) {
-        // No token: 401 pointing at the protected resource metadata.
-        const none = (
-            await authedRequest(ctx, {
+        const initialize = (authorization: string | undefined, note: string) =>
+            ctx.http.request({
                 method: "POST",
                 url,
-                body: INITIALIZE,
-                proof: "none",
-                headers: MCP_HEADERS,
-                note: "MCP initialize with no token",
-            })
-        ).ex;
-        const www = parseWwwAuthenticate(header(none, "www-authenticate"));
-        if (none.status === 401 && www.params.resource_metadata)
-            agg.add("mcp.no-token", "pass", url);
+                body: JSON.stringify(INITIALIZE),
+                headers: {
+                    ...MCP_HEADERS,
+                    "Content-Type": "application/json",
+                    ...(authorization ? { Authorization: authorization } : {}),
+                },
+                // A stream may stay open after the response: stop at the initialize response.
+                until: hasInitializeResponse,
+                note,
+            });
+
+        // No token: either a meaningful initialize result, or a 401 that points at the protected
+        // resource metadata.
+        const none = await initialize(
+            undefined,
+            "MCP initialize with no token and no Session header",
+        );
+        const challenge = bearer(none);
+        if (none.status === 401) {
+            if (challenge?.params.resource_metadata) agg.add("mcp.no-token", "pass", url);
+            else
+                agg.add("mcp.no-token", "fail", url, {
+                    exchange: none,
+                    expected: '401 with WWW-Authenticate: Bearer resource_metadata="…"',
+                    cause: challenge
+                        ? "The Bearer challenge has no resource_metadata, so MCP clients can't find the authorization server (RFC 9728 §5.1)."
+                        : "The 401 has no Bearer challenge. An MCP server's challenges include resource_metadata with its protected resource metadata URL.",
+                });
+        } else if (none.status === 200 && initializeOk(none))
+            agg.add("mcp.no-token", "pass", url, {
+                summary: "Initialized without a token, so there's no challenge to check.",
+            });
         else
             agg.add("mcp.no-token", "fail", url, {
                 exchange: none,
-                expected: '401 with WWW-Authenticate: Bearer resource_metadata="…"',
+                got: none.status === 200 ? `200 with ${initializeProblem(none)}` : undefined,
+                expected:
+                    'An initialize result, or 401 with WWW-Authenticate: Bearer resource_metadata="…"',
                 cause:
-                    none.status === 401
-                        ? "MCP 2025-06-18 requires the 401 to name the protected resource metadata URL in WWW-Authenticate, so MCP clients can find the authorization server."
-                        : "The MCP server should refuse requests without a token with 401.",
+                    none.status === 404
+                        ? "The MCP server's url in poppy.json isn't an MCP endpoint. It points to a remote MCP server endpoint using the Streamable HTTP transport (section 7)."
+                        : "An MCP server answers initialize, or refuses a request without a token with a challenge that names its protected resource metadata.",
             });
 
+        // An invented token: refused with invalid_token, and a challenge that points at the same
+        // metadata.
+        const invented = await initialize(
+            `Bearer validator_invented_${randomId(16)}`,
+            "MCP initialize with an invented access token",
+        );
+        const inventedChallenge = bearer(invented);
+        const expectedPrm = challenge?.params.resource_metadata;
+        if (invented.status !== 401)
+            agg.add("mcp.invalid-token", "fail", url, {
+                exchange: invented,
+                expected:
+                    '401 with WWW-Authenticate: Bearer error="invalid_token", resource_metadata="…"',
+                cause:
+                    invented.status !== undefined && invented.status < 300
+                        ? "The MCP server accepted an access token the Company never issued."
+                        : "An invalid access token gets 401 with invalid_token in the WWW-Authenticate header (RFC 6750 §3.1).",
+            });
+        else if (
+            !inventedChallenge?.params.resource_metadata ||
+            inventedChallenge.params.error !== "invalid_token" ||
+            (expectedPrm && inventedChallenge.params.resource_metadata !== expectedPrm)
+        )
+            agg.add("mcp.invalid-token", "fail", url, {
+                exchange: invented,
+                expected: `WWW-Authenticate: Bearer error="invalid_token", resource_metadata="${expectedPrm ?? protectedResourceMetadataUrl(url)}"`,
+                cause: !inventedChallenge
+                    ? "The 401 has no Bearer challenge."
+                    : inventedChallenge.params.error !== "invalid_token"
+                      ? 'Access token errors follow OAuth: an invalid token gets error="invalid_token" in the challenge (RFC 6750 §3.1).'
+                      : "An MCP server's challenges include resource_metadata with the server's protected resource metadata URL, the same in every challenge.",
+            });
+        else agg.add("mcp.invalid-token", "pass", url);
+
         // Protected resource metadata.
-        const prmUrl = www.params.resource_metadata ?? protectedResourceMetadataUrl(url);
+        const prmUrl = challenge?.params.resource_metadata ?? protectedResourceMetadataUrl(url);
         const prm = (
             await getFollowing(ctx.http, prmUrl, {
                 max: 3,
                 headers: { Accept: "application/json" },
             })
         ).final!;
-        const doc = prm.json as
-            | {
-                  resource?: unknown;
-                  authorization_servers?: unknown;
-                  dpop_signing_alg_values_supported?: unknown;
-              }
-            | undefined;
-        const supportsDpop = Array.isArray(doc?.dpop_signing_alg_values_supported);
-        if (supportsDpop) dpopServers++;
+        const doc = prm.json as { resource?: unknown; authorization_servers?: unknown } | undefined;
         if (prm.status !== 200 || !doc || typeof doc !== "object") {
             agg.add("mcp.metadata", "fail", url, {
                 exchange: prm,
@@ -222,242 +274,10 @@ export async function checkMcp(ctx: Context, r: Recorder): Promise<void> {
                 agg.add("mcp.authorization-servers", "fail", url, {
                     exchange: prm,
                     got: `authorization_servers ${JSON.stringify(doc.authorization_servers)}`,
-                    expected: `authorization_servers including "${issuer}", exactly as auth.issuer`,
-                    cause: "MCP clients get tokens from the listed authorization servers; list the Poppy issuer.",
+                    expected: `authorization_servers including the Company's issuer, "${issuer}"`,
+                    cause: "MCP clients get tokens from the listed authorization servers. List the issuer that the domain's protected resource metadata names (3.2).",
                 });
         }
-
-        const metadata = ctx.discovered.metadata;
-        if (!supportsDpop && metadata) {
-            if (offersGrant(metadata, TOKEN_EXCHANGE))
-                agg.add("mcp.token-exchange-grant", "pass", url);
-            else
-                agg.add("mcp.token-exchange-grant", "fail", url, {
-                    got: `grant_types_supported ${JSON.stringify(metadata.grant_types_supported)}`,
-                    expected: `grant_types_supported including ${TOKEN_EXCHANGE}`,
-                    cause: "The server's protected resource metadata has no dpop_signing_alg_values_supported, so Personal Agents get its tokens by Token Exchange, and read grant_types_supported to learn the Company supports it.",
-                });
-        }
-
-        if (!ctx.session.token) continue;
-        const subject = ctx.session.token;
-
-        let token: HeldToken | undefined;
-        if (supportsDpop) {
-            // A DPoP server: a DPoP token from the usual request, and no Bearer token by exchange.
-            const key = await dpopKey(ctx);
-            const dpopEx = (
-                await tokenRequest(ctx, sessionParams(ctx, { resource: url }), {
-                    note: `renewing the Session with resource=${url}`,
-                })
-            ).ex;
-            const issued = heldToken(dpopEx, key, url);
-            if (!issued || issued.tokenType.toLowerCase() !== "dpop") {
-                agg.add("mcp.dpop-server-token", "fail", url, {
-                    exchange: dpopEx,
-                    got: issued ? `token_type ${issued.tokenType}` : undefined,
-                    expected: "200 with token_type DPoP",
-                    cause: "The server's protected resource metadata lists dpop_signing_alg_values_supported, so the token endpoint should issue a DPoP Session Token for it.",
-                });
-            } else {
-                agg.add("mcp.dpop-server-token", "pass", url);
-                token = issued;
-            }
-            const bearerEx = (
-                await tokenRequest(ctx, exchangeParams(subject, url), {
-                    note: `exchanging the DPoP Session Token for a Bearer one, resource=${url}`,
-                })
-            ).ex;
-            if (invalidTarget(bearerEx)) agg.add("mcp.dpop-server-no-bearer", "pass", url);
-            else if (heldToken(bearerEx, undefined, url))
-                agg.add("mcp.dpop-server-no-bearer", "fail", url, {
-                    exchange: bearerEx,
-                    got: "200 with a token",
-                    expected: "400 invalid_target",
-                    cause: "The server supports DPoP, so Personal Agents get only DPoP Session Tokens for it.",
-                });
-            else
-                agg.add("mcp.dpop-server-no-bearer", "fail", url, {
-                    exchange: bearerEx,
-                    expected: "400 invalid_target",
-                    cause: "invalid_target tells the Personal Agent that the server needs a different type of token (4.2), so it can renew the Session for a DPoP one instead.",
-                });
-            if (!token) continue;
-        } else {
-            // A server without DPoP: a Bearer token by Token Exchange.
-            const attempt = await tokenRequest(ctx, exchangeParams(subject, url), {
-                note: `exchanging the DPoP Session Token for a Bearer one, resource=${url}`,
-            });
-            const issued = heldToken(attempt.ex, undefined, url);
-            if (!issued)
-                agg.add("mcp.bearer-token", "fail", url, {
-                    exchange: attempt.exchanges,
-                    expected: "200 with a Bearer Session Token",
-                    cause: "A Company that lists an MCP server without DPoP must support the token exchange grant (RFC 8693), and issue a Bearer Session Token for the server in exchange for a DPoP one.",
-                });
-            else if (issued.tokenType.toLowerCase() !== "bearer")
-                agg.add("mcp.bearer-token", "fail", url, {
-                    exchange: attempt.ex,
-                    got: `token_type ${issued.tokenType}`,
-                    expected: "token_type Bearer",
-                    cause: "The server doesn't support DPoP, so its tokens are Bearer tokens.",
-                });
-            else {
-                agg.add("mcp.bearer-token", "pass", url);
-                token = { ...issued, tokenType: "Bearer" };
-            }
-
-            // Any other token request for the server gets invalid_target, not a token.
-            const renewEx = (
-                await tokenRequest(ctx, sessionParams(ctx, { resource: url }), {
-                    note: `renewing the Session with resource=${url}`,
-                })
-            ).ex;
-            if (invalidTarget(renewEx)) agg.add("mcp.bearer-server-no-dpop", "pass", url);
-            else {
-                const renewed = heldToken(renewEx, undefined, url);
-                agg.add("mcp.bearer-server-no-dpop", "fail", url, {
-                    exchange: renewEx,
-                    got: renewed ? `200 with token_type ${renewed.tokenType}` : undefined,
-                    expected: "400 invalid_target",
-                    cause: renewed
-                        ? "The server doesn't support DPoP, so the Company issues tokens for it only by Token Exchange."
-                        : "invalid_target tells the Personal Agent that the server needs a different type of token (4.2), so it can use Token Exchange instead.",
-                });
-            }
-
-            if (!token) continue;
-            bearer[url] = token;
-        }
-
-        const ok = (
-            await authedRequest(ctx, {
-                method: "POST",
-                url,
-                token,
-                body: INITIALIZE,
-                headers: MCP_HEADERS,
-                note: `MCP initialize with the ${token.tokenType} Session Token for this server`,
-            })
-        ).ex;
-        const acceptedId = supportsDpop ? "mcp.dpop-server-accepted" : "mcp.bearer-accepted";
-        if (initializeOk(ok)) agg.add(acceptedId, "pass", url);
-        else
-            agg.add(acceptedId, "fail", url, {
-                exchange: ok,
-                expected: "200 with an initialize result",
-                cause: "The MCP server should accept Session Tokens issued for its url as access tokens.",
-            });
-
-        const dpop = (
-            await authedRequest(ctx, {
-                method: "POST",
-                url,
-                token: ctx.session.token,
-                body: INITIALIZE,
-                headers: MCP_HEADERS,
-                note: "MCP initialize with the general DPoP Session Token and a proof",
-            })
-        ).ex;
-        if (initializeOk(dpop))
-            agg.add("mcp.dpop-token-rejected", "fail", url, {
-                exchange: dpop,
-                got: "200, initialize succeeded",
-                expected: "401",
-                cause: "The MCP server accepts tokens that weren't issued for its url.",
-            });
-        else agg.add("mcp.dpop-token-rejected", "pass", url);
-    }
-
-    // A Bearer token for another resource.
-    if (ctx.session.token) {
-        for (const url of servers) {
-            if (!bearer[url]) continue;
-            const other = servers.find((s) => s !== url && bearer[s]);
-            let token = other ? bearer[other] : undefined;
-            if (!token) {
-                const resource = `${new URL(url).origin}/poppy-validator-not-a-resource`;
-                const ex = (
-                    await tokenRequest(ctx, exchangeParams(ctx.session.token, resource), {
-                        note: `exchanging for a Bearer token for resource=${resource}, which isn't listed`,
-                    })
-                ).ex;
-                const issued = heldToken(ex, undefined, resource);
-                if (!issued) {
-                    agg.add("mcp.other-resource-rejected", "pass", url, {
-                        summary: "The token endpoint refused a token for an unlisted resource.",
-                    });
-                    continue;
-                }
-                token = { ...issued, tokenType: "Bearer" };
-            }
-            const ex = (
-                await authedRequest(ctx, {
-                    method: "POST",
-                    url,
-                    token,
-                    body: INITIALIZE,
-                    headers: MCP_HEADERS,
-                    note: `MCP initialize with a Bearer token issued for ${token.resource}`,
-                })
-            ).ex;
-            if (initializeOk(ex))
-                agg.add("mcp.other-resource-rejected", "fail", url, {
-                    exchange: ex,
-                    got: "200, initialize succeeded",
-                    expected: "401",
-                    cause: "The MCP server doesn't check that the token was issued for its url (the token's audience).",
-                });
-            else agg.add("mcp.other-resource-rejected", "pass", url);
-        }
-
-        const probe = findProbe(ctx);
-        const anyBearer = Object.values(bearer)[0];
-        if (probe && anyBearer) {
-            const ex = (
-                await authedRequest(ctx, {
-                    url: probe.url,
-                    token: anyBearer,
-                    note: `${probe.describe}, with the MCP Bearer token`,
-                })
-            ).ex;
-            if (probeAccepted(probe, ex))
-                agg.add("mcp.bearer-elsewhere-rejected", "fail", servers[0], {
-                    exchange: ex,
-                    expected: "401",
-                    cause: "A Bearer token for the MCP server works at another endpoint. Accept Bearer tokens only on MCP servers.",
-                });
-            else agg.add("mcp.bearer-elsewhere-rejected", "pass", servers[0]);
-        } else
-            r.skip(
-                "mcp.bearer-elsewhere-rejected",
-                probe
-                    ? "No Bearer token was issued."
-                    : "No conversation endpoint or --probe URL to try it at.",
-            );
     }
     agg.flush(servers.length > 1);
-    if (dpopServers === 0)
-        skipRest(
-            r,
-            ["mcp.dpop-server-token", "mcp.dpop-server-no-bearer", "mcp.dpop-server-accepted"],
-            "No listed MCP server supports DPoP.",
-        );
-    if (dpopServers === servers.length)
-        skipRest(
-            r,
-            [
-                "mcp.token-exchange-grant",
-                "mcp.bearer-token",
-                "mcp.bearer-server-no-dpop",
-                "mcp.bearer-accepted",
-                "mcp.other-resource-rejected",
-                "mcp.bearer-elsewhere-rejected",
-            ],
-            "Every listed MCP server supports DPoP, so none uses Bearer tokens.",
-        );
-    const reason = ctx.identity
-        ? "No Session Token (see session.start)."
-        : (ctx.identityProblem ?? "No test Personal Agent.");
-    skipRest(r, MCP_IDS, reason);
 }

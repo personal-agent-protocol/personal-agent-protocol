@@ -1,20 +1,24 @@
 # Milestone: sign-in
 
 Users sign in to their Company accounts through the types the design chose, Personal Agents keep
-Account Tokens, and every channel enforces the granted scopes. Skip this milestone if the design
-offers only signed-out Sessions.
+refresh tokens and send access tokens with the Session header, and every channel enforces the
+granted scopes. Skip this milestone if the design offers only signed-out Sessions.
+
+Sign-in is plain OAuth. It doesn't know about Sessions: a Session is signed in on each request that
+carries an access token alongside its Session header
+([5.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
 
 ## Read first
 
-- [4.4 Signing in](https://personalagentprotocol.org/docs/0.3/spec#sign-in), including "Scopes" and "How
-  sign-in is remembered"
-- [4.5 Direct Sign-In](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in),
-  [4.6 Device Sign-In](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in),
-  [4.7 Mediated Sign-In](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in): the ones
-  the design chose
-- [4.8 Account Tokens](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)
-- [4.9 Signing out](https://personalagentprotocol.org/docs/0.3/spec#sign-out)
-- [7.11 Sign-in during a conversation](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)
+- [5.4 Signing in](https://personalagentprotocol.org/docs/0.3/spec#sign-in), with
+  [4.7 Scopes](https://personalagentprotocol.org/docs/0.3/spec#scopes) for account access
+- [4.2 Direct Sign-In](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in),
+  [4.3 Device Sign-In](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in),
+  [Mediated Sign-In extension](https://personalagentprotocol.org/docs/0.3/extensions/mediated-sign-in): the ones the design chose
+- [4.4 Refresh tokens](https://personalagentprotocol.org/docs/0.3/spec#refresh-tokens) and
+  [4.5 Access tokens](https://personalagentprotocol.org/docs/0.3/spec#access-tokens)
+- [5.5 Ending Sessions and signing out](https://personalagentprotocol.org/docs/0.3/spec#ending-sessions)
+- [8.11 Sign-in during a conversation](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)
 - Guides: [Describing scopes](https://personalagentprotocol.org/docs/0.3/guides#company-scope-descriptions),
   [Consent pages](https://personalagentprotocol.org/docs/0.3/guides#company-consent),
   [Device sign-in](https://personalagentprotocol.org/docs/0.3/guides#company-device),
@@ -28,150 +32,158 @@ Patterns: `patterns/sign-in.md`, `patterns/scopes.md`, `patterns/session-records
 
 ## What to build
 
-**Scopes** ([4.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). Every scope a Personal
+**Scopes** ([4.7](https://personalagentprotocol.org/docs/0.3/spec#scopes)). Every scope a Personal
 Agent can request in `scopes_supported` in the OAuth metadata. A description of every scope, in
 the OAuth security scheme of an OpenAPI description you list or in `auth.scopes`. Write them in
 words a User and a language model can understand
 ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-scope-descriptions)).
-`auth.mediated.scopes` if you offer Mediated Sign-In. Every sign-in request must include `scope`.
+The extension's `scopes` if you offer Mediated Sign-In. Every sign-in request must include `scope`.
 Reject missing, unknown, or unavailable scopes with `invalid_scope`. Never grant more than was
 requested and allowed for the type. The User may approve fewer, but at least one: approving none is
 a decline.
 
-**The sign-in response** (4.4). All types end with `refresh_token` (the Account Token), optionally
-`refresh_token_expires_in`, a signed-in Session Token for the current Session, and the granted
-`scope`. The current Session is the one the request's Session Key names.
+**The token response** (4.7). Sign-in and refresh return `access_token`, `token_type`,
+`expires_in`, `refresh_token`, and the granted `scope` when
+it differs from the request. Send `Cache-Control: no-store`.
 
-**One account per Session** (4.4). A Session signed in to one account can't switch to another. If
-the User signs in to a different account, the code exchange, device poll, or Mediated Sign-In
-returns `account_mismatch` and issues no tokens. A pending or failed sign-in leaves existing tokens
-unchanged.
+**Access tokens** ([4.5](https://personalagentprotocol.org/docs/0.3/spec#access-tokens)).
 
-**Direct Sign-In** ([4.5](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)).
+- Bearer or DPoP-bound, as the design chose. With DPoP, the request carries both the Session JWT
+  and a DPoP proof, each signed with its own key.
+- Resources must be able to tell which `client_id` a token was issued to, for the Session header
+  check ([5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification)).
+- A service that accepts only its own tokens publishes protected resource metadata. Issue a token
+  for its `resource` (RFC 8707) at sign-in or refresh, accept it only there, and return
+  `invalid_target` for a `resource` you don't serve. A service that gets a token not issued for it
+  returns `invalid_token` with `resource_metadata`.
+- Reject a Personal Agent's access token sent without the Session header, at every endpoint that
+  accepts the header (5.3).
+
+**Account changes** (5.4). A Session can change accounts unless the Company refuses it. The
+Company may refuse a request whose access token is for a different account than its Session used
+before, with `invalid_session`. Decide whether to. Personal Agents should start a new Session for a
+second account.
+
+**Direct Sign-In** ([4.2](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)).
 
 - `authorization_endpoint` in the OAuth metadata, and `authorization_code` in its
   `grant_types_supported`.
 - The authorization code flow with PKCE. Accept `S256` only
   ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-consent)).
-- `redirect_uri` exactly matches an entry in the Personal Agent's `redirect_uris`.
+- `redirect_uri` exactly matches an entry in the Personal Agent's `redirect_uris`, except for the
+  port of a loopback redirect URI.
 - The consent page shows the Personal Agent's name and logo, the domain of its `client_id`, the
   account, each scope in plain language, and how long access lasts. The User can approve some or
   all scopes, or decline.
 - Every redirect, success or error, carries `iss`.
-- Support `dpop_jkt` on the authorization request, and bind the code to that key. With PAR, bind it
-  to the key of the pushed request's proof.
-- The code exchange takes the client assertion and a DPoP Proof from the key the code is bound to,
-  and signs in the Session that key names, after checking it belongs to the same `client_id`.
+- The code exchange takes the client assertion.
 
-**Device Sign-In** ([4.6](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)).
+**Device Sign-In** ([4.3](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)).
 
 - Follow the best practices for cross-device flows in RFC 10027 §2 (MUST): assess the risk, and
   choose mitigations with the engineer.
-
 - `device_authorization_endpoint` in the metadata, and
   `urn:ietf:params:oauth:grant-type:device_code` in its `grant_types_supported`.
-- The device authorization request with the client assertion. The poll at `token_endpoint` with a
-  DPoP Proof. Bind the `device_code` to the key of the first poll, and refuse polls with any other
-  key with `invalid_grant`.
-- Put the verification page on the host of `auth.issuer` or of a URL in `protected_resources`, or
-  a subdomain of either. Personal Agents don't show a link anywhere else.
+- The device authorization request and each poll at `token_endpoint` carry the client assertion.
+- Put the verification page on the host of the issuer or of a URL in `protected_resources`, or a
+  subdomain of either. Personal Agents don't show a link anywhere else.
 - The verification page shows the Personal Agent and scopes. Opening the link or scanning the code
   never approves by itself.
 - Poll responses: `authorization_pending`, `slow_down`, `access_denied`, `expired_token`.
 
-**Mediated Sign-In** ([4.7](https://personalagentprotocol.org/docs/0.3/spec#mediated-sign-in)).
+**Mediated Sign-In** ([extension](https://personalagentprotocol.org/docs/0.3/extensions/mediated-sign-in)).
 
 - Transitional. Offer it only until Direct or Device Sign-In covers the same scopes. The protocol
   plans to remove it, on a date set when version 1.0 is published.
-- `auth.mediated` with `endpoint`, `fields`, and `scopes`.
-- The endpoint takes a DPoP Session Token and JSON with `scope` and `credentials`. Statuses
-  `complete`, `code_required`, `failed`, and `expired`, each with HTTP 200. Code submission at
-  `{endpoint}/{sign_in_id}`, only from the Session that started it.
-- Errors `invalid_scope`, `account_mismatch`, and `sign_in_not_found` as JSON bodies.
-- Rate-limit attempts, never return credentials, and require a one-time code when a sign-in looks
-  unusual. Return the same `failed` for an unknown account and a wrong password
+- `mediated-sign-in` in `extensions` in `poppy.json`, with `version` `"1"`, `fields`, and `scopes`,
+  and the grant type `https://personalagentprotocol.org/grant/mediated-sign-in` in the issuer's
+  `grant_types_supported`.
+- An extension grant at `token_endpoint`: the client assertion, `scope`, and each field in `fields`
+  as a form parameter. Field names can't be `grant_type`, `scope`, `resource`, client authentication parameters, or
+  parameters the extension defines.
+- A second step returns the OAuth error `code_required` (HTTP 400) with `sign_in_id` and
+  `expires_in`, and `sent_to` saying where the code went, as in the extension's example. The next request sends `sign_in_id` and `one_time_code`, not the credentials,
+  and only the `client_id` that started it can finish it. A wrong code returns `code_required`
+  again until your attempt limit, then `invalid_grant`.
+- Errors are OAuth errors: `invalid_grant`, `expired_token`, `access_denied`, `invalid_scope`.
+- Rate-limit attempts, and require a one-time code when a sign-in looks unusual. Return the same `invalid_grant` for an unknown account and a wrong password
   ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-mediated)).
 
-**Account Tokens** ([4.8](https://personalagentprotocol.org/docs/0.3/spec#account-tokens)).
+**Refresh tokens** ([4.4](https://personalagentprotocol.org/docs/0.3/spec#refresh-tokens)).
 
-- The `refresh_token` grant with the client assertion and DPoP Proof. With an existing Session's
-  key, return a token for that Session, signing it in if it was signed out. With a new key, start a
-  new signed-in Session. Don't bind the Account Token to a key.
-- Accept an Account Token only at `token_endpoint` and `revocation_endpoint`, and only from the
-  `client_id` it was issued to.
-- The Session must belong to the same `client_id` and User ID and be signed out or signed in to the
-  same account. Otherwise `invalid_grant` or `account_mismatch`.
-- `scope` can narrow, never widen. Using the token doesn't extend its lifetime. Rotation is
-  optional.
-- Expired or revoked: `invalid_grant`, and the Session continues signed out.
-- For MCP: the same grant with `resource` returns a DPoP token for an MCP server that supports
-  DPoP. For one that doesn't, the Personal Agent exchanges the DPoP token for a Bearer one
-  ([4.3](https://personalagentprotocol.org/docs/0.3/spec#sending-tokens)).
+- The `refresh_token` grant with the client assertion. Accept a refresh token only at
+  `token_endpoint` and `revocation_endpoint`, and only from the `client_id` it was issued to.
+- A refresh token isn't tied to a Session or a key. Any of the User's Sessions can use access tokens
+  from it.
+- `scope` can narrow, never widen. `resource` asks for a token for one service. Using the token
+  doesn't extend its lifetime. Rotation is optional.
+- Expired or revoked: `invalid_grant`, and the Personal Agent continues signed out.
 
-**Signing out** ([4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out)). RFC 7009 revocation
-with the client assertion. Revoke the Account Token and sign out every Session signed in with it.
-Sessions usually continue signed out. Check on each request whether the Session is still signed in,
-or use much shorter Session Token lifetimes.
+**Signing out** ([4.6](https://personalagentprotocol.org/docs/0.3/spec#revocation)). RFC 7009 revocation
+with the client assertion and `token_type_hint=refresh_token`. Then invalidate the access tokens
+issued under it, or check on each request whether the authorization is still active. If you do
+neither, keep access tokens to a few minutes (5.5). Sessions continue signed out.
 
-**Account settings** (4.9). The User can disconnect a Personal Agent, which revokes its Account
-Tokens for that account and signs out its Sessions. List each connected Personal Agent with its
-name, domain, scopes, and last use
-([guides](https://personalagentprotocol.org/docs/0.3/guides#company-account-settings)).
+**Account settings** (5.5). The User can disconnect a Personal Agent, which revokes its refresh
+tokens for that account. List each connected Personal Agent with its name, domain, scopes, and last
+use ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-account-settings)).
 
-**Scopes on every channel** (4.4,
+**Scopes on every channel** (4.7,
 [guides](https://personalagentprotocol.org/docs/0.3/guides#company-scopes)). One shared check that the
 website, APIs, MCP tools, the Company Agent's tools, and live agents' tools all call.
-Check read and write scopes separately. On the website, a refusal for a missing scope should show
-a visible error naming the scopes
-([section 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)). See
-`patterns/scopes.md`.
+Check read and write scopes separately. A signed-out request that needs the account gets a 401
+challenge with `scope`; an access token without the scopes gets `insufficient_scope` (403)
+([section 7](https://personalagentprotocol.org/docs/0.3/spec#apis)). On the website, a refusal for a
+missing scope should show a visible error naming the scopes
+([section 6](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)). See `patterns/scopes.md`.
 
-**Conversations** ([7.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)).
+**Conversations** ([8.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)).
 
 - When the Company Agent needs the account, add an `authorization` event with `insufficient_scope`
   and the `scope` it needs, and also ask in a message.
-- Accept a new Session Token partway through a conversation, as long as it matches the owner.
-- Once a conversation has used the account, it belongs to the account (7.2). A token for the same
-  User that isn't signed in to that account gets `insufficient_scope`.
+- Accept an access token starting or stopping partway through a conversation, or the conversation
+  continuing in a new Session, as long as the request matches the owner.
+- Once a conversation has used the account, it belongs to the account (8.2). A request on it
+  without an access token for that account gets the 401 challenge.
 - The Company Agent and live agents check scopes before reading account information or making a
   change. A message never authorizes an account action.
 
-**Website.** The browser-session cookie follows the Session's sign-in state and scopes on the next
-request ([section 5](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)).
-
-**MCP clients without Poppy** ([section 6](https://personalagentprotocol.org/docs/0.3/spec#apis)). If the
-MCP server is listed, an MCP client can sign in with MCP's own authorization flow. Treat that as a
-new signed-in Session with no User ID, which ends when the sign-in is revoked or expires.
+**Website.** Step 2 of the browser join takes the access token, and the cookie set in step 3 acts
+for its account and scopes. It stops acting for the account when the User signs out or disconnects
+the Personal Agent ([section 6](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)).
 
 ## Decisions for this milestone
 
+- Bearer or DPoP-bound access tokens, and which services accept only their own tokens.
+- Whether to refuse a Session that changes to a different account.
 - Consent page wording, and how each scope is described to the User.
-- Account Token lifetime, rotation, and when Account Tokens are revoked (password reset, suspected
-  compromise).
-- Whether sign-out ends Sessions or lets them continue signed out.
-- Whether to close conversations that used the account when a Session signs out, or leave them open
-  and answer signed-out tokens with `insufficient_scope`
-  ([4.9](https://personalagentprotocol.org/docs/0.3/spec#sign-out),
+- Access and refresh token lifetimes, rotation, and when refresh tokens are revoked (password reset,
+  suspected compromise).
+- Whether to close conversations that used the account after sign-out, or leave them open and
+  answer requests without the account's token with the 401 challenge
+  ([5.5](https://personalagentprotocol.org/docs/0.3/spec#ending-sessions),
   [guides](https://personalagentprotocol.org/docs/0.3/guides#company-conversations)).
 - For Mediated Sign-In: attempt limits, when to require a one-time code, and how the User is told.
 
 ## Common mistakes
 
 - Granting the scopes requested rather than the ones the User approved, or more than the type allows
-  (4.4).
+  (4.7).
 - A consent page that names the Personal Agent but not its `client_id` domain, or that approves on
   page load.
-- Missing `iss` on error redirects (4.5).
-- An Account Token accepted from any `client_id`, or at an API (4.8).
-- Signing a Session in to a second account instead of returning `account_mismatch` (4.4).
-- Revoking the Account Token without signing out its Sessions, so earlier Session Tokens keep
-  account access (4.9).
+- Missing `iss` on error redirects (4.2).
+- A refresh token accepted from any `client_id`, or at an API (4.4).
+- Accepting a Personal Agent's access token without the Session header, or without checking that
+  `ath` matches it and that it was issued to the Session JWT's `iss` (5.3).
+- Expecting a Session parameter, a DPoP key, or a User ID at the token endpoint. Sign-in doesn't
+  know the Session.
+- Revoking the refresh token but letting its access tokens keep working for hours (5.5).
 - Scope checks only in the API layer, so the Company Agent or a live agent can do what the token
-  doesn't allow (7.9, 7.11).
+  doesn't allow (8.9, 8.11).
 - Treating a write scope as including the matching read scope when its description doesn't say so.
 - A website that refuses a missing scope with a generic error or a sign-in page, without naming the
-  scope (section 5).
-- Logging Mediated Sign-In request bodies or one-time codes
+  scope (section 6).
+- Logging token request bodies, Mediated Sign-In credentials, or one-time codes
   ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-mediated)).
 
 ## Check it
@@ -187,17 +199,20 @@ test needs signed requests, without printing or copying the private key.
 
 - Each sign-in type: sign in, approve fewer scopes than requested, and see only those granted.
   Request an unknown scope and get `invalid_scope`. Decline and see `access_denied`.
-- Sign in to a second account in a Session already signed in to the first: `account_mismatch`, no
-  tokens.
-- Use the Account Token with an existing Session's key and with a new key, with a narrower `scope`,
-  and from a different `client_id` (refused).
-- Revoke it, then see the Session continue signed out, the old Session Token refused for account
-  actions, and the Account Token refused with `invalid_grant`.
+- Send the access token with a Session header: the request is signed in. Send it without the
+  header, or with a Session JWT whose `ath` doesn't match or whose `iss` is another `client_id`:
+  each is refused.
+- Use one access token in two Sessions of the same User. If the Company refuses account changes,
+  send a second account's token in a Session that used the first, and see `invalid_session`.
+- Refresh with a narrower `scope`, and from a different `client_id` (refused). If a service accepts
+  only its own tokens, refresh with its `resource` and check that the token works only there.
+- Revoke the refresh token, then see the access token refused for account actions, the refresh
+  token refused with `invalid_grant`, and the Session continue signed out.
 - Disconnect from account settings and see the same.
 - With a read-only token, try a write on each channel: API, MCP tool, the Company Agent, a live
   agent's tools, and the website. Each refuses, and the website names the missing scope.
 - In a conversation, ask for an account action signed out: see an `authorization` event and a
-  message. Sign in, continue the same conversation, and see it work.
-- Check logs for tokens, codes, and credentials.
+  message. Sign in, continue the same conversation with the access token, and see it work.
+- Check logs for tokens, Session JWTs, codes, and credentials.
 
 Log anything unclear in `plan/feedback.md`.

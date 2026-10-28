@@ -58,12 +58,21 @@ test("anyOf of required-only branches says which fields are needed", () => {
     );
 });
 
-test("fragment references resolve, such as the DPoP payload", () => {
-    const payload = { jti: "abc", htm: "POST", htu: "https://a.example/token", iat: 1 };
-    assert.deepEqual(check("dpop-proof.schema.json#/$defs/payload", payload), []);
-    const bad = check("dpop-proof.schema.json#/$defs/payload", {
+test("fragment references resolve, such as the Session JWT payload", () => {
+    const payload = {
+        iss: "https://agent.example/agent.json",
+        aud: "https://auth.example",
+        sid: "abcdefghijklmnopqrstuv",
+        sub: "usr_1",
+        jti: "abcdefghijklmnopqrstuv",
+        htm: "POST",
+        htu: "https://a.example/poppy/feedback",
+        iat: 1,
+    };
+    assert.deepEqual(check("session-jwt.schema.json#/$defs/payload", payload), []);
+    const bad = check("session-jwt.schema.json#/$defs/payload", {
         ...payload,
-        htu: "https://a.example/token?x=1",
+        htu: "https://a.example/poppy/feedback?x=1",
     });
     assert.equal(bad.length, 1);
     assert.match(bad[0].message, /without a query or fragment/);

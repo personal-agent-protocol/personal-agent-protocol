@@ -12,28 +12,29 @@ the survey, and record what the engineer chose.
 **Interfaces** ([3.1](https://personalagentprotocol.org/docs/spec#fields)). Which of these to
 offer. A Company can start with one and add more later.
 
-- `openapi`: existing APIs, described in OpenAPI 3.0 or 3.1, accepting DPoP Session Tokens
-  ([section 6](https://personalagentprotocol.org/docs/spec#apis)).
-- `mcp`: an MCP server accepting DPoP Session Tokens, as a new one SHOULD, or otherwise Bearer
-  Session Tokens that Personal Agents get by Token Exchange (section 6, 4.3).
+- `openapi`: existing APIs, described in OpenAPI 3.0 or 3.1, accepting the Session header and the
+  Company's access tokens ([section 7](https://personalagentprotocol.org/docs/spec#apis)).
+- `mcp`: an MCP server accepting the Company's access tokens issued for its `url`, as MCP
+  authorization already requires. It MAY ignore the Session header, but then its calls belong to no
+  Session and it can't take signed-out calls from Personal Agents (section 7).
 - `conversations`: the Company Agent, through Poppy conversations
-  ([section 7](https://personalagentprotocol.org/docs/spec#conversations)).
+  ([section 8](https://personalagentprotocol.org/docs/spec#conversations)).
 - `web`: a browser-session endpoint so the Personal Agent's browser joins the Session
-  ([section 5](https://personalagentprotocol.org/docs/spec#web-browsing)). Without it, Personal
+  ([section 6](https://personalagentprotocol.org/docs/spec#web-browsing)). Without it, Personal
   Agents browse as ordinary signed-out visitors. A Company offering only `web` without the endpoint
   needs no `auth` at all.
 
-**Sign-in types** ([4.4](https://personalagentprotocol.org/docs/spec#sign-in)). None (signed-out
+**Sign-in types** ([5.4](https://personalagentprotocol.org/docs/spec#sign-in)). None (signed-out
 Sessions only), or any of Direct, Device, and Mediated Sign-In. Direct Sign-In keeps the User's
 password with the Company and suits most Companies. Device Sign-In suits Companies that already
-offer it. Mediated Sign-In means accepting credentials from Personal Agents, with the duties in
-[4.7](https://personalagentprotocol.org/docs/spec#mediated-sign-in) and the
+offer it. Mediated Sign-In is an extension that means accepting credentials from Personal Agents,
+with the duties in the [extension](https://personalagentprotocol.org/docs/extensions/mediated-sign-in) and the
 [guides](https://personalagentprotocol.org/docs/guides#company-mediated). It is transitional: the
 protocol plans to remove it, on a date set when version 1.0 is published. Choose it only as a bridge
 to Direct or Device Sign-In, and record when you plan to add those.
 
-**Scopes** ([4.4](https://personalagentprotocol.org/docs/spec#sign-in)). Which scopes to offer,
-usually the OAuth scopes the Company already has (names can't start with `poppy:`), where each one
+**Scopes** ([4.7](https://personalagentprotocol.org/docs/spec#scopes)). Which scopes to offer,
+usually the OAuth scopes the Company already has, where each one
 is described (an OpenAPI description or `auth.scopes`), and which scopes Mediated Sign-In can grant.
 See `patterns/scopes.md`.
 
@@ -41,14 +42,25 @@ See `patterns/scopes.md`.
 Accept any Personal Agent, keep an allowlist or blocklist by `client_id`, or require registration.
 Also rate limits on Session creation and on new `client_id` values.
 
-**Lifetimes.** Session Token lifetime (hours, not days, per
-[4.2](https://personalagentprotocol.org/docs/spec#starting-sessions); minutes if the Company can't
-check sign-in state on each request, per
-[4.9](https://personalagentprotocol.org/docs/spec#sign-out)), Account Token lifetime, and how long a
-Session lasts. See the [guides](https://personalagentprotocol.org/docs/guides#company-lifetimes).
+**Access tokens** ([4.5](https://personalagentprotocol.org/docs/spec#access-tokens)). Bearer or
+DPoP-bound, as for any OAuth client: DPoP is the Company's choice, and Personal Agents should
+support it. Which services, if any, accept only tokens issued for them, by publishing RFC 9728
+protected resource metadata. MCP servers always do.
 
-**Extensions.** Whether to support any, such as
-[Operations](https://personalagentprotocol.org/docs/extensions/operations#intro).
+**Lifetimes.** The acceptance window for a Session JWT's `iat`, such as one minute
+([5.3](https://personalagentprotocol.org/docs/spec#session-verification)), and the largest
+delegation lifetime you accept, up to 24 hours
+([Delegated keys](https://personalagentprotocol.org/docs/spec#delegated-keys)). The lifetime of
+access tokens, refresh tokens, and Sessions, how long to remember ended Sessions, and the sign-out
+checks in [5.5](https://personalagentprotocol.org/docs/spec#ending-sessions). See the
+[guides](https://personalagentprotocol.org/docs/guides#company-lifetimes).
+
+**Operations.** Which actions, if any, need the User's approval before you perform them
+([Operations 1](https://personalagentprotocol.org/docs/extensions/operations#intro)). Build the
+optional `operations` version 2 extension in the extensions milestone.
+
+**Extensions.** Whether to define any of the Company's own
+([3.3](https://personalagentprotocol.org/docs/spec#extensions)). Usually none.
 
 The architecture is yours to propose, with the engineer's review. Choose a pattern from
 `patterns/` for each component. If none fits, describe your own and say why, and add a **Kit** entry
@@ -62,8 +74,9 @@ The first block is read by the validator (`check https://<staging-domain> --desi
 - `milestones`: in build order, from `foundation`, `interfaces`, `sign-in`, `extensions`.
 - `interfaces`: any of `openapi`, `mcp`, `conversations`, `web`. `web` means a
   `browser_session_endpoint`.
-- `sign_in`: any of `direct`, `device`, `mediated`. Empty for signed-out only.
-- `extensions`: extension names, such as `operations`. Usually empty.
+- `sign_in`: any of `direct`, `device`. Empty for signed-out only, or Mediated Sign-In only.
+  Mediated Sign-In goes in `extensions` as `mediated-sign-in`.
+- `extensions`: extension names, such as `operations` or `example.com/gift-wrap`. Empty when none are needed.
 
 ````markdown
 # Poppy design: <Company>
@@ -75,7 +88,7 @@ Status: <draft | approved by <engineer> on <YYYY-MM-DD>>
     "domain": "example.com",
     "milestones": ["foundation", "interfaces", "sign-in"],
     "interfaces": ["openapi", "mcp", "conversations", "web"],
-    "sign_in": ["direct", "device", "mediated"],
+    "sign_in": ["direct", "device"],
     "extensions": []
 }
 ```
@@ -90,29 +103,31 @@ Status: <draft | approved by <engineer> on <YYYY-MM-DD>>
 | Scopes per sign-in type |                        |                     |
 | Which Personal Agents   |                        |                     |
 | Rate limits             |                        |                     |
-| Session Token lifetime  |                        |                     |
-| Account Token lifetime  |                        |                     |
+| Access tokens (DPoP?)   |                        |                     |
+| Session JWT window      |                        |                     |
+| Access token lifetime   |                        |                     |
+| Refresh token lifetime  |                        |                     |
 | Extensions              |                        |                     |
 
 <Anything explicitly out of scope for now, and why.>
 
 ## 2. Architecture
 
-| Component                                        | Pattern (from patterns/) | Why | Existing system it builds on |
-| ------------------------------------------------ | ------------------------ | --- | ---------------------------- |
-| poppy.json                                       |                          |     |                              |
-| Token endpoint                                   |                          |     |                              |
-| Verifying Personal Agents                        |                          |     |                              |
-| DPoP verification                                |                          |     |                              |
-| Replay cache (APIs: shared, per server, or none) |                          |     |                              |
-| Session and token records                        |                          |     |                              |
-| APIs (OpenAPI)                                   |                          |     |                              |
-| MCP                                              |                          |     |                              |
-| Conversations                                    |                          |     |                              |
-| Web browsing                                     |                          |     |                              |
-| Sign-in and consent pages                        |                          |     |                              |
-| Scope enforcement                                |                          |     |                              |
-| Account settings                                 |                          |     |                              |
+| Component                                              | Pattern (from patterns/) | Why | Existing system it builds on |
+| ------------------------------------------------------ | ------------------------ | --- | ---------------------------- |
+| poppy.json and protected resource metadata             |                          |     |                              |
+| OAuth server and token endpoint                        |                          |     |                              |
+| Verifying Personal Agents                              |                          |     |                              |
+| Session header verification                            |                          |     |                              |
+| Session JWT replay cache (shared, per server, or none) |                          |     |                              |
+| Session records                                        |                          |     |                              |
+| APIs (OpenAPI)                                         |                          |     |                              |
+| MCP                                                    |                          |     |                              |
+| Conversations                                          |                          |     |                              |
+| Web browsing                                           |                          |     |                              |
+| Sign-in and consent pages                              |                          |     |                              |
+| Scope enforcement                                      |                          |     |                              |
+| Account settings                                       |                          |     |                              |
 
 <Remove rows that are out of scope.>
 
@@ -134,15 +149,15 @@ flowchart LR
 | ----- | ----------- | ------------------------------ | ---------------- |
 |       |             |                                |                  |
 
-### Sessions and Account Tokens
+### Sessions and tokens
 
 <Where each record lives and which existing record it maps to. See patterns/session-records.md.>
 
-| Poppy record  | Fields                                                                       | Stored in | Maps to existing |
-| ------------- | ---------------------------------------------------------------------------- | --------- | ---------------- |
-| Session       | Session Key thumbprint, `client_id`, User ID, account (if signed in), expiry |           |                  |
-| Account Token | `client_id`, User ID, account, scopes, expiry                                |           |                  |
-| Session Token | Session, scopes, key binding or `resource`, expiry                           |           |                  |
+| Record        | Fields                                                                                        | Stored in | Maps to existing |
+| ------------- | --------------------------------------------------------------------------------------------- | --------- | ---------------- |
+| Session       | `client_id` and `sid` (the key), User ID, Agent ID, account it has used, ended or not         |           |                  |
+| Refresh token | `client_id`, account, scopes, expiry                                                          |           |                  |
+| Access token  | `client_id`, account, scopes, `resource` (if any), DPoP key (if bound), refresh token, expiry |           |                  |
 
 ## 4. Plan
 

@@ -6,12 +6,13 @@ import {
     b64url,
     b64urlDecode,
     decodeJwt,
-    dpopProof,
     generateKey,
     htuOf,
+    MAX_DELEGATION_LIFETIME,
     sha256,
-    signAssertion,
+    signDelegation,
     signJwt,
+    signSessionJwt,
     thumbprint,
     verifyJwt,
 } from "../jose.ts";
@@ -50,50 +51,60 @@ test("ath is the base64url SHA-256 of the token", async () => {
     assert.equal(await ath("abc"), await sha256("abc"));
 });
 
-test("DPoP proofs carry the fields RFC 9449 and spec 4.3 require", async () => {
+test("Session JWTs carry the fields spec 5.2 requires", async () => {
+    const root = await generateKey(false);
+    root.publicJwk.kid = "root";
     const key = await generateKey(false);
-    const proof = await dpopProof({
+    const delegation = await signDelegation({
+        root,
+        delegated: key.publicJwk,
+        iss: "https://agent.example/agent.json",
+    });
+    const jwt = await signSessionJwt({
         key,
+        delegation,
+        iss: "https://agent.example/agent.json",
+        aud: "https://auth.example",
+        sid: "abcdefghijklmnopqrstuv",
+        sub: "usr_1",
         method: "get",
         url: "https://a.example/x?y=1#z",
         accessToken: "tok",
-        nonce: "n1",
     });
-    const { header, payload } = decodeJwt(proof);
-    assert.equal(header.typ, "dpop+jwt");
+    const { header, payload } = decodeJwt(jwt);
+    assert.equal(header.typ, "poppy-session+jwt");
     assert.equal(header.alg, "ES256");
-    assert.deepEqual(
-        Object.keys(header.jwk as object).sort(),
-        ["crv", "kty", "x", "y"],
-        "no private or extra members",
-    );
+    assert.equal(header.kid, await thumbprint(key.publicJwk));
+    assert.equal(header.pap_dlg, delegation);
     assert.equal(payload.htm, "GET");
     assert.equal(payload.htu, "https://a.example/x");
     assert.equal(payload.ath, await ath("tok"));
-    assert.equal(payload.nonce, "n1");
-    assert.equal(typeof payload.jti, "string");
-    assert.deepEqual(check("dpop-proof.schema.json#/$defs/header", header), []);
-    assert.deepEqual(check("dpop-proof.schema.json#/$defs/payload", payload), []);
-    assert.ok(await verifyJwt(proof, key.publicJwk));
-    const second = decodeJwt(await dpopProof({ key, method: "GET", url: "https://a.example/x" }));
-    assert.notEqual(second.payload.jti, payload.jti, "a fresh jti per proof");
+    assert.deepEqual(check("session-jwt.schema.json#/$defs/header", header), []);
+    assert.deepEqual(check("session-jwt.schema.json#/$defs/payload", payload), []);
+    assert.ok(await verifyJwt(jwt, key.publicJwk));
+
+    const dlg = decodeJwt(delegation);
+    assert.equal(dlg.header.typ, "pap-delegation+jwt");
+    assert.equal(dlg.header.kid, "root");
+    assert.ok((dlg.payload.exp as number) - (dlg.payload.iat as number) <= MAX_DELEGATION_LIFETIME);
+    assert.ok(await verifyJwt(delegation, root.publicJwk));
+
+    const second = decodeJwt(
+        await signSessionJwt({
+            key,
+            delegation,
+            iss: "https://agent.example/agent.json",
+            aud: "https://auth.example",
+            sid: "abcdefghijklmnopqrstuv",
+            sub: "usr_1",
+            method: "GET",
+            url: "https://a.example/x",
+        }),
+    );
+    assert.notEqual(second.payload.jti, payload.jti, "a fresh jti per JWT");
+    assert.equal(second.payload.ath, undefined, "no ath without an access token");
 });
 
 test("htuOf strips query and fragment", () => {
     assert.equal(htuOf("https://a.example:8443/p/q?x#y"), "https://a.example:8443/p/q");
-});
-
-test("assertions are short-lived and match the session assertion schema", async () => {
-    const key = await generateKey(false);
-    key.publicJwk.kid = "k1";
-    const jwt = await signAssertion({
-        key,
-        iss: "https://agent.example/agent.json",
-        sub: "usr_1",
-        aud: "https://auth.example",
-    });
-    const { header, payload } = decodeJwt(jwt);
-    assert.equal(header.kid, "k1");
-    assert.equal((payload.exp as number) - (payload.iat as number), 60);
-    assert.deepEqual(check("session-assertion.schema.json", payload), []);
 });

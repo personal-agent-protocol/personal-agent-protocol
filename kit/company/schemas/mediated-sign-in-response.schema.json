@@ -1,76 +1,28 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "mediated-sign-in-response.schema.json",
-    "title": "Mediated Sign-In response",
-    "description": "The HTTP 200 response to a Mediated Sign-In request or code submission, by status. Spec section 4.7 (Mediated Sign-In). complete has the token response fields of 4.4, code_required has a sign_in_id, and failed and expired need nothing else. Errors with the request itself use error.schema.json. Unknown fields are allowed.",
+    "title": "Mediated Sign-In error response",
+    "description": "An OAuth error response from the token endpoint to a Mediated Sign-In token request, with HTTP 400 (Mediated Sign-In 4, 5). code_required has the sign_in_id to send with the one-time code, sent_to, saying where the code went, and expires_in, in seconds. The other errors are invalid_grant, expired_token, access_denied, invalid_scope, and the usual token endpoint errors (oauth-error.schema.json). A successful sign-in returns token-response.schema.json. Unknown fields are allowed.",
     "type": "object",
-    "required": ["status"],
+    "required": ["error"],
     "properties": {
-        "status": {
-            "enum": ["complete", "code_required", "failed", "expired"]
-        }
+        "error": { "type": "string", "minLength": 1 },
+        "error_description": { "type": "string" }
     },
     "allOf": [
         {
             "if": {
-                "properties": {
-                    "status": {
-                        "const": "complete"
-                    }
-                }
+                "properties": { "error": { "const": "code_required" } },
+                "required": ["error"]
             },
             "then": {
-                "allOf": [
-                    {
-                        "$ref": "token-response.schema.json"
-                    },
-                    {
-                        "required": ["refresh_token"]
-                    },
-                    {
-                        "properties": {
-                            "scope": {
-                                "minLength": 1
-                            }
-                        }
-                    }
-                ]
-            }
-        },
-        {
-            "if": {
+                "required": ["sign_in_id", "expires_in"],
                 "properties": {
-                    "status": {
-                        "const": "code_required"
-                    }
-                }
-            },
-            "then": {
-                "required": ["sign_in_id"],
-                "properties": {
-                    "sign_in_id": {
-                        "type": "string",
-                        "minLength": 1
-                    },
-                    "code": {
-                        "type": "object",
-                        "properties": {
-                            "sent_to": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "expires_at": {
-                        "$ref": "#/$defs/date_time"
-                    }
+                    "sign_in_id": { "type": "string", "minLength": 1 },
+                    "sent_to": { "type": "string", "minLength": 1 },
+                    "expires_in": { "type": "integer", "minimum": 1 }
                 }
             }
         }
-    ],
-    "$defs": {
-        "date_time": {
-            "type": "string",
-            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}[Tt][0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?([Zz]|[+-][0-9]{2}:[0-9]{2})$"
-        }
-    }
+    ]
 }

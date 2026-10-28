@@ -46,7 +46,7 @@ export function pageText(page: DocsPage): string {
     );
 }
 
-// A sentence ending in ":" that introduces a list, such as the checks in 4.3, has the list's items.
+// A sentence ending in ":" that introduces a list, such as the checks in 5.2, has the list's items.
 // A node's text as inline Markdown: code keeps its backticks, and links and emphasis become their
 // text.
 export function inlineText(node: Nodes): string {

@@ -244,24 +244,20 @@ export default function Page() {
                     rows={[
                         [
                             "Foundation",
-                            "poppy.json, OAuth server metadata, verifying Personal Agents, signed-out Sessions, DPoP, errors",
-                            "3, 4.1–4.3",
+                            "poppy.json, protected resource and OAuth server metadata, verifying Personal Agents and the Session header, signed-out Sessions, errors",
+                            "3, 4.1, 5.1–5.3, 5.6",
                         ],
                         [
                             "Interfaces",
                             "The interfaces in the design: OpenAPI, MCP, conversations, web browsing. Signed out first.",
-                            "5, 6, 7",
+                            "6–9",
                         ],
                         [
                             "Sign-in",
-                            "The chosen sign-in types, Account Tokens, sign-out, scope enforcement, account settings",
-                            "4.4–4.9, 7.11",
+                            "The chosen sign-in types, refresh and access tokens, sign-out, scope enforcement, account settings",
+                            "4.2–4.7, 5.4–5.5, 8.11, Mediated Sign-In",
                         ],
-                        [
-                            "Extensions",
-                            "Optional. Extensions in the design, such as Operations.",
-                            "3.3, extension pages",
-                        ],
+                        ["Extensions", "Optional. Extensions in the design.", "3.3"],
                     ]}
                 />
                 <p>
@@ -284,34 +280,38 @@ export default function Page() {
                 <ul>
                     <li>
                         <strong>Discovery.</strong> The CDN also serves <code>poppy.json</code> and
-                        the OAuth server metadata.
+                        the domain&rsquo;s protected resource metadata, which names the OAuth
+                        issuer.
                     </li>
                     <li>
-                        <strong>Tokens.</strong> A new token endpoint verifies each Personal
-                        Agent&rsquo;s signed identity and issues Session Tokens bound to its DPoP
-                        key. When a Personal Agent signs a User in, the existing identity provider
-                        authenticates the User and records consent. The token endpoint also
-                        remembers the IDs of recent DPoP proofs, for the acceptance window, to
-                        reject a reused one. Any store it already uses will do.
+                        <strong>Tokens.</strong> Sign-in is plain OAuth. A token endpoint verifies
+                        each Personal Agent&rsquo;s client assertion against its published keys and
+                        issues ordinary access and refresh tokens. When a Personal Agent signs a
+                        User in, the existing identity provider authenticates the User and records
+                        consent. If your identity provider already accepts Personal Agents&rsquo;
+                        client metadata documents, it can be the token endpoint.
                     </li>
                     <li>
-                        <strong>Session records.</strong> New tables hold each Session, keyed by its
-                        Session Key&rsquo;s thumbprint, and each Account Token, so every component
-                        can look up who a request is for and what it may do.
+                        <strong>Session records.</strong> New tables hold each Session, keyed by the
+                        Personal Agent&rsquo;s <code>client_id</code> and the Session ID it chose,
+                        with the User ID, so every component can look up who a request is for.
+                        Refresh tokens stay where the identity provider keeps them.
                     </li>
                     <li>
-                        <strong>APIs and MCP.</strong> The API gateway accepts Session Tokens,
-                        checks DPoP proofs and scopes, and passes the User to backend services that
-                        don&rsquo;t change. If you have an MCP server that can&rsquo;t verify DPoP
-                        yet, it stays as it is: the gateway accepts the Bearer Session Tokens that
-                        Personal Agents get for it by Token Exchange. The protocol doesn't require
-                        an MCP server.
+                        <strong>APIs and MCP.</strong> The API gateway verifies the{" "}
+                        <code>Poppy-Session</code> header the Personal Agent signs for every
+                        request, and the access token when signed in, checks scopes, and passes the
+                        Session and User to backend services that don&rsquo;t change. An MCP server
+                        can stay as it is: it takes ordinary OAuth access tokens issued for it, and
+                        may ignore the Session header, though its calls then belong to no Session.
+                        The protocol doesn&rsquo;t require an MCP server.
                     </li>
                     <li>
                         <strong>Web.</strong> A browser session endpoint in the web app serves a
-                        one-time code, checks the Personal Agent&rsquo;s DPoP proof over it, and
-                        sets the site&rsquo;s usual cookie, linked to the Session. The cookie check
-                        applies the Session&rsquo;s scopes.
+                        one-time code, which the Personal Agent authorizes with its Session header
+                        and access token. The browser then submits the code, and the web app sets
+                        its usual cookie, linked to the Session. The cookie check applies the scopes
+                        the Personal Agent authorized.
                     </li>
                     <li>
                         <strong>Conversations.</strong> A conversation endpoint carries messages

@@ -38,10 +38,17 @@ export function colors(enabled: boolean): Colors {
 
 const ICONS: Record<Status, string> = { pass: "✓", fail: "✗", warn: "!", skip: "-" };
 
+const PAGE_LABELS: Record<string, string> = {
+    spec: "spec",
+    operations: "Operations",
+    "mediated-sign-in": "Mediated Sign-In",
+};
+
 export function sectionLabel(section: string): string {
     const number = SECTION_NUMBERS[section];
-    if (number) return `spec ${number}`;
-    return section.split("#")[0];
+    const page = section.split("#")[0];
+    if (!number) return page;
+    return `${PAGE_LABELS[page] ?? page} ${number}`;
 }
 
 function line(label: string, value: string): string {
@@ -57,7 +64,7 @@ export function formatResult(r: CheckResult, c: Colors, previous?: CheckResult):
               : r.status === "warn"
                 ? c.yellow
                 : c.dim;
-    const head = `${color(ICONS[r.status])} ${r.id}  ${r.title}`;
+    const head = `${color(ICONS[r.status])} ${r.id}  ${r.title}${r.inconclusive ? " (inconclusive)" : ""}`;
     const out = [`${head.padEnd(90)} ${c.dim(sectionLabel(r.section))}`];
     if (r.status === "skip") {
         if (!(previous?.status === "skip" && previous.reason === r.reason))
@@ -96,10 +103,12 @@ export function formatSummary(results: CheckResult[], c: Colors): string {
     for (const m of MILESTONES) {
         const n = s[m.id];
         if (n.pass + n.fail + n.warn + n.skip === 0) continue;
+        const inconclusive = results.filter((r) => r.milestone === m.id && r.inconclusive).length;
+        const warnings = `${n.warn} warnings${inconclusive ? ` (${inconclusive} inconclusive)` : ""}`;
         const parts = [
             c.green(`${n.pass} passed`),
             n.fail ? c.red(`${n.fail} failed`) : `${n.fail} failed`,
-            n.warn ? c.yellow(`${n.warn} warnings`) : `${n.warn} warnings`,
+            n.warn ? c.yellow(warnings) : warnings,
             `${n.skip} skipped`,
         ];
         lines.push(`  ${m.number}. ${m.title.padEnd(22)} ${parts.join(", ")}`);

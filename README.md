@@ -38,10 +38,10 @@ has been published for four days.
 
 - `/`: the overview, with interactive walkthroughs
 - `/docs/introduction`, `/docs/path-to-1`, `/docs/changelog`: the pages with one copy
-- `/docs/<version>/spec`, `/docs/<version>/extensions`, `/docs/<version>/extensions/operations`,
-  `/docs/<version>/guides`: each version of the protocol's pages, such as `/docs/0.2/spec` for
-  draft 0.2 and `/docs/0.1/spec` for version 0.1, which is frozen. Without a version, such as
-  `/docs/spec`, they redirect to the latest.
+- `/docs/<version>/spec`, `/docs/<version>/extensions`, `/docs/<version>/guides`, and in 0.1 and
+  0.2, `/docs/<version>/extensions/operations`: each version of the protocol's pages, such as
+  `/docs/0.2/spec` for draft 0.2 and `/docs/0.1/spec` for version 0.1, which is frozen. Without a
+  version, such as `/docs/spec`, they redirect to the latest.
 - `/license` and `/license/contributions`: the license and the contribution terms
 - `/kit/company`: the Company implementation kit, not linked from the navigation
 

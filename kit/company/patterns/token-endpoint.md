@@ -1,89 +1,53 @@
 # Pattern: the token endpoint
 
-The token endpoint starts and renews Sessions, completes sign-in, exchanges Account Tokens, and
-issues Bearer tokens for MCP servers by Token Exchange
-([4.2](https://personalagentprotocol.org/docs/spec#starting-sessions),
-[4.3](https://personalagentprotocol.org/docs/spec#sending-tokens),
-[4.4](https://personalagentprotocol.org/docs/spec#sign-in),
-[4.8](https://personalagentprotocol.org/docs/spec#account-tokens)). Session Tokens are OAuth access
-tokens and Account Tokens are OAuth refresh tokens, so a Company can build on its existing OAuth
-server ([section 4](https://personalagentprotocol.org/docs/spec#sessions)). The choice here shapes
-most of the build.
+Use the Company's existing OAuth authorization server for account access
+([4](https://personalagentprotocol.org/docs/spec#oauth)). Poppy sign-in is plain OAuth: standard
+grants (authorization code with PKCE, device authorization, refresh tokens), `private_key_jwt`
+client authentication with client ID metadata documents, RFC 7009 revocation, and ordinary access
+and refresh tokens.
 
-What Poppy adds to standard OAuth, which
-[4.10](https://personalagentprotocol.org/docs/spec#oauth-additions) summarizes:
+Signed-out access never reaches this server. The Personal Agent signs a Session header for each
+request with a delegated key, and resources verify it
+([5.3](https://personalagentprotocol.org/docs/spec#session-verification)). Don't create an OAuth
+user record for each User ID, or add a grant to mint signed-out tokens. The token endpoint doesn't
+receive the Session header, and sign-in doesn't need to know the Session.
 
-- Clients identified by an HTTPS URL that returns their metadata, authenticated with
-  `private_key_jwt` using keys from their `jwks_uri`
-  ([4.1](https://personalagentprotocol.org/docs/spec#agent-identity)).
-- The JWT bearer grant to start a signed-out Session, with the User ID in `sub`.
-- Sessions named by the thumbprint of their DPoP key, the Session Key: a known key renews or signs
-  in its Session, and a new key starts one. Every token request has a proof.
-- DPoP-bound tokens ([4.3](https://personalagentprotocol.org/docs/spec#sending-tokens)), and Bearer
-  tokens for MCP only, by Token Exchange (RFC 8693). A token for an MCP server, DPoP or Bearer, is
-  issued for its `resource`.
-- `dpop_jkt` on authorization requests, and device codes bound to the key of the first poll.
-- `protected_resources` (RFC 9728), `grant_types_supported`, and `scopes_supported` in the metadata
-  ([3.2](https://personalagentprotocol.org/docs/spec#oauth-server)).
-- The error codes in 4.2, including `account_mismatch` and `invalid_target`.
+## Survey the existing server
 
-## A. Add Poppy to the existing OAuth server
+- Check support for client ID metadata documents, `private_key_jwt` with `ES256` and `PS384`, PKCE,
+  `iss` in redirects, resource indicators, and the sign-in types the design chose. Some servers
+  support them and some don't.
+- Check that resources can tell which `client_id` an access token was issued to, by a claim or
+  introspection. The Session header check needs it
+  ([5.3](https://personalagentprotocol.org/docs/spec#session-verification)).
+- DPoP-bound access tokens are optional
+  ([4.5](https://personalagentprotocol.org/docs/spec#access-tokens)). Use them if the server
+  supports them and the engineer wants them.
+- Keep refresh tokens as confidential-client refresh tokens, tied to the `client_id`, not to a
+  Session or a key ([4.4](https://personalagentprotocol.org/docs/spec#refresh-tokens)).
+- For a service that accepts only its own tokens, such as an MCP server, issue a token with its
+  `resource` at sign-in or refresh, and return `invalid_target` for a `resource` you don't serve.
+- Mediated Sign-In, if the design offers it, is an extension grant at this endpoint
+  ([Mediated Sign-In](https://personalagentprotocol.org/docs/extensions/mediated-sign-in)). Check
+  that the server can add a custom grant type, or put a small grant handler in front of it.
+- Return standard OAuth errors, and HTTP 429 with `Retry-After` for rate limits, as
+  [5.6](https://personalagentprotocol.org/docs/spec#sending-requests) describes.
 
-Configure or extend the Company's OAuth server to do all of the above.
+## The metadata
 
-- Fits: an OAuth server the Company runs itself or can extend with custom grants, token hooks, and
-  client resolution by URL.
-- Needs: support for, or a way to add, everything in the list above. Check each capability in the
-  survey. Don't assume.
-- Trade-offs: one issuer and one set of token records. Resource servers keep validating tokens the
-  way they do now. Extensions to a vendor product may be limited or hard to upgrade.
-- Watch for: the server issuing tokens for Personal Agents with the same audience and permissions
-  as first-party tokens. Map Poppy scopes to narrow permissions (`patterns/scopes.md`).
+Publish RFC 8414 metadata with `issuer`, `token_endpoint`, `revocation_endpoint`,
+`grant_types_supported` with `refresh_token` and the sign-in grants, the sign-in endpoints,
+`scopes_supported`, and `protected_resources` listing `https://{domain}` for every domain whose
+issuer it is ([3.2](https://personalagentprotocol.org/docs/spec#oauth-server)). The domain's own
+protected resource metadata names this issuer in `authorization_servers`.
 
-## B. A Poppy token service beside the existing server
+## Client assertions
 
-A separate service is the Poppy issuer. It handles Personal Agent identity, Sessions, DPoP, and
-sign-in, and mints tokens that the Company's existing systems accept.
+Verify client assertions under RFC 7523 and the audience rule in
+[4.1](https://personalagentprotocol.org/docs/spec#agent-identity): `aud` exactly the issuer, as a
+single string. The guides suggest rejecting a reused `jti` from the same `client_id` until it
+expires (4.1 allows it), with a cache every token endpoint server shares. Send `Cache-Control: no-store` on token responses, and include
+`expires_in`, as RFC 6749 recommends.
 
-Ways to make tokens the existing systems accept:
-
-- **Token exchange.** The service exchanges its own verified state for a token from the existing
-  OAuth server (for example RFC 8693), with the narrowest permissions that cover the granted scopes.
-- **Encrypted Company credentials.** The Session Token carries the Company's own session
-  credentials, encrypted so only the Company's systems can read them. If a token carries them, the
-  Company MUST encrypt it (4.2, "Token format").
-- **Verify at the edge, pass identity inward.** A gateway verifies the Session Token and DPoP Proof,
-  then passes the verified `client_id`, User ID, account, and scopes to internal services through
-  service credentials ([guides](https://personalagentprotocol.org/docs/guides#company-internal)).
-
-Sign-in still uses the Company's existing sign-in pages and account checks. The service sends the
-User to them and receives the result.
-
-- Fits: an OAuth server that can't be extended, a vendor-hosted identity provider, or a Company
-  that wants Poppy isolated from first-party clients.
-- Trade-offs: another service to run and secure, and two sets of token records to keep in step,
-  especially at sign-out. Existing systems need no Poppy knowledge.
-- Watch for: internal credentials that allow more than the Session Token
-  ([guides](https://personalagentprotocol.org/docs/guides#company-internal)); tokens from the
-  existing server reaching the Personal Agent instead of the Poppy token; and revocation that
-  doesn't reach both sides ([4.9](https://personalagentprotocol.org/docs/spec#sign-out)).
-
-## C. A token service in front of the existing server
-
-The same as B, but the service proxies standard requests to the existing server and handles only
-what Poppy adds.
-
-- Fits: an OAuth server that does most of standard OAuth well but lacks DPoP or URL-based clients.
-- Watch for: a gateway that only checks the proof's signature. It must record the key for each token
-  it issues and check that key on every later request
-  ([guides](https://personalagentprotocol.org/docs/guides#company-dpop)).
-
-## For every option
-
-- Verify client metadata as in [Verifying personal agents](https://personalagentprotocol.org/docs/guides#company-agents)
-  and [Fetching metadata safely](https://personalagentprotocol.org/docs/guides#both-fetching).
-- Reject a reused assertion `jti`, and check `aud` is your `auth.issuer` as a single string, and reject your token endpoint URL there
-  (4.2).
-- Return `Cache-Control: no-store` on token responses
-  ([guides](https://personalagentprotocol.org/docs/guides#both-secrets)).
-- `issuer` in the metadata is exactly `auth.issuer` (3.2).
+Resources verify the Session header and the access token separately, then apply the same Session and
+scope checks. The authorization server needs no grant for an unknown User ID.

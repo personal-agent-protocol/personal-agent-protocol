@@ -1,4 +1,5 @@
-// ES256 keys, JWT signing and verification, DPoP Proofs, JWK thumbprints, and ath, with WebCrypto.
+// ES256 keys, JWT signing and verification, Session JWTs, delegations, JWK thumbprints, and ath,
+// with WebCrypto. PS384 RSA keys sign and verify delegations too (spec 5.2, 10.7).
 
 export type EcPublicJwk = {
     kty: "EC";
@@ -14,6 +15,31 @@ export type EcPrivateJwk = EcPublicJwk & { d: string };
 
 // A signing key: the private key for signing, and its public JWK (with kid, if it has one).
 export type SigningKey = { privateKey: CryptoKey; publicJwk: EcPublicJwk };
+
+export type RsaPublicJwk = {
+    kty: "RSA";
+    n: string;
+    e: string;
+    kid?: string;
+    alg?: string;
+    use?: string;
+};
+
+export type RsaPrivateJwk = RsaPublicJwk & {
+    d: string;
+    p: string;
+    q: string;
+    dp: string;
+    dq: string;
+    qi: string;
+};
+
+// A PS384 key, which a Personal Agent can use to sign blindly (spec 10.7).
+export type RsaKey = { privateKey: CryptoKey; publicJwk: RsaPublicJwk };
+
+const RSA_ALGORITHM = { name: "RSA-PSS", hash: "SHA-384" } as const;
+// PS384 uses a salt as long as the hash (RFC 7518 §3.5).
+const RSA_SIGN = { name: "RSA-PSS", saltLength: 48 } as const;
 
 const ALGORITHM = { name: "ECDSA", namedCurve: "P-256" } as const;
 const SIGN = { name: "ECDSA", hash: "SHA-256" } as const;
@@ -44,7 +70,7 @@ export async function sha256(input: string): Promise<string> {
     return b64url(await crypto.subtle.digest("SHA-256", encoder.encode(input)));
 }
 
-// The DPoP `ath` claim: the base64url SHA-256 hash of the access token.
+// The `ath` claim of a Session JWT, as in DPoP: the base64url SHA-256 hash of the access token.
 export function ath(accessToken: string): Promise<string> {
     return sha256(accessToken);
 }
@@ -139,68 +165,152 @@ export function nowSeconds(): number {
     return Math.floor(Date.now() / 1000);
 }
 
-// The URL without its query and fragment, as DPoP `htu` requires.
+// The URL without its query and fragment, as a Session JWT's `htu` (spec 5.2) and DPoP's require.
 export function htuOf(url: string): string {
     const u = new URL(url);
     return `${u.origin}${u.pathname}`;
 }
 
-export type DpopOptions = {
+export type SessionJwtOptions = {
+    // The delegated key that signs the JWT. Its kid is its JWK thumbprint (spec 5.2).
     key: SigningKey;
+    // The delegation that vouches for `key`, sent in the pap_dlg header. Null sends none.
+    delegation: string | null;
+    iss: string;
+    aud: string;
+    sid: string;
+    sub: string;
+    agentId?: string;
     method: string;
     url: string;
+    // The access token the request carries, which ath covers.
     accessToken?: string;
-    nonce?: string;
-    iat?: number;
-    jti?: string;
-};
-
-// A DPoP Proof for one request (RFC 9449 and spec 4.3).
-export async function dpopProof(options: DpopOptions): Promise<string> {
-    const payload: Record<string, unknown> = {
-        jti: options.jti ?? randomId(16),
-        htm: options.method.toUpperCase(),
-        htu: htuOf(options.url),
-        iat: options.iat ?? nowSeconds(),
-    };
-    if (options.accessToken !== undefined) payload.ath = await ath(options.accessToken);
-    if (options.nonce !== undefined) payload.nonce = options.nonce;
-    const { kty, crv, x, y } = options.key.publicJwk;
-    return signJwt(
-        { typ: "dpop+jwt", alg: "ES256", jwk: { kty, crv, x, y } },
-        payload,
-        options.key.privateKey,
-    );
-}
-
-export type AssertionOptions = {
-    key: SigningKey;
-    iss: string;
-    sub: string;
-    aud: string;
     typ?: string;
-    lifetime?: number;
-    jti?: string;
+    // A kid other than the key's thumbprint.
+    kid?: string;
+    iat?: number;
+    // Claims to add or replace. A claim set to undefined is left out.
     extra?: Record<string, unknown>;
 };
 
-// A short-lived signed assertion: the client assertion (RFC 7523, sub = client_id) or the Session
-// assertion (spec 4.2, sub = User ID).
-export function signAssertion(options: AssertionOptions): Promise<string> {
-    const iat = nowSeconds();
-    const header: Record<string, unknown> = { alg: "ES256", typ: options.typ ?? "JWT" };
-    if (options.key.publicJwk.kid) header.kid = options.key.publicJwk.kid;
-    return signJwt(
-        header,
-        {
-            iss: options.iss,
-            sub: options.sub,
-            aud: options.aud,
-            iat,
-            exp: iat + (options.lifetime ?? 60),
-            jti: options.jti ?? randomId(16),
-            ...options.extra,
-        },
-        options.key.privateKey,
+// A Session JWT for one request, for the Poppy-Session header (spec 5.2).
+export async function signSessionJwt(options: SessionJwtOptions): Promise<string> {
+    const header: Record<string, unknown> = {
+        typ: options.typ ?? "poppy-session+jwt",
+        alg: "ES256",
+        kid: options.kid ?? options.key.publicJwk.kid ?? (await thumbprint(options.key.publicJwk)),
+    };
+    if (options.delegation) header.pap_dlg = options.delegation;
+    const payload: Record<string, unknown> = {
+        iss: options.iss,
+        aud: options.aud,
+        sid: options.sid,
+        sub: options.sub,
+        ...(options.agentId !== undefined ? { agent_id: options.agentId } : {}),
+        htm: options.method.toUpperCase(),
+        htu: htuOf(options.url),
+        iat: options.iat ?? nowSeconds(),
+        jti: randomId(16),
+    };
+    if (options.accessToken !== undefined) payload.ath = await ath(options.accessToken);
+    return signJwt(header, { ...payload, ...options.extra }, options.key.privateKey);
+}
+
+// The longest lifetime a delegation may have (spec 5.2).
+export const MAX_DELEGATION_LIFETIME = 24 * 60 * 60;
+
+// Generates a 2048-bit PS384 key pair, with its private JWK, for keygen.
+export async function generateRsaKey(): Promise<RsaKey & { privateJwk: RsaPrivateJwk }> {
+    const pair = (await crypto.subtle.generateKey(
+        { ...RSA_ALGORITHM, modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]) },
+        true,
+        ["sign", "verify"],
+    )) as CryptoKeyPair;
+    const exported = await crypto.subtle.exportKey("jwk", pair.privateKey);
+    const { d, p, q, dp, dq, qi } = exported as Record<string, string>;
+    const publicJwk: RsaPublicJwk = { kty: "RSA", n: exported.n!, e: exported.e! };
+    return {
+        privateKey: pair.privateKey,
+        publicJwk,
+        privateJwk: { ...publicJwk, d, p, q, dp, dq, qi },
+    };
+}
+
+export async function importRsaPrivateJwk(jwk: RsaPrivateJwk): Promise<RsaKey> {
+    if (jwk.kty !== "RSA" || typeof jwk.d !== "string") {
+        throw new Error("The RSA private key must be an RSA JWK with a d value.");
+    }
+    const { kty, n, e, d, p, q, dp, dq, qi } = jwk;
+    const privateKey = await crypto.subtle.importKey(
+        "jwk",
+        { kty, n, e, d, p, q, dp, dq, qi },
+        RSA_ALGORITHM,
+        false,
+        ["sign"],
     );
+    const publicJwk: RsaPublicJwk = { kty, n, e, ...(jwk.kid ? { kid: jwk.kid } : {}) };
+    return { privateKey, publicJwk };
+}
+
+// Verifies a PS384 JWT's signature with an RSA public JWK. Returns the decoded JWT, or null.
+export async function verifyPs384(jwt: string, jwk: RsaPublicJwk): Promise<DecodedJwt | null> {
+    const parts = jwt.split(".");
+    if (parts.length !== 3) return null;
+    const key = await crypto.subtle.importKey(
+        "jwk",
+        { kty: "RSA", n: jwk.n, e: jwk.e },
+        RSA_ALGORITHM,
+        false,
+        ["verify"],
+    );
+    const ok = await crypto.subtle.verify(
+        RSA_SIGN,
+        key,
+        b64urlDecode(parts[2]) as Uint8Array<ArrayBuffer>,
+        encoder.encode(`${parts[0]}.${parts[1]}`),
+    );
+    return ok ? decodeJwt(jwt) : null;
+}
+
+// A delegation (spec 5.2): `root`, a key in jwks_uri, vouches for `delegated` until it expires. An
+// RSA root signs with PS384, as a blind signature would come out (spec 10.7). `iat` is rounded down
+// to the hour unless given.
+export async function signDelegation(options: {
+    root: SigningKey | RsaKey;
+    delegated: EcPublicJwk;
+    iss: string;
+    iat?: number;
+    lifetime?: number;
+    typ?: string;
+    kid?: string;
+}): Promise<string> {
+    const iat = options.iat ?? nowSeconds() - (nowSeconds() % 3600);
+    const { kty, crv, x, y } = options.delegated;
+    const rsa = options.root.publicJwk.kty === "RSA";
+    const header: Record<string, unknown> = {
+        alg: rsa ? "PS384" : "ES256",
+        typ: options.typ ?? "pap-delegation+jwt",
+    };
+    const kid = options.kid ?? options.root.publicJwk.kid;
+    if (kid) header.kid = kid;
+    const payload = {
+        iss: options.iss,
+        cnf: { jwk: { kty, crv, x, y } },
+        iat,
+        exp: iat + (options.lifetime ?? 2 * 60 * 60),
+        jti: randomId(16),
+    };
+    if (!rsa) return signJwt(header, payload, options.root.privateKey);
+    return signPs384(header, payload, options.root.privateKey);
+}
+
+// Signs a JWT with PS384 and an RSA private key.
+export async function signPs384(
+    header: Record<string, unknown>,
+    payload: Record<string, unknown>,
+    privateKey: CryptoKey,
+): Promise<string> {
+    const input = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(payload))}`;
+    const signature = await crypto.subtle.sign(RSA_SIGN, privateKey, encoder.encode(input));
+    return `${input}.${b64url(signature)}`;
 }

@@ -1,254 +1,140 @@
-// The validator acting as a Personal Agent: client assertions, Session assertions, token requests,
-// and requests with a Session Token and DPoP Proof, including the nonce retry RFC 9449 describes.
+// The validator acting as a Personal Agent: every request it sends to a Company's APIs and endpoints
+// carries a Session JWT in the Poppy-Session header, signed for that request with a delegated key
+// (spec 5.2).
 
-import { errorCode, header, type Exchange } from "./http.ts";
+import type { Exchange } from "./http.ts";
 import { userIdFor } from "./identity.ts";
-import { dpopProof, generateKey, randomId, signAssertion, type SigningKey } from "./jose.ts";
-import type { Context, HeldToken } from "./checks/types.ts";
+import { randomId, signSessionJwt, type SigningKey } from "./jose.ts";
+import { conversationEndpoint, type Context } from "./checks/types.ts";
 
-export const JWT_BEARER = "urn:ietf:params:oauth:grant-type:jwt-bearer";
-const CLIENT_ASSERTION_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
-export const TOKEN_EXCHANGE = "urn:ietf:params:oauth:grant-type:token-exchange";
-const ACCESS_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:access_token";
-
-export function tokenEndpoint(ctx: Context): string {
-    const endpoint = ctx.discovered.metadata?.token_endpoint;
-    if (!endpoint) throw new Error("No token_endpoint");
-    return endpoint;
-}
-
-// The Company's auth.issuer, which every assertion names in aud (4.1, 4.2).
+// The Company's issuer, which Session JWTs name in aud (spec 5.2, 10.4).
 export function issuer(ctx: Context): string {
-    const value = ctx.discovered.poppy?.auth?.issuer;
-    if (!value) throw new Error("No auth.issuer");
+    const value = ctx.discovered.issuer;
+    if (!value) throw new Error("No issuer");
     return value;
 }
 
-export async function dpopKey(ctx: Context): Promise<SigningKey> {
-    ctx.session.dpopKey ??= await generateKey(false);
-    return ctx.session.dpopKey;
-}
-
 export function userId(ctx: Context): string {
-    const issuer = ctx.discovered.poppy?.auth?.issuer ?? "";
-    ctx.session.userId ??= userIdFor(ctx.identity!, issuer);
+    ctx.session.userId ??= userIdFor(ctx.identity!, issuer(ctx));
     return ctx.session.userId;
 }
 
-export function clientAssertion(ctx: Context, key?: SigningKey, aud?: string): Promise<string> {
-    const identity = ctx.identity!;
-    return signAssertion({
-        key: key ?? identity.key,
-        iss: identity.clientId,
-        sub: identity.clientId,
-        aud: aud ?? issuer(ctx),
-    });
+// This run's Session ID: at least 128 random bits (spec 5.2).
+export function sessionId(ctx: Context): string {
+    ctx.session.sid ??= randomId(16);
+    return ctx.session.sid;
 }
 
-export function sessionAssertion(
+export type SessionOptions = {
+    key?: SigningKey;
+    // The delegation to send, or null for none. Defaults to the identity's (spec 5.2).
+    delegation?: string | null;
+    typ?: string;
+    // A header kid other than the delegated key's thumbprint.
+    kid?: string;
+    sid?: string;
+    sub?: string;
+    agentId?: string;
+    // A method and URL other than the request's, for htm and htu.
+    method?: string;
+    url?: string;
+    accessToken?: string;
+    iat?: number;
+    extra?: Record<string, unknown>;
+};
+
+// A Session JWT for a request, with the identity's delegated key unless options say otherwise.
+export function sessionJwt(
     ctx: Context,
-    options: {
-        key?: SigningKey;
-        typ?: string;
-        jti?: string;
-        sub?: string;
-        extra?: Record<string, unknown>;
-    } = {},
+    method: string,
+    url: string,
+    options: SessionOptions = {},
 ): Promise<string> {
     const identity = ctx.identity!;
-    return signAssertion({
+    return signSessionJwt({
         key: options.key ?? identity.key,
+        delegation: options.delegation === undefined ? identity.delegation : options.delegation,
         iss: identity.clientId,
-        sub: options.sub ?? userId(ctx),
         aud: issuer(ctx),
+        sid: options.sid ?? sessionId(ctx),
+        sub: options.sub ?? userId(ctx),
+        method: options.method ?? method,
+        url: options.url ?? url,
+        accessToken: options.accessToken,
         typ: options.typ,
-        jti: options.jti,
+        kid: options.kid,
+        agentId: options.agentId,
+        iat: options.iat,
         extra: options.extra,
     });
 }
 
-function originOf(url: string): string {
-    return new URL(url).origin;
-}
-
-// Records a DPoP-Nonce header, and whether the response asked for a nonce.
-function noteNonce(ctx: Context, ex: Exchange): boolean {
-    const nonce = header(ex, "dpop-nonce");
-    if (nonce) ctx.session.nonces[originOf(ex.url)] = nonce;
-    const asked = errorCode(ex) === "use_dpop_nonce";
-    if (asked) ctx.session.nonceRequests.push({ origin: originOf(ex.url), exchange: ex });
-    return asked && nonce !== undefined;
-}
-
-export type ProofMode =
-    // A fresh proof with the current nonce, retried once on use_dpop_nonce.
-    | "auto"
-    // No DPoP header at all.
-    | "none"
-    // This exact proof, sent as is.
-    | { proof: string }
-    // A fresh proof with changes, sent once.
-    | { key?: SigningKey; url?: string; method?: string; accessToken?: string };
-
-export type Attempt = { ex: Exchange; proof?: string; exchanges: Exchange[] };
-
-async function makeProof(
-    ctx: Context,
-    mode: ProofMode,
-    method: string,
-    url: string,
-    accessToken: string | undefined,
-): Promise<string | undefined> {
-    if (mode === "none") return undefined;
-    if (typeof mode === "object" && "proof" in mode) return mode.proof;
-    const custom = typeof mode === "object" ? mode : {};
-    return dpopProof({
-        key: custom.key ?? (await dpopKey(ctx)),
-        method: custom.method ?? method,
-        url: custom.url ?? url,
-        accessToken: custom.accessToken ?? accessToken,
-        nonce: ctx.session.nonces[originOf(url)],
-    });
-}
-
-// A token request. `params` is called for each attempt, so a retry gets fresh assertions.
-export async function tokenRequest(
-    ctx: Context,
-    params: () => Promise<Record<string, string>>,
-    options: { proof?: ProofMode; clientKey?: SigningKey; clientAud?: string; note?: string } = {},
-): Promise<Attempt> {
-    const url = tokenEndpoint(ctx);
-    const mode = options.proof ?? "auto";
-    const exchanges: Exchange[] = [];
-    for (let attempt = 0; attempt < 2; attempt++) {
-        const body = new URLSearchParams({
-            ...(await params()),
-            client_id: ctx.identity!.clientId,
-            client_assertion_type: CLIENT_ASSERTION_TYPE,
-            client_assertion: await clientAssertion(ctx, options.clientKey, options.clientAud),
-        });
-        const proof = await makeProof(ctx, mode, "POST", url, undefined);
-        const headers: Record<string, string> = {
-            "Content-Type": "application/x-www-form-urlencoded",
-            Accept: "application/json",
-        };
-        if (proof) headers.DPoP = proof;
-        const ex = await ctx.http.request({
-            method: "POST",
-            url,
-            headers,
-            body: body.toString(),
-            note: options.note,
-        });
-        exchanges.push(ex);
-        const retry = noteNonce(ctx, ex);
-        if (!(retry && mode === "auto" && attempt === 0)) return { ex, proof, exchanges };
-    }
-    throw new Error("unreachable");
-}
-
-// A request with a Session Token. `scheme` defaults to the token's type.
-export async function authedRequest(
+// A request with the Session header, or with none when `session` is "none".
+export async function sessionRequest(
     ctx: Context,
     options: {
         method?: string;
         url: string;
-        token?: HeldToken;
-        scheme?: string;
-        proof?: ProofMode;
+        session?: SessionOptions | "none";
         body?: unknown;
         headers?: Record<string, string>;
         note?: string;
         timeoutMs?: number;
+        until?: (body: string) => boolean;
     },
-): Promise<Attempt> {
+): Promise<Exchange> {
     const method = (options.method ?? "GET").toUpperCase();
-    const token = options.token;
-    const mode =
-        options.proof ?? (token && token.tokenType.toLowerCase() === "bearer" ? "none" : "auto");
-    const exchanges: Exchange[] = [];
-    for (let attempt = 0; attempt < 2; attempt++) {
-        const headers: Record<string, string> = { Accept: "application/json", ...options.headers };
-        if (token)
-            headers.Authorization = `${options.scheme ?? (token.tokenType.toLowerCase() === "bearer" ? "Bearer" : "DPoP")} ${token.accessToken}`;
-        const proof = await makeProof(ctx, mode, method, options.url, token?.accessToken);
-        if (proof) headers.DPoP = proof;
-        let body: string | undefined;
-        if (options.body !== undefined) {
-            body = typeof options.body === "string" ? options.body : JSON.stringify(options.body);
-            headers["Content-Type"] ??= "application/json";
-        }
-        const ex = await ctx.http.request({
-            method,
-            url: options.url,
-            headers,
-            body,
-            note: options.note,
-            timeoutMs: options.timeoutMs,
-        });
-        exchanges.push(ex);
-        const retry = noteNonce(ctx, ex);
-        if (!(retry && mode === "auto" && attempt === 0)) return { ex, proof, exchanges };
+    const headers: Record<string, string> = { Accept: "application/json", ...options.headers };
+    const session = options.session;
+    if (session !== "none")
+        headers["Poppy-Session"] = await sessionJwt(ctx, method, options.url, session);
+    let body: string | undefined;
+    if (options.body !== undefined) {
+        body = typeof options.body === "string" ? options.body : JSON.stringify(options.body);
+        headers["Content-Type"] ??= "application/json";
     }
-    throw new Error("unreachable");
-}
-
-export function heldToken(
-    ex: Exchange,
-    dpop: SigningKey | undefined,
-    resource?: string,
-): HeldToken | undefined {
-    const json = ex.json as Record<string, unknown> | undefined;
-    if (ex.status !== 200 || !json || typeof json.access_token !== "string") return undefined;
-    return {
-        accessToken: json.access_token,
-        tokenType: typeof json.token_type === "string" ? json.token_type : "",
-        dpopKey: dpop,
-        resource,
-    };
-}
-
-// Params for starting a Session with the JWT bearer grant. With the Session's DPoP key, the same
-// request renews it (4.2).
-export function sessionParams(
-    ctx: Context,
-    extra: Record<string, string> = {},
-    assertion?: string,
-): () => Promise<Record<string, string>> {
-    return async () => ({
-        grant_type: JWT_BEARER,
-        assertion: assertion ?? (await sessionAssertion(ctx)),
-        ...extra,
+    const exchange = await ctx.http.request({
+        method,
+        url: options.url,
+        headers,
+        body,
+        note: options.note,
+        timeoutMs: options.timeoutMs,
+        until: options.until,
+        // After a 429, a fresh Session JWT: the old one's iat may be outside the window.
+        refreshHeaders:
+            session === "none"
+                ? undefined
+                : async () => ({
+                      ...headers,
+                      "Poppy-Session": await sessionJwt(ctx, method, options.url, session),
+                  }),
     });
+    noteCreated(ctx, exchange, session === "none" ? undefined : session?.sub);
+    return exchange;
 }
 
-// A token for a service entry with a `resource` (4.3), requested once and reused.
-export async function tokenForResource(
-    ctx: Context,
-    resource: string | undefined,
-): Promise<HeldToken | undefined> {
-    const base = ctx.session.token;
-    if (!base || !resource) return base;
-    if (ctx.session.resourceTokens[resource]) return ctx.session.resourceTokens[resource];
-    const attempt = await tokenRequest(ctx, sessionParams(ctx, { resource }), {
-        note: `renewing the Session with resource=${resource}`,
-    });
-    const token = heldToken(attempt.ex, ctx.session.dpopKey, resource);
-    if (token) ctx.session.resourceTokens[resource] = token;
-    return token;
-}
-
-// Params for exchanging a DPoP Session Token for a Bearer one for an MCP server (4.3, RFC 8693).
-export function exchangeParams(
-    subject: HeldToken,
-    resource: string,
-): () => Promise<Record<string, string>> {
-    return async () => ({
-        grant_type: TOKEN_EXCHANGE,
-        subject_token: subject.accessToken,
-        subject_token_type: ACCESS_TOKEN_TYPE,
-        resource,
-    });
+// Remembers a conversation a request started, so the run can close it (spec 8.12).
+function noteCreated(ctx: Context, ex: Exchange, sub: string | undefined): void {
+    const endpoint = conversationEndpoint(ctx.discovered.poppy);
+    const path = ex.url.split("?")[0].replace(/\/+$/, "");
+    if (
+        ex.method !== "POST" ||
+        !endpoint ||
+        (!path.startsWith(`${endpoint}/`) && path !== endpoint)
+    )
+        return;
+    if (ex.status === undefined || ex.status < 200 || ex.status >= 300) return;
+    const closing = /^\/([A-Za-z0-9_-]+)\/close$/.exec(path.slice(endpoint.length));
+    if (closing) {
+        const known = ctx.created.find((c) => c.id === closing[1]);
+        if (known && ex.status === 200) known.closed = true;
+        return;
+    }
+    if (path !== endpoint) return;
+    const id = (ex.json as { conversation_id?: unknown } | undefined)?.conversation_id;
+    if (typeof id !== "string" || ctx.created.some((c) => c.id === id)) return;
+    ctx.created.push({ endpoint, id, sub: sub ?? userId(ctx) });
 }
 
 export function syntheticMessageId(): string {
