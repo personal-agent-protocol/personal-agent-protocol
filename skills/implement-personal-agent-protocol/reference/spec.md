@@ -583,6 +583,8 @@ A Personal Agent can browse the Company's website in the same Session it uses fo
 
 This is optional. A Company that supports it lists `web.browser_session_endpoint` in its `poppy.json` (section 3). When it does, the Personal Agent MUST join its browser to a Session before browsing the Company's website. On a website without the endpoint, the Personal Agent browses as an ordinary signed-out visitor.
 
+The Personal Agent MUST join only a browser it controls to a Session, never the User's own browser. Otherwise, the Company would treat the User's own visits as the Personal Agent's.
+
 **1. The browser opens the page.** The Personal Agent has its browser load the endpoint with a GET, as a top-level navigation. The Company responds with an HTML page with a form, and sets a short-lived cookie that ties the form's code to this browser. For example:
 
 *Request: Personal Agent's browser → Company*
