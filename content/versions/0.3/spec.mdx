@@ -24,14 +24,14 @@ Poppy separates request identity, Session continuity, and account access. Compan
 channels and capabilities to offer. The layers below describe how those choices fit together;
 they are not a sequence of adoption levels.
 
-| Component                    | What it provides                                                                                      | How it fits                                                                                                                                                             |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Discovery                    | Finds the Company's channels, capabilities, and sign-in options.                                      | The Company publishes `poppy.json` and at least one channel (section 3). Account access uses standard OAuth metadata (3.2).                                             |
-| Operator recognition         | Lets existing bot defenses authenticate the operator before application handling.                     | An optional Web Bot Auth signature provides compatibility with those defenses. An edge that verifies delegated Session JWTs can authenticate the client directly (5.3). |
-| Sessions                     | Identifies the Personal Agent and a pseudonymous User, and connects activity across channels.         | The Personal Agent sends a Session JWT. The Company verifies it before relying on its identity or connecting state (section 5).                                         |
-| Account access               | Acts on a Company account with the User's authorization.                                              | Standard OAuth, with Poppy's choices listed in 4.8. Signed-out interactions need no OAuth server (section 4).                                                           |
-| Interaction channels         | Uses APIs, browses the website, or talks to the Company Agent, including handoff to a person.         | The Company exposes the channels it supports. Browser join connects website activity to the Session (sections 6, 7, and 8).                                             |
-| Task coverage and extensions | Communicates unsupported tasks, collects feedback, and adds capabilities such as operation approvals. | The Company advertises the capabilities it implements (section 9 and [Extensions](/docs/extensions)).                                                                   |
+| Component                    | What it provides                                                                                      | How it fits                                                                                                                                                               |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Discovery                    | Finds the Company's channels, capabilities, and sign-in options.                                      | The Company publishes `poppy.json` and at least one channel (section 3). Account access uses standard OAuth metadata (3.2).                                               |
+| Operator recognition         | Lets existing bot defenses authenticate the operator before application handling.                     | A recommended Web Bot Auth signature provides compatibility with those defenses. An edge that verifies delegated Session JWTs can authenticate the client directly (5.3). |
+| Sessions                     | Identifies the Personal Agent and a pseudonymous User, and connects activity across channels.         | The Personal Agent sends a Session JWT. The Company verifies it before relying on its identity or connecting state (section 5).                                           |
+| Account access               | Acts on a Company account with the User's authorization.                                              | Standard OAuth, with Poppy's choices listed in 4.8. Signed-out interactions need no OAuth server (section 4).                                                             |
+| Interaction channels         | Uses APIs, browses the website, or talks to the Company Agent, including handoff to a person.         | The Company exposes the channels it supports. Browser join connects website activity to the Session (sections 6, 7, and 8).                                               |
+| Task coverage and extensions | Communicates unsupported tasks, collects feedback, and adds capabilities such as operation approvals. | The Company advertises the capabilities it implements (section 9 and [Extensions](/docs/extensions)).                                                                     |
 
 Sessions and account access are independent. A Session identifies activity through a Personal
 Agent; OAuth authorizes access to a Company account. On APIs and protocol endpoints, a signed-out
@@ -871,11 +871,11 @@ The guides explain what a replay can and can't do.
 
 #### Operator signatures {#operator-signatures}
 
-A Personal Agent MAY also sign a request with an HTTP Message Signature
+A Personal Agent SHOULD also sign requests carrying the Session header with an HTTP Message Signature
 ([RFC 9421](https://www.rfc-editor.org/rfc/rfc9421)), using
 [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/),
 so traffic-management infrastructure can authenticate the operator before the request reaches the
-Company's application. This signature is optional compatibility support, not a replacement for the
+Company's application. This signature provides compatibility support, not a replacement for the
 Session header or authorization. Its absence does not make a Session JWT invalid.
 
 The Personal Agent's operator signature MUST cover `poppy-session`, and `authorization` when

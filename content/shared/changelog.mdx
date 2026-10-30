@@ -174,10 +174,11 @@ delegations hide from the Personal Agent's own systems, and what they don't. The
 
 </Change>
 
-<Change title="Optional operator signatures for edge compatibility" sections="5.3">
+<Change title="Recommended operator signatures for edge compatibility" sections="1.1, 5.3, guides#both-operator-signatures">
 
-An optional HTTP Message Signature using Web Bot Auth lets existing traffic-management
-infrastructure authenticate an operator. It covers the Session header and access token when
+Personal Agents should also sign requests carrying the Session header with an HTTP Message
+Signature using Web Bot Auth, so existing traffic-management infrastructure can authenticate an
+operator. It covers the Session header and access token when
 present, but does not replace Session verification or Company acceptance and account authorization.
 An edge that verifies delegated Session JWTs can authenticate the client without it.
 
@@ -612,7 +613,7 @@ recognition wherever existing bot defenses need it, without defining adoption le
 
 <Change title="Layering and interoperability" sections="guides#both-signing, guides#both-operator-signatures, guides#both-interoperability, guides#company-without-oauth, guides#agent-account-access, guides#agent-user-ids, guides#company-conversations">
 
-Guides cover issuerless deployment and identity migration, optional operator signatures and their
+Guides cover issuerless deployment and identity migration, recommended operator signatures and their
 privacy limits, advance account-access information, conversation challenges, and version-aware MCP
 and UCP interoperability. Operator signatures can be removed where edges verify delegated Session
 JWTs directly; they do not replace Company policy.

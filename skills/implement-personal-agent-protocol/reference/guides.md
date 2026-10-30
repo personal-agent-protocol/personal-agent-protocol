@@ -39,7 +39,7 @@ Client assertions, delegations, Session JWTs, and DPoP proofs are JWTs. To sign 
 
 ### Operator signatures and bot defenses
 
-The Session JWT is the core authentication mechanism. An optional HTTP Message Signature can help existing bot defenses recognize the operator ([5.3](https://personalagentprotocol.org/docs/0.3/spec#operator-signatures)). Use [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421) and [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/) for signing, key publication, and discovery. Check the receiving deployment's supported draft, algorithms, and header form; current products do not all implement the same revision.
+The Session JWT is the core authentication mechanism. Personal agents should also send an HTTP Message Signature so existing bot defenses can recognize the operator (SHOULD, [5.3](https://personalagentprotocol.org/docs/0.3/spec#operator-signatures)). Use [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421) and [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/) for signing, key publication, and discovery. Check the receiving deployment's supported draft, algorithms, and header form; current products do not all implement the same revision.
 
 - Build the request body, any DPoP proof, and Session JWT first, then the operator signature. Cover `poppy-session` and `authorization` when present, as the spec requires. Include method, authority, path, query, and a verified content digest when the verifier relies on those components.
 - Keep operator keys separate from delegated Session keys. Publishing every User's delegated key in an operator directory is not equivalent to verifying a delegation, and exposes a new key mapping.

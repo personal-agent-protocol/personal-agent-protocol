@@ -84,7 +84,7 @@ the verification recommendation; use `--probe-session` for APIs that use Session
 Conversations and browser join still require verification. Feedback may be unattributed; attribution
 requires verification and needs manual inspection. Discovery errors never
 select that fallback. The MCP probes cover modern `server/discover` and legacy `initialize` with
-ordinary Bearer challenges. Check signed-out issuerless MCP handling, optional operator signatures
+ordinary Bearer challenges. Check signed-out issuerless MCP handling, recommended operator signatures
 at the actual edge, DPoP, and signed-in requests by hand against the checklist.
 
 ## Safety

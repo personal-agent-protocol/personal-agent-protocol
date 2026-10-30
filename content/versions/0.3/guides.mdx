@@ -73,8 +73,9 @@ consistently:
 
 ### Operator signatures and bot defenses {#both-operator-signatures}
 
-The Session JWT is the core authentication mechanism. An optional HTTP Message Signature can help
-existing bot defenses recognize the operator ([5.3](/docs/spec#operator-signatures)). Use
+The Session JWT is the core authentication mechanism. Personal agents should also send an HTTP
+Message Signature so existing bot defenses can recognize the operator (SHOULD,
+[5.3](/docs/spec#operator-signatures)). Use
 [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421) and
 [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/)
 for signing, key publication, and discovery. Check the receiving deployment's supported draft,

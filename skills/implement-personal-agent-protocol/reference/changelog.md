@@ -82,11 +82,11 @@ Breaking · [Spec 2](https://personalagentprotocol.org/docs/0.3/spec#terms) · [
 
 The keys in a Personal Agent's `jwks_uri`, which signed Session and browser assertions in 0.2, don't sign Session JWTs. They sign delegations: JWTs, typed `pap-delegation+jwt`, that vouch for a delegated key in an RFC 7800 `cnf` claim and last at most 24 hours. The Personal Agent signs its Session JWTs with the delegated key and carries the delegation in the JWT's `pap_dlg` header, and the Company verifies the delegation, then the JWT. A delegation carries nothing about the User or Companies, so the keys in `jwks_uri` sign only delegations and client assertions, and say nothing about which Companies a User uses. Each delegated key signs for one User ID, so a leaked one exposes one User at one Company, and Companies can't match Users by their keys. Companies don't expect a delegated key to stay the same, and the guides suggest rounding a delegation's times. 10.7 says what delegations hide from the Personal Agent's own systems, and what they don't. The references add RFC 7638 and RFC 7800.
 
-#### Optional operator signatures for edge compatibility
+#### Recommended operator signatures for edge compatibility
 
-[Spec 5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification)
+[Spec 1.1](https://personalagentprotocol.org/docs/0.3/spec#layers) · [Spec 5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification) · [Guides: Operator signatures and bot defenses](https://personalagentprotocol.org/docs/0.3/guides#both-operator-signatures)
 
-An optional HTTP Message Signature using Web Bot Auth lets existing traffic-management infrastructure authenticate an operator. It covers the Session header and access token when present, but does not replace Session verification or Company acceptance and account authorization. An edge that verifies delegated Session JWTs can authenticate the client without it.
+Personal Agents should also sign requests carrying the Session header with an HTTP Message Signature using Web Bot Auth, so existing traffic-management infrastructure can authenticate an operator. It covers the Session header and access token when present, but does not replace Session verification or Company acceptance and account authorization. An edge that verifies delegated Session JWTs can authenticate the client without it.
 
 #### Refused account changes
 
@@ -324,7 +324,7 @@ A Company adoption guide explains independent implementation choices: signed-out
 
 [Guides: Signing and verifying JWTs](https://personalagentprotocol.org/docs/0.3/guides#both-signing) · [Guides: Operator signatures and bot defenses](https://personalagentprotocol.org/docs/0.3/guides#both-operator-signatures) · [Guides: MCP and UCP interoperability](https://personalagentprotocol.org/docs/0.3/guides#both-interoperability) · [Guides: Signed-out support without OAuth](https://personalagentprotocol.org/docs/0.3/guides#company-without-oauth) · [Guides: Planning account access](https://personalagentprotocol.org/docs/0.3/guides#agent-account-access) · [Guides: User IDs](https://personalagentprotocol.org/docs/0.3/guides#agent-user-ids) · [Guides: Conversations](https://personalagentprotocol.org/docs/0.3/guides#company-conversations)
 
-Guides cover issuerless deployment and identity migration, optional operator signatures and their privacy limits, advance account-access information, conversation challenges, and version-aware MCP and UCP interoperability. Operator signatures can be removed where edges verify delegated Session JWTs directly; they do not replace Company policy.
+Guides cover issuerless deployment and identity migration, recommended operator signatures and their privacy limits, advance account-access information, conversation challenges, and version-aware MCP and UCP interoperability. Operator signatures can be removed where edges verify delegated Session JWTs directly; they do not replace Company policy.
 
 #### Verifying the user by sign-in in conversations
 
