@@ -1,0 +1,44 @@
+# Pushes main to the public repository, personal-agent-protocol/personal-agent-protocol, after each
+# change. The push isn't forced, so if the public main has commits that aren't here, the job fails
+# instead of overwriting them.
+#
+# Setup: install a GitHub App on the public repository with Contents and Workflows write access,
+# and in this repository save its app ID as the Actions variable MIRROR_APP_ID and its private key
+# as the Actions secret MIRROR_APP_PRIVATE_KEY.
+name: Mirror to public repository
+
+on:
+    push:
+        branches: [main]
+    workflow_dispatch:
+
+concurrency:
+    group: mirror-public
+    cancel-in-progress: false
+
+permissions:
+    contents: read
+
+jobs:
+    mirror:
+        # The workflow is mirrored too; don't run it in the public repository.
+        if: github.repository == 'sierra-inc/personal-agent-protocol'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/create-github-app-token@v2
+              id: app-token
+              with:
+                  app-id: ${{ vars.MIRROR_APP_ID }}
+                  private-key: ${{ secrets.MIRROR_APP_PRIVATE_KEY }}
+                  owner: personal-agent-protocol
+                  repositories: personal-agent-protocol
+
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+                  persist-credentials: false
+
+            - name: Push main
+              env:
+                  TOKEN: ${{ steps.app-token.outputs.token }}
+              run: git push "https://x-access-token:${TOKEN}@github.com/personal-agent-protocol/personal-agent-protocol.git" "${GITHUB_SHA}:refs/heads/main"
