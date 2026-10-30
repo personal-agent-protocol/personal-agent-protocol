@@ -216,8 +216,9 @@ A session is named by the `client_id` and `sid` of its Session JWTs (5.3). Keep 
 - [ ] **MUST**: The Company MUST check that:
     - [ ] The request has the cookie from step 1, and it matches `code`.
     - [ ] The code was authorized in step 2, hasn't expired, and hasn't been submitted before. A code is used by the first request that submits it, whatever the result.
+- [ ] **SHOULD NOT**: In a join without an access token, the Company SHOULD NOT end or change that login, because the Personal Agent's browser may have a login it can't easily recreate.
 - [ ] **MUST**: MUST be set only in step 3.
-- [ ] **MUST**: MUST act for the account and scopes authorized in step 2, and MUST stop acting for the account when the User signs out or disconnects the Personal Agent (5.5).
+- [ ] **MUST**: MUST act for the account and scopes authorized in step 2, if any, and MUST stop acting for the account when the User signs out or disconnects the Personal Agent (5.5).
 - [ ] **MUST NOT**: MUST NOT outlive the Session.
 - [ ] **SHOULD**: When the website refuses an action because the Session lacks a scope, it SHOULD show a visible error message that names the missing scopes, so the Personal Agent can request them (5.4).
 
@@ -286,6 +287,7 @@ A language model usually reads your API descriptions and MCP tool descriptions t
 - [ ] Answer a successful form with `303 See Other`, and a failed one with 400, or 429 when the browser sends too many requests.
 - [ ] Don't log the endpoint's responses or request bodies. They contain browser-session codes.
 - [ ] Keep a short-lived record for each code: whether it was authorized, for which session and account, and whether it was submitted. A store with a time to live of the code's lifetime works.
+- [ ] Use a cookie for the session that's separate from your login cookie, and check it first. After a signed-out join, keep the browser's login cookie. After a signed-in join, clear it, so the browser is signed out when the session's sign-in ends. Section 6 has a table of each case.
 - [ ] Make the session's cookie `Secure` and `HttpOnly`, and use the `__Host-` prefix unless it has to cover several hosts. Limit it to the hosts personal agents need, such as your main site, rather than your whole domain.
 - [ ] Look up the session on each request, so sign-out and scope changes take effect on the website right away.
 

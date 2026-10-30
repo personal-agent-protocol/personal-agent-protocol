@@ -553,6 +553,18 @@ an [open topic](/docs/path-to-1#open-topics) for self-hosted personal agents.
 
 </Change>
 
+<Change title="Browser join and an existing login" sections="6, guides#agent-browsing, guides#company-browsing">
+
+Section 6 says what a join does to a login the browser already has on the website. A signed-in join
+signs the browser in to the account from step 2 in place of that login, and when the Session's
+sign-in ends, the browser is signed out, rather than going back to the earlier login. A signed-out
+join shouldn't end or change that login: the browser's requests belong to the Session, and its own
+login decides the account. A table shows each case. Before, a Company could replace any login with
+the Session's cookie. The guides suggest a cookie for the Session that's separate from the login
+cookie.
+
+</Change>
+
 <Change title="Missing scopes on the website" sections="6, guides#company-scopes">
 
 When a Company's website refuses an action because the Session lacks a scope, it should show a

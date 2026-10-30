@@ -1060,11 +1060,27 @@ The Company MUST check that:
 - The code was authorized in step 2, hasn't expired, and hasn't been submitted before. A code is
   used by the first request that submits it, whatever the result.
 
-If every check passes, the Company sets its cookie for that Session, signed in to the account from
-step 2 if there was one, clears the cookie from step 1, and redirects the browser to a page on its
-website. It MAY update the browser's existing cookie for the Session or set a new one. If not, it
-sets no cookie and returns an error page with an error status. After an error, the Personal Agent
-starts again at step 1.
+If every check passes, the Company sets its cookie for that Session, clears the cookie from step 1,
+and redirects the browser to a page on its website. If not, it sets no cookie and returns an error
+page with an error status. After an error, the Personal Agent starts again at step 1.
+
+What the join does to a login the browser already has on the website depends on step 2. In a join
+without an access token, the Company SHOULD NOT end or change that login, because the Personal
+Agent's browser may have a login it can't easily recreate. Scopes don't apply to that login, which
+the browser had without this protocol. A join with an access token signs the browser in to the
+account from step 2, with its scopes, in place of any login it had, and an earlier login doesn't
+come back:
+
+| Browser before      | Join                    | While joined                                         | When the Session's sign-in ends |
+| ------------------- | ----------------------- | ---------------------------------------------------- | ------------------------------- |
+| Not logged in       | Without access token    | Not logged in. Requests belong to the Session        | Not logged in                   |
+| Not logged in       | With access token for A | Signed in to A, with the token's scopes              | Signed out                      |
+| Logged in as A      | Without access token    | Still logged in as A through the browser's own login | Logged in as A                  |
+| Logged in as A or B | With access token for A | Signed in to A, with the token's scopes              | Signed out                      |
+
+The Session's sign-in ends when the Session ends, when the cookie expires, when the User signs out
+or disconnects the Personal Agent (5.5), when the browser signs out on the website, or when the
+Personal Agent joins again without an access token.
 
 **4. The browser browses.** The Personal Agent then has its browser open any page on the website.
 The browser sends the cookie, and the Company handles its requests as the Session:
@@ -1078,19 +1094,21 @@ Cookie: __Host-sb_session=Pz81kQ…
 hosts it covers, and its lifetime, and links it to the Session on its servers. The cookie:
 
 - MUST be set only in step 3.
-- MUST act for the account and scopes authorized in step 2, and MUST stop acting for the account
-  when the User signs out or disconnects the Personal Agent (5.5).
+- MUST act for the account and scopes authorized in step 2, if any, and MUST stop acting for the
+  account when the User signs out or disconnects the Personal Agent (5.5).
 - MUST NOT outlive the Session.
 
 The website applies the cookie's scopes, as the Company's APIs apply an access token's. While the
-browser carries the Session's cookie, the Company handles its requests as that Session, signed in or
-out, whatever other cookies the browser holds from earlier visits. When the website refuses an
-action because the Session lacks a scope, it SHOULD show a visible error message that names the
-missing scopes, so the Personal Agent can request them (5.4).
+browser carries the Session's cookie, its requests belong to that Session. After a signed-in join,
+the Company handles them with the Session's account and scopes, whatever other cookies the browser
+holds from earlier visits. When the website refuses an action because the Session lacks a scope, it
+SHOULD show a visible error message that names the missing scopes, so the Personal Agent can request
+them (5.4).
 
 The Personal Agent MAY join again at any time, for example to sign the website in after signing in,
 to change its scopes, or when the website no longer recognizes the Session. Each time, step 3
-replaces the cookie the Company set before.
+replaces the cookie the Company set before, and the new join's step 2 decides whether the browser
+is signed in.
 
 ## 7. APIs {#apis}
 

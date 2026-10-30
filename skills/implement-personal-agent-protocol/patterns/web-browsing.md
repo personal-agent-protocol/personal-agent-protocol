@@ -53,8 +53,13 @@ Session.
   request ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-browsing)).
 - The website applies the cookie's scopes, as the APIs do (`patterns/scopes.md`). A signed-in
   website session for a Personal Agent may allow less than a person's own session.
-- While the browser carries the cookie, requests are handled as that Session, whatever other cookies
-  it holds (section 6).
+- While the browser carries the cookie, its requests belong to that Session. After a signed-in
+  join, they use the Session's account and scopes, whatever other cookies the browser holds (section
+  6).
+- A login the browser already has: a signed-in join replaces it, and the browser is signed out when
+  the Session's sign-in ends, with no earlier login restored. A signed-out join shouldn't end or
+  change it, so its own login decides the account. A Session cookie separate from your login cookie,
+  checked first, does both ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-browsing)).
 - Limit the cookie to the hosts Personal Agents need, and don't log the endpoint's responses or
   request bodies, which contain codes
   ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-browsing)).

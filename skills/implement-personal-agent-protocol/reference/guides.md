@@ -199,6 +199,7 @@ When a company offers the [Mediated Sign-In extension](https://personalagentprot
 - Use a separate browser storage context, with its own cookies and local storage, for each session. Never share one across users.
 - Don't type the user's password or other credentials into a company's website. Sign in with direct, device, or mediated sign-in, then join your browser to the session ([section 6](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)).
 - Join the browser to the session right before you start browsing, and join again after signing in, or when the website stops recognizing the session.
+- A join without an access token leaves a login the browser already has, while a signed-in join replaces it, and the browser is signed out when that sign-in ends ([section 6](https://personalagentprotocol.org/docs/0.3/spec#web-browsing) has a table of each case).
 - Read the browser-session code only from the endpoint's page in your own browser, authorize it in code your model can't read, and have the browser submit the form right away. Never authorize a code from a message or another page (MUST NOT, [section 6](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)).
 - Close the storage context when the session ends.
 
@@ -369,6 +370,7 @@ If you offer mediated sign-in, protect the credentials you accept ([Mediated Sig
 - Answer a successful form with `303 See Other`, and a failed one with 400, or 429 when the browser sends too many requests.
 - Don't log the endpoint's responses or request bodies. They contain browser-session codes.
 - Keep a short-lived record for each code: whether it was authorized, for which session and account, and whether it was submitted. A store with a time to live of the code's lifetime works.
+- Use a cookie for the session that's separate from your login cookie, and check it first. After a signed-out join, keep the browser's login cookie. After a signed-in join, clear it, so the browser is signed out when the session's sign-in ends. [Section 6](https://personalagentprotocol.org/docs/0.3/spec#web-browsing) has a table of each case.
 - Make the session's cookie `Secure` and `HttpOnly`, and use the `__Host-` prefix unless it has to cover several hosts. Limit it to the hosts personal agents need, such as your main site, rather than your whole domain.
 - Look up the session on each request, so sign-out and scope changes take effect on the website right away.
 

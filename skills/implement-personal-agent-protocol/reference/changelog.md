@@ -274,6 +274,12 @@ Rate limits are HTTP 429 with `Retry-After` everywhere, without the custom `rate
 
 Section 6 restores the rule from 0.2 that a Personal Agent joins only a browser it controls to a Session, never the User's own browser. The browser-join redesign left it out. Otherwise, the Company would treat the User's own visits as the Personal Agent's. Acting in the User's own browser remains an [open topic](https://personalagentprotocol.org/docs/path-to-1#open-topics) for self-hosted personal agents.
 
+#### Browser join and an existing login
+
+[Spec 6](https://personalagentprotocol.org/docs/0.3/spec#web-browsing) · [Guides: Web browsing](https://personalagentprotocol.org/docs/0.3/guides#agent-browsing) · [Guides: Browser sessions](https://personalagentprotocol.org/docs/0.3/guides#company-browsing)
+
+Section 6 says what a join does to a login the browser already has on the website. A signed-in join signs the browser in to the account from step 2 in place of that login, and when the Session's sign-in ends, the browser is signed out, rather than going back to the earlier login. A signed-out join shouldn't end or change that login: the browser's requests belong to the Session, and its own login decides the account. A table shows each case. Before, a Company could replace any login with the Session's cookie. The guides suggest a cookie for the Session that's separate from the login cookie.
+
 #### Missing scopes on the website
 
 [Spec 6](https://personalagentprotocol.org/docs/0.3/spec#web-browsing) · [Guides: Enforcing scopes everywhere](https://personalagentprotocol.org/docs/0.3/guides#company-scopes)
