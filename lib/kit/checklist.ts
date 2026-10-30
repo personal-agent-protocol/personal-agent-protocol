@@ -32,6 +32,7 @@ const SECTIONS: Record<string, Record<string, Milestone>> = {
         "session-header": "foundation",
         "delegated-keys": "foundation",
         "session-verification": "foundation",
+        "operator-signatures": "foundation",
         "ending-sessions": "sign-in",
         oauth: "foundation",
         "access-tokens": "sign-in",
@@ -90,6 +91,10 @@ const SECTIONS: Record<string, Record<string, Milestone>> = {
     guides: {
         "both-secrets": "foundation",
         "both-signing": "foundation",
+        "both-operator-signatures": "foundation",
+        "both-interoperability": "interfaces",
+        "company-adoption": "foundation",
+        "company-without-oauth": "foundation",
         "both-key-rotation": "foundation",
         "both-fetching": "foundation",
         "both-retries": "interfaces",

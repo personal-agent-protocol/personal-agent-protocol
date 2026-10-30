@@ -25,36 +25,52 @@ are left out.
 
 ### Specification: [3.2 OAuth server](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)
 
-- [ ] **MUST**: A Company whose `poppy.json` lists `agent`, `apis`, `feedback`, `web.browser_session_endpoint`, or an extension that uses the issuer MUST have one.
-- [ ] **MUST**: Its `resource` MUST be exactly `https://{organization.domain}`, and its `authorization_servers` names the issuer:
+- [ ] **MUST**: A Company that offers sign-in MUST have an OAuth issuer.
+- [ ] **MUST**: If the Company publishes this metadata, its `resource` MUST be exactly `https://{organization.domain}`, and its `authorization_servers`, when nonempty, names the issuer:
+    - [ ] HTTP 404, or valid metadata with `authorization_servers` absent or empty, means the Company has no issuer. This is valid only when `auth.issuer` is absent and the Company offers no sign-in.
+    - [ ] A Personal Agent MUST NOT use the domain fallback after a timeout, another error status, invalid metadata, or a failure to verify an issuer. It MUST NOT fall back for a Company whose issuer it already knows unless a successful discovery explicitly establishes that the issuer was removed.
     - [ ] If it lists one authorization server, that is the Company's issuer. `auth.issuer` is optional, and if present MUST name that server (3.1).
     - [ ] If it lists more than one, such as one for the Company's employees, `auth.issuer` in `poppy.json` names the one Personal Agents use (3.1). RFC 9728 leaves the choice among them to the client, but User IDs and refresh tokens belong to one issuer (5.1), so every Personal Agent has to choose the same one.
+- [ ] **MUST NOT**: It MUST NOT fall back for a Company whose issuer it already knows unless a successful discovery explicitly establishes that the issuer was removed.
 - [ ] **MUST**: `auth.issuer` is optional, and if present MUST name that server (3.1).
-- [ ] **MUST**: Their documents MUST have the same `auth`.
+- [ ] **MUST**: The Company MUST select that same issuer on each domain (above).
+- [ ] **MUST**: The Company MUST give each scope the same authorization meaning across these domains.
+- [ ] **SHOULD**: The Company SHOULD publish the same scope descriptions and hints across these domains, but MAY expose different scopes or capabilities.
 - [ ] **MUST**: An issuer MUST represent exactly one Company.
 - [ ] **MUST**: A provider that hosts several Companies MUST give each its own issuer, such as `https://auth.provider.example/shop-a`, even when they share servers.
 - [ ] **MUST**: The issuer MUST publish OAuth Authorization Server Metadata (RFC 8414), at the URL RFC 8414 §3.1 defines.
 - [ ] **MUST**: Its `protected_resources` (RFC 9728 §4) MUST list `https://{domain}` for every domain whose issuer it is, with no path, port, or trailing slash.
 - [ ] **MUST**: Required, and it MUST include `refresh_token` (4.4).
-- [ ] **MUST**: Required if the Company offers any type of sign-in, and it MUST then include every scope a Personal Agent can request (4.7).
+- [ ] **SHOULD**: A Company that offers sign-in SHOULD publish it and include every scope a Personal Agent can request (4.7).
+- [ ] **MUST**: A Company that lists `signed_in` MUST have an issuer.
 
 ### Specification: [4.1 Agent identity](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)
 
 - [ ] **MUST**: Companies MUST reject a client assertion with any other `aud`, compared character for character, including their token endpoint URL.
-- [ ] **MUST**: Companies MUST accept client assertions signed with `ES256` and with `PS384`.
+- [ ] **MUST**: Companies MUST accept client assertions signed with `ES256`, and SHOULD accept ones signed with `PS384`.
 
 ### Specification: [Delegated keys](https://personalagentprotocol.org/docs/0.3/spec#delegated-keys)
 
-- [ ] **MUST**: Companies MUST accept both.
-- [ ] **MUST**: The Company MUST reject, with `invalid_session`, a Session JWT without a delegation, including one signed directly with a key from `jwks_uri`, and a Session JWT whose delegation fails any of these checks.
+- [ ] **MUST**: Companies MUST accept delegations signed with `ES256`, and SHOULD accept delegations signed with `PS384`.
+- [ ] **MUST**: When verifying a Session header (5.3), the Company MUST reject, with `invalid_session`, a Session JWT without a delegation, including one signed directly with a key from `jwks_uri`, and a Session JWT whose delegation fails any of these checks.
 - [ ] **MUST NOT**: So a Company MUST NOT expect a User's delegated key to stay the same between requests or Sessions, or treat a new one as a reason to reject a request.
 
 ### Specification: [5.3 Verifying the Session header](https://personalagentprotocol.org/docs/0.3/spec#session-verification)
 
+- [ ] **SHOULD**: Companies SHOULD verify the Session header on every request that carries it.
+- [ ] **MUST**: The Company MUST complete the following checks before relying on Session claims for client or User identity, ownership, continuity, or access to state, including creating or continuing a Session:
+    - [ ] Fetches the client metadata from `iss` without following redirects, as the CIMD draft (§5) requires, and the public keys from its `jwks_uri` (4.1), following the address checks in section 3.
+    - [ ] Verifies the JWT's delegation and signature, as Delegated keys (5.2) describes, then `typ` and the claims above: `aud` is its Company's identifier, compared character for character; `htm` and `htu` match the request as RFC 9449 §4.3 describes for DPoP proofs; and `iat` is within an acceptance window it chooses, such as one minute. The JWT never grants account access, whatever else it contains.
+    - [ ] If the request carries an access token, checks that `ath` matches it, and that the token was issued to the same `client_id` as `iss`. Without an access token, `ath` MUST be absent.
+    - [ ] Looks up the Session by `client_id` and `sid`. An unknown `sid` starts a signed-out Session with the verified `client_id`, User ID, and optional Agent ID. A known `sid` continues its Session, and the JWT MUST have that Session's User ID and Agent ID. It checks ended Sessions at this point too (5.5).
 - [ ] **MUST**: Without an access token, `ath` MUST be absent.
 - [ ] **MUST**: A known `sid` continues its Session, and the JWT MUST have that Session's User ID and Agent ID.
-- [ ] **MUST**: The Company MUST complete these checks before creating a Session or handling the request.
-- [ ] **MUST**: The Company MUST reject a request that carries an access token it issued to a Personal Agent but no Session header, at every endpoint that accepts the Session header.
+- [ ] **MUST NOT**: The Company MUST NOT use unverified Session claims to attribute a request to a Personal Agent, User, or Session, or to look up their state.
+- [ ] **MUST**: The Company MUST reject a request without the Session header when handling it depends on Session claims.
+
+### Specification: [Operator signatures](https://personalagentprotocol.org/docs/0.3/spec#operator-signatures)
+
+- [ ] **MUST**: Before trusting any Session claim, the Company MUST verify the Session JWT independently (5.3).
 
 ### Specification: [5.6 Sending requests](https://personalagentprotocol.org/docs/0.3/spec#sending-requests)
 
@@ -79,13 +95,23 @@ To handle them:
 
 Client assertions, delegations, Session JWTs, and DPoP proofs are JWTs. To sign and verify them consistently:
 
-- [ ] Personal agents: sign Session JWTs with ES256 (MUST, 5.2). Sign client assertions and delegations with ES256, or with PS384 if you sign them blindly (10.7). Companies: accept ES256 and PS384 in client assertions and delegations (MUST, 4.1, 5.2), and RS256 in client assertions. Use RSA keys of at least 2048 bits.
+- [ ] Personal agents: sign Session JWTs with ES256 (MUST, 5.2). Sign client assertions and delegations with ES256, or with PS384 if you sign them blindly (10.7). Companies: accept ES256 (MUST) and PS384 (SHOULD) in client assertions and delegations (4.1, 5.2), and RS256 in client assertions. Use RSA keys of at least 2048 bits.
+- [ ] Personal agents: use `token_endpoint_auth_signing_alg_values_supported` in the Company's OAuth metadata to choose a supported client-assertion algorithm. This list does not establish support for delegation signatures. The protocol has no delegation-algorithm discovery field, and `invalid_session` does not distinguish an unsupported algorithm from other failures. An agent that requires blind signing may be unable to work with a Company that doesn't support PS384. Falling back to ES256 needs a suitable published key and gives up this blind-signing mechanism; don't switch automatically when blind signing is required by the User's privacy settings.
 - [ ] Reject `alg: none` and symmetric algorithms such as HS256.
 - [ ] Verify client assertions and delegations only with keys from the personal agent's verified `jwks_uri` (4.1), and Session JWTs only with the key their verified delegation names in `cnf.jwk` (5.2). Ignore `jku`, `x5u`, and any other key embedded in a JWT. DPoP proofs for DPoP-bound access tokens are the one other exception: the public key in their `jwk` header is how they work.
-- [ ] Check `aud` and `iat`, and `exp` on client assertions and delegations. Session JWTs have no `exp`: accept them only within your `iat` window (5.3). A client assertion or Session JWT has the company's issuer as its `aud`, never an endpoint URL (4.1, 5.2). Allow a small clock skew, such as 30 seconds, and reject assertions that claim a long lifetime.
+- [ ] Check `aud` and `iat`, and `exp` on client assertions and delegations. Session JWTs have no `exp`: accept them only within your `iat` window (5.3). A client assertion has the company's issuer as its `aud`; a Session JWT has the Company's identifier (its issuer, or its HTTPS domain without one), never an endpoint URL (4.1, 5.2). Allow a small clock skew, such as 30 seconds, and reject assertions that claim a long lifetime.
 - [ ] Make the `jti` of each client assertion, delegation, Session JWT, and DPoP proof at least 128 random bits, and each Session ID too.
 - [ ] Personal agents: set a client assertion's `exp` at most five minutes after its `iat`.
 - [ ] Companies: reject a reused client assertion `jti` from the same `client_id` until it expires, as RFC 7523 §3 allows.
+
+### Recommended: [Operator signatures and bot defenses](https://personalagentprotocol.org/docs/0.3/guides#both-operator-signatures)
+
+- [ ] Build the request body, any DPoP proof, and Session JWT first, then the operator signature. Cover `poppy-session` and `authorization` when present, as the spec requires. Include method, authority, path, query, and a verified content digest when the verifier relies on those components.
+- [ ] Keep operator keys separate from delegated Session keys. Publishing every User's delegated key in an operator directory is not equivalent to verifying a delegation, and exposes a new key mapping.
+- [ ] For a centralized agent, signing can happen where requests already pass. For on-device agents, sending requests to an authenticated operator signing service can reveal which Company each User visits. This signature profile does not provide blind signing. Do not send devices a shared operator private key to avoid that service.
+- [ ] A verified operator signature establishes control of its key source. It does not establish every client metadata URL on the same origin. Verify the Session JWT's exact `iss` before accepting it as that client, then apply Company policy and account authorization.
+- [ ] Test the actual edge and origin together: registration, directory caching, key rotation, accepted signature components, body handling, and forwarded authentication results. Protect the origin from forged forwarding headers. A bot-verification result is not a replay check or account grant.
+- [ ] Remove the extra signature where an edge verifies delegated Session JWTs directly. Keep Company acceptance and all remaining Session and OAuth checks. The JWT covers method, URL without query, and access token, not the request body; do not assume removing an operator signature preserves any additional query or body protection it supplied.
 
 ### Recommended: [Rotating keys](https://personalagentprotocol.org/docs/0.3/guides#both-key-rotation)
 
@@ -121,6 +147,15 @@ Personal agents fetch `poppy.json` files, OAuth and protected resource metadata,
 - [ ] Write timestamps in RFC 3339 with a time zone offset, such as `2026-10-02T17:15:00-07:00`.
 - [ ] Ignore fields you don't recognize, so later versions can add them.
 
+### Recommended: [Choosing capabilities](https://personalagentprotocol.org/docs/0.3/guides#company-adoption)
+
+Start with the tasks you want personal agents to accomplish and the interfaces you already have. Publish `poppy.json` with at least one of `apis`, `web`, or `agent` (MUST, 3.1). Then choose the capabilities those tasks need:
+
+- [ ] Signed-out APIs. You can expose a catalog or other stateless API without an OAuth server. Accept the Session header personal agents send. If the endpoint uses no Session claims, it can serve requests without verifying the header (5.3).
+- [ ] Session continuity. Verify Session JWTs when you want to recognize a pseudonymous user, maintain a Session cart, or connect activity across channels. Verification is required before relying on Session identity, ownership, continuity, or state (5.3). This works without OAuth.
+- [ ] Account access. Add OAuth when tasks need access to a user's account. Your endpoints can rely on OAuth alone if they use no Session claims. They still validate tokens and enforce scopes and any required DPoP checks. Check your existing authorization server against what Poppy adds to OAuth and client metadata support.
+- [ ] Channels and other capabilities. Offer APIs, web browsing, conversations, or a combination. Add browser join to connect website activity to a Session. Advertise excluded tasks, feedback, and extensions where they help users complete the tasks you support.
+
 ### Recommended: [Verifying personal agents](https://personalagentprotocol.org/docs/0.3/guides#company-agents)
 
 - [ ] Fetch the `client_id` URL without following redirects. Its `client_id` MUST equal the URL you fetched (4.1).
@@ -130,7 +165,7 @@ Personal agents fetch `poppy.json` files, OAuth and protected resource metadata,
 
 ### Recommended: [Verifying the Session header](https://personalagentprotocol.org/docs/0.3/guides#company-session-header)
 
-Section 5.3 lists the checks you MUST make on every Session JWT. To make them reliably:
+Verify Session headers generally (SHOULD, 5.3). Complete all checks before trusting Session claims for identity, ownership, continuity, or state (MUST). Conversations, Session carts, browser join, and approval ownership need that verification. A stateless catalog endpoint can ignore the header. An account endpoint can use OAuth alone if it uses no Session claims or state. It still validates the token, its scopes and audience, and any required DPoP proof. To verify reliably:
 
 - [ ] Verify the Session header in one place, such as a gateway in front of your APIs, conversation endpoint, and browser-session `/authorize` endpoint, and pass the verified `client_id`, `sid`, user ID, and agent ID to the services behind it.
 - [ ] Cache verified delegations until they expire (5.2). Key the cache by a hash of the whole delegation, such as its SHA-256, not by its `jti`, which a forged delegation could copy. Most requests then need one signature check.
@@ -138,10 +173,10 @@ Section 5.3 lists the checks you MUST make on every Session JWT. To make them re
 - [ ] Use an acceptance window of about one minute for `iat`, plus a small clock skew.
 - [ ] Rejecting a reused `jti` is optional, as it is for DPoP proofs, because servers behind one endpoint don't always share state. Without it, a copied Session JWT still works only for the same method and URL, with the same access token, and within the acceptance window. A request that changes something then relies on being idempotent, so a replay doesn't repeat it. Conversation messages already are, through their IDs (8.3).
 - [ ] If you keep a replay cache keyed by `jti`, hold entries for the acceptance window and share it across every server. Otherwise a JWT accepted by one server can be replayed at another (5.3).
-- [ ] Check `ath` against the access token, and that the token was issued to the JWT's `iss`. Reject an access token you issued to a personal agent when it comes without the Session header (MUST, 5.3).
+- [ ] Check `ath` against the access token, and that the token was issued to the JWT's `iss`. Reject an absent header when the request depends on Session claims (MUST, 5.3). Don't use an unverified `iss`, `sub`, or `sid` for attribution, rate limits by identity, cache keys, or state lookup.
 - [ ] Return `invalid_session` for a failed check, and keep access token errors in `WWW-Authenticate`, as OAuth does (section 7).
-- [ ] Binding access tokens with DPoP is your choice (4.5). If you do, verify the proof as RFC 9449 describes, separately from the Session JWT. If your authorization server can't issue DPoP-bound tokens, the Session JWT's `ath` already makes a copied access token useless without the personal agent's key, except at an MCP server that ignores the Session header.
-- [ ] At an MCP server, accept a token issued for its `resource` only at that server (MUST, section 7). Accept the Session header there too, if you want its calls tied to sessions and want to take signed-out calls from personal agents.
+- [ ] Binding access tokens with DPoP is your choice (4.5). If you do, verify the proof as RFC 9449 describes, separately from the Session JWT. If your authorization server can't issue DPoP-bound tokens, verifying the Session JWT and its `ath` binds the token to the personal agent's key. Endpoints that skip Session verification lose that extra protection.
+- [ ] At an MCP server, accept a token issued for its `resource` only at that server (MUST, section 7). Accept the Session header there too, if you want its calls tied to sessions. Signed-out calls that use no Session state can work without verification.
 - [ ] Serve personal agent conversations only from your conversation endpoint (8.2). If your website chat or other channels can open the same conversations, they may not check the Session header, and anyone with a copied token could read them there.
 
 ### Recommended: [Sessions](https://personalagentprotocol.org/docs/0.3/guides#company-sessions)
@@ -169,13 +204,6 @@ A session is named by the `client_id` and `sid` of its Session JWTs (5.3). Keep 
 - [ ] Record the issuer with every session and token, and check it on every request. An access token, refresh token, or Session JWT for Outfitters must not work at Books, even when both are served by the same code.
 - [ ] Don't use one company's records for another. A user's sessions, user IDs, and accounts at one company are unknown to every other company the platform hosts.
 
-### Recommended: [An issuer for personal agents](https://personalagentprotocol.org/docs/0.3/guides#company-agent-issuer)
-
-A company can offer personal agents less than its other OAuth clients get without a second issuer, in two ways:
-
-- [ ] Leave scopes it doesn't offer personal agents out of `scopes_supported`, which RFC 8414 allows (3.2).
-- [ ] Limit the scopes it grants by client, as OAuth allows (4.7).
-
 ## Interfaces
 
 ### Specification: [6. Web browsing](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)
@@ -195,10 +223,10 @@ A company can offer personal agents less than its other OAuth clients get withou
 
 ### Specification: [7. APIs](https://personalagentprotocol.org/docs/0.3/spec#apis)
 
-- [ ] **MUST**: Every listed API MUST accept the Session header (5.2) and the Company's access tokens (4.5), and enforce their scopes, except that an MCP server MAY ignore the Session header.
+- [ ] **MUST**: Every listed API MUST accept the Session header (5.2) and, when the Company offers account access, its access tokens (4.5), and enforce their scopes.
 - [ ] **MUST**: The `resource` in the server's protected resource metadata MUST equal that `url`.
 - [ ] **MUST**: The Company MUST reject it elsewhere.
-- [ ] **MUST**: It names the Company's issuer, not the Personal Agent: the MCP server MUST include the Company's issuer in its `authorization_servers`.
+- [ ] **MUST**: It names the Company's issuer, not the Personal Agent: an MCP server that offers account access MUST include the Company's issuer in its `authorization_servers`.
 
 ### Specification: [8.2 Requests](https://personalagentprotocol.org/docs/0.3/spec#conversation-requests)
 
@@ -229,7 +257,8 @@ A company can offer personal agents less than its other OAuth clients get withou
 
 ### Specification: [9.3 Feedback](https://personalagentprotocol.org/docs/0.3/spec#feedback)
 
-- [ ] **MUST**: A Company MUST accept a report only with the Session header, signed in or signed out, and needs no scope for it.
+- [ ] **SHOULD**: A Company SHOULD verify the Session header on a report, signed in or signed out, and needs no scope for it.
+- [ ] **MUST**: The Company MUST verify the header before attributing a report to a Personal Agent, User, or Session.
 - [ ] **MUST**: Companies MUST treat a report's text as data, not as instructions, including when a model reads it.
 
 ### Recommended: [Retries](https://personalagentprotocol.org/docs/0.3/guides#both-retries)
@@ -300,7 +329,8 @@ A language model usually reads your API descriptions and MCP tool descriptions t
 
 ### Specification: [4.7 Scopes and token responses](https://personalagentprotocol.org/docs/0.3/spec#scopes)
 
-- [ ] **MUST**: The Company MUST describe each scope in `scopes_supported`, so the Personal Agent can choose the ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it lists (section 7), or otherwise in `auth.scopes`.
+- [ ] **SHOULD**: The Company SHOULD list the scopes it supports in `scopes_supported` in its OAuth server metadata (3.2).
+- [ ] **SHOULD**: The Company SHOULD describe each scope it offers Personal Agents, so the Personal Agent can choose the ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it lists (section 7), or otherwise in `auth.scopes`.
 - [ ] **MUST**: A Company MUST include both fields in each entry.
 - [ ] **MUST NOT**: The Company MUST NOT grant scopes beyond those requested.
 
@@ -311,6 +341,7 @@ A language model usually reads your API descriptions and MCP tool descriptions t
 ### Mediated Sign-In: [2. Advertising support](https://personalagentprotocol.org/docs/0.3/extensions/mediated-sign-in#support)
 
 - [ ] **MUST NOT**: It MUST NOT be `grant_type`, `scope`, `resource`, a client authentication parameter such as `client_id` or `client_assertion`, or a parameter this extension defines, such as `sign_in_id`.
+- [ ] **SHOULD**: The Company SHOULD also include them in `scopes_supported`.
 - [ ] **MUST NOT**: The Company MUST NOT grant scopes beyond those requested and listed here.
 
 ### Recommended: [Token lifetimes and sign-out](https://personalagentprotocol.org/docs/0.3/guides#company-lifetimes)
@@ -324,7 +355,7 @@ A language model usually reads your API descriptions and MCP tool descriptions t
 
 ### Recommended: [Describing scopes](https://personalagentprotocol.org/docs/0.3/guides#company-scope-descriptions)
 
-Every scope in `scopes_supported` needs a description, in the OAuth security scheme of an OpenAPI description you list or in `auth.scopes` (MUST, 4.7). Personal agents read them to choose scopes, and a language model often does the choosing:
+Describe the scopes you offer personal agents, in the OAuth security scheme of an OpenAPI description you list or in `auth.scopes` (SHOULD, 4.7). Personal agents read them to choose scopes, and a language model often does the choosing:
 
 - [ ] Say what the scope lets the personal agent see or do, in words a user understands.
 - [ ] Be specific enough for a model to match a task to the scopes it needs. "See your orders and returns" works better than "Read access".
@@ -401,10 +432,12 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
 ### Operations: [6. Sending the approval](https://personalagentprotocol.org/docs/0.3/extensions/operations#sending-approval)
 
 - [ ] **MUST**: Companies MUST ignore members of `Poppy-Approval` they don't recognize, so later versions can add members.
-- [ ] **MUST**: After the Session header checks in spec 5.3 and the token checks in spec 7, and before performing the action, the Company MUST check, in this order:
+- [ ] **MUST**: After the Session header checks in spec 5.3 and the token checks in spec 7, the Company MUST make the following checks before performing the action.
+- [ ] **SHOULD**: It SHOULD make them in this order:
     - [ ] The Session can approve the operation (3). If it can't, the Company handles the request as if it had no approval.
     - [ ] The operation hasn't been performed already. If it has, or is being performed, the Company responds as section 7 describes.
     - [ ] The `revision` is one the Company returned for this operation, it hasn't expired, and the request asks for exactly what it describes. The API request or tool call is the one that returned the operation, and in a conversation, the operation is the conversation's.
+- [ ] **MUST NOT**: The Company MUST NOT let a different internal check order change which Session can approve, the response for a request without valid approval, or the retry and at-most-once behavior in section 7.
 - [ ] **MUST NOT**: A Company MUST NOT answer an approval with the revision it names, so a Personal Agent never retries the same approval in a loop.
 
 ### Operations: [7. Retries and at most once](https://personalagentprotocol.org/docs/0.3/extensions/operations#at-most-once)

@@ -82,7 +82,7 @@ export async function runChecks(
 
 // The checks that use poppy.json's interfaces, most of them as the test Personal Agent.
 async function runDependent(ctx: Context, r: Recorder, cwd?: string): Promise<void> {
-    const issuerReady = Boolean(ctx.discovered.issuer && !ctx.blocked.issuer);
+    const companyReady = Boolean(ctx.discovered.audience && !ctx.blocked.issuer);
     const needsIdentity = wantsAny(ctx, [
         "session.",
         "token.",
@@ -93,7 +93,7 @@ async function runDependent(ctx: Context, r: Recorder, cwd?: string): Promise<vo
         "feedback.",
         "web.",
     ]);
-    if (needsIdentity && issuerReady) {
+    if (needsIdentity && companyReady) {
         const identity = await loadIdentity(cwd);
         const short = "Needs the test Personal Agent (see the note at the top).";
         if ("missing" in identity) {
@@ -112,7 +112,7 @@ async function runDependent(ctx: Context, r: Recorder, cwd?: string): Promise<vo
         }
     }
     try {
-        if (issuerReady) {
+        if (companyReady) {
             // A started Session is what the later checks build on.
             if (
                 wantsAny(ctx, [
@@ -132,7 +132,7 @@ async function runDependent(ctx: Context, r: Recorder, cwd?: string): Promise<vo
         if (ctx.options.milestones.has("interfaces")) {
             if (wantsAny(ctx, ["openapi."])) await checkOpenApi(ctx, r);
             if (wantsAny(ctx, ["mcp."])) await checkMcp(ctx, r);
-            if (issuerReady) {
+            if (companyReady) {
                 if (wantsAny(ctx, ["conversations.", "operations."]))
                     await checkConversations(ctx, r);
                 checkOperationsNotReturned(ctx, r);

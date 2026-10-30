@@ -35,9 +35,10 @@ check options:
                           Its domain is the default url.
   --file <poppy.json>     Offline: check a local poppy.json (schema and field rules only).
   --only <id or prefix>   Only these checks, such as session.start or conversations. Repeatable.
-  --probe <url>           A GET operation in your API that takes the Session header signed
-                          out. Used for the Session header checks instead of the
-                          conversation endpoint.
+  --probe <url>           A signed-out GET operation in your API. Session checks test the
+                          general recommendation unless --probe-session is set.
+  --probe-session         The probe relies on Session identity or state. Check mandatory
+                          Session verification, as at the conversation endpoint.
   --json                  Print results as JSON.
   --allow-private-addresses
                           Also connect to loopback, private, and link-local addresses, to
@@ -68,6 +69,7 @@ async function main(argv: string[]): Promise<number> {
             file: { type: "string" },
             only: { type: "string", multiple: true },
             probe: { type: "string" },
+            "probe-session": { type: "boolean" },
             json: { type: "boolean" },
             "base-url": { type: "string" },
             force: { type: "boolean" },
@@ -132,6 +134,8 @@ async function main(argv: string[]): Promise<number> {
         }
         if (values.probe && !values.probe.startsWith("https://"))
             fail("--probe must be an HTTPS URL.");
+        if (values["probe-session"] && !values.probe)
+            fail("--probe-session needs --probe with a Session-dependent GET URL.");
         const origin = target ? targetOrigin(target) : undefined;
         const ctx = newContext(
             http,
@@ -139,6 +143,7 @@ async function main(argv: string[]): Promise<number> {
                 milestones,
                 only: values.only ?? (fileText !== undefined ? ["discovery."] : undefined),
                 probe: values.probe,
+                probeSession: values["probe-session"],
                 offline: fileText !== undefined,
             },
             origin,

@@ -52,6 +52,7 @@ export const METADATA_IDS = [
     "metadata.device-authorization-endpoint",
     "metadata.scopes-supported",
     "metadata.scopes-described",
+    "metadata.same-issuer",
     "metadata.same-auth",
     "metadata.mediated-grant",
 ];
@@ -432,19 +433,19 @@ export async function checkExcludedTasks(ctx: Context, r: Recorder): Promise<voi
     }
 }
 
-// What in poppy.json needs an issuer (spec 3.2).
+// Explicit declarations that cannot be used without an OAuth issuer (spec 3.2).
 export function needsIssuer(poppy: Poppy): string[] {
     return [
-        poppy.agent !== undefined ? "agent" : "",
-        poppy.apis !== undefined ? "apis" : "",
-        poppy.feedback !== undefined ? "feedback" : "",
-        poppy.web?.browser_session_endpoint !== undefined ? "web.browser_session_endpoint" : "",
+        poppy.auth?.issuer !== undefined ? "auth.issuer" : "",
+        poppy.agent?.protocols?.some((p) => p.type === "poppy" && p.access === "signed_in")
+            ? "agent.protocols.access signed_in"
+            : "",
         mediatedSignIn(poppy) !== undefined ? "extensions.mediated-sign-in" : "",
     ].filter(Boolean);
 }
 
-// Finds the issuer from the domain's protected resource metadata (RFC 9728) and auth.issuer
-// (spec 3.1, 3.2), filling ctx.discovered.issuer. Returns false when there's no issuer to check.
+// Returns false for both issuerless Companies and failed discovery. Only successful discovery
+// establishes an audience; callers never infer issuerless operation from an error.
 async function discoverIssuer(ctx: Context, r: Recorder): Promise<boolean> {
     const poppy = ctx.discovered.poppy!;
     const domain = poppy.organization?.domain;
@@ -453,7 +454,7 @@ async function discoverIssuer(ctx: Context, r: Recorder): Promise<boolean> {
         return false;
     }
     const needs = needsIssuer(poppy);
-    const resource = `https://${domain}`;
+    const resource = `https://${domain.toLowerCase()}`;
     const url = `${resource}/.well-known/oauth-protected-resource`;
     const follow = await getFollowing(ctx.http, url, {
         max: 3,
@@ -461,38 +462,43 @@ async function discoverIssuer(ctx: Context, r: Recorder): Promise<boolean> {
     });
     const ex = follow.final!;
     const doc = ex.json as ResourceMetadata | undefined;
-    if (ex.status !== 200 || !doc || typeof doc !== "object" || Array.isArray(doc)) {
-        if (needs.length === 0) {
-            skipRest(
-                r,
-                METADATA_IDS,
-                "poppy.json lists nothing that needs an issuer, and the domain publishes no protected resource metadata, so it can only be browsed as an ordinary website.",
-            );
-            return false;
+    const noIssuer = () => {
+        if (needs.length) {
+            r.fail("metadata.issuer-required", {
+                exchange: follow.chain,
+                got: `${needs.join(", ")} in poppy.json, but no issuer`,
+                expected: "Protected resource metadata naming an OAuth issuer",
+                cause: "Publish authorization_servers naming the issuer, or remove the declarations that require account access.",
+            });
+        } else {
+            ctx.discovered.audience = resource;
+            r.pass("metadata.issuer-required", {
+                summary: `Signed-out only; Session audience ${resource}.`,
+            });
         }
-        r.fail("metadata.issuer-required", {
+        skipRest(r, METADATA_IDS, "The Company has no OAuth issuer.");
+        return false;
+    };
+    if (ex.status === 404 && !ex.error && !follow.nonHttpsRedirect) return noIssuer();
+    if (ex.status !== 200 || !doc || typeof doc !== "object" || Array.isArray(doc)) {
+        r.fail("metadata.resource-metadata", {
             exchange: follow.chain,
-            got: `${needs.join(", ")} in poppy.json, but no protected resource metadata at ${url}`,
-            expected: `200 with JSON protected resource metadata at ${url}`,
-            cause: ex.error
-                ? `The request failed (${ex.error}).`
-                : "Personal Agents find the Company's issuer from the domain's protected resource metadata (RFC 9728). Publish it with resource and authorization_servers, or remove the entries that need an issuer.",
+            expected:
+                "200 with valid protected resource metadata, or 404 for an issuerless Company",
+            cause: "Discovery failed. A timeout, invalid document or other error must not select the domain fallback (3.2).",
         });
-        skipRest(r, METADATA_IDS, "No issuer was found (see metadata.issuer-required).");
+        skipRest(
+            r,
+            METADATA_IDS,
+            "No Company identity was established (see metadata.resource-metadata).",
+        );
         return false;
     }
-    r.pass("metadata.issuer-required", {
-        summary: needs.length ? undefined : "Nothing in poppy.json needs an issuer.",
-    });
     ctx.discovered.resourceMetadata = doc;
-
     const errors = check("protected-resource-metadata.schema.json", doc);
-    const servers = Array.isArray(doc.authorization_servers)
-        ? doc.authorization_servers.filter((s): s is string => typeof s === "string")
-        : [];
     const resourceMatches =
         typeof doc.resource === "string" && doc.resource.toLowerCase() === resource.toLowerCase();
-    if (errors.length || !resourceMatches || servers.length === 0) {
+    if (errors.length || !resourceMatches) {
         r.fail("metadata.resource-metadata", {
             exchange: ex,
             got: [
@@ -501,29 +507,32 @@ async function discoverIssuer(ctx: Context, r: Recorder): Promise<boolean> {
             ]
                 .filter(Boolean)
                 .join("; "),
-            expected: `resource "${resource}" and authorization_servers naming the issuer`,
-            cause: resourceMatches
-                ? "authorization_servers lists the Company's issuer, as an HTTPS URL."
-                : `resource is exactly https:// and organization.domain, with no path or trailing slash. Personal Agents use the metadata only when it's for ${resource}.`,
+            expected: `resource "${resource}" and valid authorization_servers when present`,
+            cause: "The resource must match the Company's domain. Invalid metadata cannot establish an issuerless Company.",
         });
-        if (servers.length === 0) {
-            skipRest(r, METADATA_IDS, "No issuer was found (see metadata.resource-metadata).");
-            return false;
-        }
-    } else r.pass("metadata.resource-metadata");
+        skipRest(r, METADATA_IDS, "Invalid protected resource metadata.");
+        return false;
+    }
+    r.pass("metadata.resource-metadata");
+    const servers = (doc.authorization_servers ?? []) as string[];
+    if (servers.length === 0) return noIssuer();
+    r.pass("metadata.issuer-required");
 
     const chosen = poppy.auth?.issuer;
     let issuer: string;
     if (servers.length === 1) {
         issuer = servers[0];
-        if (chosen !== undefined && chosen !== issuer)
+        if (chosen !== undefined && chosen !== issuer) {
             r.fail("metadata.issuer-chosen", {
                 exchange: ex,
                 got: `auth.issuer ${JSON.stringify(chosen)}, authorization_servers ${JSON.stringify(servers)}`,
                 expected: `auth.issuer "${issuer}", or no auth.issuer`,
                 cause: "auth.issuer must be in the protected resource metadata's authorization_servers. With one server, it can be left out.",
             });
-        else r.pass("metadata.issuer-chosen", { summary: `One authorization server, ${issuer}.` });
+            skipRest(r, METADATA_IDS, "auth.issuer does not match authorization_servers.");
+            return false;
+        } else
+            r.pass("metadata.issuer-chosen", { summary: `One authorization server, ${issuer}.` });
     } else if (typeof chosen === "string" && servers.includes(chosen)) {
         issuer = chosen;
         r.pass("metadata.issuer-chosen", { summary: `auth.issuer ${issuer}.` });
@@ -556,7 +565,9 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
         return;
     }
     if (!(await discoverIssuer(ctx, r))) {
-        ctx.blocked.issuer ??= "No usable issuer was found (see the metadata checks).";
+        if (!ctx.discovered.audience)
+            ctx.blocked.issuer ??=
+                "No usable Company identity was found (see the metadata checks).";
         return;
     }
     // Checks that failed, so Personal Agents wouldn't trust the issuer.
@@ -693,7 +704,7 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
                 expected: `${field}, an HTTPS URL`,
                 cause:
                     field === "revocation_endpoint"
-                        ? "Personal Agents sign out by revoking refresh tokens here (RFC 7009). Add the endpoint, even before you offer sign-in."
+                        ? "Personal Agents sign out by revoking refresh tokens here (RFC 7009). Add the endpoint when you publish an OAuth issuer."
                         : "Personal Agents get access and refresh tokens at the token endpoint. Add it to the metadata.",
             });
         }
@@ -746,7 +757,7 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
     const supported = json.scopes_supported;
     if (!signsIn) {
         r.skip("metadata.scopes-supported", "The Company offers no type of sign-in.");
-        // Scopes it publishes anyway still need descriptions.
+        // Descriptions are recommended even without sign-in grants.
         if (Array.isArray(supported) && supported.length)
             await checkScopesDescribed(ctx, r, supported);
         else r.skip("metadata.scopes-described", "scopes_supported lists no scopes.");
@@ -758,7 +769,7 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
                     ? "no scopes_supported"
                     : `scopes_supported ${JSON.stringify(supported)}`,
             expected: "scopes_supported, listing every scope a Personal Agent can request",
-            cause: "Personal Agents request only scopes from scopes_supported.",
+            cause: "Publishing a complete scope list is recommended. Agents can also request scopes documented by the Company's APIs or sign-in extensions (4.7).",
         });
         r.skip("metadata.scopes-described", "scopes_supported lists no scopes.");
     } else {
@@ -770,11 +781,12 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
                 exchange: ex,
                 got: `scopes_supported ${JSON.stringify(supported)}`,
                 expected: `scopes_supported including ${missing.join(", ")}`,
-                cause: "The mediated-sign-in extension's scopes lists scopes that scopes_supported doesn't. Add them, so Personal Agents can request them.",
+                cause: "Including the Mediated Sign-In scopes in scopes_supported is recommended. Agents can also discover them in the extension's scopes (4.7).",
             });
         } else r.pass("metadata.scopes-supported");
         await checkScopesDescribed(ctx, r, supported);
     }
+    if (!ctx.blocked.issuer) ctx.discovered.audience = issuer;
     checkMediatedGrant(r, poppy, json, ex);
     await checkSameAuth(ctx, r, json, ex);
 }
@@ -797,8 +809,8 @@ function checkMediatedGrant(r: Recorder, poppy: Poppy, json: Metadata, ex: Excha
         });
 }
 
-// Other domains with the same issuer are the same Company, and their poppy.json documents have
-// the same auth (3.2). The validator reads each other domain's document, up to a few.
+// Company domains select the same issuer. Matching scope descriptions and hints are recommended
+// separately (3.2). Read a bounded number of other domains.
 const MAX_OTHER_DOMAINS = 5;
 
 async function checkSameAuth(
@@ -807,7 +819,7 @@ async function checkSameAuth(
     json: Metadata,
     ex: Exchange,
 ): Promise<void> {
-    if (!r.wants("metadata.same-auth")) return;
+    if (!r.wants("metadata.same-auth") && !r.wants("metadata.same-issuer")) return;
     const poppy = ctx.discovered.poppy!;
     const own = String(poppy.organization?.domain ?? "").toLowerCase();
     const others = (Array.isArray(json.protected_resources) ? json.protected_resources : [])
@@ -816,11 +828,14 @@ async function checkSameAuth(
         .filter((d, i, all) => d !== own && all.indexOf(d) === i);
     if (others.length === 0) {
         r.skip("metadata.same-auth", "The issuer's protected_resources lists no other domain.");
+        r.skip("metadata.same-issuer", "The issuer's protected_resources lists no other domain.");
         return;
     }
     const checked = others.slice(0, MAX_OTHER_DOMAINS);
     const different: string[] = [];
     const unread: string[] = [];
+    const wrongIssuer: string[] = [];
+    const unreadIssuer: string[] = [];
     const exchanges: Exchange[] = [ex];
     for (const domain of checked) {
         const follow = await getFollowing(ctx.http, `https://${domain}/.well-known/poppy.json`, {
@@ -831,15 +846,54 @@ async function checkSameAuth(
         const doc = other.json as Poppy | undefined;
         if (other.status !== 200 || !isObject(doc) || follow.problem) {
             unread.push(`${domain} (${other.refused ?? other.error ?? other.status})`);
+            unreadIssuer.push(domain);
             continue;
         }
         if (String(doc.organization?.domain ?? "").toLowerCase() !== domain) {
             unread.push(
                 `${domain} (its document names organization.domain ${JSON.stringify(doc.organization?.domain)})`,
             );
+            unreadIssuer.push(domain);
             continue;
         }
-        if (!sameJson(doc.auth, poppy.auth)) {
+        if (r.wants("metadata.same-issuer")) {
+            const metadata = await getFollowing(
+                ctx.http,
+                `https://${domain}/.well-known/oauth-protected-resource`,
+                {
+                    max: 3,
+                    headers: { Accept: "application/json" },
+                },
+            );
+            const resource = metadata.final!;
+            const prm = resource.json as ResourceMetadata | undefined;
+            exchanges.push(...metadata.chain);
+            if (resource.status === 404 && !resource.error && !metadata.problem) {
+                wrongIssuer.push(domain);
+            } else if (
+                resource.status !== 200 ||
+                metadata.problem ||
+                !isObject(prm) ||
+                check("protected-resource-metadata.schema.json", prm).length ||
+                typeof prm.resource !== "string" ||
+                prm.resource.toLowerCase() !== `https://${domain}`
+            ) {
+                unreadIssuer.push(domain);
+            } else {
+                const servers = (prm.authorization_servers ?? []) as string[];
+                const chosen = doc.auth?.issuer ?? (servers.length === 1 ? servers[0] : undefined);
+                if (
+                    chosen === undefined ||
+                    chosen !== ctx.discovered.issuer ||
+                    !servers.includes(chosen)
+                )
+                    wrongIssuer.push(domain);
+            }
+        }
+        if (
+            !sameJson(doc.auth?.scopes, poppy.auth?.scopes) ||
+            !sameJson(doc.auth?.scope_hints, poppy.auth?.scope_hints)
+        ) {
             different.push(domain);
             exchanges.push(other);
         }
@@ -856,8 +910,8 @@ async function checkSameAuth(
         r.fail("metadata.same-auth", {
             exchange: exchanges,
             got: `auth differs on ${different.join(", ")}`,
-            expected: "The same auth in the poppy.json of every domain with this issuer",
-            cause: "Domains with the same issuer are one Company: the same User IDs, Sessions, and refresh tokens apply to all of them, so their documents have the same auth (issuer, scopes, and scope hints).",
+            expected: "Matching scope descriptions and hints across Company domains",
+            cause: "Matching descriptions and hints are recommended. Domains may expose different scopes or capabilities, but must select the same issuer and preserve scope authorization meanings (3.2).",
             notes,
         });
     else if (unread.length === checked.length)
@@ -869,6 +923,23 @@ async function checkSameAuth(
     else
         r.pass("metadata.same-auth", {
             summary: `Compared with ${checked.length - unread.length} other domain(s).`,
+            notes,
+        });
+    if (wrongIssuer.length)
+        r.fail("metadata.same-issuer", {
+            exchange: exchanges,
+            got: `different or absent selected issuer on ${wrongIssuer.join(", ")}`,
+            expected: `Company domains selecting ${ctx.discovered.issuer}`,
+            cause: "Shared Company identity requires each domain to select the same issuer. Matching scope descriptions is only a recommendation; issuer identity is mandatory (3.2).",
+        });
+    else if (unreadIssuer.length)
+        r.inconclusive("metadata.same-issuer", {
+            exchange: exchanges,
+            cause: `Could not establish the selected issuer on ${unreadIssuer.join(", ")}.`,
+        });
+    else
+        r.pass("metadata.same-issuer", {
+            summary: `Compared selected issuers on ${checked.length} other domain(s).`,
             notes,
         });
 }

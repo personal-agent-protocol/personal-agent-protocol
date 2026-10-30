@@ -5,7 +5,7 @@
 //                     signature would come out (spec 10.7) (mode 0600, never printed)
 //   agent.json        client metadata, hosted at <base-url>/agent.json
 //   jwks.json         their public keys, hosted at <base-url>/jwks.json
-//   config.json       client_id, and a random User ID for each Company issuer
+//   config.json       client_id, and a random User ID for each Company identifier
 //   last-results.json the latest check results, without secrets
 //
 // Each run creates a delegated key in memory, with a delegation for it signed by the key in
@@ -44,7 +44,7 @@ export const POPPY_DIR = ".poppy";
 export type Config = {
     client_id: string;
     base_url: string;
-    // A random User ID for each Company, keyed by its issuer.
+    // A random User ID for each Company, keyed by its identifier (issuer, or HTTPS domain).
     user_ids: Record<string, string>;
 };
 
@@ -266,11 +266,11 @@ export async function loadIdentity(
 }
 
 // The test User ID for a Company, created at random on first use (spec 5.1).
-export function userIdFor(identity: Identity, issuer: string): string {
-    let id = identity.config.user_ids[issuer];
+export function userIdFor(identity: Identity, identifier: string): string {
+    let id = identity.config.user_ids[identifier];
     if (!id) {
         id = `usr_${randomId(16)}`;
-        identity.config.user_ids[issuer] = id;
+        identity.config.user_ids[identifier] = id;
         writeFileSync(
             join(identity.dir, "config.json"),
             JSON.stringify(identity.config, null, 2) + "\n",

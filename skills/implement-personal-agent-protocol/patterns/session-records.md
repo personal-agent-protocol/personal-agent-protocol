@@ -1,6 +1,7 @@
 # Pattern: Session and token records
 
-The Company keeps a record for each Session, and its OAuth server keeps its usual token records
+When using Session identity or state, the Company keeps a record for each Session. Endpoints that
+use no Session claims need no Session record. Its OAuth server keeps its usual token records
 ([5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification),
 [5.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)):
 

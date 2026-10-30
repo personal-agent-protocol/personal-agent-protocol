@@ -315,11 +315,13 @@ export async function checkWeb(ctx: Context, r: Recorder): Promise<void> {
             });
     }
 
-    if (!ctx.identity || !ctx.discovered.issuer || ctx.blocked.identity) {
+    if (!ctx.identity || !ctx.discovered.audience || ctx.blocked.identity) {
         skipRest(
             r,
             WEB_IDS,
-            ctx.blocked.identity ?? ctx.identityProblem ?? "No test Personal Agent or issuer.",
+            ctx.blocked.identity ??
+                ctx.identityProblem ??
+                "No test Personal Agent or Company identity.",
         );
         return;
     }

@@ -95,6 +95,7 @@ const SCENARIOS: Scenario[] = [
     { flaws: { metadata: without("scopes_supported") }, fails: ["metadata.scopes-supported"] },
     { flaws: { undescribedScope: true }, fails: ["metadata.scopes-described"] },
     { flaws: { otherDomainAuth: true }, fails: ["metadata.same-auth"] },
+    { flaws: { otherDomainIssuer: true }, fails: ["metadata.same-issuer"] },
     {
         flaws: {
             metadata: (d) => (d.grant_types_supported = ["refresh_token", "authorization_code"]),

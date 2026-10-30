@@ -53,7 +53,8 @@ the Personal Agent lists that version too. Otherwise handle approval yourself, o
 - **Approvals**
   ([Operations 6](https://personalagentprotocol.org/docs/0.3/extensions/operations#sending-approval)):
   read the `Poppy-Approval` header at APIs, `personalagentprotocol.org/approval` in an MCP tool call's
-  `_meta`, and `approval` on a Personal Agent's message. Make the three checks in order. When the
+  `_meta`, and `approval` on a Personal Agent's message. Make all three checks before acting; their
+  order is recommended. Preserve authorization, response semantics, and at-most-once behavior. When the
   revision isn't one you returned, has expired, or the request doesn't match it, return a new
   revision instead. Never answer an approval with the revision it names.
 - **At most once**

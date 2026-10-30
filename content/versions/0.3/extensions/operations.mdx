@@ -295,8 +295,8 @@ Agent performs the action and says how it went in a later message.
 ### What the Company checks
 
 After the Session header checks in [spec 5.3](/docs/spec#session-verification) and the token checks
-in [spec 7](/docs/spec#apis), and before performing the action, the Company
-MUST check, in this order:
+in [spec 7](/docs/spec#apis), the Company MUST make the following checks before performing the
+action. It SHOULD make them in this order:
 
 1. The Session can approve the operation (3). If it can't, the Company handles the request as if
    it had no approval.
@@ -305,6 +305,9 @@ MUST check, in this order:
 3. The `revision` is one the Company returned for this operation, it hasn't expired, and the request
    asks for exactly what it describes. The API request or tool call is the one that returned the
    operation, and in a conversation, the operation is the conversation's.
+
+The Company MUST NOT let a different internal check order change which Session can approve, the response for a
+request without valid approval, or the retry and at-most-once behavior in section 7.
 
 If every check passes, the Company performs the action and responds as it would have without
 operations. If check 3 fails, it performs nothing and returns the operation with a revision for what

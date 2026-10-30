@@ -212,15 +212,15 @@ export const CATALOG: CheckInfo[] = [
     // Milestone 1: the issuer and its OAuth server metadata (3.2).
     foundation(
         "metadata.issuer-required",
-        "The Company has an issuer when poppy.json lists anything that needs one",
+        "The Company has an issuer when it offers account access",
         "spec#oauth-server",
-        "A Company whose poppy.json lists agent, apis, feedback, web.browser_session_endpoint, or an extension that uses the issuer MUST have one.",
+        "A Company that offers sign-in MUST have an OAuth issuer.",
     ),
     foundation(
         "metadata.resource-metadata",
         "The domain's protected resource metadata is for https://{organization.domain} and names authorization servers",
         "spec#oauth-server",
-        "Its resource MUST be exactly https://{organization.domain}, and its authorization_servers names the issuer",
+        "its resource MUST be exactly https://{organization.domain}",
     ),
     foundation(
         "metadata.issuer-chosen",
@@ -286,19 +286,28 @@ export const CATALOG: CheckInfo[] = [
         "metadata.scopes-supported",
         "scopes_supported lists every scope a sign-in can grant",
         "spec#oauth-server",
-        "Required if the Company offers any type of sign-in, and it MUST then include every scope a Personal Agent can request (4.7).",
+        "A Company that offers sign-in SHOULD publish it and include every scope a Personal Agent can request (4.7).",
+        "SHOULD",
     ),
     foundation(
         "metadata.scopes-described",
         "Every scope in scopes_supported has a description",
         "spec#scopes",
-        "The Company MUST describe each scope in scopes_supported, so the Personal Agent can choose the ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it lists (section 7), or otherwise in auth.scopes.",
+        "The Company SHOULD describe each scope it offers Personal Agents, so the Personal Agent can choose the ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it lists (section 7), or otherwise in auth.scopes.",
+        "SHOULD",
+    ),
+    foundation(
+        "metadata.same-issuer",
+        "Other Company domains select the same issuer",
+        "spec#oauth-server",
+        "The Company MUST select that same issuer on each domain (above).",
     ),
     foundation(
         "metadata.same-auth",
-        "Other domains with the same issuer have the same auth in their poppy.json",
+        "Other domains with the same issuer have matching scope descriptions and hints",
         "spec#oauth-server",
-        "Their documents MUST have the same auth.",
+        "Company SHOULD publish the same scope descriptions and hints across these domains",
+        "SHOULD",
     ),
     signIn(
         "metadata.mediated-grant",
@@ -342,7 +351,8 @@ export const CATALOG: CheckInfo[] = [
         "session.delegation-ps384",
         "A resource accepts a Session JWT whose delegation is signed with PS384",
         "spec#delegated-keys",
-        "alg is ES256 or PS384. Companies MUST accept both.",
+        "SHOULD accept delegations signed with PS384.",
+        "SHOULD",
     ),
     foundation(
         "session.other-user",
@@ -362,7 +372,8 @@ export const CATALOG: CheckInfo[] = [
         "assertion.ps384",
         "The token endpoint accepts a client assertion signed with PS384",
         "spec#agent-identity",
-        "Companies MUST accept client assertions signed with ES256 and with PS384.",
+        "SHOULD accept ones signed with PS384.",
+        "SHOULD",
     ),
     foundation(
         "assertion.signature",
@@ -407,7 +418,7 @@ export const CATALOG: CheckInfo[] = [
         "session.missing",
         "A request without the Session header gets 400 invalid_session",
         "spec#apis",
-        "The Session header is missing or fails a check (5.3)",
+        "A required Session header is missing or Session verification fails (5.3)",
     ),
     foundation(
         "session.typ",
@@ -431,7 +442,7 @@ export const CATALOG: CheckInfo[] = [
         "session.without-delegation",
         "A resource rejects a Session JWT signed directly with a key from jwks_uri",
         "spec#delegated-keys",
-        "The Company MUST reject, with invalid_session, a Session JWT without a delegation, including one signed directly with a key from jwks_uri",
+        "the Company MUST reject, with invalid_session, a Session JWT without a delegation, including one signed directly with a key from jwks_uri",
     ),
     foundation(
         "session.delegation-signature",
@@ -483,9 +494,9 @@ export const CATALOG: CheckInfo[] = [
     ),
     foundation(
         "session.aud",
-        "A resource rejects a Session JWT for a different issuer",
+        "A resource rejects a Session JWT for a different Company identifier",
         "spec#session-verification",
-        "aud is its own issuer, compared character for character",
+        "aud is its Company's identifier, compared character for character",
     ),
     foundation(
         "session.htm",
@@ -513,9 +524,10 @@ export const CATALOG: CheckInfo[] = [
     ),
     foundation(
         "session.invalid-everywhere",
-        "Every endpoint that takes the Session header rejects a bad one with 400 invalid_session",
+        "Protocol endpoints reject a bad Session header before checking an empty body",
         "spec#session-verification",
-        'A failed check returns HTTP 400 with {"error": "invalid_session"}',
+        "Companies SHOULD verify the Session header on every request that carries it.",
+        "SHOULD",
     ),
     foundation(
         "token.invented",
@@ -549,17 +561,17 @@ export const CATALOG: CheckInfo[] = [
         "mcp.metadata",
         "The MCP server publishes protected resource metadata",
         "spec#apis",
-        "The server's protected resource metadata tells MCP clients where to get a token.",
+        "the server's protected resource metadata tells MCP clients where to get a token.",
     ),
     interfaces(
         "mcp.authorization-servers",
         "The protected resource metadata's authorization_servers includes the Company's issuer",
         "spec#apis",
-        "the MCP server MUST include the Company's issuer in its authorization_servers.",
+        "an MCP server that offers account access MUST include the Company's issuer in its authorization_servers.",
     ),
     interfaces(
         "mcp.no-token",
-        "The MCP server answers initialize without a token, or refuses it with a challenge that points to its metadata",
+        "The MCP server answers discovery without a token, or refuses it with a challenge that points to its metadata",
         "spec#apis",
         "An MCP server's challenges include resource_metadata with the server's protected resource metadata URL",
     ),
@@ -575,13 +587,14 @@ export const CATALOG: CheckInfo[] = [
         "feedback.no-session",
         "The feedback endpoint rejects a report without the Session header",
         "spec#feedback",
-        "A Company MUST accept a report only with the Session header, signed in or signed out, and needs no scope for it.",
+        "A Company SHOULD verify the Session header on a report, signed in or signed out, and needs no scope for it.",
+        "SHOULD",
     ),
     interfaces(
         "feedback.accepted",
         "The feedback endpoint accepts a report with a signed-out Session header",
         "spec#feedback",
-        "A Company MUST accept a report only with the Session header, signed in or signed out, and needs no scope for it.",
+        "The Company responds with HTTP 202 and no body.",
     ),
     interfaces(
         "feedback.alternative-references",
@@ -664,7 +677,7 @@ export const CATALOG: CheckInfo[] = [
         "web.authorize-session",
         "Authorizing a code without a valid Session header returns invalid_session",
         "spec#session-verification",
-        "The Company MUST complete these checks before creating a Session or handling the request.",
+        "The Company MUST reject a request without the Session header when handling it depends on Session claims.",
     ),
     interfaces(
         "web.page-cookies",

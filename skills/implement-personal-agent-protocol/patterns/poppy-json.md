@@ -39,15 +39,18 @@ the provider.
   `/.well-known/poppy.json` with no query (section 3). If `example.com` redirects to
   `www.example.com`, `organization.domain` is `www.example.com`. Domains are compared ignoring case
   and nothing else (3.1).
-- A Company that lists `agent`, `apis`, `feedback`, `web.browser_session_endpoint`, or an extension
-  that uses the issuer needs an issuer, found from the domain's protected resource metadata at
-  `/.well-known/oauth-protected-resource` ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)).
-  Serve that document on the same domain, with `resource` exactly `https://{domain}`.
+- A Company that offers sign-in needs an issuer, found from the domain's protected resource
+  metadata at `/.well-known/oauth-protected-resource`
+  ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)). Without one, return 404 or
+  publish valid metadata with no authorization servers. Session JWTs then name
+  `https://{organization.domain}` with a lowercase host and no trailing slash. Discovery errors
+  must not silently choose this fallback.
 - `auth.issuer` is required when that metadata lists more than one authorization server. With one,
   it's optional, and if present it must name that server (3.1).
-- Domains that share an issuer are one Company, and their documents must have the same `auth`
-  ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)). Other fields may differ by
-  domain.
+- Domains that share an issuer are one Company and must select that issuer and give scopes the
+  same authorization meaning ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)).
+  Matching scope descriptions and hints are recommended; domains can expose different scopes and
+  capabilities.
 - List interfaces and extensions only when they work. Add each as it ships. Direct and Device
   Sign-In come from the issuer's `grant_types_supported` (3.2), not `poppy.json`.
 - Check before deploying: `node <skill-dir>/validate/index.ts check --file ./poppy.json`.

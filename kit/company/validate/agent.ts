@@ -7,15 +7,15 @@ import { userIdFor } from "./identity.ts";
 import { randomId, signSessionJwt, type SigningKey } from "./jose.ts";
 import { conversationEndpoint, type Context } from "./checks/types.ts";
 
-// The Company's issuer, which Session JWTs name in aud (spec 5.2, 10.4).
-export function issuer(ctx: Context): string {
-    const value = ctx.discovered.issuer;
-    if (!value) throw new Error("No issuer");
+// The validated Company's identifier, which Session JWTs name in aud (spec 3.2, 5.2).
+export function audience(ctx: Context): string {
+    const value = ctx.discovered.audience;
+    if (!value) throw new Error("No Company audience");
     return value;
 }
 
 export function userId(ctx: Context): string {
-    ctx.session.userId ??= userIdFor(ctx.identity!, issuer(ctx));
+    ctx.session.userId ??= userIdFor(ctx.identity!, audience(ctx));
     return ctx.session.userId;
 }
 
@@ -55,7 +55,7 @@ export function sessionJwt(
         key: options.key ?? identity.key,
         delegation: options.delegation === undefined ? identity.delegation : options.delegation,
         iss: identity.clientId,
-        aud: issuer(ctx),
+        aud: audience(ctx),
         sid: options.sid ?? sessionId(ctx),
         sub: options.sub ?? userId(ctx),
         method: options.method ?? method,

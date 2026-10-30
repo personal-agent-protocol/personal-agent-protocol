@@ -7,8 +7,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { PROTOCOL_VERSION } from "../catalog.ts";
+import { sessionJwt } from "../agent.ts";
+import { decodeJwt } from "../jose.ts";
 import { TEST_REPORT } from "../checks/feedback.ts";
-import { newContext, type CheckResult } from "../checks/types.ts";
+import { newContext, type CheckResult, type CheckOptions } from "../checks/types.ts";
 import { keygen, UsageError } from "../identity.ts";
 import { parseMilestones, runChecks } from "../run.ts";
 import { check } from "../schemas.ts";
@@ -17,9 +19,18 @@ import { fakeHttp, ORIGIN, type Flaws } from "./fake-company.ts";
 const cwd = mkdtempSync(join(tmpdir(), "poppy-validator-test-"));
 await keygen("https://agent.test", { cwd });
 
-async function run(flaws: Flaws = {}, milestone = "interfaces", only?: string[]) {
+async function run(
+    flaws: Flaws = {},
+    milestone = "interfaces",
+    only?: string[],
+    probeOptions: Pick<CheckOptions, "probe" | "probeSession"> = {},
+) {
     const http = fakeHttp(join(cwd, ".poppy"), flaws);
-    const ctx = newContext(http, { milestones: parseMilestones(milestone)!, only }, ORIGIN);
+    const ctx = newContext(
+        http,
+        { milestones: parseMilestones(milestone)!, only, ...probeOptions },
+        ORIGIN,
+    );
     const results = await runChecks(ctx, { cwd });
     const byId = (id: string): CheckResult => {
         const result = results.find((x) => x.id === id);
@@ -27,6 +38,136 @@ async function run(flaws: Flaws = {}, milestone = "interfaces", only?: string[])
         return result;
     };
     return { results, byId, http, ctx };
+}
+
+const signedOutOnly: NonNullable<Flaws["poppy"]> = (doc) => {
+    delete doc.auth;
+    delete doc.extensions["mediated-sign-in"];
+};
+
+for (const metadata of [
+    { noResourceMetadata: true },
+    { emptyAuthorizationServers: true },
+    { omitAuthorizationServers: true },
+]) {
+    test(`issuerless Sessions work with ${Object.keys(metadata)[0]}`, async () => {
+        const { ctx, http, byId, results } = await run({ ...metadata, poppy: signedOutOnly });
+        assert.equal(ctx.discovered.issuer, undefined);
+        assert.equal(ctx.discovered.audience, ORIGIN);
+        assert.equal(byId("session.start").status, "pass");
+        assert.equal(byId("session.missing").status, "pass");
+        assert.equal(byId("session.aud").status, "pass");
+        assert.deepEqual(
+            results.filter((r) => r.status === "fail").map((r) => r.id),
+            [],
+        );
+        assert.equal(
+            http.log.some((ex) => /\/oauth\/|oauth-authorization-server/.test(ex.url)),
+            false,
+        );
+    });
+}
+
+for (const flaw of [
+    { resourceMetadataStatus: 500 },
+    { malformedAuthorizationServers: true },
+    { noIssuerMetadata: true },
+    {
+        metadata: (doc: Record<string, any>) => {
+            doc.issuer = "https://other.test";
+        },
+    },
+]) {
+    test(`failed discovery never falls back to the domain: ${Object.keys(flaw)[0]}`, async () => {
+        const { ctx, byId, results } = await run({ ...flaw, poppy: signedOutOnly }, "foundation");
+        assert.equal(ctx.discovered.audience, undefined);
+        assert.equal(byId("session.start").status, "skip");
+        assert.ok(results.some((r) => r.status === "fail" && r.id.startsWith("metadata.")));
+    });
+}
+
+test("a conversation that requires sign-in cannot select the domain fallback", async () => {
+    const { ctx, byId } = await run(
+        {
+            noResourceMetadata: true,
+            poppy(doc) {
+                signedOutOnly(doc);
+                doc.agent.protocols[0].access = "signed_in";
+            },
+        },
+        "foundation",
+    );
+    assert.equal(byId("metadata.issuer-required").status, "fail");
+    assert.equal(ctx.discovered.audience, undefined);
+    assert.equal(byId("session.start").status, "skip");
+});
+
+test("unknown conversation access hints are ignored", async () => {
+    const { ctx, byId } = await run(
+        {
+            noResourceMetadata: true,
+            poppy(doc) {
+                signedOutOnly(doc);
+                doc.agent.protocols[0].access = "future_hint";
+            },
+        },
+        "foundation",
+    );
+    assert.equal(byId("discovery.schema").status, "pass");
+    assert.equal(ctx.discovered.audience, ORIGIN);
+    assert.equal(byId("session.missing").status, "pass");
+});
+
+test("the Company identifier scopes the Session audience and pairwise User ID", async () => {
+    const { ctx } = await run({ noResourceMetadata: true, poppy: signedOutOnly }, "foundation");
+    const original = decodeJwt(await sessionJwt(ctx, "GET", `${ORIGIN}/api`))!.payload;
+    const changed = newContext(ctx.http, ctx.options, ORIGIN);
+    changed.identity = ctx.identity;
+    changed.discovered.audience = "https://login.shop.test";
+    const migrated = decodeJwt(await sessionJwt(changed, "GET", `${ORIGIN}/api`))!.payload;
+    assert.equal(original.aud, ORIGIN);
+    assert.equal(migrated.aud, "https://login.shop.test");
+    assert.notEqual(migrated.sub, original.sub);
+    assert.notEqual(migrated.sid, original.sid);
+
+    const { ctx: withIssuer } = await run({}, "foundation");
+    const unchanged = decodeJwt(await sessionJwt(withIssuer, "GET", `${ORIGIN}/api`))!.payload;
+    assert.equal(unchanged.aud, original.aud);
+    assert.equal(
+        unchanged.sub,
+        original.sub,
+        "an issuer equal to the old identifier preserves the namespace",
+    );
+});
+
+test("modern MCP discovery carries per-request metadata without initializing", async () => {
+    const { byId, http } = await run({ modernMcp: true, mcpWithoutToken: true }, "interfaces", [
+        "mcp.",
+    ]);
+    assert.equal(byId("mcp.no-token").status, "pass");
+    const methods = http.log
+        .filter((ex) => ex.url === `${ORIGIN}/mcp`)
+        .map((ex) => JSON.parse(ex.requestBody!).method);
+    assert.ok(methods.includes("server/discover"));
+    assert.ok(!methods.includes("initialize"));
+});
+
+for (const flaw of [{ mcpMalformedDiscovery: true }, { mcpUnsupportedVersion: true }]) {
+    test(`modern MCP errors cannot masquerade as legacy discovery: ${Object.keys(flaw)[0]}`, async () => {
+        const { byId, http } = await run(
+            { ...flaw, modernMcp: true, mcpWithoutToken: true },
+            "interfaces",
+            ["mcp."],
+        );
+        assert.equal(byId("mcp.no-token").status, "fail");
+        assert.ok(
+            !http.log.some(
+                (ex) =>
+                    ex.url === `${ORIGIN}/mcp` &&
+                    JSON.parse(ex.requestBody!).method === "initialize",
+            ),
+        );
+    });
 }
 
 test("keygen writes the identity, keeps the key private, and won't overwrite it", async () => {
@@ -89,10 +230,34 @@ test("signed-out requests use resources without any token endpoint call", async 
     assert.ok(feedback.some((ex) => "Poppy-Session" in ex.requestHeaders));
 });
 
-test("a resource that checks delegations only with EC keys fails session.delegation-ps384", async () => {
+test("a resource that checks delegations only with EC keys warns on session.delegation-ps384", async () => {
     const { byId } = await run({ rejectPs384Delegation: true }, "foundation", ["session."]);
-    assert.equal(byId("session.delegation-ps384").status, "fail");
+    assert.equal(byId("session.delegation-ps384").status, "warn");
+    assert.equal(byId("session.delegation-ps384").level, "SHOULD");
+    assert.ok(!byId("session.delegation-ps384").inconclusive);
     assert.equal(byId("session.start").status, "pass");
+});
+
+test("an ES256-only token endpoint warns on PS384 without failing assertion checks", async () => {
+    const { byId, results } = await run(
+        {
+            rejectPs384Assertion: true,
+            metadata(doc) {
+                doc.token_endpoint_auth_signing_alg_values_supported = ["ES256"];
+            },
+        },
+        "foundation",
+        ["assertion."],
+    );
+    assert.equal(byId("assertion.ps384").status, "warn");
+    assert.equal(byId("assertion.ps384").level, "SHOULD");
+    assert.ok(!byId("assertion.ps384").inconclusive);
+    assert.equal(byId("assertion.signature").status, "pass");
+    assert.equal(byId("assertion.aud-endpoint").status, "pass");
+    assert.deepEqual(
+        results.filter((r) => r.status === "fail"),
+        [],
+    );
 });
 
 test("a resource that ties a Session to its delegated key fails session.new-key", async () => {
@@ -175,6 +340,44 @@ test("Session header errors as 401 invalid_token fail", async () => {
     assert.equal(byId("session.aud").status, "fail");
 });
 
+test("a stateless API probe warns on Session verification while token validation remains mandatory", async () => {
+    const { byId, results } = await run(
+        { statelessApi: true, ignoreAccessToken: true },
+        "foundation",
+        ["session.", "token.invented"],
+        { probe: `${ORIGIN}/api/orders` },
+    );
+    for (const id of [
+        "session.unknown-key",
+        "session.aud",
+        "session.other-user",
+        "session.other-agent",
+    ]) {
+        assert.equal(byId(id).status, "warn");
+        assert.equal(byId(id).level, "SHOULD");
+        assert.ok(!byId(id).inconclusive);
+    }
+    assert.deepEqual(
+        results.filter((r) => r.status === "fail").map((r) => r.id),
+        ["token.invented"],
+    );
+    assert.equal(byId("token.invented").level, "MUST");
+});
+
+test("a Session-dependent API probe still fails forged Session signatures and changed ownership", async () => {
+    const { byId } = await run(
+        { apiRequiresSession: true, acceptUnknownKey: true, ignoreSessionUser: true },
+        "foundation",
+        ["session."],
+        { probe: `${ORIGIN}/api/orders`, probeSession: true },
+    );
+    assert.equal(byId("session.missing").status, "pass");
+    for (const id of ["session.unknown-key", "session.other-user"]) {
+        assert.equal(byId(id).status, "fail");
+        assert.equal(byId(id).level, "MUST");
+    }
+});
+
 test("an MCP server that answers without a token passes mcp.no-token", async () => {
     const { byId } = await run({ mcpWithoutToken: true }, "interfaces", ["mcp."]);
     assert.equal(byId("mcp.no-token").status, "pass");
@@ -246,9 +449,10 @@ test("auth.issuer that isn't the only authorization server fails metadata.issuer
     assert.equal(byId("metadata.issuer-chosen").status, "fail");
 });
 
-test("a feedback endpoint that takes reports without the Session header fails feedback.no-session", async () => {
+test("a feedback endpoint that takes unattributed reports warns on feedback.no-session", async () => {
     const { byId } = await run({ feedbackWithoutSession: true }, "interfaces", ["feedback."]);
-    assert.equal(byId("feedback.no-session").status, "fail");
+    assert.equal(byId("feedback.no-session").status, "warn");
+    assert.equal(byId("feedback.no-session").level, "SHOULD");
     assert.equal(byId("feedback.accepted").status, "pass");
 });
 
@@ -323,12 +527,54 @@ test("every scope described, in OpenAPI or auth.scopes, passes metadata.scopes-d
     }
 });
 
-test("a scope in scopes_supported with no description fails metadata.scopes-described", async () => {
+test("a scope in scopes_supported with no description warns on metadata.scopes-described", async () => {
     const { byId } = await run({ undescribedScope: true }, "foundation", ["metadata."]);
     const r = byId("metadata.scopes-described");
-    assert.equal(r.status, "fail");
+    assert.equal(r.status, "warn");
+    assert.equal(r.level, "SHOULD");
     assert.match(r.got ?? "", /addresses/);
     assert.doesNotMatch(r.got ?? "", /orders:read/);
+});
+
+for (const incomplete of [false, true]) {
+    test(`${incomplete ? "incomplete" : "absent"} scope metadata warns without blocking Sessions`, async () => {
+        const { byId, results } = await run(
+            {
+                metadata(doc) {
+                    if (incomplete) doc.scopes_supported = ["orders:write"];
+                    else delete doc.scopes_supported;
+                },
+            },
+            "foundation",
+            ["metadata.", "session.start"],
+        );
+        assert.equal(byId("metadata.scopes-supported").status, "warn");
+        assert.equal(byId("metadata.scopes-supported").level, "SHOULD");
+        assert.equal(byId("metadata.schema").status, "pass");
+        assert.equal(byId("session.start").status, "pass");
+        assert.deepEqual(
+            results.filter((r) => r.status === "fail"),
+            [],
+        );
+    });
+}
+
+test("different domain hints warn while a different selected issuer fails", async () => {
+    const { byId } = await run({ otherDomainAuth: true }, "foundation", ["metadata."]);
+    assert.equal(byId("metadata.same-auth").status, "warn");
+    assert.equal(byId("metadata.same-auth").level, "SHOULD");
+    assert.equal(byId("metadata.same-issuer").status, "pass");
+    for (const issuer of [{ otherDomainIssuer: true }, { otherDomainIssuerless: true }]) {
+        const { byId: different } = await run(issuer, "foundation", ["metadata."]);
+        assert.equal(different("metadata.same-issuer").status, "fail");
+        assert.equal(different("metadata.same-issuer").level, "MUST");
+    }
+});
+
+test("an explicit versus implicit selection of the same issuer needs no identical auth object", async () => {
+    const { byId } = await run({ otherDomainExplicitIssuer: true }, "foundation", ["metadata."]);
+    assert.equal(byId("metadata.same-issuer").status, "pass");
+    assert.equal(byId("metadata.same-auth").status, "pass");
 });
 
 test("organization.domain that doesn't match the host fails discovery and skips metadata", async () => {

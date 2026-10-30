@@ -32,15 +32,16 @@ The examples below assume you're in the skill folder and use `node validate/inde
 
 ### `check` options
 
-| Option                      | Meaning                                                                                                                                        |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--milestone <m>`           | `foundation` (1), `interfaces` (2), `sign-in` (3), `extensions` (4), or `all` (the default). Each milestone includes the ones before it.       |
-| `--design <path>`           | Reports progress against the ` ```json poppy-design ` block in the design. Its `domain` is the default URL.                                    |
-| `--file <poppy.json>`       | Offline: checks a local `poppy.json` against the schema and field rules. No network.                                                           |
-| `--only <id or prefix>`     | Runs only matching checks, such as `session.start` or `conversations.`. Repeatable.                                                            |
-| `--probe <url>`             | A GET operation in your API that takes the Session header signed out. Used for the Session header checks instead of the conversation endpoint. |
-| `--json`                    | Prints the same results as JSON.                                                                                                               |
-| `--allow-private-addresses` | Also connects to loopback, private, and link-local addresses, to test a local deployment. Same as `POPPY_VALIDATOR_ALLOW_PRIVATE=1`.           |
+| Option                      | Meaning                                                                                                                                  |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `--milestone <m>`           | `foundation` (1), `interfaces` (2), `sign-in` (3), `extensions` (4), or `all` (the default). Each milestone includes the ones before it. |
+| `--design <path>`           | Reports progress against the ` ```json poppy-design ` block in the design. Its `domain` is the default URL.                              |
+| `--file <poppy.json>`       | Offline: checks a local `poppy.json` against the schema and field rules. No network.                                                     |
+| `--only <id or prefix>`     | Runs only matching checks, such as `session.start` or `conversations.`. Repeatable.                                                      |
+| `--probe <url>`             | A signed-out GET operation in your API. Session checks test the general recommendation unless `--probe-session` is set.                  |
+| `--probe-session`           | Confirms the probe uses Session identity or state, making Session verification checks mandatory as at conversations. Requires `--probe`. |
+| `--json`                    | Prints the same results as JSON.                                                                                                         |
+| `--allow-private-addresses` | Also connects to loopback, private, and link-local addresses, to test a local deployment. Same as `POPPY_VALIDATOR_ALLOW_PRIVATE=1`.     |
 
 Exit codes: `0` no MUST failures, `1` a MUST check failed, `2` usage error. A SHOULD that isn't met
 is a warning and doesn't change the exit code.
@@ -77,6 +78,15 @@ allowlist.
 
 `catalog.ts` lists every check with its requirement and section.
 
+Issuerless Companies use their validated HTTPS domain as the Session audience. OAuth checks are
+skipped; Session, conversation, feedback, and browser-join checks still run. Generic API probes test
+the verification recommendation; use `--probe-session` for APIs that use Session claims or state.
+Conversations and browser join still require verification. Feedback may be unattributed; attribution
+requires verification and needs manual inspection. Discovery errors never
+select that fallback. The MCP probes cover modern `server/discover` and legacy `initialize` with
+ordinary Bearer challenges. Check signed-out issuerless MCP handling, optional operator signatures
+at the actual edge, DPoP, and signed-in requests by hand against the checklist.
+
 ## Safety
 
 - Requests are limited to:
@@ -84,7 +94,7 @@ allowlist.
     - conversation requests, including a handoff request to a closed conversation, which the Company
       rejects;
     - feedback reports;
-    - MCP `initialize`, without a token and with an invented one;
+    - MCP `server/discover` or legacy `initialize`, without a token and with an invented one;
     - token requests that can't succeed: refresh requests with a refresh token that doesn't exist, and
       a Mediated Sign-In request with a `sign_in_id` that doesn't exist;
     - authorizing the browser-session page's codes, and submitting its form without the join cookie,

@@ -18,7 +18,7 @@ permissions it grants:
 - Start from the scopes the Company's OAuth server already has, and from what a signed-in customer
   can do. Decide what a Personal Agent shouldn't do under any scope, such as changing sign-in
   credentials or closing the account.
-- List every scope in `scopes_supported` in the OAuth metadata, and describe every one (MUST, 4.7):
+- List every offered scope in `scopes_supported` in the OAuth metadata, and describe every one (SHOULD, 4.7):
   in the OAuth security scheme of an OpenAPI description you list, or in `auth.scopes`, a map from
   scope name to description in the same form.
 - Write descriptions in words a User understands, specific enough for a language model to pick the
@@ -37,7 +37,8 @@ permissions it grants:
   Sign-In from Personal Agents needs an issuer only for them, chosen before launch, because changing
   the issuer later makes every User look new to the Company
   ([guides](https://personalagentprotocol.org/docs/guides#company-agent-issuer)).
-- Direct and Device Sign-In can grant any scope in `scopes_supported`. Decide which Mediated Sign-In
+- Agents can also request scopes documented by the Company's APIs or sign-in extensions, even if
+  `scopes_supported` omits them. Direct and Device Sign-In can grant the scopes their policies allow. Decide which Mediated Sign-In
   can grant, in its extension's `scopes`. It often grants less.
 - Make the scopes cover what Users ask Personal Agents to do, so they don't fall back to the User's
   credentials (SHOULD, [5.4](https://personalagentprotocol.org/docs/spec#sign-in),

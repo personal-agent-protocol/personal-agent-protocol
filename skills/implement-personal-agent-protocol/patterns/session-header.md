@@ -3,9 +3,12 @@
 Every request to the Company's APIs, conversations, feedback, browser-session `/authorize`, and
 extension endpoints carries a `Poppy-Session` header: a JWT the Personal Agent signs for that one
 request with a delegated key, carrying the delegation in its `pap_dlg` header
-([5.2](https://personalagentprotocol.org/docs/0.3/spec#session-header)). The Company MUST make the
-checks in [5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification) before creating a
-Session or doing any work. Use an existing JOSE library for the signatures rather than writing them
+([5.2](https://personalagentprotocol.org/docs/0.3/spec#session-header)). The Company SHOULD verify it
+generally and MUST complete the checks in
+[5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification) before trusting Session claims
+for identity, ownership, continuity, or state. An endpoint that uses none of those claims can ignore
+the header. OAuth validation, scope enforcement, and required DPoP checks still apply. Use an
+existing JOSE library for the signatures rather than writing them
 yourself. The [guides](https://personalagentprotocol.org/docs/0.3/guides#both-signing) cover JWT
 verification in general.
 
@@ -41,12 +44,14 @@ Each service verifies the header itself, with a shared library.
 1. Fetch the client metadata at `iss` and its `jwks_uri` (4.1), and apply the allowlist,
    blocklist, or registration policy.
 2. Verify the delegation in `pap_dlg` with the key in `jwks_uri` named by its `kid`, `ES256` or
-   `PS384`. Check its `typ` is `pap-delegation+jwt`, its `iss` is the Session JWT's `iss`, it
+   `PS384` (ES256 required, PS384 recommended). Check its `typ` is `pap-delegation+jwt`, its `iss` is the Session JWT's `iss`, it
    hasn't expired, and its `exp` is at most 24 hours after its `iat`
    ([Delegated keys](https://personalagentprotocol.org/docs/0.3/spec#delegated-keys)).
 3. Verify the Session JWT's `ES256` signature with the delegation's `cnf.jwk`, check that its `kid`
    is that key's JWK thumbprint, and that its `iat` is no later than the delegation's `exp`.
-4. Check `typ` `poppy-session+jwt`, `aud` equal to the issuer character for character, `htm` and
+4. Check `typ` `poppy-session+jwt`, `aud` equal to the Company's identifier character for character
+   (its issuer, or `https://{organization.domain}` with a lowercase host and no trailing slash when
+   it has none), `htm` and
    `htu` against the request as RFC 9449 §4.3 describes for DPoP proofs, and `iat` within the
    acceptance window.
 5. With an access token, check `ath` is its SHA-256 hash and the token was issued to the same
@@ -94,9 +99,8 @@ your server receives. Watch for path rewrites, such as a gateway that strips a p
   ([4.5](https://personalagentprotocol.org/docs/0.3/spec#access-tokens)). If your access tokens are
   DPoP-bound, a signed-in request carries both a Session JWT and a DPoP proof, each signed with its
   own key. Verify both.
-- An MCP server MAY ignore the Session header
-  ([section 7](https://personalagentprotocol.org/docs/0.3/spec#apis)). Every other listed API MUST
-  accept it.
+- Any API can ignore Session claims when it uses no Session identity or state
+  ([section 7](https://personalagentprotocol.org/docs/0.3/spec#apis)). Agents still send the header.
 - Serve Personal Agent conversations only from the conversation endpoint
   ([8.2](https://personalagentprotocol.org/docs/0.3/spec#conversation-requests)). Website chat or other
   channels that open the same conversations may not check the header.

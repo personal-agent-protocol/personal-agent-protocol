@@ -2,22 +2,32 @@
 
 ## 1. Introduction
 
-Personal Agent Protocol (Poppy for short) defines how a Personal Agent, acting for one User, works with a Company on that User's behalf. It's meant to cover the whole interaction, beyond agent-to-agent conversations:
-
-1. **Discovery:** a standard way for the Personal Agent to find that a Company implements the protocol.
-2. **OAuth:** how the agent identifies itself to the Company and how Users sign in to their accounts.
-3. **Sessions:** how the Company identifies each User, signed in or not, across everything the agent does there.
-4. **Web browsing:** how the Personal Agent browses the Company's website in the same Session.
-5. **APIs:** how the Personal Agent uses the Company's APIs, which can be more efficient than web browsing.
-6. **Conversations:** how the Personal Agent starts a conversation with the Company Agent, and how either side can bring in a person: the User on the Personal Agent's side, or a person at the Company.
-7. **Task coverage:** how the Company and the Personal Agent tell each other about the tasks Users need done: the tasks the Company chooses not to offer through the protocol, the tasks a Personal Agent couldn't do, and other ways to do either.
-8. **Extensions:** how Companies and Personal Agents add capabilities beyond this specification, described on the [Extensions page](https://personalagentprotocol.org/docs/0.3/extensions).
+Personal Agent Protocol (Poppy for short) defines how a Personal Agent, acting for one User, works with a Company on that User's behalf. It covers discovery, identity, account access, and interactions across APIs, web browsing, and conversations with the Company Agent.
 
 This is draft version 0.3. Any part of it can change before a stable version, including in ways that aren't backward compatible. Areas it doesn't cover yet are listed in [Path to 1.0](https://personalagentprotocol.org/docs/path-to-1#open-topics).
 
 The examples use `example.com` for the Company and `agent.example` for the Personal Agent. Tokens, keys, and codes in the examples are shortened placeholders, not real values.
 
 The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are used as described in BCP 14 ([RFC 2119](https://www.rfc-editor.org/rfc/rfc2119), [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)) when they appear in capitals, as shown here.
+
+### 1.1 Protocol layers
+
+Poppy separates request identity, Session continuity, and account access. Companies choose which channels and capabilities to offer. The layers below describe how those choices fit together; they are not a sequence of adoption levels.
+
+| Component | What it provides | How it fits |
+| --- | --- | --- |
+| Discovery | Finds the Company's channels, capabilities, and sign-in options. | The Company publishes `poppy.json` and at least one channel (section 3). Account access uses standard OAuth metadata (3.2). |
+| Operator recognition | Lets existing bot defenses authenticate the operator before application handling. | An optional Web Bot Auth signature provides compatibility with those defenses. An edge that verifies delegated Session JWTs can authenticate the client directly (5.3). |
+| Sessions | Identifies the Personal Agent and a pseudonymous User, and connects activity across channels. | The Personal Agent sends a Session JWT. The Company verifies it before relying on its identity or connecting state (section 5). |
+| Account access | Acts on a Company account with the User's authorization. | Standard OAuth, with Poppy's choices listed in 4.8. Signed-out interactions need no OAuth server (section 4). |
+| Interaction channels | Uses APIs, browses the website, or talks to the Company Agent, including handoff to a person. | The Company exposes the channels it supports. Browser join connects website activity to the Session (sections 6, 7, and 8). |
+| Task coverage and extensions | Communicates unsupported tasks, collects feedback, and adds capabilities such as operation approvals. | The Company advertises the capabilities it implements (section 9 and [Extensions](https://personalagentprotocol.org/docs/0.3/extensions)). |
+
+Sessions and account access are independent. A Session identifies activity through a Personal Agent; OAuth authorizes access to a Company account. On APIs and protocol endpoints, a signed-out request carries the Session header, and a signed-in request also carries an access token. OAuth endpoints use their own client authentication. Website pages use the Company's cookies, with browser join when supported (5.2 and section 6).
+
+A Company can expose signed-out APIs without running an OAuth server. An endpoint that uses no Session claims can handle requests without verifying the Session header. Relying on Session identity, ownership, continuity, or state requires verification (5.3). The Personal Agent still sends the header even when the Company ignores it. Operator recognition alone does not verify Session claims, authorize account access, or decide whether the Company accepts the request.
+
+The [Company adoption guide](https://personalagentprotocol.org/docs/0.3/guides#company-adoption) describes how to choose these capabilities for an implementation.
 
 ## 2. Terms
 
@@ -56,10 +66,10 @@ A Company MUST publish its `poppy.json` document at `https://{domain}/.well-know
 
 **Fetching the document.** The well-known URL MAY redirect, for example from `www.example.com` to `example.com`. Personal Agents MUST follow redirects, and every redirect MUST be to an HTTPS URL. A redirect MAY go to another host, but Personal Agents MUST use the document only when the last URL's path is exactly `/.well-known/poppy.json` and it has no query. Otherwise anyone who can serve a file from some path on a domain, such as an upload, could redirect to it and have it speak for that domain.
 
-**Which Company a document speaks for.** A `poppy.json` speaks for the host that serves it at the well-known path, after any redirects, so a Company that uses a provider has the provider serve it on the Company's own domain. The Company's OAuth issuer identifies the Company. The Personal Agent finds it the standard way, from the domain's protected resource metadata, and the issuer confirms the link from its side by listing the domain in its own metadata (3.2). Before using a document, the Personal Agent checks both:
+**Which Company a document speaks for.** A `poppy.json` speaks for the host that serves it at the well-known path, after any redirects, so a Company that uses a provider has the provider serve it on the Company's own domain. The Company's OAuth issuer, or its HTTPS domain when it has no issuer, identifies the Company (3.2). When there is an issuer, the Personal Agent finds it the standard way, from the domain's protected resource metadata, and the issuer confirms the link from its side by listing the domain in its own metadata (3.2). Before using a document, the Personal Agent checks both:
 
 1. `organization.domain` is the host that served the document (3.1). This stops a document copied to another domain from speaking for the Company.
-2. The issuer's `protected_resources` lists `https://{organization.domain}` (3.2). This stops a domain from claiming another Company's issuer and receiving its tokens.
+2. When there is an issuer, its `protected_resources` lists `https://{organization.domain}` (3.2). This stops a domain from claiming another Company's issuer and receiving its tokens.
 
 **HTTPS.** Every URL this protocol defines or exchanges MUST be an HTTPS URL: in `poppy.json`, in authorization server and protected resource metadata, in client metadata documents (4.1), in extensions, and in assertions, Session JWTs, and responses. Personal Agents MUST NOT use a URL from a Company that has another scheme, and Companies MUST reject one from a Personal Agent. This doesn't cover the pages of a Company's website, which Personal Agents browse as any visitor would (section 6), or loopback redirect URIs (4.2).
 
@@ -128,9 +138,9 @@ An example document:
 | `organization` | Yes | Display name and domain. `domain` MUST be the host that serves the document, after any redirects. Domains are compared ignoring case, with no other normalization. |
 | `auth` | No | The Company's sign-in details: `issuer`, `scopes`, and `scope_hints`, below. |
 | `auth.issuer` | If the domain's protected resource metadata lists more than one authorization server | The Company's OAuth issuer identifier, naming the one Personal Agents use (3.2). It MUST be in that list. With one authorization server, the Company MAY leave it out, and if it includes it, it MUST name that server. |
-| `auth.scopes` | For scopes no OpenAPI description describes | A description of each scope, keyed by scope name, in the same form as the `scopes` of an OAuth 2.0 security scheme in OpenAPI. It describes each scope in `scopes_supported` that no OpenAPI description the Company lists describes (4.7). |
-| `auth.scope_hints` | No | Hints about what each scope allows, keyed by scope name: `changes` and `personal_data` (4.7). They apply to any scope in `scopes_supported`, wherever it is described. |
-| `agent` | One of `agent`, `apis`, or `web` | The Company Agent. `protocols` lists its supported conversation protocols, each with a `type` and HTTPS `endpoint` (section 8). |
+| `auth.scopes` | No | Scope descriptions, keyed by scope name, in the same form as the `scopes` of an OAuth 2.0 security scheme in OpenAPI. Recommended for scopes no OpenAPI description the Company lists describes (4.7). |
+| `auth.scope_hints` | No | Hints about what each scope allows, keyed by scope name: `changes` and `personal_data` (4.7). They apply wherever the scope is described. |
+| `agent` | One of `agent`, `apis`, or `web` | The Company Agent. `protocols` lists its supported conversation protocols, each with a `type` and HTTPS `endpoint` (section 8). A `poppy` entry may include an `access` hint (3.2). |
 | `apis` | One of `agent`, `apis`, or `web` | A list of APIs. Each has a `type`, such as those in section 7, a `url`, and a short `description` that helps the Personal Agent pick the right one. |
 | `web` | One of `agent`, `apis`, or `web` | The Company's website. The optional `browser_session_endpoint` is where the Personal Agent's browser joins a Session (section 6). Without it, Personal Agents browse the site as ordinary signed-out visitors. |
 | `feedback` | No | `endpoint` is an HTTPS URL where Personal Agents report a User's task that can't be done through this protocol (9.3). |
@@ -139,10 +149,14 @@ An example document:
 
 ### 3.2 OAuth server
 
-A Company is identified by its OAuth issuer. A Company whose `poppy.json` lists `agent`, `apis`, `feedback`, `web.browser_session_endpoint`, or an extension that uses the issuer MUST have one. Without one, the Company can only be browsed as an ordinary website (section 6).
+A Company that offers sign-in MUST have an OAuth issuer. A Company without one can offer signed-out Sessions, including APIs, conversations, feedback, and browser join, without running an authorization server. Agent identity and Session verification still follow 4.1 and section 5.
 
-The Personal Agent finds the issuer from the protected resource metadata ([RFC 9728](https://www.rfc-editor.org/rfc/rfc9728)) of `https://{organization.domain}`, which the Company publishes at `https://{organization.domain}/.well-known/oauth-protected-resource`. Its `resource` MUST be exactly `https://{organization.domain}`, and its `authorization_servers` names the issuer:
+The Company's identifier is its issuer when it has one, and otherwise `https://{organization.domain}`, with the host in lowercase and no trailing slash. Session JWTs use this identifier as their audience, and User IDs and Agent IDs are scoped by it (5.1, 5.2). Without an issuer, each domain is a separate Company.
 
+The Personal Agent finds the issuer from the protected resource metadata ([RFC 9728](https://www.rfc-editor.org/rfc/rfc9728)) of `https://{organization.domain}`, which the Company publishes at `https://{organization.domain}/.well-known/oauth-protected-resource` when it has an issuer. If the Company publishes this metadata, its `resource` MUST be exactly `https://{organization.domain}`, and its `authorization_servers`, when nonempty, names the issuer:
+
+- HTTP 404, or valid metadata with `authorization_servers` absent or empty, means the Company has no issuer. This is valid only when `auth.issuer` is absent and the Company offers no sign-in.
+- A Personal Agent MUST NOT use the domain fallback after a timeout, another error status, invalid metadata, or a failure to verify an issuer. It MUST NOT fall back for a Company whose issuer it already knows unless a successful discovery explicitly establishes that the issuer was removed.
 - If it lists one authorization server, that is the Company's issuer. `auth.issuer` is optional, and if present MUST name that server (3.1).
 - If it lists more than one, such as one for the Company's employees, `auth.issuer` in `poppy.json` names the one Personal Agents use (3.1). RFC 9728 leaves the choice among them to the client, but User IDs and refresh tokens belong to one issuer (5.1), so every Personal Agent has to choose the same one.
 
@@ -155,9 +169,9 @@ The Personal Agent finds the issuer from the protected resource metadata ([RFC 9
 }
 ```
 
-User IDs belong to one issuer (5.1), so a Company that changes its issuer, or which issuer Personal Agents use, makes every User look new to it.
+User IDs belong to the Company's identifier (5.1). Adding or changing an issuer can change that identifier. If it changes, Personal Agents MUST use new User IDs, Agent IDs, and Sessions for the new identifier. Earlier carts and conversations do not transfer automatically. Several domains become one Company only through a shared issuer.
 
-Several domains MAY have the same issuer, such as a Company with a domain for each country, and they are then one Company: the same User IDs (5.1), Sessions, and refresh tokens apply to all of them. Their documents MUST have the same `auth`. Other fields MAY differ by domain, such as the APIs or the website, and the Personal Agent uses the document of the domain it is working with.
+Several domains MAY have the same issuer, such as a Company with a domain for each country, and they are then one Company: the same User IDs (5.1), Sessions, and refresh tokens apply to all of them. The Company MUST select that same issuer on each domain (above). The Company MUST give each scope the same authorization meaning across these domains. The Company SHOULD publish the same scope descriptions and hints across these domains, but MAY expose different scopes or capabilities. Other fields MAY differ by domain, such as the APIs or the website, and the Personal Agent uses the document of the domain it is working with.
 
 An issuer MUST represent exactly one Company. A provider that hosts several Companies MUST give each its own issuer, such as `https://auth.provider.example/shop-a`, even when they share servers. Otherwise the Companies would be one Company under this protocol: Personal Agents would send each of them the same User IDs, and a refresh token from one would be valid at the others.
 
@@ -194,9 +208,12 @@ The Personal Agent uses these fields of the metadata:
 - `grant_types_supported` lists the grant types the token endpoint accepts. Required, and it MUST include `refresh_token` (4.4). It also says which of Direct and Device Sign-In the Company offers (4): `authorization_code` for Direct Sign-In and `urn:ietf:params:oauth:grant-type:device_code` for Device Sign-In.
 - `authorization_endpoint` starts Direct Sign-In (4.2). Required if `grant_types_supported` includes `authorization_code`.
 - `device_authorization_endpoint` starts Device Sign-In (4.3). Required if `grant_types_supported` includes `urn:ietf:params:oauth:grant-type:device_code`.
-- `scopes_supported` lists the scopes the issuer supports. Required if the Company offers any type of sign-in, and it MUST then include every scope a Personal Agent can request (4.7).
+- `scopes_supported` lists the scopes the issuer supports, as RFC 8414 §2 defines. A Company that offers sign-in SHOULD publish it and include every scope a Personal Agent can request (4.7).
+- `token_endpoint_auth_signing_alg_values_supported` lists the signing algorithms the token endpoint accepts for client assertions, as RFC 8414 §2 defines (4.1). It does not describe support for delegation signatures at resource endpoints (5.2).
 
 The metadata MAY have other fields, which Personal Agents ignore.
+
+**Account access in advance.** A `poppy` entry in `agent.protocols` MAY have `access` set to `session` (the default) or `signed_in`. `signed_in` says the interface requires account access before useful work can begin, so the Personal Agent can arrange sign-in before its first request. A Company that lists `signed_in` MUST have an issuer. Both values require the Session header. Personal Agents MUST ignore unknown values and handle them as an absent hint. The hint grants no permission: runtime challenges and authorization events remain authoritative. OpenAPI describes account access and scopes through its security requirements, and MCP uses its own authorization (section 7); neither needs another Poppy declaration of scopes.
 
 ### 3.3 Extensions
 
@@ -227,7 +244,7 @@ Extensions add optional features on top of this protocol. A Company lists the on
 
 ## 4. OAuth
 
-Poppy uses standard OAuth for account access. A Personal Agent is a confidential OAuth client. Sign-in, refresh, and revocation use standard OAuth parameters and grants, and the authorization server issues ordinary access and refresh tokens. Signed-out requests need nothing from it: they carry only the Session header, which the Personal Agent signs (section 5). Section 5 also describes how Sessions tie a User's activity together across APIs, conversations, and web browsing, and 4.8 lists everything Poppy adds to OAuth.
+Poppy uses standard OAuth for account access. When obtaining account access, a Personal Agent is a confidential OAuth client. Sign-in, refresh, and revocation use standard OAuth parameters and grants, and the authorization server issues ordinary access and refresh tokens. Signed-out requests need nothing from it: they carry only the Session header, which the Personal Agent signs (section 5). Section 5 also describes how Sessions tie a User's activity together across APIs, conversations, and web browsing, and 4.8 lists everything Poppy adds to OAuth.
 
 The flows below follow OAuth 2.0 ([RFC 6749](https://www.rfc-editor.org/rfc/rfc6749)) and the OAuth Security Best Current Practice ([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700)). A Company can use an existing authorization server that supports the standards it needs. Some servers support them and some don't.
 
@@ -257,7 +274,7 @@ A Personal Agent's `client_id` MUST be an HTTPS URL that returns its metadata do
 - The Personal Agent authenticates at the token endpoint with a client assertion signed by a key from `jwks_uri` (`private_key_jwt`, [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523)). Its Session JWTs are signed with delegated keys instead (5.2).
 - The client assertion's `aud` MUST be the Company's issuer, as a single string. Companies MUST reject a client assertion with any other `aud`, compared character for character, including their token endpoint URL. This follows [draft-ietf-oauth-rfc7523bis](https://datatracker.ietf.org/doc/draft-ietf-oauth-rfc7523bis/). The endpoints in a Company's metadata aren't checked (3.2), so an `aud` set to an endpoint could name another Company's endpoint, and that Company would accept the assertion.
 - Client assertions follow RFC 7523 §3. The Personal Agent MUST make them short-lived, and MUST include `iat` and a unique, unguessable `jti`. The Company MAY reject a reused `jti`, as RFC 7523 §3 allows.
-- Companies MUST accept client assertions signed with `ES256` and with `PS384`. `PS384` lets a Personal Agent have its client assertions signed blindly (10.7).
+- Companies MUST accept client assertions signed with `ES256`, and SHOULD accept ones signed with `PS384`. `PS384` lets a Personal Agent have its client assertions signed blindly (10.7).
 
 A Company decides which Personal Agents it accepts, and how it approves them is outside this specification. A refused Personal Agent gets the OAuth `invalid_client` error at the authorization server, or `invalid_session` at a resource (5.3).
 
@@ -313,7 +330,7 @@ Poppy adds these rules to the grant:
 
 Sign-in returns a refresh token ([RFC 6749, section 6](https://www.rfc-editor.org/rfc/rfc6749#section-6)), so the Personal Agent can get access tokens later without asking the User to sign in again. It sends the refresh token to the `token_endpoint` with `grant_type=refresh_token` and its client assertion. It MAY send `scope` to ask for fewer scopes than the refresh token has, for example read-only access for a task that only looks things up, and `resource` for a token for one service (4.5). The response has the token fields in 4.7.
 
-- Using a refresh token doesn't extend its lifetime. A Company MAY return a new refresh token. The Personal Agent then MUST use the new one from then on.
+- Using a refresh token doesn't extend its lifetime. A Company MAY return a new refresh token. The Personal Agent then MUST use the new one from then on. If the response omits `refresh_token`, the Personal Agent keeps using the one it has, as RFC 6749 §6 describes.
 - A refresh token isn't tied to a Session. Any of the User's Sessions can use access tokens from it (5.4).
 - A copied refresh token is useless without a client assertion from the Personal Agent, which a Personal Agent that signs blindly lets its other Users get too (10.7).
 
@@ -337,9 +354,9 @@ The Personal Agent revokes a refresh token at the Company's `revocation_endpoint
 
 Scopes say what account access a sign-in grants. Each Company defines its own scopes, such as `orders:read`, `orders:write`, and `addresses`, usually the OAuth scopes it already has. The protocol defines none.
 
-- The Company lists the scopes it supports in `scopes_supported` in its OAuth server metadata (3.2). The Personal Agent requests only scopes from that list. The list MAY leave out scopes the Company offers only to its other clients, and the Company MAY limit the scopes it grants by client, as [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749#section-3.3) §3.3 allows.
+- The Company SHOULD list the scopes it supports in `scopes_supported` in its OAuth server metadata (3.2). A Personal Agent MAY also request scopes documented by the Company's APIs or sign-in extensions, even when absent from that list. The list MAY leave out scopes the Company offers only to its other clients, and the Company MAY limit the scopes it grants by client, as [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749#section-3.3) §3.3 allows.
 
-- The Company MUST describe each scope in `scopes_supported`, so the Personal Agent can choose the ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it lists (section 7), or otherwise in `auth.scopes`.
+- The Company SHOULD describe each scope it offers Personal Agents, so the Personal Agent can choose the ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it lists (section 7), or otherwise in `auth.scopes`.
 
 - A Company MAY give hints about any scope in `auth.scope_hints`, so a Personal Agent can tell how consequential a scope is before requesting it. Each entry is keyed by scope name and describes the most consequential of the actions that require the scope, in two fields:
 
@@ -358,7 +375,7 @@ Scopes say what account access a sign-in grants. Each Company defines its own sc
 
 - If a task needs more access than the refresh token allows, the User signs in again, and the Personal Agent requests all the scopes it needs. The new refresh token replaces the old one, which the Personal Agent SHOULD revoke (4.6). Revoking a replaced refresh token isn't sign-out (5.5). A pending or failed sign-in leaves existing tokens unchanged.
 
-Sign-in and refresh (4.4) return the same token fields: an access token (4.5) and a refresh token. The User may have approved fewer scopes than requested, so the Personal Agent checks `scope` before continuing. As [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749) §5.1 describes, the response leaves `scope` out only when the Company granted exactly the scopes requested. A Poppy sign-in grants at least one scope: if the User approves none, it ends as a decline.
+Sign-in returns an access token (4.5) and a refresh token. Refresh (4.4) returns an access token and MAY return a replacement refresh token, as RFC 6749 §6 describes. The User may have approved fewer scopes than requested, so the Personal Agent checks `scope` before continuing. As [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749) §5.1 describes, the response leaves `scope` out only when the Company granted exactly the scopes requested. A Poppy sign-in grants at least one scope: if the User approves none, it ends as a decline.
 
 *Response: Company → Personal Agent*
 
@@ -378,26 +395,26 @@ OAuth errors follow the relevant grant's RFC, including `invalid_client`, `inval
 
 - **Choices stricter than OAuth:** a `client_id` that is the URL of a client metadata document, authenticated with `private_key_jwt` and an assertion addressed to the issuer (4.1); `iss` in every authorization response and exact matching of `redirect_uri` (4.2); RFC 10027's best practices for Device Sign-In (4.3); and `scope` on every sign-in request, with at least one scope granted and none beyond those requested (4.7).
 - **Discovery and descriptions:** `poppy.json`, client extensions, described scopes, and scope hints (section 3, 4.7).
-- **Sessions:** the Session header, which identifies the Personal Agent, the User, and the Session on every request, signed in or out, without an authorization-server grant (section 5). It is signed with a delegated key, which a key in the Personal Agent's `jwks_uri` vouches for in a delegation carried in the JWT's `pap_dlg` header (5.2).
+- **Sessions:** the Session header, which names the Personal Agent, the User, and the Session on every request, signed in or out, without an authorization-server grant (section 5). It is signed with a delegated key, which a key in the Personal Agent's `jwks_uri` vouches for in a delegation carried in the JWT's `pap_dlg` header (5.2).
 - **Interactions above OAuth:** browser join (section 6), APIs (section 7), conversations (section 8), excluded tasks and feedback (section 9), and extensions (3.3), including [Operations](https://personalagentprotocol.org/docs/0.3/extensions/operations).
 - **An extension grant:** the [Mediated Sign-In extension](https://personalagentprotocol.org/docs/0.3/extensions/mediated-sign-in) adds a grant type at the token endpoint, as RFC 6749 §4.5 allows.
 
 ## 5. Sessions
 
-Everything a Personal Agent does at a Company happens in a Session. A Session belongs to one User, at one Company, through one Personal Agent. It ties together activity such as a cart and an open conversation, whether signed in or out. A Personal Agent can run several Sessions for the same User, for example for tasks running in parallel.
+A Session belongs to one User, at one Company, through one Personal Agent. It can tie together activity such as a cart and an open conversation, whether signed in or out. A Personal Agent can run several Sessions for the same User, for example for tasks running in parallel.
 
-Every request names its Session in the `Poppy-Session` header, a JWT the Personal Agent signs for that request (5.2). Account access is separate, and is plain OAuth (section 4):
+The Personal Agent declares its Session with a `Poppy-Session` header on requests to the Company's APIs, conversations, and other protocol and extension endpoints (5.2). The Company verifies the header before using Session claims or state; endpoints that use neither can ignore it (5.3). Account access is separate, and is plain OAuth (section 4):
 
 | Request | Carries |
 | --- | --- |
 | Signed out | The Session header only. |
 | Signed in | The Session header, and an access token for the User's account (4.5, 5.4). |
 
-The Company joins the two on each request: the Session header says which Session and User the request is for, and the access token says which account it can act on, with which scopes. A browser joins a Session, signed in or out, through a code the Personal Agent authorizes, then carries the Company's cookie for it (section 6).
+When a request uses Session identity or state, the Company verifies and joins the two: the Session header says which Session and User the request is for, and the access token says which account it can act on, with which scopes. A browser joins a Session, signed in or out, through a code the Personal Agent authorizes, then carries the Company's cookie for it (section 6).
 
 ### 5.1 User IDs and Agent IDs
 
-The Personal Agent MUST give each of its Users a User ID for each Company, where a Company is identified by its issuer (3.2). The ID is stable, so the Company sees the same User across Sessions. It is opaque and different for each Company, so Companies can't match Users with each other. Because the ID is scoped by issuer, this depends on each Company having its own issuer (3.2). It MUST NOT contain or be derived from personal information, such as an email address, phone number, or name, even with a keyed hash. User IDs are pairwise subject identifiers, as in [OpenID Connect Core](https://openid.net/specs/openid-connect-core-1_0.html#SubjectIDTypes) §8, except that the Personal Agent assigns them, one for each pair of User and Company.
+The Personal Agent MUST give each of its Users a User ID for each Company, using the Company's identifier (3.2). The ID is stable, so the Company sees the same User across Sessions. It is opaque and different for each Company, so Companies can't match Users with each other. The ID is scoped by the Company's identifier, not by the host of an API or conversation endpoint (3.2). It MUST NOT contain or be derived from personal information, such as an email address, phone number, or name, even with a keyed hash. User IDs are pairwise subject identifiers, as in [OpenID Connect Core](https://openid.net/specs/openid-connect-core-1_0.html#SubjectIDTypes) §8, except that the Personal Agent assigns them, one for each pair of User and Company.
 
 A Personal Agent MAY instead give a User a new User ID for each anonymous browsing session, like a private browser window. The Company sees a new User each time. The Personal Agent uses the ID for nothing else, discards it when the browsing session ends, and MUST NOT send an access token in a Session that uses it (5.4).
 
@@ -442,7 +459,7 @@ Authorization: Bearer eyJhbGciOi…Qp4w
 - `typ` MUST be `poppy-session+jwt`, so the JWT can't be mistaken for a client assertion, delegation, or any other JWT ([RFC 8725](https://www.rfc-editor.org/rfc/rfc8725) §3.11).
 - `alg` MUST be `ES256`, so every Personal Agent and Company can work together. The JWT is signed with a delegated key, `kid` is that key's JWK thumbprint, and `pap_dlg` carries its delegation (Delegated keys, below).
 - `iss` is the Personal Agent's `client_id` (4.1).
-- `aud` is the Company's issuer, as a single string (10.4).
+- `aud` is the Company's identifier (3.2), as a single string (10.4). It is the issuer when present, or `https://{organization.domain}` with the host in lowercase and no trailing slash otherwise.
 - `sid` is the Session ID. The Personal Agent MUST choose it at random, so it can't be guessed, and MUST NOT use it for any other Session, so Companies can't link Sessions by it. It uses the same characters as Conversation IDs (8.2).
 - `sub` is the User ID for this Company (5.1).
 - `agent_id` is the optional Agent ID (5.1).
@@ -485,7 +502,7 @@ A Personal Agent signs a Session JWT for every request. Delegations keep those s
 }
 ```
 
-- `alg` is `ES256` or `PS384`. Companies MUST accept both. `PS384` lets a Personal Agent have its delegations signed blindly (10.7).
+- `alg` is `ES256` or `PS384`. Companies MUST accept delegations signed with `ES256`, and SHOULD accept delegations signed with `PS384`. `PS384` lets a Personal Agent have its delegations signed blindly (10.7).
 - `typ` MUST be `pap-delegation+jwt`, so a delegation can't be used as a Session JWT.
 - `kid` names the key in `jwks_uri` that signed the delegation.
 - `iss` is the Personal Agent's `client_id`.
@@ -520,7 +537,7 @@ The resource verifies a Session JWT's delegation and signature in this order:
 3. Verify the Session JWT's signature with the key in the delegation's `cnf.jwk`, and check that its `kid` is that key's thumbprint.
 4. Check that the Session JWT's `iat` is no later than the delegation's `exp`.
 
-The Company MUST reject, with `invalid_session`, a Session JWT without a delegation, including one signed directly with a key from `jwks_uri`, and a Session JWT whose delegation fails any of these checks. A resource sees many Session JWTs with the same delegation, so it MAY cache a verified delegation until it expires.
+When verifying a Session header (5.3), the Company MUST reject, with `invalid_session`, a Session JWT without a delegation, including one signed directly with a key from `jwks_uri`, and a Session JWT whose delegation fails any of these checks. A resource sees many Session JWTs with the same delegation, so it MAY cache a verified delegation until it expires.
 
 The Personal Agent decides when to create a new delegated key and get a new delegation for it, as long as each Session JWT carries a delegation that is valid when the Company checks it. Nothing the Company stores depends on a delegated key: Sessions are named by `sid` (5.2), and refresh tokens are tied to the `client_id`, not a key (4.4). So a Company MUST NOT expect a User's delegated key to stay the same between requests or Sessions, or treat a new one as a reason to reject a request.
 
@@ -528,18 +545,26 @@ The Personal Agent MUST use each delegated key, and its delegation, for one User
 
 ### 5.3 Verifying the Session header
 
-A Company endpoint that receives the Session header:
+Companies SHOULD verify the Session header on every request that carries it. The Company MUST complete the following checks before relying on Session claims for client or User identity, ownership, continuity, or access to state, including creating or continuing a Session:
 
 1. Fetches the client metadata from `iss` without following redirects, as the CIMD draft (§5) requires, and the public keys from its `jwks_uri` (4.1), following the address checks in section 3.
-2. Verifies the JWT's delegation and signature, as Delegated keys (5.2) describes, then `typ` and the claims above: `aud` is its own issuer, compared character for character; `htm` and `htu` match the request as RFC 9449 §4.3 describes for DPoP proofs; and `iat` is within an acceptance window it chooses, such as one minute. The JWT never grants account access, whatever else it contains.
+2. Verifies the JWT's delegation and signature, as Delegated keys (5.2) describes, then `typ` and the claims above: `aud` is its Company's identifier, compared character for character; `htm` and `htu` match the request as RFC 9449 §4.3 describes for DPoP proofs; and `iat` is within an acceptance window it chooses, such as one minute. The JWT never grants account access, whatever else it contains.
 3. If the request carries an access token, checks that `ath` matches it, and that the token was issued to the same `client_id` as `iss`. Without an access token, `ath` MUST be absent.
 4. Looks up the Session by `client_id` and `sid`. An unknown `sid` starts a signed-out Session with the verified `client_id`, User ID, and optional Agent ID. A known `sid` continues its Session, and the JWT MUST have that Session's User ID and Agent ID. It checks ended Sessions at this point too (5.5).
 
-The Company MUST complete these checks before creating a Session or handling the request. A failed check returns HTTP 400 with `{"error": "invalid_session"}`, which MAY include an `error_description` for the developer, as in [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749) §5.2. Access token errors follow OAuth (section 7).
+An endpoint that uses no Session claims MAY handle a request without verifying the header or requiring one. The Company MUST NOT use unverified Session claims to attribute a request to a Personal Agent, User, or Session, or to look up their state. Access token validation, scope enforcement, and any required DPoP checks still apply. A failed Session check returns HTTP 400 with `{"error": "invalid_session"}`, which MAY include an `error_description` for the developer, as in [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749) §5.2. Access token errors follow OAuth (section 7).
 
-The Company MUST reject a request that carries an access token it issued to a Personal Agent but no Session header, at every endpoint that accepts the Session header. Otherwise a copied access token would work without the Personal Agent's key.
+The Company MUST reject a request without the Session header when handling it depends on Session claims. The Personal Agent still sends the header on every request 5.2 requires, even when the Company doesn't verify it.
 
 **Replayed JWTs.** A Company MAY reject a reused `jti`, as RFC 9449 §11.1 allows for DPoP proofs. The guides explain what a replay can and can't do.
+
+#### Operator signatures
+
+A Personal Agent MAY also sign a request with an HTTP Message Signature ([RFC 9421](https://www.rfc-editor.org/rfc/rfc9421)), using [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/), so traffic-management infrastructure can authenticate the operator before the request reaches the Company's application. This signature is optional compatibility support, not a replacement for the Session header or authorization. Its absence does not make a Session JWT invalid.
+
+The Personal Agent's operator signature MUST cover `poppy-session`, and `authorization` when present, so it binds to the Session JWT and access token. Operator keys and delegated Session keys have different roles. Verifying an operator signature authenticates its key source, not an arbitrary `client_id` named in the request. Before trusting any Session claim, the Company MUST verify the Session JWT independently (5.3). The Company decides whether to accept the client and request. A shared origin alone does not establish that two client metadata URLs name the same client.
+
+An edge that verifies delegated Session JWTs can authenticate the client without this extra signature. Company acceptance, Session ownership, and account authorization still apply. The [guides](https://personalagentprotocol.org/docs/0.3/guides#both-operator-signatures) describe deployment and privacy considerations.
 
 ### 5.4 Signing in
 
@@ -557,7 +582,7 @@ A request without an access token is signed out, so an account action without on
 
 The Company decides how long a Session lasts. To end a Session without signing out, the Personal Agent stops using its `sid`. Its refresh tokens are unaffected.
 
-The recipient of a request, such as an API or a conversation endpoint, checks whether the Session has ended. A Company MAY remember the `sid`s of Sessions it ended, for as long as it chooses, so an ended Session doesn't silently start again. A request for a remembered ended Session gets `invalid_session` (5.3), and the Personal Agent MUST then start a new Session with a new `sid`. A Company can forget an ended Session, so a request with its `sid` can start a new Session instead.
+An endpoint that uses Session claims checks whether the Session has ended. A Company MAY remember the `sid`s of Sessions it ended, for as long as it chooses, so an ended Session doesn't silently start again. A request for a remembered ended Session gets `invalid_session` (5.3), and the Personal Agent MUST then start a new Session with a new `sid`. A Company can forget an ended Session, so a request with its `sid` can start a new Session instead.
 
 **Sign-out.** The Personal Agent signs out of an account by revoking every refresh token it holds for it (4.6). The account is signed out once no refresh token the Company issued to that `client_id` for the account is still valid. The Sessions that used them continue signed out: the Personal Agent sends the Session header without an access token. What happens to access tokens issued under a revoked refresh token, including one that a new sign-in replaced (4.7), follows [RFC 7009](https://www.rfc-editor.org/rfc/rfc7009) §2.1, and the [guides](https://personalagentprotocol.org/docs/0.3/guides#company-lifetimes) suggest lifetimes.
 
@@ -683,14 +708,14 @@ A Company can list APIs in its `poppy.json` (section 3). This version defines th
 | `openapi` | An OpenAPI 3.0 or 3.1 description of the API. | [OpenAPI Specification 3.1](https://spec.openapis.org/oas/v3.1.1.html) |
 | `mcp` | A remote MCP server endpoint, using the Streamable HTTP transport and MCP version 2025-06-18 or later. | [Model Context Protocol 2025-06-18](https://modelcontextprotocol.io/specification/2025-06-18) |
 
-Personal Agents SHOULD skip API types they don't recognize, so later versions can add types. The protocol leaves each API's schema to that API. Every listed API MUST accept the Session header (5.2) and the Company's access tokens (4.5), and enforce their scopes, except that an MCP server MAY ignore the Session header.
+Personal Agents SHOULD skip API types they don't recognize, so later versions can add types. The protocol leaves each API's schema to that API. Every listed API MUST accept the Session header (5.2) and, when the Company offers account access, its access tokens (4.5), and enforce their scopes. Session verification follows 5.3: an API that uses no Session claims can rely on OAuth alone for account access or serve signed-out requests without verifying Sessions.
 
-**MCP servers.**
+**MCP servers.** Poppy Sessions are independent of MCP's transport lifecycle. MCP [2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28) uses per-request metadata instead of an initialization handshake or `Mcp-Session-Id`; earlier supported versions keep their own lifecycle. Both carry the Poppy Session header as above.
 
-- **Signed in.** The Personal Agent MUST request a token with `resource` set to the MCP server's `url` from `poppy.json`, as MCP authorization requires (4.5). The `resource` in the server's protected resource metadata MUST equal that `url`. Each such token works only at the MCP server whose `url` equals its `resource`, including when other endpoints share its host. The Company MUST reject it elsewhere.
+- **Signed in.** MCP's baseline token scheme is Bearer. DPoP is used only when the server's protected resource metadata advertises `dpop_signing_alg_values_supported` and the client supports it; ordinary MCP clients remain supported. The Personal Agent MUST request a token with `resource` set to the MCP server's `url` from `poppy.json`, as MCP authorization requires (4.5). The `resource` in the server's protected resource metadata MUST equal that `url`. Each such token works only at the MCP server whose `url` equals its `resource`, including when other endpoints share its host. The Company MUST reject it elsewhere.
 - **Signed out.** An MCP server that accepts the Session header can take signed-out calls with the Session header only, if it allows them.
-- **Without the Session header.** An MCP server that ignores the Session header still sees the Personal Agent and the account through the access token, but its calls don't join the Session's cart, conversations, or website, and it can't take signed-out calls from Personal Agents. A Company that wants an MCP server's calls tied to Sessions has it accept the Session header.
-- **Other MCP clients.** The server's protected resource metadata tells MCP clients where to get a token. It names the Company's issuer, not the Personal Agent: the MCP server MUST include the Company's issuer in its `authorization_servers`. MCP clients that don't implement this protocol sign in with MCP's own authorization flow, outside this protocol, and their requests belong to no Session.
+- **Without Session verification.** An MCP server that ignores the Session header can identify the client and account through a validated access token, or serve signed-out requests that use no Session claims. Its calls don't join the Session's cart, conversations, or website. A Company that wants those connections has the server verify the Session header (5.3).
+- **Other MCP clients.** When it offers account access, the server's protected resource metadata tells MCP clients where to get a token. It names the Company's issuer, not the Personal Agent: an MCP server that offers account access MUST include the Company's issuer in its `authorization_servers`. MCP clients that don't implement this protocol sign in with MCP's own authorization flow, outside this protocol, and their requests belong to no Session.
 
 The Personal Agent calls a Company API the way that API's type describes:
 
@@ -713,10 +738,10 @@ Access token errors follow OAuth: they are in the `WWW-Authenticate` header ([RF
 | No error code | 401 | The request needs the User's account, and has no access token. The challenge's `scope` attribute names the scopes needed, as RFC 6750 §3.1 describes. The Personal Agent handles it as `insufficient_scope`. |
 | `invalid_token` | 401 | The access token is expired, revoked, or invalid. The Personal Agent refreshes it (4.4), or continues signed out if refresh fails (5.5). |
 | `insufficient_scope` | 403 | The access token lacks the scopes the request needs, which the response names in the `scope` attribute. The Personal Agent uses a refresh token that covers them (4.4), or signs in (5.4), and retries, unless the User signed out or disconnected it (5.5). |
-| `invalid_session` | 400 | In a JSON body. The Session header is missing or fails a check (5.3), the Company refuses the `client_id` (4.1) or an account change (5.4), or the Session has ended (5.5). The Personal Agent starts a new Session once. If that gets `invalid_session` too, it stops sending the request. |
+| `invalid_session` | 400 | In a JSON body. A required Session header is missing or Session verification fails (5.3), the Company refuses the `client_id` (4.1) or an account change (5.4), or the Session has ended (5.5). The Personal Agent starts a new Session once. If that gets `invalid_session` too, it stops sending the request. |
 | `extension_required` | 403 | In the `WWW-Authenticate` header. The request needs an extension the Personal Agent doesn't list, named in the `extension` attribute (3.3). An MCP server returns it only to refuse the Personal Agent entirely, not for one tool. |
 
-Because every verified Session header identifies a `client_id` and User, the Company always knows a request comes from a Personal Agent, which one, and for which User.
+Verifying a Session header identifies the Personal Agent and User. An unverified header does not establish either identity.
 
 *Response: Company → Personal Agent*
 
@@ -1126,6 +1151,8 @@ Signed out, the Company Agent can answer general questions. When the Company Age
 
 `error` is `insufficient_scope` whether or not the request had an access token, and `scope` names the scopes needed. The Personal Agent responds as it would to a request that needs the account (section 7), with a refresh token (4.4) or by signing in (5.4). It then continues the same conversation with the access token. The conversation stays open meanwhile.
 
+When a response carrying an `authorization` event has not yet sent its headers, the Company MAY also include the matching `WWW-Authenticate` challenge on the successful response, as [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110#section-11.6.1) §11.6.1 allows. The event remains sufficient, including in a stream whose headers have already been sent. The successful status means the message was accepted. The Personal Agent MUST handle the event and matching challenge as one authorization need, and MUST NOT resubmit an accepted message because it received the challenge.
+
 A conversation isn't tied to one access token or Session. The Personal Agent MAY start or stop sending an access token partway through a conversation, after signing in, refreshing, or signing out, or continue it in a new Session, as long as the request matches the conversation's owner (8.2). The conversation keeps its `conversation_id` throughout.
 
 A signed-in conversation also respects the token's scopes. Sending a message does not authorize the requested account action.
@@ -1248,7 +1275,7 @@ A Company that wants feedback lists `feedback.endpoint` in `poppy.json` (3.1). W
 | `task` | Yes | What the User was trying to do, in a short phrase, such as "Return a jacket", "Move a flight to the next day", or "Pay with a gift card". At most 200 characters. |
 | `description` | Yes | What the Personal Agent was trying to accomplish, in detail, and why, without identifiers such as order numbers, account numbers, or names. At most 2,000 characters. |
 
-- A Company MUST accept a report only with the Session header, signed in or signed out, and needs no scope for it. The Session tells the Company which Personal Agent sent the report and for which User, so the report doesn't repeat that, or say where the problem happened.
+- A Company SHOULD verify the Session header on a report, signed in or signed out, and needs no scope for it. The Company MUST verify the header before attributing a report to a Personal Agent, User, or Session. Otherwise it can accept the report without attribution (5.3). The report doesn't repeat these identities or say where the problem happened.
 - Personal Agents SHOULD NOT put personal data in a report, such as the User's name, contact details, or order details. A report describes the task, not the User. Personal Agents MUST NOT put secrets in a report (10.2).
 - A Personal Agent SHOULD send one report for each task it couldn't do, not one for each attempt.
 - A Personal Agent SHOULD NOT report a task the Company lists as excluded (9.1), since the Company already knows it doesn't offer it.
@@ -1275,11 +1302,11 @@ A model can be led to repeat what is in its context, so a secret in context can 
 
 ### 10.3 What a domain vouches for
 
-A Company's `poppy.json` and its domain's protected resource metadata are where the Personal Agent learns everything about the Company: its issuer, and through it the Company's sign-in types and scopes, its APIs, and its Company Agent. Whoever controls that document speaks for the Company at the host that serves it at `/.well-known/poppy.json`, as whoever controls its website does today. The document's endpoints can be on any host. The checks in section 3 cover both directions of the link between domain and issuer, which stops a domain from claiming another Company's issuer and receiving its tokens. They don't make the issuer metadata more trustworthy than the domain, because the domain chooses the issuer.
+A Company's `poppy.json` and its domain's protected resource metadata are where the Personal Agent learns about the Company: its issuer when present, and through it the Company's sign-in types and scopes, its APIs, and its Company Agent. Whoever controls that document speaks for the Company at the host that serves it at `/.well-known/poppy.json`, as whoever controls its website does today. The document's endpoints can be on any host. The checks in section 3 cover both directions of the link between domain and issuer, which stops a domain from claiming another Company's issuer and receiving its tokens. They don't make the issuer metadata more trustworthy than the domain, because the domain chooses the issuer.
 
 ### 10.4 Token and assertion audiences
 
-A Personal Agent works with many Companies it has no prior relationship with, and each Company's metadata names its own endpoints, which nobody checks (3.2). A malicious Company could name another Company's token endpoint in its metadata. If assertions were addressed to that endpoint, the malicious Company could collect them at its other endpoints and replay them at the other Company. That is why client assertions and Session JWTs name the Company's issuer in `aud` (4.1, 5.2). The issuer is the value the Personal Agent verified for that Company, so a token or assertion collected by one Company is rejected by every other. Each Company has its own issuer (3.2), so this holds even for Companies a provider hosts on shared servers.
+A Personal Agent works with many Companies it has no prior relationship with, and each Company's metadata names its own endpoints, which nobody checks (3.2). A malicious Company could name another Company's token endpoint in its metadata. If assertions were addressed to that endpoint, the malicious Company could collect them at its other endpoints and replay them at the other Company. That is why client assertions name the Company's issuer in `aud` (4.1), and Session JWTs name the Company's identifier: its issuer, or its HTTPS domain when it has none (3.2, 5.2). The identifier is the value the Personal Agent verified for that Company, so a token or assertion collected by one Company is rejected by every other that verifies it. Session verification is required before trusting Session claims, but is otherwise recommended (5.3). An endpoint that skips it loses the Session JWT's binding to the client key and access token; OAuth token validation and any required DPoP proof still apply. Each Company has its own identifier (3.2), so audience separation holds even for Companies a provider hosts on shared servers.
 
 The Personal Agent normally uses a new Session for a second account (5.4). This keeps a cart, browser cookie, or parallel task from following an unintended account change. A Company can refuse an account change, with `invalid_session`, when its own policy requires that separation.
 
@@ -1303,7 +1330,7 @@ A delegation can't be withdrawn before it expires, so its lifetime limits what a
 
 Delegations keep the keys in `jwks_uri` from signing anything that names a User or the Company they use. They keep a Personal Agent's own systems from learning which Companies a User works with only if those systems never see the delegated keys or the requests they sign, for example when delegated keys stay on the User's device. Client assertions are still signed with the keys in `jwks_uri` and name the Company in `aud` (4.1), so sign-in, refreshes, and revocation (section 4) stay visible to whatever signs them. And the Personal Agent knows which delegations it issued for a User, while a Company knows which delegated keys signed for each User ID, so the two together could match a User to a Company. Blind signing, below, closes both gaps.
 
-**Blind signing.** A Personal Agent SHOULD have the keys in its `jwks_uri` sign client assertions and delegations blindly, unless its own systems need to see which Companies a User works with. It uses RSA blind signatures ([RFC 9474](https://www.rfc-editor.org/rfc/rfc9474)). The User's device writes the JWT, blinds it, and sends it to be signed. The key signs it without seeing it, and the device unblinds the result into an ordinary signature. With the RSABSSA-SHA384-PSS-Deterministic variant, that signature is a `PS384` signature, which Companies accept (4.1, 5.2) and verify like any other. The variants RFC 9474 recommends add a random prefix to the message, so their signatures don't verify as a JWT's. The PSS-Deterministic variant adds nothing, so it is safe only when the message has a value the signer can't guess (RFC 9474 §7.3). The `jti` of a client assertion or delegation is that value, so the Personal Agent MUST generate it on the User's device. The Personal Agent's systems then never see which Company a client assertion names, and can't recognize a delegation they signed when a Company shows it to them. They still see when a User asks for a signature.
+**Blind signing.** A Personal Agent SHOULD have the keys in its `jwks_uri` sign client assertions and delegations blindly, unless its own systems need to see which Companies a User works with. It uses RSA blind signatures ([RFC 9474](https://www.rfc-editor.org/rfc/rfc9474)). The User's device writes the JWT, blinds it, and sends it to be signed. The key signs it without seeing it, and the device unblinds the result into an ordinary signature. With the RSABSSA-SHA384-PSS-Deterministic variant, that signature is a `PS384` signature, which Companies that support it (4.1, 5.2) verify like any other. The variants RFC 9474 recommends add a random prefix to the message, so their signatures don't verify as a JWT's. The PSS-Deterministic variant adds nothing, so it is safe only when the message has a value the signer can't guess (RFC 9474 §7.3). The `jti` of a client assertion or delegation is that value, so the Personal Agent MUST generate it on the User's device. The Personal Agent's systems then never see which Company a client assertion names, and can't recognize a delegation they signed when a Company shows it to them. They still see when a User asks for a signature.
 
 A key that signs blindly signs whatever a User's device sends it. A Company accepts any client assertion or delegation that verifies with a key in `jwks_uri`, so a device that can get blind signatures from one key can get any client assertion or delegation the Personal Agent could issue. A Personal Agent that signs blindly MUST therefore sign both its client assertions and its delegations blindly, and MUST NOT rely on a signature by a key in its `jwks_uri` to mean its own systems approved what it signed, for example to limit delegation lifetimes or to stop a User.
 

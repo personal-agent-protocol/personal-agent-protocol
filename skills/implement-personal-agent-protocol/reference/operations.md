@@ -244,11 +244,13 @@ The message's `text` doesn't approve anything, whatever it says. Only `approval`
 
 ### What the Company checks
 
-After the Session header checks in [spec 5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification) and the token checks in [spec 7](https://personalagentprotocol.org/docs/0.3/spec#apis), and before performing the action, the Company MUST check, in this order:
+After the Session header checks in [spec 5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification) and the token checks in [spec 7](https://personalagentprotocol.org/docs/0.3/spec#apis), the Company MUST make the following checks before performing the action. It SHOULD make them in this order:
 
 1. The Session can approve the operation (3). If it can't, the Company handles the request as if it had no approval.
 2. The operation hasn't been performed already. If it has, or is being performed, the Company responds as section 7 describes.
 3. The `revision` is one the Company returned for this operation, it hasn't expired, and the request asks for exactly what it describes. The API request or tool call is the one that returned the operation, and in a conversation, the operation is the conversation's.
+
+The Company MUST NOT let a different internal check order change which Session can approve, the response for a request without valid approval, or the retry and at-most-once behavior in section 7.
 
 If every check passes, the Company performs the action and responds as it would have without operations. If check 3 fails, it performs nothing and returns the operation with a revision for what the request asks, as in section 4. A Company MUST NOT answer an approval with the revision it names, so a Personal Agent never retries the same approval in a loop.
 

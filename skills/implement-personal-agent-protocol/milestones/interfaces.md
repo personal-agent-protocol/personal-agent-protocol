@@ -1,8 +1,8 @@
 # Milestone: interfaces
 
 Personal Agents use the interfaces the design chose, in signed-out Sessions: APIs, MCP, the Company
-Agent through conversations, and the website. Every request carries the Session header, verified as
-in the foundation milestone. Build and check them signed out first. Account access comes in the
+Agent through conversations, and the website. Every request carries the Session header; verify it
+as the foundation milestone requires before using Session claims or state. Build and check them signed out first. Account access comes in the
 sign-in milestone.
 
 Build only what's in the design's `interfaces`. Add each interface to `poppy.json` when it's live on
@@ -32,7 +32,7 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
 
 - List the API in `apis` with `type: "openapi"`, the `url` of an OpenAPI 3.0 or 3.1 description,
   and a short `description` ([section 7](https://personalagentprotocol.org/docs/0.3/spec#apis)).
-- Accept the `Poppy-Session` header on every request, and the Company's access tokens in the
+- Accept the `Poppy-Session` header on every request, and, when offering account access, the Company's access tokens in the
   `Authorization` header (section 7). Don't require cookies. Don't accept tokens or Session JWTs in
   the URL ([5.6](https://personalagentprotocol.org/docs/0.3/spec#sending-requests)).
 - Return access token errors in the `WWW-Authenticate` header: a challenge with `scope` and no
@@ -50,24 +50,30 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
 
 - List the server in `apis` with `type: "mcp"` and its Streamable HTTP endpoint as `url`, MCP version
   2025-06-18 or later ([section 7](https://personalagentprotocol.org/docs/0.3/spec#apis)).
-- Publish RFC 9728 protected resource metadata whose `resource` is the server's `url` and whose
+- When offering account access, publish RFC 9728 protected resource metadata whose `resource` is the server's `url` and whose
   `authorization_servers` includes the Company's issuer. Don't add the Personal Agent to that list.
   Each 401 carries a challenge for each scheme the server accepts, with `resource_metadata`.
 - Accept the Company's access tokens issued with `resource` set to the server's `url`, and only
   those. Refuse a token issued for another `resource`, including other paths on the same host, with
   `invalid_token` and `resource_metadata` ([4.5](https://personalagentprotocol.org/docs/0.3/spec#access-tokens)).
   The token endpoint returns `invalid_target` for a `resource` you don't serve.
-- Decide whether the server accepts the Session header. If it does, verify it as every other
-  resource does, so its calls join the Session and it can take signed-out calls. If it ignores the
-  header, it sees the Personal Agent and the account through the token, but its calls belong to no
-  Session and it can't take signed-out calls from Personal Agents (section 7, "MCP servers").
+- Decide whether the server uses Session claims or state. If it does, verify the header. Otherwise
+  it can use OAuth alone or serve signed-out requests without Session verification. Such calls
+  don't join the Session's cart, conversations, or website (section 7, "MCP servers").
 - MCP clients that don't implement Poppy keep signing in with MCP's own authorization flow. Their
   requests belong to no Session.
+- For issuerless signed-out MCP, verify the Session header and omit OAuth setup. Follow the
+  supported version's lifecycle: per-request metadata in MCP 2026-07-28, `initialize` in older
+  versions. Keep the Poppy Session independent of that lifecycle (`patterns/mcp.md`).
 
 ## Conversations
 
 - List the endpoint in `agent.protocols` with `type: "poppy"`
   ([8.1](https://personalagentprotocol.org/docs/0.3/spec#conversation-protocols)).
+- Add `access: "signed_in"` if useful work requires account access from the start; otherwise omit
+  it or use `"session"` ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)). Runtime
+  authorization events remain authoritative; a matching successful-response challenge is optional
+  ([8.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)).
 - The five requests in [8.2](https://personalagentprotocol.org/docs/0.3/spec#conversation-requests),
   each with the Session header, and an access token when signed in. A conversation belongs to the
   `client_id` and User ID that started it, and any of their Sessions can continue it. Reject any
@@ -138,8 +144,10 @@ Both are optional.
   ([9.1](https://personalagentprotocol.org/docs/0.3/spec#excluded-tasks)). An alternative has
   `instructions`, `references`, or both. An `openapi` or `mcp` reference names an API in `apis`
   by its exact `url` ([9.2](https://personalagentprotocol.org/docs/0.3/spec#alternatives)).
-- To take feedback, list `feedback.endpoint` and accept reports only with the Session header,
-  signed in or out, with no scope needed ([9.3](https://personalagentprotocol.org/docs/0.3/spec#feedback)).
+- To take feedback, list `feedback.endpoint` and accept reports signed in or out, with no scope
+  needed. Session verification is recommended and required before attributing a report to a
+  Personal Agent, User, or Session; otherwise keep it unattributed
+  ([9.3](https://personalagentprotocol.org/docs/0.3/spec#feedback)).
   Answer 202 with no body, or
   200 with an alternative when the task can be done after all. Errors are `invalid_request` (400)
   for a report that is malformed or too long, and rate limits are 429 with `Retry-After`.
@@ -149,7 +157,8 @@ Both are optional.
 ## Decisions for this milestone
 
 - Per API: whether it accepts only tokens issued for it, by publishing protected resource metadata
-  (4.5, "Tokens for one service"). Per MCP server: whether it accepts the Session header.
+  (4.5, "Tokens for one service"). Per API: whether it uses Session claims or state and therefore
+  requires verification.
 - Which endpoints, tools, and Company Agent actions are open to signed-out Sessions.
 - Event retention for conversations (the guides suggest at least 30 days), and whether to stream.
 - How handoff maps to the live-agent desk, and whether the Company Agent can ask for the User.
@@ -158,7 +167,7 @@ Both are optional.
 
 ## Common mistakes
 
-- An API that accepts a Personal Agent's access token without the Session header (5.3), or an MCP
+- An API that uses Session identity or state without verifying the Session header (5.3), or an MCP
   server that accepts tokens issued for another `resource` (section 7).
 - Answering a signed-out request that needs the account with `insufficient_scope`. It's a 401
   challenge with `scope` and no error code; `insufficient_scope` is for an access token without the

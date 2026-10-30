@@ -1,6 +1,6 @@
 # Milestone: foundation
 
-Personal Agents can find the Company and its issuer, prove who they are, and start signed-out
+Personal Agents can find the Company and its issuer, if it has one, prove who they are, and start signed-out
 Sessions with the `Poppy-Session` header. Every later milestone builds on this one.
 
 ## Read first
@@ -28,6 +28,17 @@ with `protocol_version`, `organization`, and `web`, and no `auth`
 ([3.1](https://personalagentprotocol.org/docs/spec#fields)). Such a Company needs no issuer
 ([3.2](https://personalagentprotocol.org/docs/spec#oauth-server)). Check it with `check --file` and
 `check --milestone foundation`, and stop here.
+
+## Without OAuth
+
+A Company that offers only signed-out interactions needs no authorization server. Return 404 for
+the domain's protected resource metadata, or publish it with no authorization servers. Omit
+`auth.issuer`, Mediated Sign-In, and `access: signed_in` hints. Use `https://{organization.domain}`
+with a lowercase host and no trailing slash as the Session audience. Skip steps 2 and 3 below and
+token-endpoint checks. Build the same client and Session verification as any other Company.
+
+When an issuer is added, it becomes the Company's identifier; if that changes the identifier,
+Users need new IDs and Sessions. Earlier state does not transfer automatically.
 
 ## What to build
 
@@ -73,23 +84,28 @@ types, `authorization_endpoint`, and `device_authorization_endpoint` come in the
 - Apply the design's policy: allowlist or blocklist, registration, and rate limits by `client_id`.
   A refused Personal Agent gets `invalid_client` at the authorization server and `invalid_session`
   at a resource.
-- At the token endpoint, accept client assertions signed with `ES256` and `PS384`, with `aud`
-  exactly the issuer. Rejecting a reused `jti` from the same `client_id` until it expires is
+- At the token endpoint, accept client assertions signed with `ES256` (required) and `PS384`
+  (recommended), with `aud` exactly the issuer. Advertise accepted assertion algorithms in
+  `token_endpoint_auth_signing_alg_values_supported` (RFC 8414 §2). This does not advertise
+  delegation support. Rejecting a reused `jti` from the same `client_id` until it expires is
   optional (4.1), and the guides suggest it.
 
 **5. The Session header at every resource**
 ([5.2](https://personalagentprotocol.org/docs/spec#session-header),
 [5.3](https://personalagentprotocol.org/docs/spec#session-verification)). Every API, conversation,
-feedback, browser-session `/authorize`, and extension endpoint verifies `Poppy-Session` on every
-request, in the order 5.3 gives, before creating a Session or doing any work:
+feedback, browser-session `/authorize`, and extension endpoint receives `Poppy-Session`. Verification
+is recommended generally and required before using any Session claim for identity, ownership,
+continuity, or state. Stateless APIs and OAuth-only account endpoints can ignore the header if they
+use no Session claims or state. Conversations, Session carts, browser join, and approval ownership require
+verification. When verifying:
 
 - Fetch the client metadata named by `iss` and its `jwks_uri`, and apply the design's policy.
-- Verify the delegation in `pap_dlg` with the key from `jwks_uri` that its `kid` names (`ES256` or
-  `PS384`), its `typ`, `iss`, expiry, and a lifetime of at most 24 hours. Then verify the Session
+- Verify the delegation in `pap_dlg` with the key from `jwks_uri` that its `kid` names (`ES256`
+  required, `PS384` recommended), its `typ`, `iss`, expiry, and a lifetime of at most 24 hours. Then verify the Session
   JWT with the delegation's `cnf.jwk`, check that `kid` is that key's thumbprint, and that `iat` is
   no later than the delegation's `exp`. Reject a Session JWT without a delegation, including one
   signed directly with a key from `jwks_uri`.
-- Check `typ` `poppy-session+jwt`, `alg` `ES256`, `aud` equal to the issuer, `htm` and `htu`
+- Check `typ` `poppy-session+jwt`, `alg` `ES256`, `aud` equal to the issuer, or the HTTPS domain when there is none, `htm` and `htu`
   against the request, and `iat` within your acceptance window.
 - Without an access token, `ath` must be absent. With one, `ath` must match it, and the token must
   have been issued to the same `client_id` as `iss`. The access token side comes in the sign-in
@@ -114,7 +130,8 @@ HTTP 429 with `Retry-After` ([5.6](https://personalagentprotocol.org/docs/spec#s
 Keep error text free of account details
 ([guides](https://personalagentprotocol.org/docs/guides#company-errors)).
 
-**8. Records.** Create the Session record now, keyed by `client_id` and `sid`: User ID, optional
+**8. Records.** If the implementation uses Session identity or state, create the Session record,
+keyed by `client_id` and `sid`: User ID, optional
 Agent ID, whether it has ended, and later the account it used
 ([5.4](https://personalagentprotocol.org/docs/spec#sign-in)). See `patterns/session-records.md`.
 
@@ -132,8 +149,9 @@ Agent ID, whether it has ended, and later the account it used
 
 ## Decisions for this milestone
 
-- Where the Session header is verified (a gateway or each service), and how resources share Session
-  records.
+- Which endpoints use Session identity or state and must verify the header, where verification
+  runs (a gateway or each service), and how those resources share Session records. Endpoints that
+  use no Session claims can skip the record and verification.
 - The Session JWT acceptance window, the longest delegation lifetime you accept, and Session
   lifetime.
 - Whether and where to keep a replay cache for Session JWTs.
@@ -143,7 +161,7 @@ Agent ID, whether it has ended, and later the account it used
 
 - `organization.domain` names the apex domain while the document is served from `www.` after a
   redirect, or the other way round.
-- No protected resource metadata at `https://{domain}/.well-known/oauth-protected-resource`, or a
+- When offering sign-in, no protected resource metadata at `https://{domain}/.well-known/oauth-protected-resource`, or a
   `resource` with a path or trailing slash.
 - `issuer` in the metadata differs from the one in `authorization_servers` or `auth.issuer` by a
   trailing slash.

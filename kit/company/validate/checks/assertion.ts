@@ -154,7 +154,7 @@ export async function checkAssertions(ctx: Context, r: Recorder): Promise<void> 
                     exchange: ex,
                     expected:
                         '400 {"error": "invalid_grant"}: the assertion accepted, the refresh token unknown',
-                    cause: "Companies accept client assertions signed with ES256 and with PS384, which lets a Personal Agent have them signed blindly (4.1, 10.7). Verify the assertion with the RSA key its kid names in jwks_uri.",
+                    cause: "Companies SHOULD accept client assertions signed with PS384, which lets a Personal Agent have them signed blindly (4.1, 10.7). ES256 remains required. To support PS384, verify the assertion with the RSA key its kid names in jwks_uri.",
                 });
         }
     }

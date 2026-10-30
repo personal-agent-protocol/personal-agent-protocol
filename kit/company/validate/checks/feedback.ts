@@ -1,5 +1,5 @@
-// Milestone 2: the feedback endpoint (section 9.3): reports need the Session header, and a
-// signed-out Session is enough. Reports are synthetic and describe no one.
+// Milestone 2: feedback (9.3). Verification is recommended, and required for attribution.
+// A signed-out Session is enough. Reports are synthetic and describe no one.
 
 import { sessionRequest } from "../agent.ts";
 import { isInvalidSession, jsonError, type Exchange } from "../http.ts";
@@ -80,17 +80,19 @@ export async function checkFeedback(ctx: Context, r: Recorder): Promise<void> {
                 expected: '400 {"error": "invalid_session"}',
                 cause:
                     ex.status === 202 || ex.status === 200
-                        ? "The endpoint accepted a report without the Session header, so anyone could send reports that look like they came from a Personal Agent."
+                        ? "Session verification is recommended for reports and required before attribution. Accepting an unattributed report is allowed. Manually check that reports without a verified header aren't attributed to a Personal Agent, User, or Session (9.3)."
                         : (invalidSessionShape(ex) ??
                           "A request without the Session header gets HTTP 400 with invalid_session in a JSON body (section 7)."),
             });
     }
 
-    if (!ctx.identity || !ctx.discovered.issuer || ctx.blocked.identity) {
+    if (!ctx.identity || !ctx.discovered.audience || ctx.blocked.identity) {
         skipRest(
             r,
             FEEDBACK_IDS,
-            ctx.blocked.identity ?? ctx.identityProblem ?? "No test Personal Agent or issuer.",
+            ctx.blocked.identity ??
+                ctx.identityProblem ??
+                "No test Personal Agent or Company identity.",
         );
         return;
     }

@@ -38,6 +38,13 @@ export type Flaws = {
     unlistedAlternativeApi?: boolean;
     // The domain publishes no protected resource metadata.
     noResourceMetadata?: boolean;
+    resourceMetadataStatus?: number;
+    emptyAuthorizationServers?: boolean;
+    omitAuthorizationServers?: boolean;
+    malformedAuthorizationServers?: boolean;
+    modernMcp?: boolean;
+    mcpUnsupportedVersion?: boolean;
+    mcpMalformedDiscovery?: boolean;
     // The protected resource metadata's resource has a trailing slash.
     resourceWithSlash?: boolean;
     // The protected resource metadata lists a second authorization server.
@@ -50,6 +57,12 @@ export type Flaws = {
     scopesInPoppy?: boolean;
     // The other domain with the same issuer has a different auth in its poppy.json.
     otherDomainAuth?: boolean;
+    otherDomainIssuer?: boolean;
+    otherDomainIssuerless?: boolean;
+    otherDomainExplicitIssuer?: boolean;
+    // A public API ignores Session claims and has no Session state.
+    statelessApi?: boolean;
+    apiRequiresSession?: boolean;
 
     // --- Session header ---
     // Accepts a Session JWT whose signature doesn't verify with its delegation's key.
@@ -786,6 +799,7 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
 
     const auth = (domain: "main" | "other") => ({
         ...(flaws.authIssuer ? { issuer: flaws.authIssuer } : {}),
+        ...(domain === "other" && flaws.otherDomainExplicitIssuer ? { issuer: ORIGIN } : {}),
         ...(flaws.scopesInPoppy ? { scopes: { "orders:read": "See your orders" } } : {}),
         scope_hints: {
             "orders:read": {
@@ -903,7 +917,7 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
         });
     }
 
-    function mcp(headers: Headers): Response {
+    function mcp(headers: Headers, body: string): Response {
         if (flaws.mcpStatus404) return json(404, { error: "not_found" });
         const authorization = headers.get("authorization");
         const resourceMetadata = `resource_metadata="${MCP_PRM}"`;
@@ -926,6 +940,50 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                         : `Bearer error="invalid_token", ${resourceMetadata}`,
                 },
             });
+        const request = JSON.parse(body);
+        if (request.method === "server/discover") {
+            if (!flaws.modernMcp)
+                return json(400, {
+                    jsonrpc: "2.0",
+                    id: 1,
+                    error: { code: -32601, message: "Method not found" },
+                });
+            if (flaws.mcpUnsupportedVersion)
+                return json(400, {
+                    jsonrpc: "2.0",
+                    id: 1,
+                    error: {
+                        code: -32022,
+                        message: "Unsupported version",
+                        data: { supported: ["2099-01-01"] },
+                    },
+                });
+            if (
+                headers.get("mcp-protocol-version") !== "2026-07-28" ||
+                headers.get("mcp-method") !== request.method ||
+                request.params?._meta?.["io.modelcontextprotocol/protocolVersion"] !== "2026-07-28"
+            )
+                return json(400, { error: "invalid_request" });
+            return json(200, {
+                jsonrpc: "2.0",
+                id: 1,
+                result: flaws.mcpMalformedDiscovery
+                    ? {}
+                    : {
+                          supportedVersions: ["2026-07-28"],
+                          capabilities: {},
+                          _meta: {
+                              "io.modelcontextprotocol/serverInfo": {
+                                  name: "shop",
+                                  version: "1.0.0",
+                              },
+                          },
+                          ttlMs: 0,
+                          cacheScope: "private",
+                          resultType: "complete",
+                      },
+            });
+        }
         return json(200, {
             jsonrpc: "2.0",
             id: 1,
@@ -1025,6 +1083,13 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
         }
         if (url.origin === OTHER_DOMAIN && path === "/.well-known/poppy.json")
             return json(200, poppy("shop-two.test", "other"));
+        if (url.origin === OTHER_DOMAIN && path === "/.well-known/oauth-protected-resource")
+            return json(200, {
+                resource: OTHER_DOMAIN,
+                authorization_servers: flaws.otherDomainIssuerless
+                    ? []
+                    : [flaws.otherDomainIssuer ? "https://other-issuer.test" : ORIGIN],
+            });
         if (url.origin !== ORIGIN) throw new TypeError("fetch failed");
         if (
             path === "/.well-known/poppy.json" ||
@@ -1042,13 +1107,25 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
         }
         if (path === "/poppy/excluded-tasks.json" && method === "GET")
             return json(200, excludedTasks(), { "cache-control": "max-age=300" });
+        if (path === "/.well-known/oauth-protected-resource" && flaws.resourceMetadataStatus)
+            return json(flaws.resourceMetadataStatus, { error: "unavailable" });
         if (path === "/.well-known/oauth-protected-resource" && !flaws.noResourceMetadata)
             return json(200, {
                 resource: flaws.resourceWithSlash ? `${ORIGIN}/` : ORIGIN,
-                authorization_servers: [
-                    ORIGIN,
-                    ...(flaws.twoAuthorizationServers ? ["https://staff.shop.test"] : []),
-                ],
+                ...(flaws.omitAuthorizationServers
+                    ? {}
+                    : {
+                          authorization_servers: flaws.malformedAuthorizationServers
+                              ? "broken"
+                              : flaws.emptyAuthorizationServers
+                                ? []
+                                : [
+                                      ORIGIN,
+                                      ...(flaws.twoAuthorizationServers
+                                          ? ["https://staff.shop.test"]
+                                          : []),
+                                  ],
+                      }),
             });
         if (path === "/.well-known/oauth-authorization-server" && !flaws.noIssuerMetadata)
             return json(200, metadata());
@@ -1061,14 +1138,20 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                 ],
             });
         if (here === TOKEN && method === "POST") return tokenEndpoint(body);
-        if (here === MCP) return mcp(headers);
+        if (here === MCP) return mcp(headers, body);
         if (here === FEEDBACK && method === "POST") return feedback(here, headers, body);
         if (here === BROWSER_SESSION && method === "GET") return browserSessionPage(headers);
         if (here === `${BROWSER_SESSION}/authorize` && method === "POST")
             return browserSessionAuthorize(url.toString(), headers, body);
         if (here === BROWSER_SESSION && method === "POST") return browserSessionForm(body, headers);
         if (path === "/api/orders" && method === "GET") {
-            if (headers.get("poppy-session") || headers.get("authorization")) {
+            if (flaws.statelessApi && !headers.get("authorization"))
+                return json(200, { products: [] });
+            if (
+                flaws.apiRequiresSession ||
+                headers.get("poppy-session") ||
+                headers.get("authorization")
+            ) {
                 const checked = await authorize(method, url.toString(), headers);
                 if (checked.error) return checked.error;
             }

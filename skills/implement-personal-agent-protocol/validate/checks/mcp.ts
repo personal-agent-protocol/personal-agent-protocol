@@ -26,6 +26,20 @@ export const INITIALIZE = {
     },
 };
 
+export const MODERN_VERSION = "2026-07-28";
+const DISCOVER = {
+    jsonrpc: "2.0",
+    id: 1,
+    method: "server/discover",
+    params: {
+        _meta: {
+            "io.modelcontextprotocol/protocolVersion": MODERN_VERSION,
+            "io.modelcontextprotocol/clientInfo": { name: "poppy-validator", version: "0.1" },
+            "io.modelcontextprotocol/clientCapabilities": {},
+        },
+    },
+};
+
 const MCP_HEADERS = { Accept: "application/json, text/event-stream" };
 
 // The JSON-RPC response to the initialize request in an MCP response, JSON or SSE.
@@ -73,6 +87,75 @@ export function initializeProblem(ex: Exchange): string | undefined {
 
 export function initializeOk(ex: Exchange): boolean {
     return initializeProblem(ex) === undefined;
+}
+
+function discoveryOk(ex: Exchange): boolean {
+    const result = (
+        initializeResponse(ex) as
+            | {
+                  result?: {
+                      resultType?: unknown;
+                      supportedVersions?: unknown;
+                      capabilities?: unknown;
+                  };
+              }
+            | undefined
+    )?.result;
+    return (
+        ex.status === 200 &&
+        Array.isArray(result?.supportedVersions) &&
+        result.supportedVersions.includes(MODERN_VERSION) &&
+        result.resultType === "complete" &&
+        result.capabilities !== null &&
+        typeof result.capabilities === "object" &&
+        !Array.isArray(result.capabilities)
+    );
+}
+
+// Probe modern discovery first. Only the HTTP binding's legacy signal permits fallback;
+// modern version errors are handled explicitly, never mistaken for legacy servers.
+async function probe(
+    ctx: Context,
+    url: string,
+    authorization?: string,
+): Promise<{ exchange: Exchange; modern: boolean }> {
+    const send = (modern: boolean, version = "2025-06-18") =>
+        ctx.http.request({
+            method: "POST",
+            url,
+            body: JSON.stringify(
+                modern
+                    ? DISCOVER
+                    : { ...INITIALIZE, params: { ...INITIALIZE.params, protocolVersion: version } },
+            ),
+            headers: {
+                ...MCP_HEADERS,
+                "Content-Type": "application/json",
+                ...(modern
+                    ? { "MCP-Protocol-Version": MODERN_VERSION, "Mcp-Method": "server/discover" }
+                    : {}),
+                ...(authorization ? { Authorization: authorization } : {}),
+            },
+            until: hasInitializeResponse,
+            note: `MCP ${modern ? "server/discover" : "initialize"} ${authorization ? "with an invented access token" : "without a token"}`,
+        });
+    const ex = await send(true);
+    if (ex.status !== 400) return { exchange: ex, modern: true };
+    const error = (
+        initializeResponse(ex) as
+            | { error?: { code?: number; data?: { supported?: unknown } } }
+            | undefined
+    )?.error;
+    if (error?.code === -32022) {
+        const versions = error.data?.supported;
+        const legacy = ["2025-11-25", "2025-06-18"].find(
+            (v) => Array.isArray(versions) && versions.includes(v),
+        );
+        if (legacy) return { exchange: await send(false, legacy), modern: false };
+        return { exchange: ex, modern: true };
+    }
+    if (error?.code === -32021 || error?.code === -32020) return { exchange: ex, modern: true };
+    return { exchange: await send(false), modern: false };
 }
 
 // The Bearer challenge in a response, if any.
@@ -148,30 +231,18 @@ export async function checkMcp(ctx: Context, r: Recorder): Promise<void> {
         return;
     }
     const issuer = ctx.discovered.issuer;
+    if (!issuer && ctx.discovered.audience) {
+        skipRest(
+            r,
+            MCP_IDS,
+            "The Company offers no account access. Check its signed-out MCP Session handling by hand; OAuth MCP probes do not apply.",
+        );
+        return;
+    }
     const agg = aggregator(r);
 
     for (const url of servers) {
-        const initialize = (authorization: string | undefined, note: string) =>
-            ctx.http.request({
-                method: "POST",
-                url,
-                body: JSON.stringify(INITIALIZE),
-                headers: {
-                    ...MCP_HEADERS,
-                    "Content-Type": "application/json",
-                    ...(authorization ? { Authorization: authorization } : {}),
-                },
-                // A stream may stay open after the response: stop at the initialize response.
-                until: hasInitializeResponse,
-                note,
-            });
-
-        // No token: either a meaningful initialize result, or a 401 that points at the protected
-        // resource metadata.
-        const none = await initialize(
-            undefined,
-            "MCP initialize with no token and no Session header",
-        );
+        const { exchange: none, modern } = await probe(ctx, url);
         const challenge = bearer(none);
         if (none.status === 401) {
             if (challenge?.params.resource_metadata) agg.add("mcp.no-token", "pass", url);
@@ -183,27 +254,31 @@ export async function checkMcp(ctx: Context, r: Recorder): Promise<void> {
                         ? "The Bearer challenge has no resource_metadata, so MCP clients can't find the authorization server (RFC 9728 §5.1)."
                         : "The 401 has no Bearer challenge. An MCP server's challenges include resource_metadata with its protected resource metadata URL.",
                 });
-        } else if (none.status === 200 && initializeOk(none))
+        } else if (modern ? discoveryOk(none) : initializeOk(none))
             agg.add("mcp.no-token", "pass", url, {
-                summary: "Initialized without a token, so there's no challenge to check.",
+                summary: "Discovery succeeded without a token, so there's no challenge to check.",
             });
         else
             agg.add("mcp.no-token", "fail", url, {
                 exchange: none,
-                got: none.status === 200 ? `200 with ${initializeProblem(none)}` : undefined,
+                got:
+                    none.status === 200
+                        ? `200 with ${modern ? "an invalid server/discover result" : initializeProblem(none)}`
+                        : undefined,
                 expected:
-                    'An initialize result, or 401 with WWW-Authenticate: Bearer resource_metadata="…"',
+                    'A server/discover or initialize result, or 401 with WWW-Authenticate: Bearer resource_metadata="…"',
                 cause:
                     none.status === 404
                         ? "The MCP server's url in poppy.json isn't an MCP endpoint. It points to a remote MCP server endpoint using the Streamable HTTP transport (section 7)."
-                        : "An MCP server answers initialize, or refuses a request without a token with a challenge that names its protected resource metadata.",
+                        : "An MCP server answers discovery, or refuses a request without a token with a challenge that names its protected resource metadata.",
             });
 
         // An invented token: refused with invalid_token, and a challenge that points at the same
         // metadata.
-        const invented = await initialize(
+        const { exchange: invented } = await probe(
+            ctx,
+            url,
             `Bearer validator_invented_${randomId(16)}`,
-            "MCP initialize with an invented access token",
         );
         const inventedChallenge = bearer(invented);
         const expectedPrm = challenge?.params.resource_metadata;

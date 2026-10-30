@@ -32,8 +32,9 @@ Patterns: `patterns/sign-in.md`, `patterns/scopes.md`, `patterns/session-records
 
 ## What to build
 
-**Scopes** ([4.7](https://personalagentprotocol.org/docs/0.3/spec#scopes)). Every scope a Personal
-Agent can request in `scopes_supported` in the OAuth metadata. A description of every scope, in
+**Scopes** ([4.7](https://personalagentprotocol.org/docs/0.3/spec#scopes)). Listing every offered scope
+in `scopes_supported` and describing it are recommended. Agents can also use scopes documented by
+the APIs or sign-in extensions. Put descriptions in
 the OAuth security scheme of an OpenAPI description you list or in `auth.scopes`. Write them in
 words a User and a language model can understand
 ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-scope-descriptions)).
@@ -42,9 +43,10 @@ Reject missing, unknown, or unavailable scopes with `invalid_scope`. Never grant
 requested and allowed for the type. The User may approve fewer, but at least one: approving none is
 a decline.
 
-**The token response** (4.7). Sign-in and refresh return `access_token`, `token_type`,
-`expires_in`, `refresh_token`, and the granted `scope` when
-it differs from the request. Send `Cache-Control: no-store`.
+**The token response** (4.7). Sign-in returns `access_token`, `token_type`, `refresh_token`, and the
+granted `scope` when it differs from the request. `expires_in` is recommended. Refresh can omit
+`refresh_token` when it doesn't replace it; the agent keeps its existing token (RFC 6749 §6).
+Send `Cache-Control: no-store`.
 
 **Access tokens** ([4.5](https://personalagentprotocol.org/docs/0.3/spec#access-tokens)).
 
@@ -56,8 +58,8 @@ it differs from the request. Send `Cache-Control: no-store`.
   for its `resource` (RFC 8707) at sign-in or refresh, accept it only there, and return
   `invalid_target` for a `resource` you don't serve. A service that gets a token not issued for it
   returns `invalid_token` with `resource_metadata`.
-- Reject a Personal Agent's access token sent without the Session header, at every endpoint that
-  accepts the header (5.3).
+- Require a verified Session header wherever handling the request depends on Session claims (5.3).
+  An endpoint using OAuth alone still validates the token, audience, scopes, and required DPoP.
 
 **Account changes** (5.4). A Session can change accounts unless the Company refuses it. The
 Company may refuse a request whose access token is for a different account than its Session used
@@ -173,8 +175,8 @@ the Personal Agent ([section 6](https://personalagentprotocol.org/docs/0.3/spec#
   page load.
 - Missing `iss` on error redirects (4.2).
 - A refresh token accepted from any `client_id`, or at an API (4.4).
-- Accepting a Personal Agent's access token without the Session header, or without checking that
-  `ath` matches it and that it was issued to the Session JWT's `iss` (5.3).
+- Using Session claims with an access token without verifying the header, `ath`, and that the token
+  was issued to the Session JWT's `iss` (5.3).
 - Expecting a Session parameter, a DPoP key, or a User ID at the token endpoint. Sign-in doesn't
   know the Session.
 - Revoking the refresh token but letting its access tokens keep working for hours (5.5).

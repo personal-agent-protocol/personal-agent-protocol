@@ -154,17 +154,17 @@ export async function checkResources(ctx: Context, r: Recorder): Promise<void> {
         note: `${probe.describe}, with no Session header`,
     });
     if (isInvalidSession(missing)) r.pass("session.missing");
-    else if (probe.kind === "probe" && !missing.error)
+    else if (probe.kind === "probe" && !ctx.options.probeSession && !missing.error)
         r.skip(
             "session.missing",
-            `The --probe URL answered ${missing.status} without the Session header. An API may serve requests without it, unless they carry an access token (5.3), so this is checked only at conversations and feedback.`,
+            `The --probe URL answered ${missing.status} without the Session header. An API that uses no Session claims or state may do so (5.3). Use --probe-session to check an endpoint that requires Session identity or state.`,
         );
     else if (accepted(probe, missing)) {
         r.fail("session.missing", {
             exchange: missing,
             expected: INVALID_SESSION,
             got: `${missing.status}, the request was handled`,
-            cause: "Conversation requests must carry the Session header (8.2). Reject a request without one with invalid_session.",
+            cause: "A request that depends on Session claims must carry a verified Session header (5.3), including conversation requests (8.2). Reject a request without one with invalid_session.",
         });
         skipRest(
             r,
@@ -310,9 +310,9 @@ export async function checkResources(ctx: Context, r: Recorder): Promise<void> {
         ],
         [
             "session.aud",
-            { extra: { aud: `${ctx.discovered.issuer}/other` } },
-            "with a Session JWT for a different issuer",
-            "The endpoint doesn't compare aud with its own issuer, character for character, so a Session JWT another Company collected would work here (10.4).",
+            { extra: { aud: `${ctx.discovered.audience}/other` } },
+            "with a Session JWT for a different Company identifier",
+            "The endpoint doesn't compare aud with its Company's identifier, character for character, so a Session JWT another Company collected would work here (10.4).",
         ],
         [
             "session.htm",
@@ -350,9 +350,8 @@ export async function checkResources(ctx: Context, r: Recorder): Promise<void> {
     if (r.wants("token.in-url")) await tokenInUrl(ctx, r, probe);
 }
 
-// A bad Session header gets 400 invalid_session at each endpoint that takes the Session header,
-// before anything else about the request is checked (5.3). One request per endpoint, each with a
-// body that would be refused anyway, so nothing is created even if the check is missing.
+// Early Session verification is recommended (5.3). Empty bodies make these probes safe, but a
+// malformed-body response cannot show whether the endpoint would trust unverified Session claims.
 async function invalidEverywhere(ctx: Context, r: Recorder): Promise<void> {
     const poppy = ctx.discovered.poppy;
     const endpoints: { url: string; body: unknown; what: string }[] = [];
@@ -401,7 +400,7 @@ async function invalidEverywhere(ctx: Context, r: Recorder): Promise<void> {
             exchange: bad,
             got: problems.join("; "),
             expected: `${INVALID_SESSION} at every endpoint, before the body is checked`,
-            cause: "Each endpoint that takes the Session header completes the Session checks first, and answers a failed one with HTTP 400 and invalid_session in a JSON body (5.3).",
+            cause: "Session verification is recommended generally and required before trusting Session claims. These empty-body probes cannot establish whether unverified claims were used. Verify Session-dependent requests separately, including conversations and browser join (5.3).",
         });
 }
 

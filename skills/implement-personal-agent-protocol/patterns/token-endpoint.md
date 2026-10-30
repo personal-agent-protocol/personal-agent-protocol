@@ -14,7 +14,8 @@ receive the Session header, and sign-in doesn't need to know the Session.
 
 ## Survey the existing server
 
-- Check support for client ID metadata documents, `private_key_jwt` with `ES256` and `PS384`, PKCE,
+- Check support for client ID metadata documents, `private_key_jwt` with `ES256` (required) and
+  `PS384` (recommended), PKCE,
   `iss` in redirects, resource indicators, and the sign-in types the design chose. Some servers
   support them and some don't.
 - Check that resources can tell which `client_id` an access token was issued to, by a claim or
@@ -49,5 +50,5 @@ single string. The guides suggest rejecting a reused `jti` from the same `client
 expires (4.1 allows it), with a cache every token endpoint server shares. Send `Cache-Control: no-store` on token responses, and include
 `expires_in`, as RFC 6749 recommends.
 
-Resources verify the Session header and the access token separately, then apply the same Session and
+Resources that use Session claims verify the Session header and the access token separately, then apply the same Session and
 scope checks. The authorization server needs no grant for an unknown User ID.

@@ -22,8 +22,12 @@ export const REFUSED_BY_POLICY =
     "A Company decides which Personal Agents it accepts (spec 4.1), and a refused one gets invalid_session at a resource. If the Company accepts only approved Personal Agents, approve the test Personal Agent's client_id and run again. If it should have accepted it, check the Session verification steps (5.2, 5.3).";
 
 export async function checkSessions(ctx: Context, r: Recorder): Promise<void> {
-    if (!ctx.identity || !ctx.discovered.issuer) {
-        skipRest(r, SESSION_IDS, ctx.identityProblem ?? "No test Personal Agent or issuer.");
+    if (!ctx.identity || !ctx.discovered.audience) {
+        skipRest(
+            r,
+            SESSION_IDS,
+            ctx.identityProblem ?? "No test Personal Agent or Company identity.",
+        );
         return;
     }
     const identity = ctx.identity;
@@ -149,7 +153,7 @@ export async function checkSessions(ctx: Context, r: Recorder): Promise<void> {
                 "session.delegation-ps384",
                 ex,
                 "The resource accepts a delegation signed with PS384",
-                "Companies must accept delegations signed with ES256 and with PS384, which Personal Agents use to sign them blindly (5.2, 10.7). Check the delegation with the RSA key its kid names.",
+                "Companies SHOULD accept delegations signed with PS384, which Personal Agents use to sign them blindly (5.2, 10.7). ES256 remains required. To support PS384, check the delegation with the RSA key its kid names.",
             );
         }
     }

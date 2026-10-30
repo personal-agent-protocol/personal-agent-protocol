@@ -49,8 +49,9 @@ export type Poppy = {
     auth?: {
         issuer?: string;
         scopes?: Record<string, string>;
+        scope_hints?: Record<string, { changes: string; personal_data: boolean }>;
     };
-    agent?: { protocols?: { type?: string; endpoint?: string }[] };
+    agent?: { protocols?: { type?: string; endpoint?: string; access?: string }[] };
     web?: { browser_session_endpoint?: string };
     feedback?: { endpoint?: string };
     excluded_tasks?: { url?: string };
@@ -101,6 +102,8 @@ export type Discovered = {
     resourceMetadata?: ResourceMetadata;
     // The Company's issuer, from the protected resource metadata and auth.issuer (spec 3.2).
     issuer?: string;
+    // Validated issuer, or domain origin for an issuerless Company (spec 3.2).
+    audience?: string;
     metadata?: Metadata;
     metadataUrl?: string;
 };
@@ -118,6 +121,8 @@ export type CheckOptions = {
     only?: string[];
     milestones: Set<Milestone>;
     probe?: string;
+    // The engineer confirms this API probe relies on Session identity or state.
+    probeSession?: boolean;
     offline?: boolean;
 };
 
@@ -311,7 +316,22 @@ export function recorder(ctx: Context, results: CheckResult[] = []): Recorder {
         reason?: string,
         inconclusive = false,
     ) => {
-        const info = checkInfo(id);
+        const info = { ...checkInfo(id) };
+        const generalSessionProbe =
+            ctx.options.probe && !ctx.options.probeSession && id.startsWith("session.");
+        if (generalSessionProbe) {
+            info.level = "SHOULD";
+            info.section = "spec#session-verification";
+            info.quote =
+                "Companies SHOULD verify the Session header on every request that carries it.";
+            detail = {
+                ...detail,
+                notes: [
+                    ...(detail.notes ?? []),
+                    "This API probe has not been declared to use Session claims or state. These are recommendation checks; use --probe-session for a Session-dependent endpoint. Verification is mandatory before trusting Session claims (5.3).",
+                ],
+            };
+        }
         if (!ctx.options.milestones.has(info.milestone) || !selected(ctx.options, id)) return;
         if (results.some((r) => r.id === id)) return;
         const exchanges = detail.exchange
