@@ -115,3 +115,31 @@ test("events responses accept a null cursor", () => {
     };
     assert.deepEqual(check("events-response.schema.json", body), []);
 });
+
+test("a Direct Conversation can accept a user_requested event without a message", () => {
+    const acceptance = { parent_conversation_id: "cnv_1", user_requested_event_id: "evt_1" };
+    const message = { id: "msg_1", author: { type: "human" }, text: "Hello" };
+    for (const request of [acceptance, { ...acceptance, message }, { message }]) {
+        assert.deepEqual(check("conversation-request.schema.json", request), []);
+    }
+    assert.deepEqual(check("conversation-message-request.schema.json", { message }), []);
+    assert.ok(
+        check("conversation-message-request.schema.json", acceptance).some(
+            (e) => e.path === "/message",
+        ),
+    );
+    for (const request of [
+        {},
+        { parent_conversation_id: "cnv_1" },
+        { user_requested_event_id: "evt_1" },
+        { user_requested_event_id: "evt_1", message },
+        { ...acceptance, user_requested_event_id: "not/an/id" },
+        { ...acceptance, parent_conversation_id: "" },
+        { ...acceptance, message: { id: "msg_1", author: { type: "human" } } },
+    ]) {
+        assert.ok(
+            check("conversation-request.schema.json", request).length > 0,
+            JSON.stringify(request),
+        );
+    }
+});

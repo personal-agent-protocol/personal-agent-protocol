@@ -144,6 +144,12 @@ Breaking · [Spec 3.3](https://personalagentprotocol.org/docs/0.3/spec#extension
 
 Content that an extension defines goes in a message's new `extensions` object, keyed by the extension's name, as in `poppy.json`, rather than in fields of its own beside `text` and `data`. A side sends an extension's content only to a side that lists the same version, and an extension that defines message content publishes a JSON Schema for it. A message needs `text`, `data`, `context`, or `extensions`. The Operations extension's `operation` and `approval` move to `extensions.operations`. Two new extensions use the same shape: Links, for web pages a Company message refers to, and Disclosures, for notices such as allergen warnings, which the Personal Agent decides whether to show.
 
+#### Company-first Direct Conversations
+
+[Spec 8.3](https://personalagentprotocol.org/docs/0.3/spec#sending-messages) · [Spec 8.10](https://personalagentprotocol.org/docs/0.3/spec#direct-conversations) · [Guides: Conversations](https://personalagentprotocol.org/docs/0.3/guides#agent-conversations) · [Issue #40](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/40)
+
+A Personal Agent can accept a `user_requested` event with its ID and the parent Conversation ID, without sending a message. The Company sends the first message in the new Direct Conversation, through the normal event stream or a waiting request. Retrying the acceptance returns the same conversation, including after it closes, and ownership is checked before accepting or retrying it.
+
 #### Operations version 2: retry with approval
 
 Breaking · [Spec 8.4](https://personalagentprotocol.org/docs/0.3/spec#message-fields) · [Spec 8.13](https://personalagentprotocol.org/docs/0.3/spec#conversation-errors) · [Operations 1](https://personalagentprotocol.org/docs/0.3/extensions/operations#intro) · [Operations 2](https://personalagentprotocol.org/docs/0.3/extensions/operations#support) · [Operations 3](https://personalagentprotocol.org/docs/0.3/extensions/operations#operation-object) · [Operations 4](https://personalagentprotocol.org/docs/0.3/extensions/operations#approval-required) · [Operations 5](https://personalagentprotocol.org/docs/0.3/extensions/operations#approval) · [Operations 6](https://personalagentprotocol.org/docs/0.3/extensions/operations#sending-approval) · [Operations 7](https://personalagentprotocol.org/docs/0.3/extensions/operations#at-most-once) · [Operations 8.1](https://personalagentprotocol.org/docs/0.3/extensions/operations#approval-proof) · [Operations 9](https://personalagentprotocol.org/docs/0.3/extensions/operations#references) · [Guides: Operations](https://personalagentprotocol.org/docs/0.3/guides#agent-operations) · [Guides: Operations](https://personalagentprotocol.org/docs/0.3/guides#company-operations)
@@ -357,6 +363,18 @@ Each message has an `author` object instead of `sender`. Its `type` takes `sende
 [Spec 8.7](https://personalagentprotocol.org/docs/0.3/spec#status)
 
 A Personal Agent treats a conversation `status` it doesn't recognize as `working`, and a `responder` it doesn't recognize as `human`, so later versions can add values.
+
+#### Personal Agent visibility in Direct Conversations
+
+[Spec 8.10](https://personalagentprotocol.org/docs/0.3/spec#direct-conversations)
+
+The Personal Agent may observe every message in a Direct Conversation. Companies must not send information there that they cannot share with the Personal Agent.
+
+#### Closing abandoned Direct Conversations
+
+[Spec 8.10](https://personalagentprotocol.org/docs/0.3/spec#direct-conversations) · [Guides: Conversations](https://personalagentprotocol.org/docs/0.3/guides#agent-conversations) · [Issue #41](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/41)
+
+Either party can close a Direct Conversation, including the Company after inactivity. The guides advise Personal Agents to close it when the User returns control to them, so they can continue in the parent, without treating every switch away as an end to the Direct Conversation.
 
 #### Challenges with conversation authorization events
 

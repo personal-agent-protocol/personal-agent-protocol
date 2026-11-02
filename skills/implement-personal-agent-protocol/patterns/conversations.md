@@ -53,7 +53,16 @@ cancels the desk request. Live agents' tools need the same scope checks as the C
 Create a new platform conversation linked to the parent, with the parent's history available to the
 agent but not returned to the Personal Agent. Track one open Direct Conversation per parent, and add
 `direct_opened` and `direct_closed` events to the parent. Tell the agent it's now talking to the
-customer directly.
+customer directly. The Personal Agent may observe every message, so the Company must not send
+information there that it cannot share with the Personal Agent (8.10).
+
+When accepting a `user_requested` event, the Personal Agent sends its ID in
+`user_requested_event_id` alongside `parent_conversation_id`, and can omit `message`. Validate that
+the event is a `user_requested` event in that parent. Prepare the Company's opening message in the
+new Direct Conversation, using `working` or `queued` meanwhile. Deliver it as a normal `message`
+event, including through `wait` on the opening request. After checking ownership, deduplicate
+acceptances by parent ID and event ID for as long as you keep the Direct Conversation, even after
+it closes.
 
 **Waiting and streaming.** Long polls (`wait`) and streams
 ([8.6](https://personalagentprotocol.org/docs/0.3/spec#streaming)) need the adapter to notice new events

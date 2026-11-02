@@ -811,7 +811,7 @@ A conversation belongs to the Personal Agent's `client_id` and the User ID that 
 
 ### 8.3 Sending messages
 
-A new conversation starts with its first message:
+A new conversation starts with its first message, except when accepting a `user_requested` event without a message (8.10):
 
 *Request: Personal Agent → Company*
 
@@ -863,7 +863,7 @@ Content-Type: application/json
 
 **Message IDs.** The Personal Agent chooses each message's `id`, and MUST make it unique for the User. To retry a message, it sends it again with the same ID. If the Company has already accepted a message with that ID and the same content, it returns the original response and doesn't add the message again. Because the ID is unique for the User rather than for one conversation, the Company can recognize a retried first message and return the conversation it already started. If the content is different, the Company returns `message_id_conflict`. The Company keeps this check for as long as it keeps the conversation.
 
-**Replies in the response.** To get the Company's reply in the same request, the Personal Agent adds the `wait` query parameter to either `POST`, and `cursor` if it has one. The Company accepts the message, then responds as a read of the conversation's events from that cursor would (8.5), holding the request for up to `wait` seconds. Without a cursor, it reads from the start of the conversation. The status code stays 201 or 202:
+**Replies in the response.** To get the Company's reply in the same request, the Personal Agent adds the `wait` query parameter to either `POST`, and `cursor` if it has one. The Company accepts the conversation or message, then responds as a read of the conversation's events from that cursor would (8.5), holding the request for up to `wait` seconds. Without a cursor, it reads from the start of the conversation. The status code stays 201 or 202:
 
 *Request: Personal Agent → Company*
 
@@ -1144,6 +1144,8 @@ The Personal Agent can keep sending messages while it waits, for example to expl
 
 A Direct Conversation lets the User talk with the Company themselves. It is a new conversation, linked to the one before it, so the User sees only the Direct Conversation, while the Company keeps the earlier history and can use it. The Personal Agent sends the User's messages as written, with `author.type` `human` (8.8), and shows the Company's replies to the User.
 
+The Personal Agent may observe every message in a Direct Conversation. The Company MUST NOT send information there that it cannot share with the Personal Agent.
+
 **Starting one.** The Personal Agent starts a Direct Conversation like any other (8.3), adding `parent_conversation_id` with the earlier conversation's ID. The Company returns a new Conversation ID as usual:
 
 *Request: Personal Agent → Company*
@@ -1177,9 +1179,29 @@ The parent conversation MUST be open, belong to the same owner (8.2), and not be
 
 The event doesn't change `status` or `responder`.
 
-The Personal Agent asks the User. If they agree, it starts a Direct Conversation as above. If they decline or aren't available, it says so in the conversation. Only the Personal Agent starts Direct Conversations, so the User decides when they're brought in.
+The Personal Agent asks the User. If they agree, it starts a Direct Conversation with the parent ID and `user_requested_event_id`, naming that event. It can omit `message` so the Company speaks first:
 
-**The parent conversation meanwhile.** When a Direct Conversation opens, the Company adds a `direct_opened` event to the parent, with the Direct Conversation's ID in `conversation_id`. While it is open, the parent can still be read, but messages and handoff requests to the parent return `direct_conversation_open`, with the Direct Conversation's ID in `conversation_id`. When the Direct Conversation closes, the Company adds a `direct_closed` event to the parent, and the parent takes messages again. Closing the parent also closes its open Direct Conversation.
+*Request: Personal Agent → Company*
+
+```
+POST https://api.example.com/poppy/conversations?wait=10
+Poppy-Session: eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…
+Authorization: Bearer eyJhbGciOi…Qp4w
+Content-Type: application/json
+
+{
+  "parent_conversation_id": "cnv_8f3Kd2",
+  "user_requested_event_id": "evt_c6"
+}
+```
+
+The Company MUST reject a `user_requested_event_id` that doesn't name a `user_requested` event in that parent with `invalid_request`. A request without `message` is valid only when starting a Direct Conversation with both IDs. The Company records its first message as a `message` event in the Direct Conversation. While preparing it, the conversation is `working`, or `queued` if waiting for a person (8.7). The Personal Agent reads it with `wait` on the opening request (8.3), or by reading or streaming events (8.5, 8.6). The `reason` in the parent remains an invitation, not the first message.
+
+The Company checks the parent's ownership (8.2) before accepting this request, and the Direct Conversation's ownership too before returning it on a retry. Repeating the same parent ID and event ID returns the same Direct Conversation without adding another message, even after it closes. The Company keeps this association for as long as it keeps the Direct Conversation. An acceptance that hasn't already started a Direct Conversation follows the parent rules above.
+
+If the User declines or isn't available, the Personal Agent says so in the parent conversation. Only the Personal Agent starts Direct Conversations, so the User decides when they're brought in.
+
+**The parent conversation meanwhile.** When a Direct Conversation opens, the Company adds a `direct_opened` event to the parent, with the Direct Conversation's ID in `conversation_id`. While it is open, the parent can still be read, but messages and handoff requests to the parent return `direct_conversation_open`, with the Direct Conversation's ID in `conversation_id`. When the Direct Conversation closes, the Company adds a `direct_closed` event to the parent, and the parent takes messages again. Either party can close the Direct Conversation as in 8.12, including the Company after inactivity. Closing the parent also closes its open Direct Conversation.
 
 ### 8.11 Sign-in during a conversation
 

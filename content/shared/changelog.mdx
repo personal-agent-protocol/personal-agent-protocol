@@ -307,6 +307,15 @@ decides whether to show.
 
 </Change>
 
+<Change title="Company-first Direct Conversations" sections="8.3, 8.10, guides#agent-conversations" issue="40">
+
+A Personal Agent can accept a `user_requested` event with its ID and the parent Conversation ID,
+without sending a message. The Company sends the first message in the new Direct Conversation,
+through the normal event stream or a waiting request. Retrying the acceptance returns the same
+conversation, including after it closes, and ownership is checked before accepting or retrying it.
+
+</Change>
+
 <Change title="Operations version 2: retry with approval" breaking sections="8.4, 8.13, Operations 1, Operations 2, Operations 3, Operations 4, Operations 5, Operations 6, Operations 7, Operations 8.1, Operations 9, guides#agent-operations, guides#company-operations">
 
 The optional `operations` extension moves from version 1 to incompatible version 2. Both the Company
@@ -679,6 +688,21 @@ with an `id`, a display `name`, and an `image` URL, each optional.
 
 A Personal Agent treats a conversation `status` it doesn't recognize as `working`, and a `responder`
 it doesn't recognize as `human`, so later versions can add values.
+
+</Change>
+
+<Change title="Personal Agent visibility in Direct Conversations" sections="8.10">
+
+The Personal Agent may observe every message in a Direct Conversation. Companies must not send
+information there that they cannot share with the Personal Agent.
+
+</Change>
+
+<Change title="Closing abandoned Direct Conversations" sections="8.10, guides#agent-conversations" issue="41">
+
+Either party can close a Direct Conversation, including the Company after inactivity. The guides
+advise Personal Agents to close it when the User returns control to them, so they can continue in
+the parent, without treating every switch away as an end to the Direct Conversation.
 
 </Change>
 

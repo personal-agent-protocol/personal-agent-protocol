@@ -259,7 +259,9 @@ A company can offer personal agents less than its other OAuth clients get withou
 
 ### Specification: [8.10 Direct Conversations](https://personalagentprotocol.org/docs/0.3/spec#direct-conversations)
 
+- [ ] **MUST NOT**: The Company MUST NOT send information there that it cannot share with the Personal Agent.
 - [ ] **MUST**: The parent conversation MUST be open, belong to the same owner (8.2), and not be a Direct Conversation itself.
+- [ ] **MUST**: The Company MUST reject a `user_requested_event_id` that doesn't name a `user_requested` event in that parent with `invalid_request`.
 
 ### Specification: [9.2 Alternatives](https://personalagentprotocol.org/docs/0.3/spec#alternatives)
 

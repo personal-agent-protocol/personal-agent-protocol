@@ -101,6 +101,10 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
   `parent_conversation_id`, the parent rules and errors, `direct_opened` and `direct_closed`
   events, `direct_conversation_open` with `conversation_id` on the parent, and closing the parent
   closes the Direct Conversation. `user_requested` events if the Company Agent can ask for the User.
+  Accept `user_requested_event_id` with the parent ID, allowing no `message` so the Company speaks
+  first. Reject an event that isn't a `user_requested` event in that parent. After checking
+  ownership, retries of the same parent and event return the same Direct Conversation, even after
+  closing. Keep that association as long as the conversation.
 - Closing ([8.12](https://personalagentprotocol.org/docs/spec#closing)): 200 with `status` and
   `responder`, a `state` event, cancels any pending handoff. Closing again returns the same response
   and adds no event.

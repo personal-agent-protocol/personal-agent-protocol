@@ -220,6 +220,8 @@ When a company offers the [Mediated Sign-In extension](https://personalagentprot
 - Before asking for a person, send a short message that sums up the problem, so they don't have to read the whole conversation ([8.9](https://personalagentprotocol.org/docs/0.3/spec#handoff)).
 - When a person takes over, write for them: concise, plain sentences, details in `text` rather than only in `data`, and time to reply.
 - Close a conversation when the task is done ([8.12](https://personalagentprotocol.org/docs/0.3/spec#closing)).
+- When the user accepts a `user_requested` invitation, start the direct conversation with `parent_conversation_id` and `user_requested_event_id`. Omit `message` to let the company speak first ([8.10](https://personalagentprotocol.org/docs/0.3/spec#direct-conversations)). Keep reading or streaming its events while the user is participating, including when the user hasn't sent a message.
+- When the user returns control to the personal agent, close their direct conversation before continuing in the parent ([8.10](https://personalagentprotocol.org/docs/0.3/spec#direct-conversations)). Merely switching away from the direct conversation needn't close it.
 - If a company agent asks in a message for a one-time code, or for details to verify the user, such as a date of birth or part of an account number, ask it to request sign-in with an `authorization` event instead ([8.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)). Don't send codes in messages ([Handling secrets](#both-secrets)).
 
 ### Choosing an interface
