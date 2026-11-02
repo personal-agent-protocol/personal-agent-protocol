@@ -278,6 +278,12 @@ The access-token rules explicitly cover a conversation endpoint run by another p
 
 When a task needs more access, the Personal Agent requests every scope it still needs, including previously granted scopes it wants to keep, rather than only the missing scopes. The new sign-in returns a refresh token that replaces the old one.
 
+#### Scopes a Company won't grant
+
+[Spec 4.7](https://personalagentprotocol.org/docs/0.3/spec#scopes)
+
+The spec said scopes the Company won't grant are rejected with `invalid_scope`, while also letting it grant fewer. Now only missing or unknown scopes are rejected, and the Company may grant fewer scopes than requested, as RFC 6749 §3.3 allows, with the response's `scope` saying which it granted. Personal Agents already check `scope`, since the User may approve fewer.
+
 #### Restated rules and freedoms removed
 
 [Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#refresh-tokens) · [Spec 5](https://personalagentprotocol.org/docs/0.3/spec#sessions) · [Spec 5.5](https://personalagentprotocol.org/docs/0.3/spec#ending-sessions) · [Spec 8.2](https://personalagentprotocol.org/docs/0.3/spec#conversation-requests) · [Spec 8.9](https://personalagentprotocol.org/docs/0.3/spec#handoff) · [Spec 8.10](https://personalagentprotocol.org/docs/0.3/spec#direct-conversations) · [Spec 8.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)

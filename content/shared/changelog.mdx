@@ -546,6 +546,15 @@ returns a refresh token that replaces the old one.
 
 </Change>
 
+<Change title="Scopes a Company won't grant" sections="4.7">
+
+The spec said scopes the Company won't grant are rejected with `invalid_scope`, while also letting
+it grant fewer. Now only missing or unknown scopes are rejected, and the Company may grant fewer
+scopes than requested, as RFC 6749 §3.3 allows, with the response's `scope` saying which it granted. Personal Agents already check
+`scope`, since the User may approve fewer.
+
+</Change>
+
 <Change title="Restated rules and freedoms removed" sections="3, 3.2, 4.1, 4.4, 5, 5.5, 8.2, 8.9, 8.10, 8.11">
 
 Sentences that restated an RFC, or a freedom the Company already has, are removed. The spec no

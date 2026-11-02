@@ -377,7 +377,7 @@ Scopes say what account access a sign-in grants. Each Company defines its own sc
 
 - The Company MUST NOT grant scopes beyond those requested. This is stricter than OAuth, which lets a server grant other scopes ([RFC 6749](https://www.rfc-editor.org/rfc/rfc6749#section-3.3) §3.3), because the User approved only the scopes the Personal Agent asked for.
 
-- Each sign-in request MUST include `scope`, except where an extension continues an earlier request, as a space-separated string, following [OAuth scope syntax](https://www.rfc-editor.org/rfc/rfc6749#section-3.3). Missing, unknown, or unavailable scopes are rejected with `invalid_scope`.
+- Each sign-in request MUST include `scope`, except where an extension continues an earlier request, as a space-separated string, following [OAuth scope syntax](https://www.rfc-editor.org/rfc/rfc6749#section-3.3). Missing or unknown scopes are rejected with `invalid_scope`. The Company MAY grant fewer scopes than requested, for any reason RFC 6749 §3.3 allows, and the response's `scope` says which it granted.
 
 - A Personal Agent SHOULD request only the scopes the User's tasks need, following [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700#section-2.3) §2.3.
 

@@ -39,7 +39,7 @@ the OAuth security scheme of an OpenAPI description you list or in `auth.scopes`
 words a User and a language model can understand
 ([guides](https://personalagentprotocol.org/docs/guides#company-scope-descriptions)).
 The extension's `scopes` if you offer Mediated Sign-In. Every sign-in request must include `scope`.
-Reject missing, unknown, or unavailable scopes with `invalid_scope`. Never grant more than was
+Reject missing or unknown scopes with `invalid_scope`. You may grant fewer than requested (say which in `scope`). Never grant more than was
 requested and allowed for the type. The User may approve fewer, but at least one: approving none is
 a decline.
 
