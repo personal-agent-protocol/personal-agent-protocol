@@ -112,19 +112,11 @@ const TABS: TabInfo[] = [
                 outlineDepth: 2,
             },
             {
-                slug: "extensions/operations",
-                navTitle: "Operations",
-                title: "Personal Agent Protocol: Operations extension",
+                slug: "extensions/disclosures",
+                navTitle: "Disclosures",
+                title: "Personal Agent Protocol: Disclosures extension",
                 description:
-                    "How a company asks a personal agent to confirm an action before performing it, with approval tied to exact terms and no duplicate execution.",
-                outlineDepth: 3,
-            },
-            {
-                slug: "extensions/mediated-sign-in",
-                navTitle: "Mediated Sign-In",
-                title: "Personal Agent Protocol: Mediated Sign-In extension",
-                description:
-                    "A transitional way for a personal agent to sign in with credentials the user gave it, at companies that don't offer OAuth sign-in yet.",
+                    "Company messages mark notices such as allergen or regulatory warnings apart from the rest of the message.",
                 outlineDepth: 2,
             },
             {
@@ -136,11 +128,27 @@ const TABS: TabInfo[] = [
                 outlineDepth: 2,
             },
             {
-                slug: "extensions/disclosures",
-                navTitle: "Disclosures",
-                title: "Personal Agent Protocol: Disclosures extension",
+                slug: "extensions/mediated-sign-in",
+                navTitle: "Mediated Sign-In",
+                title: "Personal Agent Protocol: Mediated Sign-In extension",
                 description:
-                    "Company messages mark notices such as allergen or regulatory warnings apart from the rest of the message.",
+                    "A transitional way for a personal agent to sign in with credentials the user gave it, at companies that don't offer OAuth sign-in yet.",
+                outlineDepth: 2,
+            },
+            {
+                slug: "extensions/operations",
+                navTitle: "Operations",
+                title: "Personal Agent Protocol: Operations extension",
+                description:
+                    "How a company asks a personal agent to confirm an action before performing it, with approval tied to exact terms and no duplicate execution.",
+                outlineDepth: 3,
+            },
+            {
+                slug: "extensions/ucp",
+                navTitle: "UCP",
+                title: "Personal Agent Protocol: UCP extension",
+                description:
+                    "How a company that speaks the Universal Commerce Protocol connects: this protocol finds the company and signs the user in, and the shopping happens through UCP.",
                 outlineDepth: 2,
             },
         ],
