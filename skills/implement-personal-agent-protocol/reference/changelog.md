@@ -196,6 +196,18 @@ Breaking · [Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) 
 
 A redirect of the well-known URL can still go to another host, but the Personal Agent uses the document only when the last URL's path is exactly `/.well-known/poppy.json`, with no query. Before, a redirect could end at any path, so anyone who could upload a file to a Company's domain could publish a `poppy.json` there that spoke for the Company, with endpoints on their own host.
 
+#### Conversation resources at another provider
+
+[Spec 4.5](https://personalagentprotocol.org/docs/0.3/spec#access-tokens) · [Guides: A conversation endpoint at another provider](https://personalagentprotocol.org/docs/0.3/guides#company-conversation-provider) · [Issue #58](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/58)
+
+The access-token rules explicitly cover a conversation endpoint run by another provider. A guide example uses its endpoint URL, including the tenant path, as its resource identifier, with RFC 9728 metadata and RFC 8707 token requests to the Company's issuer. The guide explains issuer configuration and access-token validation between providers. Session JWT audiences remain the Company's identifier, and User IDs remain scoped to the Company.
+
+#### Scopes when adding access
+
+[Spec 4.7](https://personalagentprotocol.org/docs/0.3/spec#scopes)
+
+When a task needs more access, the Personal Agent requests every scope it still needs, including previously granted scopes it wants to keep, rather than only the missing scopes. The new sign-in returns a refresh token that replaces the old one.
+
 #### Restated rules and freedoms removed
 
 [Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#refresh-tokens) · [Spec 5](https://personalagentprotocol.org/docs/0.3/spec#sessions) · [Spec 5.5](https://personalagentprotocol.org/docs/0.3/spec#ending-sessions) · [Spec 8.2](https://personalagentprotocol.org/docs/0.3/spec#conversation-requests) · [Spec 8.9](https://personalagentprotocol.org/docs/0.3/spec#handoff) · [Spec 8.10](https://personalagentprotocol.org/docs/0.3/spec#direct-conversations) · [Spec 8.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)
@@ -280,6 +292,12 @@ Personal Agents should request only the scopes a task needs, following RFC 9700 
 
 Section 5.1 relates User IDs to OpenID Connect pairwise subject identifiers, which the Personal Agent assigns for each pair of User and Company. The rules for User IDs don't change. The references add OpenID Connect Core.
 
+#### Agent IDs and independent operators
+
+[Spec 5.1](https://personalagentprotocol.org/docs/0.3/spec#user-ids) · [Issue #50](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/50)
+
+Agent IDs cover only agents the Personal Agent's operator runs. An agent another company runs connects under its own `client_id`, and the User signs it in separately for account access.
+
 #### Client metadata fetched without redirects
 
 Breaking · [Spec 5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification) · [Guides: Verifying personal agents](https://personalagentprotocol.org/docs/0.3/guides#company-agents)
@@ -297,6 +315,12 @@ The custom `sign_in_required` error is removed. A request that needs the User's 
 Breaking · [Spec 5.6](https://personalagentprotocol.org/docs/0.3/spec#sending-requests) · [Spec 8.13](https://personalagentprotocol.org/docs/0.3/spec#conversation-errors) · [Spec 9.3](https://personalagentprotocol.org/docs/0.3/spec#feedback) · [Mediated Sign-In 5](https://personalagentprotocol.org/docs/0.3/extensions/mediated-sign-in#errors)
 
 Rate limits are HTTP 429 with `Retry-After` everywhere, without the custom `rate_limited` body at the token endpoint and the protocol's and extensions' endpoints.
+
+#### Session header destinations and web alternatives
+
+[Spec 5.2](https://personalagentprotocol.org/docs/0.3/spec#session-header) · [Spec 9.2](https://personalagentprotocol.org/docs/0.3/spec#alternatives) · [Guides: The Session header](https://personalagentprotocol.org/docs/0.3/guides#agent-session-header) · [Guides: Task coverage](https://personalagentprotocol.org/docs/0.3/guides#agent-excluded-tasks) · [Issue #52](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/52)
+
+Web alternatives can point to any HTTPS website or app. API alternatives still name APIs listed in `poppy.json`. A link doesn't authorize sending a Session JWT or access token to its target. Session header destinations come from `poppy.json` and its listed APIs' request URLs, including protocol routes derived from listed endpoints. A shared hostname alone doesn't include another URL. Discovery and description documents, OAuth endpoints, and website pages don't carry the header.
 
 #### Only the Personal Agent's browser joins a Session
 

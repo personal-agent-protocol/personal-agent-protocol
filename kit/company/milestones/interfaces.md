@@ -144,6 +144,8 @@ Both are optional.
   ([9.1](https://personalagentprotocol.org/docs/spec#excluded-tasks)). An alternative has
   `instructions`, `references`, or both. An `openapi` or `mcp` reference names an API in `apis`
   by its exact `url` ([9.2](https://personalagentprotocol.org/docs/spec#alternatives)).
+  A `web` reference can point to any HTTPS website or app. The link doesn't authorize sending a
+  Session JWT or access token to its target.
 - To take feedback, list `feedback.endpoint` and accept reports signed in or out, with no scope
   needed. Session verification is recommended and required before attributing a report to a
   Personal Agent, User, or Session; otherwise keep it unattributed

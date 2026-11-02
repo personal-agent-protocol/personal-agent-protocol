@@ -259,6 +259,17 @@ service providers that process it for you.
 
 ### The Session header {#agent-session-header}
 
+- Decide where to send the header from the company's `poppy.json` and its listed API descriptions
+  ([5.2](/docs/spec#session-header)). For OpenAPI, resolve the request URL from the operation's
+  server and path. For MCP, use the listed server endpoint and its transport's request URLs. For
+  conversations, use the listed endpoint and the routes in [8.2](/docs/spec#conversation-requests).
+  Other protocol and extension endpoints follow their definitions, such as `feedback.endpoint`
+  and `{browser_session_endpoint}/authorize`. Match the request to those operations and routes
+  before signing. A host allowlist alone would include unrelated paths on a shared host.
+- Fetch discovery documents, API descriptions, and other public documents without the Session
+  header. Keep it off OAuth requests and website page loads too. A web link in an alternative or
+  message doesn't add a destination. The JWT's `aud` identifies the company, while `htu` binds it
+  to the request URL. Neither chooses where to send it.
 - Choose each session's `sid` at random, and never use it for another session (MUST,
   [5.2](/docs/spec#session-header)). Keep it for as long as you use the session: it names the
   session, so a lost `sid` means a new session.
@@ -464,6 +475,9 @@ When a company offers the [Mediated Sign-In extension](/docs/extensions/mediated
 - Offer the alternative when there is one. When it's something the user does themselves, such as a
   page that opens the company's app, give the user the link instead of browsing it yourself
   ([9.2](/docs/spec#alternatives)).
+- A web alternative can lead to another company's website or app. Show the link's destination
+  domain. To act there, use that company's discovery and its own session and account access,
+  rather than carrying the referring company's Session JWT or access token along.
 - When a company answers your feedback report with an alternative, try it before you tell the user
   the task can't be done ([9.3](/docs/spec#feedback)).
 
@@ -813,6 +827,48 @@ though it runs on the same servers.
   the same code.
 - Don't use one company's records for another. A user's sessions, user IDs, and accounts at one
   company are unknown to every other company the platform hosts.
+
+### A conversation endpoint at another provider {#company-conversation-provider}
+
+A company can use one provider for its website and OAuth issuer and another for its company agent.
+The conversation endpoint can be on the second provider's host
+([4.5](/docs/spec#access-tokens)). For example, `example.com` serves `poppy.json`, its issuer is
+`https://auth.platform.example/shop-a`, and its conversation endpoint is
+`https://chat.provider.example/shops/shop-a/conversations`.
+
+- List the conversation endpoint in `agent.protocols` in the company's `poppy.json`.
+- Use that endpoint URL as the service's resource identifier, including the tenant path so tokens
+  for different companies have different audiences ([RFC
+  8707 §3](https://www.rfc-editor.org/rfc/rfc8707#section-3)). Publish its protected resource metadata
+  at the URL [RFC 9728 §3.1](https://www.rfc-editor.org/rfc/rfc9728#section-3.1) defines:
+
+```json label="GET https://chat.provider.example/.well-known/oauth-protected-resource/shops/shop-a/conversations"
+{
+  "resource": "https://chat.provider.example/shops/shop-a/conversations",
+  "authorization_servers": ["https://auth.platform.example/shop-a"]
+}
+```
+
+- Configure the company's issuer to issue access tokens for that resource, with the scopes the
+  conversation service uses. Publishing metadata alone doesn't configure the issuer or establish
+  trust between the providers ([RFC 8707 §2.2](https://www.rfc-editor.org/rfc/rfc8707#section-2.2)).
+- The personal agent discovers the resource and requests its access token from the company's
+  issuer with `resource` set to the endpoint URL, at sign-in or refresh
+  ([4.5](/docs/spec#access-tokens)). The issuer can also list the resource in its
+  `protected_resources` ([3.2](/docs/spec#oauth-server)).
+- Arrange for the conversation provider to validate access tokens from that issuer. For JWT access
+  tokens following [RFC 9068](https://www.rfc-editor.org/rfc/rfc9068#section-4), use the issuer's
+  metadata and signing keys and check the issuer, audience, expiry, and other validation rules.
+  Another option is authenticated token introspection
+  ([RFC 7662](https://www.rfc-editor.org/rfc/rfc7662)). Enforce scopes and verify the Session header
+  separately, including that the token was issued to the same client
+  ([5.3](/docs/spec#session-verification)).
+
+The Session JWT's audience remains the company's identifier, here
+`https://auth.platform.example/shop-a`, rather than the conversation endpoint. User IDs and Agent
+IDs remain scoped to that company too ([3.2](/docs/spec#oauth-server),
+[5.1](/docs/spec#user-ids)). Signed-out conversations use only the Session header and need no
+access token.
 
 ### Offering personal agents less {#company-agent-issuer}
 

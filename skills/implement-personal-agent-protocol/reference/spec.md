@@ -350,6 +350,8 @@ A signed-in request carries an access token in the `Authorization` header, with 
 - The Company accepts a token issued for a `resource` only at that service, and returns `invalid_target` for a `resource` it doesn't serve.
 - A service that gets a token not issued for it returns `invalid_token` with `resource_metadata` in its challenge (RFC 9728 §5.1), so a Personal Agent with stale metadata learns about it.
 
+These rules also apply when a provider runs the conversation endpoint on another host. The [guides](https://personalagentprotocol.org/docs/0.3/guides#company-conversation-provider) show how its resource metadata and the Company's issuer work together.
+
 The [guides](https://personalagentprotocol.org/docs/0.3/guides#company-lifetimes) suggest how long access tokens last.
 
 ### 4.6 Revocation
@@ -379,7 +381,7 @@ Scopes say what account access a sign-in grants. Each Company defines its own sc
 
 - A Personal Agent SHOULD request only the scopes the User's tasks need, following [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700#section-2.3) §2.3.
 
-- If a task needs more access than the refresh token allows, the User signs in again, and the Personal Agent requests all the scopes it needs. The new refresh token replaces the old one, which the Personal Agent SHOULD revoke (4.6). Revoking a replaced refresh token isn't sign-out (5.5). A pending or failed sign-in leaves existing tokens unchanged.
+- If a task needs more access than the refresh token allows, the User signs in again, and the Personal Agent requests every scope it still needs, including previously granted scopes it wants to keep, following [RFC 6749 §3.3](https://www.rfc-editor.org/rfc/rfc6749#section-3.3). It does not request only the missing scopes. The new refresh token replaces the old one, which the Personal Agent SHOULD revoke (4.6). Revoking a replaced refresh token isn't sign-out (5.5). A pending or failed sign-in leaves existing tokens unchanged.
 
 Sign-in returns an access token (4.5) and a refresh token. Refresh (4.4) returns an access token and MAY return a replacement refresh token, as RFC 6749 §6 describes. The User may have approved fewer scopes than requested, so the Personal Agent checks `scope` before continuing. As [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749) §5.1 describes, the response leaves `scope` out only when the Company granted exactly the scopes requested. A Poppy sign-in grants at least one scope: if the User approves none, it ends as a decline.
 
@@ -424,13 +426,15 @@ The Personal Agent MUST give each of its Users a User ID for each Company, using
 
 A Personal Agent MAY instead give a User a new User ID for each anonymous browsing session, like a private browser window. The Company sees a new User each time. The Personal Agent uses the ID for nothing else, discards it when the browsing session ends, and MUST NOT send an access token in a Session that uses it (5.4).
 
-A Personal Agent that acts for a User through several agents, such as a travel agent and a shopping agent, MAY say which one a Session is for with an Agent ID. The Agent ID follows the same rules as the User ID: it is stable, opaque, different for each Company, and MUST NOT contain or be derived from personal information. An Agent ID doesn't name a separate party: the Personal Agent is still the client the Company deals with (4.1). The Company MAY use the Agent ID to tell a User's agents apart, but they share the User's account, refresh tokens, and conversations. A Personal Agent with one agent leaves it out.
+A Personal Agent that acts for a User through several agents, such as a travel agent and a shopping agent, MAY say which one a Session is for with an Agent ID. The Agent ID follows the same rules as the User ID: it is stable, opaque, different for each Company, and MUST NOT contain or be derived from personal information. An Agent ID doesn't name a separate party: the Personal Agent is still the client the Company deals with (4.1). The Company MAY use the Agent ID to tell a User's agents apart, but they share the User's account, refresh tokens, and conversations. A Personal Agent with one agent leaves it out. Agent IDs cover only agents the Personal Agent's operator runs. An agent another company runs connects under its own `client_id`, and the User signs it in separately for account access.
 
 The Personal Agent holds the User IDs and Agent IDs of each of its Users at every Company, and MUST keep that mapping confidential: it MUST NOT publish it or share it with third parties, other than service providers that process it on the Personal Agent's behalf.
 
 ### 5.2 The Session header
 
-The Personal Agent MUST send a `Poppy-Session` header on every request to a Company's APIs, conversations, and other endpoints this protocol or an extension defines. It isn't sent to the Company's OAuth endpoints or website pages. The header holds a JWT that the Personal Agent signs for that one request, with a delegated key that a key from its `jwks_uri` vouches for (Delegated keys, below):
+The Personal Agent MUST send a `Poppy-Session` header on every request to a Company's APIs, conversations, and other resource endpoints this protocol or an extension defines. The destinations come from the Company's `poppy.json`: the request URLs its listed APIs describe (section 7), and protocol endpoints listed there or derived as the protocol or extension defines. For example, conversation requests use the selected `agent.protocols[].endpoint` and the routes in 8.2, and browser authorization uses `{browser_session_endpoint}/authorize` (section 6). Sharing a hostname with one of these URLs doesn't make another URL a Session destination.
+
+The Personal Agent MUST NOT send a Company's Session JWT to any other destination. Discovery and description documents, OAuth endpoints, and website pages don't carry this header. The header holds a JWT that the Personal Agent signs for that one request, with a delegated key that a key from its `jwks_uri` vouches for (Delegated keys, below):
 
 *Request headers: Personal Agent → Company*
 
@@ -1287,7 +1291,7 @@ An alternative tells the Personal Agent another way to do a task, in `instructio
 | Field | Req. | Description |
 | --- | --- | --- |
 | `instructions` | No | How to do the task, in natural language. |
-| `references` | No | Where to do it: a list of references to the Company's interfaces (below). |
+| `references` | No | Where to do it: a list of references to interfaces or web pages (below). |
 
 An alternative MUST have at least one of `instructions` or `references`. Each reference has a `type`, which says what it points to and which other fields it has:
 
@@ -1295,11 +1299,12 @@ An alternative MUST have at least one of `instructions` or `references`. Each re
 | --- | --- | --- |
 | `openapi` | `url`, `operation_id` | An endpoint in an OpenAPI API. `url` is the `url` of an `openapi` entry in `apis` (section 7), and `operation_id` is the endpoint's `operationId` in that description. |
 | `mcp` | `url`, `tool` | A tool on an MCP server. `url` is the `url` of an `mcp` entry in `apis`, and `tool` is the tool's `name`. |
-| `web` | `url` | A page the User can open, on the Company's website or in its app through an HTTPS link the app claims, such as an iOS universal link or an Android App Link. |
+| `web` | `url` | A page the User can open on any HTTPS website, or in an app through an HTTPS link the app claims, such as an iOS universal link or an Android App Link. |
 
-- An `openapi` or `mcp` reference MUST name an API listed in the Company's `poppy.json`. Personal Agents MUST ignore one that doesn't, so an alternative can't aim them at another Company's servers.
+- An `openapi` or `mcp` reference MUST name an API listed in the Company's `poppy.json`. Personal Agents MUST ignore one that doesn't.
+- A `web` reference doesn't authorize sending a Session JWT (5.2) or access token (4.5) to its target. Website browsing uses cookies as in section 6. Acting at another Company uses that Company's discovery, Session, and any needed account authorization.
 - Personal Agents MUST skip reference types they don't recognize, so later versions can add types, such as the Company Agent or an extension.
-- An alternative is content from the Company (10.1). Its `instructions` describe the Company's interfaces for the Personal Agent to use on the User's behalf. They are not instructions the Personal Agent has to follow.
+- An alternative is content from the Company (10.1). Its `instructions` describe another way to do the task on the User's behalf. They are not instructions the Personal Agent has to follow.
 
 ### 9.3 Feedback
 

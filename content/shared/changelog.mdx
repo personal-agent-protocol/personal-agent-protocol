@@ -416,6 +416,24 @@ publish a `poppy.json` there that spoke for the Company, with endpoints on their
 
 </Change>
 
+<Change title="Conversation resources at another provider" sections="4.5, guides#company-conversation-provider" issue="58">
+
+The access-token rules explicitly cover a conversation endpoint run by another provider. A guide
+example uses its endpoint URL, including the tenant path, as its resource identifier, with RFC 9728
+metadata and RFC 8707 token requests to the Company's issuer. The guide explains issuer
+configuration and access-token validation between providers. Session JWT audiences remain the
+Company's identifier, and User IDs remain scoped to the Company.
+
+</Change>
+
+<Change title="Scopes when adding access" sections="4.7">
+
+When a task needs more access, the Personal Agent requests every scope it still needs, including
+previously granted scopes it wants to keep, rather than only the missing scopes. The new sign-in
+returns a refresh token that replaces the old one.
+
+</Change>
+
 <Change title="Restated rules and freedoms removed" sections="3, 3.2, 4.1, 4.4, 5, 5.5, 8.2, 8.9, 8.10, 8.11">
 
 Sentences that restated an RFC, or a freedom the Company already has, are removed. The spec no
@@ -570,6 +588,13 @@ OpenID Connect Core.
 
 </Change>
 
+<Change title="Agent IDs and independent operators" sections="5.1" issue="50">
+
+Agent IDs cover only agents the Personal Agent's operator runs. An agent another company runs
+connects under its own `client_id`, and the User signs it in separately for account access.
+
+</Change>
+
 <Change title="Client metadata fetched without redirects" breaking sections="5.3, guides#company-agents">
 
 A Company fetches the client metadata document at `client_id` without following redirects, as the
@@ -593,6 +618,16 @@ token that covers them, or signs in. The `authorization` conversation event, whi
 
 Rate limits are HTTP 429 with `Retry-After` everywhere, without the custom `rate_limited` body at
 the token endpoint and the protocol's and extensions' endpoints.
+
+</Change>
+
+<Change title="Session header destinations and web alternatives" sections="5.2, 9.2, guides#agent-session-header, guides#agent-excluded-tasks" issue="52">
+
+Web alternatives can point to any HTTPS website or app. API alternatives still name APIs listed in
+`poppy.json`. A link doesn't authorize sending a Session JWT or access token to its target. Session
+header destinations come from `poppy.json` and its listed APIs' request URLs, including protocol
+routes derived from listed endpoints. A shared hostname alone doesn't include another URL.
+Discovery and description documents, OAuth endpoints, and website pages don't carry the header.
 
 </Change>
 

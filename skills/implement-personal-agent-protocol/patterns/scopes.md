@@ -31,7 +31,9 @@ permissions it grants:
   column for the hints to the table.
 - On the consent page, present scopes in plain words, group related ones, and show which are new
   when the User already granted some
-  ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-consent)).
+  ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-consent)). A Personal Agent adding
+  access requests every scope it still needs, including earlier scopes it wants to keep, and uses
+  the new refresh token in place of the old one (4.7).
 - If the issuer also serves other OAuth clients, leave scopes you don't offer Personal Agents out of
   `scopes_supported`, and limit the scopes you grant by client (3.2, 4.7). To keep Direct or Device
   Sign-In from Personal Agents, return `unauthorized_client` for their `client_id` (4.1), or set

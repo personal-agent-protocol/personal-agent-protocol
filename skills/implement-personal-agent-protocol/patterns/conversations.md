@@ -67,6 +67,16 @@ The Company Agent reads and writes Poppy events directly.
 - Fits: Companies building a new agent, or whose agent has no reusable platform around it.
 - Trade-offs: no translation layer, but handoff and the live-agent desk still need integrating.
 
+## A conversation endpoint at another provider
+
+Use the same Company issuer when another provider hosts the conversation endpoint. Give the
+conversation service its own resource identifier, using its endpoint URL with any tenant path, and
+publish its RFC 9728 protected resource metadata. Configure the issuer to issue tokens for that resource and arrange
+access-token validation with the conversation provider. Session JWTs still name the Company, not
+the provider's endpoint. The
+[guide](https://personalagentprotocol.org/docs/0.3/guides#company-conversation-provider) shows the
+metadata URL and validation options.
+
 ## What to watch for
 
 - Only the conversation endpoint serves Personal Agent conversations. If website chat or other

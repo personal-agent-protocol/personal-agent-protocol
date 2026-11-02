@@ -305,6 +305,14 @@ A language model usually reads your API descriptions and MCP tool descriptions t
 - [ ] Make the session's cookie `Secure` and `HttpOnly`, and use the `__Host-` prefix unless it has to cover several hosts. Limit it to the hosts personal agents need, such as your main site, rather than your whole domain.
 - [ ] Look up the session on each request, so sign-out and scope changes take effect on the website right away.
 
+### Recommended: [A conversation endpoint at another provider](https://personalagentprotocol.org/docs/0.3/guides#company-conversation-provider)
+
+- [ ] List the conversation endpoint in `agent.protocols` in the company's `poppy.json`.
+- [ ] Use that endpoint URL as the service's resource identifier, including the tenant path so tokens for different companies have different audiences (RFC 8707 §3). Publish its protected resource metadata at the URL RFC 9728 §3.1 defines:
+- [ ] Configure the company's issuer to issue access tokens for that resource, with the scopes the conversation service uses. Publishing metadata alone doesn't configure the issuer or establish trust between the providers (RFC 8707 §2.2).
+- [ ] The personal agent discovers the resource and requests its access token from the company's issuer with `resource` set to the endpoint URL, at sign-in or refresh (4.5). The issuer can also list the resource in its `protected_resources` (3.2).
+- [ ] Arrange for the conversation provider to validate access tokens from that issuer. For JWT access tokens following RFC 9068, use the issuer's metadata and signing keys and check the issuer, audience, expiry, and other validation rules. Another option is authenticated token introspection (RFC 7662). Enforce scopes and verify the Session header separately, including that the token was issued to the same client (5.3).
+
 ### Recommended: [Conversations](https://personalagentprotocol.org/docs/0.3/guides#company-conversations)
 
 - [ ] Let your company agent do everything customers can do by phone, as fully as you can, so personal agents have no reason to call.
