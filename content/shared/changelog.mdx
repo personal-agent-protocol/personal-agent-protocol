@@ -12,16 +12,6 @@ major or minor.
 
 ### Major changes {#v0-3-major}
 
-<Change title="Protocol layers overview" sections="1, 1.1, 5">
-
-The introduction explains discovery, operator recognition, Sessions, account access, interaction
-channels, and task coverage and extensions as separate components. It distinguishes the Session
-header Personal Agents send from the verification Companies perform before relying on Session
-claims. The Sessions introduction makes the same distinction. This overview changes no protocol
-requirements.
-
-</Change>
-
 <Change title="Signed-out Companies without OAuth" breaking sections="2, 3, 3.1, 3.2, 4, 5.1, 5.2, 5.3, 10.4">
 
 A Company needs an OAuth issuer only for account access. Without one, its identifier, Session JWT
@@ -61,14 +51,13 @@ other clients doesn't need a separate one for Personal Agents.
 Direct and Device Sign-In when `grant_types_supported` in its OAuth server metadata includes
 `authorization_code` or `urn:ietf:params:oauth:grant-type:device_code`, so there's no second list to
 drift out of sync with the issuer. `grant_types_supported` is now required, and includes
-`refresh_token`. A Company whose issuer offers one of these grants to other clients offers it to
-Personal Agents too, and the guides explain how to keep one from Personal Agents with an issuer only
-for them. Direct and Device Sign-In grant the scopes the issuer's policies allow. Only Mediated Sign-In
+`refresh_token`. "Turning off sign-in, and refusing it by client" describes how a Company keeps one
+of these grants from Personal Agents. Direct and Device Sign-In grant the scopes the issuer's policies allow. Only Mediated Sign-In
 keeps its own list of scopes, now in its extension.
 
 </Change>
 
-<Change title="Account access before a conversation" sections="3.1, 3.2">
+<Change title="Account access before a conversation" sections="3.1, 3.2, guides#agent-account-access, guides#company-conversations">
 
 A `poppy` conversation entry can declare `access: signed_in` when it needs account access from the
 start, or `session`, the default. Unknown hints are ignored and runtime authorization remains
@@ -109,15 +98,14 @@ now stated once. The references add RFC 9700.
 Sessions and account access are now separate. Every request a Personal Agent sends to a Company's
 APIs, conversations, and protocol and extension endpoints carries a `Poppy-Session` header: a JWT,
 typed `poppy-session+jwt`, that the Personal Agent signs for that one request. It names the Personal
-Agent in `iss`, the Company's issuer in `aud`, the Session in `sid`, a random ID the Personal Agent
+Agent in `iss`, the Company's identifier (3.2) in `aud`, the Session in `sid`, a random ID the Personal Agent
 chooses, the User ID in `sub`, and the optional Agent ID, and covers the request's method and URL in
 `htm` and `htu`, as a DPoP proof does. When the request carries an access token, `ath` covers it
 too. A request with only the Session header is signed out, and one that also carries an access
 token is signed in. The Company checks the JWT before it starts or continues a Session. It returns
-`invalid_session` (HTTP 400, JSON body) at every endpoint that takes the header when a check fails,
-when it refuses the `client_id`, or when the Session has ended, and may include an
-`error_description`. The Personal Agent then starts a new Session once, and stops if that fails
-too. The references list RFC
+`invalid_session` (HTTP 400, JSON body) at every endpoint that takes the header when a check fails
+or when it refuses the `client_id`, and may include an `error_description`. An ended Session gets
+`session_ended` ("`session_ended` for ended Sessions"). The references list RFC
 8725, for the JWT's `typ`, instead of RFC 7519.
 
 Account access is plain OAuth, with OAuth's names: a refresh token, which was the Account Token,
@@ -393,6 +381,45 @@ Companies that offer Direct or Device Sign-In make their scopes and APIs cover w
 
 ### Minor changes {#v0-3-minor}
 
+<Change title="Protocol layers overview" sections="1, 1.1, 5">
+
+The introduction explains discovery, operator recognition, Sessions, account access, interaction
+channels, and task coverage and extensions as separate components. It distinguishes the Session
+header Personal Agents send from the verification Companies perform before relying on Session
+claims. The Sessions introduction makes the same distinction. This overview changes no protocol
+requirements.
+
+</Change>
+
+<Change title="`session_ended` for ended Sessions" breaking sections="5.3, 5.4, 5.5, 7, 8.13, 9.3, 10.4, guides#agent-session-header, guides#company-sessions">
+
+A request for a Session the Company ended, or one that changes accounts in a Session when the
+Company refuses that, now gets `session_ended` (HTTP 400, JSON body) instead of `invalid_session`.
+The Personal Agent starts a new Session with a new `sid` and sends the request again, once. The old
+Session's state doesn't carry over. `invalid_session` now means only that the Session header is
+missing or fails verification, or that the Company refuses the `client_id`: a new Session wouldn't
+fix it, so the Personal Agent stops sending the request until it fixes the cause. Earlier text used
+one code for both, so a Personal Agent couldn't tell whether to start over.
+
+</Change>
+
+<Change title="Skill index warnings moved to the guides" sections="9.4, guides#agent-excluded-tasks">
+
+Section 9.4 no longer says Personal Agents should warn the User when they skip an unrecognized
+skill index or skill. Skipping it is still recommended. The guides suggest when to tell the User.
+
+</Change>
+
+<Change title="A complete list of what Poppy adds to OAuth" sections="4.8">
+
+Section 4.8 now lists every rule Poppy adds to OAuth: `jwks_uri` and `redirect_uris` on the
+`client_id`'s domain, the required `revocation_endpoint` and `grant_types_supported`, the check of a
+Device Sign-In link's host, a refresh token from every sign-in whose use doesn't extend its lifetime,
+and `auth.disabled`. Exact matching of `redirect_uri` is described as following RFC 9700, not as
+stricter than OAuth. No requirement changes.
+
+</Change>
+
 <Change title="Conversation ownership" sections="2, 8.2">
 
 A conversation belongs to the Personal Agent's `client_id` and the User ID that started it, and, once
@@ -469,9 +496,8 @@ Its `resource` must be exactly `https://{organization.domain}`, and its `authori
 names the issuer. `auth.issuer` in `poppy.json` is required only when that list has more than one
 entry, to say which one Personal Agents use, because RFC 9728 leaves the choice among several to the
 client, while User IDs and refresh tokens belong to one issuer. With one entry it is optional, and
-if present must name that server. `auth` is optional. A Company needs an issuer when its
-`poppy.json` lists `agent`, `apis`, `feedback`, `web.browser_session_endpoint`, or an extension that
-uses the issuer.
+if present must name that server. `auth` is optional. A Company needs an issuer only to offer
+account access ("Signed-out Companies without OAuth").
 
 </Change>
 
@@ -668,11 +694,14 @@ visible error that names the missing scopes, so the Personal Agent can request t
 
 </Change>
 
-<Change title="MCP lifecycle and token compatibility" sections="7">
+<Change title="MCP lifecycle and token compatibility" sections="4.5, 7, guides#both-interoperability, guides#company-session-header">
 
 The API rules distinguish Poppy Sessions from MCP's version-specific lifecycle, including stateless
-MCP 2026-07-28. Bearer remains the MCP baseline; DPoP requires explicit server support. MCP servers
-need issuer discovery only when they offer account access.
+MCP 2026-07-28. MCP servers need issuer discovery only when they offer account access. The Personal
+Agent sends every access token, including one for an MCP server, as its `token_type` names. The
+Company decides for each token whether to bind it with DPoP, and returns Bearer tokens for an MCP
+server that doesn't accept DPoP, as RFC 9449 §5 allows. Earlier text had the Personal Agent send
+Bearer to an MCP server that didn't advertise DPoP, which broke tokens the issuer had bound.
 
 </Change>
 

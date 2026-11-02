@@ -103,9 +103,14 @@ function headerProblems(ex: Exchange): string[] {
         problems.push("Cache-Control doesn't include no-store, so caches can store the page");
     const framing = framingProblem(ex);
     if (framing) problems.push(framing);
-    if ((header(ex, "cross-origin-opener-policy") ?? "").trim().toLowerCase() !== "same-origin")
+    // Each of these puts the page in a new browsing context group when another page opens it.
+    const coop = (header(ex, "cross-origin-opener-policy") ?? "")
+        .split(";")[0]
+        .trim()
+        .toLowerCase();
+    if (!["same-origin", "same-origin-allow-popups", "noopener-allow-popups"].includes(coop))
         problems.push(
-            "Cross-Origin-Opener-Policy isn't same-origin, so the opener keeps a reference",
+            "Cross-Origin-Opener-Policy isn't same-origin (or another value that severs the opener), so the opener keeps a reference",
         );
     return problems;
 }
@@ -119,6 +124,11 @@ function suggestedHeaderProblems(ex: Exchange): string[] {
         )
     )
         problems.push("Content-Security-Policy doesn't include frame-ancestors 'none'");
+    if (
+        (header(ex, "cross-origin-opener-policy") ?? "").split(";")[0].trim().toLowerCase() !==
+        "same-origin"
+    )
+        problems.push("Cross-Origin-Opener-Policy isn't same-origin");
     return problems;
 }
 
@@ -241,14 +251,16 @@ function submitForm(
     });
 }
 
-// A form submission that must fail: an error status, and no cookie set.
+// A form submission that must fail: an error status, and no cookie set. Removing a cookie, such as
+// the one tying the code to the browser, is fine.
 function expectFormRefused(r: Recorder, id: string, form: Exchange, cause: string): void {
-    if (form.status !== undefined && form.status >= 400 && form.setCookies.length === 0) r.pass(id);
+    const set = form.setCookies.map(parseCookie).filter((c) => !removes(c));
+    if (form.status !== undefined && form.status >= 400 && set.length === 0) r.pass(id);
     else
         r.fail(id, {
             exchange: form,
-            got: form.setCookies.length
-                ? `${form.status}, with Set-Cookie ${form.setCookies.map((c) => parseCookie(c).name).join(", ")}`
+            got: set.length
+                ? `${form.status}, with Set-Cookie ${set.map((c) => c.name).join(", ")}`
                 : undefined,
             expected: "An error status and no Set-Cookie",
             cause,

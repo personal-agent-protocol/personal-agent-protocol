@@ -31,6 +31,7 @@ export const MILESTONES: { id: Milestone; number: number; title: string }[] = [
 // Section numbers for display, such as "spec 4.3".
 export const SECTION_NUMBERS: Record<string, string> = {
     "spec#intro": "1",
+    "spec#layers": "1.1",
     "spec#terms": "2",
     "spec#discovery": "3",
     "spec#fields": "3.1",
@@ -50,6 +51,7 @@ export const SECTION_NUMBERS: Record<string, string> = {
     "spec#session-header": "5.2",
     "spec#delegated-keys": "5.2",
     "spec#session-verification": "5.3",
+    "spec#operator-signatures": "5.3",
     "spec#sign-in": "5.4",
     "spec#ending-sessions": "5.5",
     "spec#sending-requests": "5.6",
@@ -73,6 +75,7 @@ export const SECTION_NUMBERS: Record<string, string> = {
     "spec#excluded-tasks": "9.1",
     "spec#alternatives": "9.2",
     "spec#feedback": "9.3",
+    "spec#agent-context": "9.4",
     "spec#security": "10",
     "spec#untrusted-content": "10.1",
     "spec#secrets": "10.2",
@@ -98,6 +101,12 @@ export const SECTION_NUMBERS: Record<string, string> = {
     "mediated-sign-in#one-time-codes": "4",
     "mediated-sign-in#errors": "5",
     "mediated-sign-in#security": "6",
+    "links#intro": "1",
+    "links#support": "2",
+    "links#links": "3",
+    "disclosures#intro": "1",
+    "disclosures#support": "2",
+    "disclosures#disclosures": "3",
 };
 
 function foundation(

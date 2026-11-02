@@ -238,7 +238,9 @@ export function checkPoppyDocument(
                 "Every field in the form section 3.1 describes (kit/company/schemas/poppy.schema.json)",
             cause: "Fix each field listed. Unknown fields are fine; these are fields the spec defines with the wrong type or form, or required ones that are missing.",
         });
-        unusable.push("discovery.schema");
+        // Personal Agents ignore a malformed skill index and still use the rest (section 9.4).
+        if (errors.some((e) => !e.path.startsWith("/skill_index")))
+            unusable.push("discovery.schema");
     } else {
         r.pass("discovery.schema");
     }
@@ -331,7 +333,7 @@ export function checkPoppyDocument(
 }
 
 // The extensions this version of the protocol defines, whose plain names are reserved for them.
-export const PROTOCOL_EXTENSIONS = ["mediated-sign-in", "operations"];
+export const PROTOCOL_EXTENSIONS = ["disclosures", "links", "mediated-sign-in", "operations"];
 
 // An extension name that starts with a domain, such as example.com/gift-wrap.
 const DOMAIN_NAME =
@@ -779,10 +781,10 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
     const supported = json.scopes_supported;
     if (!signsIn) {
         r.skip("metadata.scopes-supported", "The Company offers no type of sign-in.");
-        // Descriptions are recommended even without sign-in grants.
-        if (Array.isArray(supported) && supported.length)
-            await checkScopesDescribed(ctx, r, supported);
-        else r.skip("metadata.scopes-described", "scopes_supported lists no scopes.");
+        r.skip(
+            "metadata.scopes-described",
+            "The Company offers no type of sign-in, so it offers Personal Agents no scopes.",
+        );
     } else if (!Array.isArray(supported) || supported.length === 0) {
         r.fail("metadata.scopes-supported", {
             exchange: ex,

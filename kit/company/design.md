@@ -15,8 +15,9 @@ offer. A Company can start with one and add more later.
 - `openapi`: existing APIs, described in OpenAPI 3.0 or 3.1, accepting the Session header and the
   Company's access tokens ([section 7](https://personalagentprotocol.org/docs/spec#apis)).
 - `mcp`: an MCP server accepting the Company's access tokens issued for its `url`, as MCP
-  authorization already requires. It MAY ignore the Session header, but then its calls belong to no
-  Session and it can't take signed-out calls from Personal Agents (section 7).
+  authorization already requires. It MAY ignore the Session header if it uses no Session claims.
+  Then its calls belong to no Session, so they don't join the cart, conversations, or website
+  (section 7).
 - `conversations`: the Company Agent, through Poppy conversations
   ([section 8](https://personalagentprotocol.org/docs/spec#conversations)).
 - `web`: a browser-session endpoint so the Personal Agent's browser joins the Session
@@ -45,7 +46,7 @@ Also rate limits on Session creation and on new `client_id` values.
 **Access tokens** ([4.5](https://personalagentprotocol.org/docs/spec#access-tokens)). Bearer or
 DPoP-bound, as for any OAuth client: DPoP is the Company's choice, and Personal Agents should
 support it. Which services, if any, accept only tokens issued for them, by publishing RFC 9728
-protected resource metadata. MCP servers always do.
+protected resource metadata. MCP servers that offer account access always do.
 
 **Lifetimes.** The acceptance window for a Session JWT's `iat`, such as one minute
 ([5.3](https://personalagentprotocol.org/docs/spec#session-verification)), and the largest

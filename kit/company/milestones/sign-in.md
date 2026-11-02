@@ -63,7 +63,7 @@ Send `Cache-Control: no-store`.
 
 **Account changes** (5.4). A Session can change accounts unless the Company refuses it. The
 Company may refuse a request whose access token is for a different account than its Session used
-before, with `invalid_session`. Decide whether to. Personal Agents should start a new Session for a
+before, with `session_ended`. Decide whether to. Personal Agents should start a new Session for a
 second account.
 
 **Direct Sign-In** ([4.2](https://personalagentprotocol.org/docs/spec#direct-sign-in)).
@@ -181,7 +181,7 @@ the Personal Agent ([section 6](https://personalagentprotocol.org/docs/spec#web-
   know the Session.
 - Revoking the refresh token but letting its access tokens keep working for hours (5.5).
 - Scope checks only in the API layer, so the Company Agent or a live agent can do what the token
-  doesn't allow (8.9, 8.11).
+  doesn't allow (4.7).
 - Treating a write scope as including the matching read scope when its description doesn't say so.
 - A website that refuses a missing scope with a generic error or a sign-in page, without naming the
   scope (section 6).
@@ -205,7 +205,7 @@ test needs signed requests, without printing or copying the private key.
   header, or with a Session JWT whose `ath` doesn't match or whose `iss` is another `client_id`:
   each is refused.
 - Use one access token in two Sessions of the same User. If the Company refuses account changes,
-  send a second account's token in a Session that used the first, and see `invalid_session`.
+  send a second account's token in a Session that used the first, and see `session_ended`.
 - Refresh with a narrower `scope`, and from a different `client_id` (refused). If a service accepts
   only its own tokens, refresh with its `resource` and check that the token works only there.
 - Revoke the refresh token, then see the access token refused for account actions, the refresh

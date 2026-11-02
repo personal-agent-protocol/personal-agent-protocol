@@ -208,10 +208,9 @@ node <skill-dir>/validate/index.ts check https://<staging-domain> --milestone in
 
 This version of the validator checks the signed-out parts: MCP metadata, OpenAPI descriptions
 loading, the Session header at resources, the basics of conversations (messages, retries, events,
-cursors, status, and close), and feedback reports. Fix every failure.
+cursors, status, and close), feedback reports, and browser sessions. Fix every failure.
 
-It doesn't yet check signed-in MCP, handoff, Direct Conversations, streaming,
-browser sessions, or operations. For those, go
+It doesn't yet check signed-in MCP, handoff, Direct Conversations, streaming, or operations. For those, go
 through the interfaces section of `checklist.md` and test by hand on staging. Where a test needs
 signed requests, write a small local script that signs with the test identity in `.poppy/`, without
 printing or copying the private key, and keep the script out of the Company's production code.

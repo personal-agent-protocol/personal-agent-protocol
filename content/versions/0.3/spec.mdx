@@ -525,7 +525,9 @@ binds its access tokens with DPoP is its choice, as in OAuth. Personal Agents SH
 because a Personal Agent that doesn't can't sign in at a Company that requires it. A Personal Agent
 that supports it sends a DPoP proof with its token requests when the issuer's metadata lists
 `dpop_signing_alg_values_supported` ([RFC 9449](https://www.rfc-editor.org/rfc/rfc9449) §5.1), so
-the Company can bind the tokens. A signed-in
+the Company can bind the tokens. The Company decides for each token whether to bind it, and returns
+`token_type` `Bearer` for one it doesn't bind, as RFC 9449 §5 allows, such as a token for a service
+that doesn't accept DPoP. A signed-in
 request also carries the Session header (5.2), whose `ath` covers the access token.
 
 **Tokens for one service.** By default, one access token works at all of a Company's services. A
@@ -633,12 +635,15 @@ Poppy's rate limits, and section 3.3 describes `extension_required`.
 ### 4.8 What Poppy adds to OAuth {#oauth-additions}
 
 - **Choices stricter than OAuth:** a `client_id` that is the URL of a client metadata document,
-  authenticated with `private_key_jwt` and an assertion addressed to the issuer (4.1); `iss` in
-  every authorization response and exact matching of `redirect_uri` (4.2); RFC 10027's best
-  practices for Device Sign-In (4.3); and `scope` on every sign-in request, with at least one scope
-  granted and none beyond those requested (4.7).
-- **Discovery and descriptions:** `poppy.json`, client extensions, described scopes, and scope
-  hints (section 3, 4.7).
+  authenticated with `private_key_jwt` and an assertion addressed to the issuer, with its `jwks_uri`
+  and `redirect_uris` on the `client_id`'s domain (4.1); `revocation_endpoint` and
+  `grant_types_supported`, including `refresh_token`, in the issuer's metadata (3.2); `iss` in every
+  authorization response, and exact matching of `redirect_uri` as RFC 9700 requires (4.2); RFC
+  10027's best practices for Device Sign-In, and a check of the sign-in link's host (4.3); a
+  refresh token from every sign-in, whose use doesn't extend its lifetime (4.4); and `scope` on
+  every sign-in request, with at least one scope granted and none beyond those requested (4.7).
+- **Discovery and descriptions:** `poppy.json`, including `auth.disabled` to offer no sign-in,
+  client extensions, described scopes, and scope hints (section 3, 4.7).
 - **Sessions:** the Session header, which names the Personal Agent, the User, and the Session
   on every request, signed in or out, without an authorization-server grant (section 5). It is
   signed with a delegated key, which a key in the Personal Agent's `jwks_uri` vouches for in a
@@ -889,8 +894,9 @@ An endpoint that uses no Session claims MAY handle a request without verifying t
 requiring one. The Company MUST NOT use unverified Session claims to attribute a request to a
 Personal Agent, User, or Session, or to look up their state. Access token validation, scope
 enforcement, and any required DPoP checks still apply. A failed Session check returns HTTP 400 with
-`{"error": "invalid_session"}`, which MAY include an `error_description`
-for the developer, as in [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749) §5.2. Access token
+`{"error": "invalid_session"}`, and an ended Session returns `{"error": "session_ended"}` (5.5).
+Either MAY include an `error_description` for the developer, as in [RFC
+6749](https://www.rfc-editor.org/rfc/rfc6749) §5.2. Access token
 errors follow OAuth (section 7).
 
 The Company MUST reject a request without the Session header when handling it depends on Session
@@ -934,7 +940,7 @@ that carries an access token, with that token's account and scopes. One sign-in 
 Sessions, and a Session can use a newer access token for the same account at any time.
 
 A Company MAY reject a request whose access token is for a different account than its Session used
-before, with `invalid_session` (5.3). A Personal Agent SHOULD start a new Session rather than use a
+before, with `session_ended` (5.5). A Personal Agent SHOULD start a new Session rather than use a
 second account in one Session, so accounts don't get mixed up across Sessions. For example, personal
 and business accounts at one Company use separate Sessions and refresh tokens.
 
@@ -953,7 +959,10 @@ Agent stops using its `sid`. Its refresh tokens are unaffected.
 An endpoint that uses Session claims checks whether the Session has ended. A Company MAY remember
 the `sid`s of Sessions it ended, for as long as it chooses, so
 an ended Session doesn't silently start again. A request for a remembered ended Session gets
-`invalid_session` (5.3), and the Personal Agent MUST then start a new Session with a new `sid`. A
+`session_ended` (HTTP 400, JSON body), and the Personal Agent MUST then start a new Session with a
+new `sid` and send the request again in it. The old Session's state, such as a cart or a browser's
+cookie, doesn't carry over. Conversations do, as 8.11 describes. If the new Session gets
+`session_ended` too, the Personal Agent stops sending the request. A
 Company can forget an ended Session, so a request with its `sid` can start a new Session instead.
 
 **Sign-out.** The Personal Agent signs out of an account by revoking every refresh token it holds
@@ -1161,9 +1170,8 @@ account access or serve signed-out requests without verifying Sessions.
 instead of an initialization handshake or `Mcp-Session-Id`; earlier supported versions keep their
 own lifecycle. Both carry the Poppy Session header as above.
 
-- **Signed in.** MCP's baseline token scheme is Bearer. DPoP is used only when the server's
-  protected resource metadata advertises `dpop_signing_alg_values_supported` and the client supports
-  it; ordinary MCP clients remain supported. The Personal Agent MUST request a token with `resource` set to the MCP server's
+- **Signed in.** The Personal Agent uses the token as its `token_type` names (4.5). A Company
+  whose MCP server doesn't accept DPoP returns Bearer tokens for it. The Personal Agent MUST request a token with `resource` set to the MCP server's
   `url` from `poppy.json`, as MCP authorization requires (4.5). The `resource` in the server's
   protected resource metadata MUST equal that `url`. Each such token works only at the
   MCP server whose `url` equals its `resource`, including when other endpoints share its host. The
@@ -1198,13 +1206,14 @@ for DPoP-bound tokens), with a challenge for each scheme the resource accepts. A
 challenges include `resource_metadata` with the server's protected resource metadata URL ([RFC
 9728](https://www.rfc-editor.org/rfc/rfc9728) §5.1). Other errors have a JSON body:
 
-| Error                | Status | Meaning                                                                                                                                                                                                                                                                                                         |
-| -------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| No error code        | 401    | The request needs the User's account, and has no access token. The challenge's `scope` attribute names the scopes needed, as RFC 6750 §3.1 describes. The Personal Agent handles it as `insufficient_scope`.                                                                                                    |
-| `invalid_token`      | 401    | The access token is expired, revoked, or invalid. The Personal Agent refreshes it (4.4), or continues signed out if refresh fails (5.5).                                                                                                                                                                        |
-| `insufficient_scope` | 403    | The access token lacks the scopes the request needs, which the response names in the `scope` attribute. The Personal Agent uses a refresh token that covers them (4.4), or signs in (5.4), and retries, unless the User signed out or disconnected it (5.5).                                                    |
-| `invalid_session`    | 400    | In a JSON body. A required Session header is missing or Session verification fails (5.3), the Company refuses the `client_id` (4.1) or an account change (5.4), or the Session has ended (5.5). The Personal Agent starts a new Session once. If that gets `invalid_session` too, it stops sending the request. |
-| `extension_required` | 403    | In the `WWW-Authenticate` header. The request needs an extension the Personal Agent doesn't list, named in the `extension` attribute (3.3). An MCP server returns it only to refuse the Personal Agent entirely, not for one tool.                                                                              |
+| Error                | Status | Meaning                                                                                                                                                                                                                                                                                      |
+| -------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No error code        | 401    | The request needs the User's account, and has no access token. The challenge's `scope` attribute names the scopes needed, as RFC 6750 §3.1 describes. The Personal Agent handles it as `insufficient_scope`.                                                                                 |
+| `invalid_token`      | 401    | The access token is expired, revoked, or invalid. The Personal Agent refreshes it (4.4), or continues signed out if refresh fails (5.5).                                                                                                                                                     |
+| `insufficient_scope` | 403    | The access token lacks the scopes the request needs, which the response names in the `scope` attribute. The Personal Agent uses a refresh token that covers them (4.4), or signs in (5.4), and retries, unless the User signed out or disconnected it (5.5).                                 |
+| `invalid_session`    | 400    | In a JSON body. A required Session header is missing or Session verification fails (5.3), or the Company refuses the `client_id` (4.1). A new Session doesn't fix it: the Personal Agent stops sending the request until it fixes the cause, such as an expired delegation or a wrong `htu`. |
+| `session_ended`      | 400    | In a JSON body. The Session has ended, or the Company refuses an account change in it (5.4, 5.5). The Personal Agent starts a new Session and sends the request again, once.                                                                                                                 |
+| `extension_required` | 403    | In the `WWW-Authenticate` header. The request needs an extension the Personal Agent doesn't list, named in the `extension` attribute (3.3). An MCP server returns it only to refuse the Personal Agent entirely, not for one tool.                                                           |
 
 Verifying a Session header identifies the Personal Agent and User. An unverified header does not
 establish either identity.
@@ -1783,7 +1792,8 @@ return.
 
 ### 8.13 Errors {#conversation-errors}
 
-Token errors and `invalid_session` (5.3) are the ones in section 7, and rate limits follow 5.6.
+Token errors, `invalid_session`, and `session_ended` are the ones in section 7, and rate limits
+follow 5.6.
 Other errors have a JSON body with an `error` code, like
 OAuth error responses:
 
@@ -1924,8 +1934,8 @@ and a JSON body:
 
 The Company responds with HTTP 202 and no body. When the task can be done after all, it MAY instead
 respond with HTTP 200 and an alternative (9.2) as the body, such as the one in 9.2 for paying with a
-gift card. Personal Agents MUST accept either response. Token errors and `invalid_session` (5.3) are the ones
-in section 7.
+gift card. Personal Agents MUST accept either response. Token errors, `invalid_session`, and `session_ended` are the
+ones in section 7.
 Other errors have a JSON body with an `error` code, as in 8.13: `invalid_request` (400) for a report
 that is malformed or too long. Rate limits follow 5.6.
 
@@ -1988,8 +1998,9 @@ domain does not make that domain an API endpoint or authorize sending it credent
 headers.
 
 **Compatibility.** Personal Agents SHOULD ignore unknown index fields, and SHOULD skip entries
-with an unknown `type` and warn the User. Personal Agents SHOULD warn the User and ignore the
-index when `$schema` is absent or unknown; the rest of `poppy.json` remains usable. `$schema`
+with an unknown `type`. Personal Agents SHOULD ignore the index when `$schema` is absent or
+unknown; the rest of `poppy.json` remains usable. The
+[guides](/docs/guides#agent-excluded-tasks) suggest what to tell the User. `$schema`
 is an opaque version identifier, not a URL Personal Agents need to fetch. A Company MAY also
 publish the same index at `/.well-known/agent-skills/index.json` for other clients. Absolute URLs
 let it reuse entries unchanged at either location; relative references use each document's URL
@@ -2064,7 +2075,7 @@ Companies a provider hosts on shared servers.
 
 The Personal Agent normally uses a new Session for a second account (5.4). This keeps a cart,
 browser cookie, or parallel task from following an unintended account change. A Company can refuse
-an account change, with `invalid_session`, when its own policy requires that separation.
+an account change, with `session_ended`, when its own policy requires that separation.
 
 ### 10.5 Signing in with the User's credentials {#credentials}
 

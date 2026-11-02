@@ -170,7 +170,7 @@ export function protectedResourceMetadataUrl(url: string): string {
     return `${u.origin}/.well-known/oauth-protected-resource${u.pathname.replace(/\/+$/, "")}`;
 }
 
-type Outcome = { status: "pass" | "fail" | "warn"; server: string; detail: Detail };
+type Outcome = { status: "pass" | "fail" | "warn" | "skip"; server: string; detail: Detail };
 
 // Collects outcomes per check across servers, then records one result per check.
 function aggregator(r: Recorder) {
@@ -180,7 +180,15 @@ function aggregator(r: Recorder) {
             (outcomes[id] ??= []).push({ status, server, detail });
         },
         flush(multiple: boolean) {
-            for (const [id, list] of Object.entries(outcomes)) {
+            const label = (o: Outcome, text?: string) =>
+                multiple && text ? `${o.server}: ${text}` : text;
+            for (const [id, all] of Object.entries(outcomes)) {
+                // A server skipped for a check doesn't count, unless every server was.
+                const list = all.filter((o) => o.status !== "skip");
+                if (list.length === 0) {
+                    r.skip(id, all.map((o) => label(o, o.detail.summary)).join("; "));
+                    continue;
+                }
                 const bad = list.filter((o) => o.status !== "pass");
                 if (bad.length === 0) {
                     r.pass(id, {
@@ -194,8 +202,6 @@ function aggregator(r: Recorder) {
                     continue;
                 }
                 const first = bad[0];
-                const label = (o: Outcome, text?: string) =>
-                    multiple && text ? `${o.server}: ${text}` : text;
                 const detail: Detail = {
                     exchange: bad.flatMap((o) =>
                         o.detail.exchange
@@ -235,7 +241,7 @@ export async function checkMcp(ctx: Context, r: Recorder): Promise<void> {
         skipRest(
             r,
             MCP_IDS,
-            "The Company offers no account access. Check its signed-out MCP Session handling by hand; OAuth MCP probes do not apply.",
+            "The Company has no issuer, so it offers no account access. Check its signed-out MCP Session handling by hand; OAuth MCP probes do not apply.",
         );
         return;
     }
@@ -280,6 +286,29 @@ export async function checkMcp(ctx: Context, r: Recorder): Promise<void> {
             url,
             `Bearer validator_invented_${randomId(16)}`,
         );
+        const prmUrl = challenge?.params.resource_metadata ?? protectedResourceMetadataUrl(url);
+        const prm = (
+            await getFollowing(ctx.http, prmUrl, {
+                max: 3,
+                headers: { Accept: "application/json" },
+            })
+        ).final!;
+
+        // A server that takes calls without a token, ignores one, and publishes no protected
+        // resource metadata shows no sign of offering account access. Section 7's OAuth rules
+        // apply only to a server that does.
+        if (
+            none.status !== 401 &&
+            invented.status !== undefined &&
+            invented.status < 300 &&
+            prm.status === 404
+        ) {
+            const summary =
+                "The server takes calls without a token, ignores an invented one, and publishes no protected resource metadata, so it seems to offer no account access. If it does, it needs that metadata and token checks (section 7).";
+            for (const id of ["mcp.invalid-token", "mcp.metadata", "mcp.authorization-servers"])
+                agg.add(id, "skip", url, { summary });
+            continue;
+        }
         const inventedChallenge = bearer(invented);
         const expectedPrm = challenge?.params.resource_metadata;
         if (invented.status !== 401)
@@ -309,13 +338,6 @@ export async function checkMcp(ctx: Context, r: Recorder): Promise<void> {
         else agg.add("mcp.invalid-token", "pass", url);
 
         // Protected resource metadata.
-        const prmUrl = challenge?.params.resource_metadata ?? protectedResourceMetadataUrl(url);
-        const prm = (
-            await getFollowing(ctx.http, prmUrl, {
-                max: 3,
-                headers: { Accept: "application/json" },
-            })
-        ).final!;
         const doc = prm.json as { resource?: unknown; authorization_servers?: unknown } | undefined;
         if (prm.status !== 200 || !doc || typeof doc !== "object") {
             agg.add("mcp.metadata", "fail", url, {

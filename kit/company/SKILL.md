@@ -67,7 +67,7 @@ node <skill-dir>/validate/index.ts report
 - Prefer staging or another test environment. `check` works against production too, but there it
   starts real Sessions and sends test messages to the company agent, so ask the engineer first.
 - This version checks the survey, the foundation milestone, and the signed-out parts of the
-  interfaces milestone. For sign-in, handoff, Direct Conversations, browser sessions, and
+  interfaces milestone, including browser sessions. For sign-in, handoff, Direct Conversations, and
   extensions, the checklist and the manual tests in each milestone file are the check. Don't report
   those parts as validated.
 

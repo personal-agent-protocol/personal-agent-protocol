@@ -346,7 +346,14 @@ export async function checkResources(ctx: Context, r: Recorder): Promise<void> {
     }
 
     if (r.wants("session.invalid-everywhere")) await invalidEverywhere(ctx, r);
-    if (r.wants("token.invented")) await inventedToken(ctx, r, probe);
+    if (r.wants("token.invented")) {
+        if (!ctx.discovered.issuer || ctx.discovered.poppy?.auth?.disabled === true)
+            r.skip(
+                "token.invented",
+                "The Company offers Personal Agents no account access, so its APIs don't have to accept access tokens (section 7).",
+            );
+        else await inventedToken(ctx, r, probe);
+    }
     if (r.wants("token.in-url")) await tokenInUrl(ctx, r, probe);
 }
 

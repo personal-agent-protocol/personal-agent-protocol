@@ -176,7 +176,7 @@ Verify Session headers generally (SHOULD, 5.3). Complete all checks before trust
 - [ ] If you keep a replay cache keyed by `jti`, hold entries for the acceptance window and share it across every server. Otherwise a JWT accepted by one server can be replayed at another (5.3).
 - [ ] Check `ath` against the access token, and that the token was issued to the JWT's `iss`. Reject an absent header when the request depends on Session claims (MUST, 5.3). Don't use an unverified `iss`, `sub`, or `sid` for attribution, rate limits by identity, cache keys, or state lookup.
 - [ ] Return `invalid_session` for a failed check, and keep access token errors in `WWW-Authenticate`, as OAuth does (section 7).
-- [ ] Binding access tokens with DPoP is your choice (4.5). If you do, verify the proof as RFC 9449 describes, separately from the Session JWT. If your authorization server can't issue DPoP-bound tokens, verifying the Session JWT and its `ath` binds the token to the personal agent's key. Endpoints that skip Session verification lose that extra protection.
+- [ ] Binding access tokens with DPoP is your choice (4.5), and you can choose for each service. If you do, verify the proof as RFC 9449 describes, separately from the Session JWT. For a service that doesn't verify proofs, such as an MCP server built for ordinary MCP clients, have your authorization server issue Bearer tokens for its `resource`. If your authorization server can't issue DPoP-bound tokens, verifying the Session JWT and its `ath` binds the token to the personal agent's key. Endpoints that skip Session verification lose that extra protection.
 - [ ] At an MCP server, accept a token issued for its `resource` only at that server (MUST, section 7). Accept the Session header there too, if you want its calls tied to sessions. Signed-out calls that use no Session state can work without verification.
 - [ ] Serve personal agent conversations only from your conversation endpoint (8.2). If your website chat or other channels can open the same conversations, they may not check the Session header, and anyone with a copied token could read them there.
 
@@ -187,8 +187,8 @@ When keeping session state:
 - [ ] Behind a load balancer, share session state across the servers that handle it, as with server-side cookie sessions, so requests reach the same state whichever server handles them.
 - [ ] Record the user ID and agent ID a session starts with, and reject later Session JWTs for it with different ones (5.3).
 - [ ] Your authorization server doesn't see the Session header. Sign-in and refresh are plain OAuth, and a session is signed in on each request that carries an access token (5.4).
-- [ ] Remember the `sid`s of sessions you end, and answer them with `invalid_session` (5.5). Choose a retention period that fits your session lifetimes.
-- [ ] Use separate sessions for separate accounts. If your policy refuses a second account in a session, answer with `invalid_session` (5.4).
+- [ ] Remember the `sid`s of sessions you end, and answer them with `session_ended` (5.5). Choose a retention period that fits your session lifetimes.
+- [ ] Use separate sessions for separate accounts. If your policy refuses a second account in a session, answer with `session_ended` (5.4).
 - [ ] Don't expect a user's delegated key to stay the same (MUST NOT, 5.2), and don't store anything by it.
 
 ### Recommended: [Internal services](https://personalagentprotocol.org/docs/0.3/guides#company-internal)

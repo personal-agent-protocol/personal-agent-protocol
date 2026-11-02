@@ -2,13 +2,14 @@
 // with specific flaws, and checks the results.
 
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, statSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { PROTOCOL_VERSION } from "../catalog.ts";
+import { PROTOCOL_VERSION, SECTION_NUMBERS } from "../catalog.ts";
 import { sessionJwt } from "../agent.ts";
 import { decodeJwt } from "../jose.ts";
+import { PROTOCOL_EXTENSIONS } from "../checks/discovery.ts";
 import { TEST_REPORT } from "../checks/feedback.ts";
 import { newContext, type CheckResult, type CheckOptions } from "../checks/types.ts";
 import { keygen, UsageError } from "../identity.ts";
@@ -485,6 +486,12 @@ for (const [flaw, id] of [
     });
 }
 
+test("a Cross-Origin-Opener-Policy that severs the opener passes only the required check", async () => {
+    const { byId } = await run({ webCoop: "same-origin-allow-popups" }, "interfaces", ["web."]);
+    assert.equal(byId("web.page-headers").status, "pass");
+    assert.equal(byId("web.page-headers-suggested").status, "warn");
+});
+
 test("a host-only join cookie without the __Host- prefix warns", async () => {
     const { byId } = await run({ webCookieWithoutHostPrefix: true }, "interfaces", ["web."]);
     assert.equal(byId("web.join-cookie").status, "warn");
@@ -632,5 +639,62 @@ test("only safe requests: GETs, token requests, conversation requests, feedback 
             path === "/poppy/browser-session/authorize" ||
             path === "/mcp";
         assert.ok(ok, `${ex.method} ${ex.url}`);
+    }
+});
+
+test("plain extension names are the extensions this version defines", () => {
+    const dir = new URL(
+        `../../../../content/versions/${PROTOCOL_VERSION}/extensions/`,
+        import.meta.url,
+    );
+    const names = readdirSync(dir)
+        .filter((f) => f.endsWith(".mdx"))
+        .map((f) => f.slice(0, -4));
+    assert.deepEqual([...PROTOCOL_EXTENSIONS].sort(), names.sort());
+});
+
+test("an MCP server that offers no account access skips the OAuth MCP checks", async () => {
+    const { byId } = await run({ mcpSignedOutOnly: true }, "interfaces", ["mcp."]);
+    assert.equal(byId("mcp.no-token").status, "pass");
+    for (const id of ["mcp.invalid-token", "mcp.metadata", "mcp.authorization-servers"])
+        assert.equal(byId(id).status, "skip", id);
+});
+
+test("an issuerless Company skips token.invented", async () => {
+    const { byId } = await run({ poppy: signedOutOnly, noResourceMetadata: true }, "foundation", [
+        "token.invented",
+    ]);
+    assert.equal(byId("token.invented").status, "skip");
+    assert.match(byId("token.invented").reason ?? "", /no account access/);
+});
+
+test("a malformed skill index fails the schema check without blocking poppy.json", async () => {
+    const { ctx, byId } = await run(
+        { poppy: (doc) => (doc.skill_index = { skills: "not a list" }) },
+        "foundation",
+        ["discovery.schema"],
+    );
+    assert.equal(byId("discovery.schema").status, "fail");
+    assert.equal(ctx.blocked.poppy, undefined);
+});
+
+test("section numbers match the headings in the docs", () => {
+    const dir = new URL(`../../../../content/versions/${PROTOCOL_VERSION}/`, import.meta.url);
+    const pages = [
+        ["spec", new URL("spec.mdx", dir)],
+        ...readdirSync(new URL("extensions/", dir)).map((f) => [
+            f.replace(/\.mdx$/, ""),
+            new URL(`extensions/${f}`, dir),
+        ]),
+    ] as const;
+    for (const [page, file] of pages) {
+        // Unnumbered headings take the number of the section they're in.
+        let number = "";
+        for (const m of readFileSync(file, "utf8").matchAll(
+            /^#{2,4} (?:(\d+(?:\.\d+)*)\.? )?.*\{#([\w-]+)\}$/gm,
+        )) {
+            if (m[1]) number = m[1];
+            assert.equal(SECTION_NUMBERS[`${page}#${m[2]}`], number, `${page}#${m[2]}`);
+        }
     }
 });

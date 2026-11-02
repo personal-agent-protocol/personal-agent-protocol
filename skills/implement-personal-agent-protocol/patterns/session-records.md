@@ -43,7 +43,7 @@ Add `client_id`, `sid`, User ID, and Poppy fields to the records the website alr
 ## What to watch for
 
 - A Session can change accounts unless the Company refuses it. Decide whether to refuse a request
-  whose access token is for another account than the Session used before, with `invalid_session`
+  whose access token is for another account than the Session used before, with `session_ended`
   (5.4). Personal Agents should start a new Session for another account.
 - When a refresh token is revoked, invalidate the access tokens issued under it, or check on
   each request whether the authorization is still active. If you can't, keep access tokens to a few
@@ -54,7 +54,7 @@ Add `client_id`, `sid`, User ID, and Poppy fields to the records the website alr
   website cookie keeps its account access ([5.5](https://personalagentprotocol.org/docs/0.3/spec#ending-sessions)).
 - Conversations and operations that used the account answer requests without its access token with
   the 401 challenge ([section 7](https://personalagentprotocol.org/docs/0.3/spec#apis)).
-- Remember the `sid`s of Sessions you end for a while, and refuse them with 400 `invalid_session`
+- Remember the `sid`s of Sessions you end for a while, and refuse them with 400 `session_ended`
   ([5.5](https://personalagentprotocol.org/docs/0.3/spec#ending-sessions)). Otherwise the ended Session
   silently starts again.
 - A known `sid` with a different User ID or Agent ID is refused (5.3).

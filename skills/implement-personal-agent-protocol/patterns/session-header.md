@@ -59,8 +59,10 @@ Each service verifies the header itself, with a shared library.
 6. Look up the Session by `client_id` and `sid`. Create a signed-out Session for an unknown `sid`.
    For a known one, check the same `sub` and `agent_id`, and that it hasn't ended.
 
-Any failure returns HTTP 400 with `{"error": "invalid_session"}`. A request with a Personal Agent's
-access token but no Session header is refused too (5.3).
+Any failure returns HTTP 400 with `{"error": "invalid_session"}`, except an ended Session, which
+returns `{"error": "session_ended"}` so the Personal Agent knows to start a new one (5.5). When handling a request depends on
+Session claims, a request without the Session header is refused too, even with an access token
+(5.3).
 
 ## Caching delegations
 
@@ -83,6 +85,14 @@ Record the choice in the design. For any cache, key it by `jti`, keep entries fo
 window, and use an atomic "insert if absent" operation. If the token endpoint rejects reused
 client assertion `jti`s (4.1 allows it, and the guides suggest it), it keeps its own cache until each
 assertion expires.
+
+## Operator signatures at the edge
+
+Personal Agents may also sign requests with an HTTP Message Signature (RFC 9421) using Web Bot Auth
+([5.3](https://personalagentprotocol.org/docs/0.3/spec#operator-signatures)), so a CDN or bot manager can
+let them through. If yours checks these, it authenticates the operator's key, not the `client_id` in
+the request. Keep running every check above on the Session JWT before trusting any Session claim. A
+request without an operator signature is still valid.
 
 ## `htu` behind proxies
 

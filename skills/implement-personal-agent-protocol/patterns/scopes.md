@@ -71,7 +71,7 @@ Company Agent's tools, and live agents' tools
 - The Company Agent's tools check scopes on every call. Don't rely on the model to decide
   ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-scopes)).
 - A live agent who takes over is held to the same scopes
-  ([8.9](https://personalagentprotocol.org/docs/0.3/spec#handoff)). Their tools need the same check,
+  ([4.7](https://personalagentprotocol.org/docs/0.3/spec#scopes)). Their tools need the same check,
   which may mean changes to the live-agent desk.
 - A message never authorizes an account action (8.11).
 - The website applies the scopes authorized when the browser joined, through its cookie

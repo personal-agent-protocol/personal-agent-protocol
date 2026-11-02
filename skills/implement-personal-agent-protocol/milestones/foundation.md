@@ -119,7 +119,8 @@ verification. When verifying:
 - Look up the Session by `client_id` and `sid`. An unknown `sid` starts a signed-out Session with
   the User ID and optional Agent ID. A known `sid` must have the same User ID and Agent ID, and must
   not have ended.
-- Any failure returns HTTP 400 with `{"error": "invalid_session"}`.
+- Any failure returns HTTP 400 with `{"error": "invalid_session"}`, except an ended Session, which
+  gets `{"error": "session_ended"}`.
 - The Session JWT never grants account access, whatever it contains.
 - Don't key anything on the delegated key: it can change on any request
   ([Delegated keys](https://personalagentprotocol.org/docs/0.3/spec#delegated-keys)). If you cache

@@ -41,8 +41,9 @@ often reusing their library or gateway, as well as the access token.
 - Use the lifecycle of the supported MCP version. MCP 2026-07-28 uses per-request metadata and
   `server/discover`; older versions use `initialize`. Follow that version's HTTP binding for
   headers and fallback. Poppy's `sid` is independent of the MCP lifecycle.
-- Bearer is the MCP baseline. Advertise DPoP in the server's protected resource metadata only
-  when supported, and preserve ordinary Bearer client support (section 7).
+- If the issuer binds tokens with DPoP but the MCP server doesn't verify proofs, have the issuer
+  return Bearer tokens for the server's `resource` (4.5). Personal Agents send the token as its
+  `token_type` names.
 - `authorization_servers` names the Company's issuer, not the Personal Agent.
 - A token is accepted only at the MCP server whose `url` is its `resource`, not at other paths on the
   same host (section 7). A token for another `resource` gets `invalid_token` with

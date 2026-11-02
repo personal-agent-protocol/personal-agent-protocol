@@ -189,8 +189,8 @@ and client metadata on each request and supports `server/discover`; older suppor
 `initialize`. Follow the version's HTTP binding for headers, negotiation, and legacy fallback.
 Poppy's `sid` continues to identify the Session in either case. It is not an `Mcp-Session-Id`.
 
-Use Bearer tokens for ordinary MCP authorization. Use DPoP only with a server that advertises it and
-a client that supports it ([section 7](/docs/spec#apis)). Keep cached results specific to the Poppy
+Send the token as its `token_type` names: `Bearer`, or `DPoP` with a proof
+([4.5](/docs/spec#access-tokens)). Keep cached results specific to the Poppy
 User and Session when those affect the result; account scopes alone are not an adequate cache key.
 In versions with `cacheScope`, mark such results `private` and isolate the client cache accordingly.
 
@@ -294,9 +294,11 @@ service providers that process it for you.
   their times. Keep its lifetime to a few hours.
 - Never expose private keys to a model or to tools a model can call. Sign on the model's behalf in
   code it can't reach.
-- When a request gets `invalid_session` because its session ended, start a new session with a new
-  `sid` (MUST, [5.5](/docs/spec#ending-sessions)). The old session's cart and browser cookie don't
-  carry over. For any other `invalid_session`, fix the JWT rather than starting over.
+- When a request gets `session_ended`, start a new session with a new `sid` and send the request
+  again (MUST, [5.5](/docs/spec#ending-sessions)). The old session's cart and browser cookie don't
+  carry over, so tell the user if a cart is lost. On `invalid_session`, don't start a new session:
+  it would fail the same way. Check the JWT instead, such as its delegation's `exp`, `htu`, and the
+  clock.
 - If a company issues DPoP-bound access tokens, also sign a DPoP proof for each request that carries
   one, and support nonces as [RFC 9449](https://www.rfc-editor.org/rfc/rfc9449) §8 describes. The
   proof and the Session JWT are separate signatures with separate keys
@@ -494,6 +496,9 @@ When a company offers the [Mediated Sign-In extension](/docs/extensions/mediated
   rather than carrying the referring company's Session JWT or access token along.
 - When a company answers your feedback report with an alternative, try it before you tell the user
   the task can't be done ([9.3](/docs/spec#feedback)).
+- When you skip a company's skill index, or a skill in it, because you don't recognize its
+  `$schema` or `type`, say so to the user if it matters for the task, so they know the company's
+  guidance wasn't used ([9.4](/docs/spec#agent-context)).
 
 ### Operations {#agent-operations}
 
@@ -621,8 +626,10 @@ DPoP proof. To verify reliably:
   attribution, rate limits by identity, cache keys, or state lookup.
 - Return `invalid_session` for a failed check, and keep access token errors in `WWW-Authenticate`,
   as OAuth does ([section 7](/docs/spec#apis)).
-- Binding access tokens with DPoP is your choice ([4.5](/docs/spec#access-tokens)). If you do, verify
-  the proof as RFC 9449 describes, separately from the Session JWT. If your authorization server
+- Binding access tokens with DPoP is your choice ([4.5](/docs/spec#access-tokens)), and you can
+  choose for each service. If you do, verify the proof as RFC 9449 describes, separately from the
+  Session JWT. For a service that doesn't verify proofs, such as an MCP server built for ordinary
+  MCP clients, have your authorization server issue Bearer tokens for its `resource`. If your authorization server
   can't issue DPoP-bound tokens, verifying the Session JWT and its `ath` binds the token to the
   personal agent's key. Endpoints that skip Session verification lose that extra protection.
 - At an MCP server, accept a token issued for its `resource` only at that server (MUST,
@@ -649,10 +656,10 @@ When keeping session state:
   different ones ([5.3](/docs/spec#session-verification)).
 - Your authorization server doesn't see the Session header. Sign-in and refresh are plain OAuth, and
   a session is signed in on each request that carries an access token ([5.4](/docs/spec#sign-in)).
-- Remember the `sid`s of sessions you end, and answer them with `invalid_session`
+- Remember the `sid`s of sessions you end, and answer them with `session_ended`
   ([5.5](/docs/spec#ending-sessions)). Choose a retention period that fits your session lifetimes.
 - Use separate sessions for separate accounts. If your policy refuses a second account in a
-  session, answer with `invalid_session` ([5.4](/docs/spec#sign-in)).
+  session, answer with `session_ended` ([5.4](/docs/spec#sign-in)).
 - Don't expect a user's delegated key to stay the same (MUST NOT,
   [5.2](/docs/spec#delegated-keys)), and don't store anything by it.
 

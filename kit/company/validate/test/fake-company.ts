@@ -139,6 +139,8 @@ export type Flaws = {
     mcpInvalidTokenNoError?: boolean;
     mcpResourceWithSlash?: boolean;
     mcpOtherAuthorizationServer?: boolean;
+    // The MCP server offers no account access: no token needed, tokens ignored, no metadata.
+    mcpSignedOutOnly?: boolean;
 
     // --- Feedback ---
     // Accepts feedback reports without the Session header.
@@ -154,6 +156,8 @@ export type Flaws = {
     webNoHeaders?: boolean;
     // frame-ancestors 'self' instead of 'none'.
     webFrameSelf?: boolean;
+    // This Cross-Origin-Opener-Policy instead of same-origin.
+    webCoop?: string;
     // The join cookie without the __Host- prefix.
     webCookieWithoutHostPrefix?: boolean;
     // The join cookie with SameSite=None.
@@ -488,7 +492,7 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                 "content-security-policy",
                 flaws.webFrameSelf ? "frame-ancestors 'self'" : "frame-ancestors 'none'",
             );
-            out.set("cross-origin-opener-policy", "same-origin");
+            out.set("cross-origin-opener-policy", flaws.webCoop ?? "same-origin");
         }
         out.append(
             "set-cookie",
@@ -549,7 +553,10 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
         if (!code || !fresh || !code.authorized || code.exp <= now() || !cookieOk)
             return new Response("<!doctype html>\n<title>Try again</title>\n", {
                 status: 400,
-                headers: { "content-type": "text/html" },
+                headers: {
+                    "content-type": "text/html",
+                    "set-cookie": "__Host-poppy_join=; Path=/; Secure; Max-Age=0",
+                },
             });
         code.used = true;
         const out = new Headers({ location: `${ORIGIN}/` });
@@ -928,7 +935,7 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
         const authorization = headers.get("authorization");
         const resourceMetadata = `resource_metadata="${MCP_PRM}"`;
         // The MCP server ignores the Session header (spec 7) and needs a token.
-        if (!authorization && !flaws.mcpWithoutToken)
+        if (!authorization && !flaws.mcpWithoutToken && !flaws.mcpSignedOutOnly)
             return new Response(null, {
                 status: 401,
                 headers: {
@@ -937,7 +944,7 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                         : `Bearer ${resourceMetadata}`,
                 },
             });
-        if (authorization)
+        if (authorization && !flaws.mcpSignedOutOnly)
             return new Response(null, {
                 status: 401,
                 headers: {
@@ -1136,7 +1143,7 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
         if (path === "/.well-known/oauth-authorization-server" && !flaws.noIssuerMetadata)
             return json(200, metadata());
         if (path === "/openapi.json") return openapi();
-        if (here === MCP_PRM)
+        if (here === MCP_PRM && !flaws.mcpSignedOutOnly)
             return json(200, {
                 resource: flaws.mcpResourceWithSlash ? `${MCP}/` : MCP,
                 authorization_servers: [
