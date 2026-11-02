@@ -182,8 +182,9 @@ Verify Session headers generally (SHOULD, 5.3). Complete all checks before trust
 
 ### Recommended: [Sessions](https://personalagentprotocol.org/docs/0.3/guides#company-sessions)
 
-A session is named by the `client_id` and `sid` of its Session JWTs (5.3). Keep the Poppy session record at your resources, alongside your existing OAuth integration:
+When keeping session state:
 
+- [ ] Behind a load balancer, share session state across the servers that handle it, as with server-side cookie sessions, so requests reach the same state whichever server handles them.
 - [ ] Record the user ID and agent ID a session starts with, and reject later Session JWTs for it with different ones (5.3).
 - [ ] Your authorization server doesn't see the Session header. Sign-in and refresh are plain OAuth, and a session is signed in on each request that carries an access token (5.4).
 - [ ] Remember the `sid`s of sessions you end, and answer them with `invalid_session` (5.5). Choose a retention period that fits your session lifetimes.
@@ -277,6 +278,11 @@ A company can offer personal agents less than its other OAuth clients get withou
 ### Specification: [9.4 Agent context](https://personalagentprotocol.org/docs/0.3/spec#agent-context)
 
 - [ ] **MUST**: Companies that publish `skill_index` MUST follow that revision's index format, artifact distribution, integrity, and HTTP requirements, with the index embedded here instead of fetched separately.
+
+### Recommended: [Explicit replies and approvals](https://personalagentprotocol.org/docs/0.3/guides#both-replies)
+
+- [ ] Both parties SHOULD make an answer or approval explicit about the question or action it addresses.
+- [ ] Both parties SHOULD treat a short reply that could answer more than one open question as answering none of them, and ask which one is meant before acting. A reply such as "done" could refer to sign-in, an earlier question, or a new request for approval.
 
 ### Recommended: [Retries](https://personalagentprotocol.org/docs/0.3/guides#both-retries)
 

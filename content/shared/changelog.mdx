@@ -726,6 +726,14 @@ protocol. A later version can add a field when there is a second kind of report.
 
 Advice that goes with the spec. Guides aren't requirements.
 
+<Change title="Explicit replies and crossed approvals" sections="guides#both-replies, guides#agent-operations" issue="27">
+
+Both parties should make clear what an answer or approval addresses. When a short reply could answer
+more than one open question, both should treat it as answering none and ask which one is meant
+before acting. The Personal Agent Operations guide links to this advice.
+
+</Change>
+
 <Change title="Choosing Company capabilities" sections="guides#company-adoption">
 
 A Company adoption guide explains independent implementation choices: signed-out APIs, verified
@@ -756,6 +764,14 @@ questions.
 Not every authorization server supports client ID metadata documents. One that needs registration
 can register the personal agents a company accepts by their `client_id` URL, and reject others with
 `invalid_client`.
+
+</Change>
+
+<Change title="Session storage and load balancers" sections="guides#company-sessions">
+
+Session records need not be durable. Conversations are stored separately and can outlast their
+Sessions. Servers behind a load balancer share any Session state they keep, as with server-side
+cookie sessions.
 
 </Change>
 

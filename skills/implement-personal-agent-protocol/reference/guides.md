@@ -67,6 +67,11 @@ Personal agents fetch `poppy.json` files, OAuth and protected resource metadata,
 - Reject loopback, private, and link-local addresses unless you've configured them on purpose. Check the address you actually connect to, not only the one DNS returned first.
 - Cache according to HTTP caching headers, within bounds you set, such as at least a minute and at most a day. The upper bound means a removed key stops being trusted.
 
+### Explicit replies and approvals
+
+- Both parties SHOULD make an answer or approval explicit about the question or action it addresses.
+- Both parties SHOULD treat a short reply that could answer more than one open question as answering none of them, and ask which one is meant before acting. A reply such as "done" could refer to sign-in, an earlier question, or a new request for approval.
+
 ### Retries
 
 - Send an `Idempotency-Key` on API writes that accept one. Use a random UUID (version 4), and reuse the same key when you retry the same request.
@@ -241,12 +246,20 @@ When a company offers the [Mediated Sign-In extension](https://personalagentprot
 
 When you support the [Operations extension](https://personalagentprotocol.org/docs/0.3/extensions/operations):
 
+- Follow [Explicit replies and approvals](#both-replies) when interpreting the user's answer to an approval request.
+
 - Show the user the operation's `summary` as the company wrote it, with the company's name and the account it applies to. Point out any cost, date, or condition, and whether the action can be undone. Don't replace the summary with your own paraphrase ([Operations 5](https://personalagentprotocol.org/docs/0.3/extensions/operations#approval)).
+
 - When a new revision of an operation arrives, with the same `operation_id`, drop the earlier one and show the user what changed before asking them to approve the new one.
+
 - Show when the revision expires. If it expires before the user answers, make the request again for new terms, and ask again.
+
 - Save the request that returned the operation, its method, URL, and body or the tool's arguments, and send exactly that with the approval. Don't have the model write the request again ([Operations 6](https://personalagentprotocol.org/docs/0.3/extensions/operations#sending-approval)).
+
 - Check `terms` against what you asked for, such as the order, item, and amount, and tell the user about any difference. If you show values from `terms`, label them in words, such as "Order" rather than `order_id`.
+
 - When the user says they'd approve something in advance, such as "go ahead with any exchange under $20", don't approve operations for them. If the company offers its own rules for that, offer to set one up with the company ([Operations 5](https://personalagentprotocol.org/docs/0.3/extensions/operations#approval)).
+
 - After a request with an approval times out or gets a 503, send it again with the same approval, waiting for `Retry-After` if there is one. Don't ask the user to approve the action again until you know whether it happened ([Operations 7](https://personalagentprotocol.org/docs/0.3/extensions/operations#at-most-once)).
 
 ## For companies
@@ -297,8 +310,11 @@ Verify Session headers generally (SHOULD, [5.3](https://personalagentprotocol.or
 
 ### Sessions
 
-A session is named by the `client_id` and `sid` of its Session JWTs ([5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification)). Keep the Poppy session record at your resources, alongside your existing OAuth integration:
+A session is named by the `client_id` and `sid` of its Session JWTs ([5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification)). Keep the Poppy session record at your resources, alongside your existing OAuth integration. Session records don't need durable storage. Conversations are separate records that can outlast the session that started them ([8.2](https://personalagentprotocol.org/docs/0.3/spec#conversation-requests)).
 
+When keeping session state:
+
+- Behind a load balancer, share session state across the servers that handle it, as with server-side cookie sessions, so requests reach the same state whichever server handles them.
 - Record the user ID and agent ID a session starts with, and reject later Session JWTs for it with different ones ([5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification)).
 - Your authorization server doesn't see the Session header. Sign-in and refresh are plain OAuth, and a session is signed in on each request that carries an access token ([5.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
 - Remember the `sid`s of sessions you end, and answer them with `invalid_session` ([5.5](https://personalagentprotocol.org/docs/0.3/spec#ending-sessions)). Choose a retention period that fits your session lifetimes.

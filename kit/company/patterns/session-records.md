@@ -16,6 +16,12 @@ Session records: a Session is signed in on each request that carries an access t
 token's account and scopes. Record on the Session the account it has used, if the Company refuses
 account changes, and on conversations and operations whether they used the account.
 
+Session records need not be durable. A shared cache can hold them. Behind a load balancer, share
+Session state across the servers that handle it, as with server-side cookie sessions, so each
+request reaches the same state
+([guides](https://personalagentprotocol.org/docs/guides#company-sessions)). Keep conversations
+independently: they can outlast their Sessions (8.2).
+
 ## A. New Poppy tables or collections
 
 Store Poppy Sessions in their own store, linked to the existing account by ID when they use one.

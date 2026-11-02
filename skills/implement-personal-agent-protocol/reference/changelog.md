@@ -392,6 +392,12 @@ Feedback reports no longer have `kind`, whose only value was `missing`, and Comp
 
 Advice that goes with the spec. Guides aren't requirements.
 
+#### Explicit replies and crossed approvals
+
+[Guides: Explicit replies and approvals](https://personalagentprotocol.org/docs/0.3/guides#both-replies) · [Guides: Operations](https://personalagentprotocol.org/docs/0.3/guides#agent-operations) · [Issue #27](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/27)
+
+Both parties should make clear what an answer or approval addresses. When a short reply could answer more than one open question, both should treat it as answering none and ask which one is meant before acting. The Personal Agent Operations guide links to this advice.
+
 #### Choosing Company capabilities
 
 [Guides: Choosing capabilities](https://personalagentprotocol.org/docs/0.3/guides#company-adoption)
@@ -415,6 +421,12 @@ A company agent verifies the user by sending an `authorization` event, not by as
 [Guides: Verifying personal agents](https://personalagentprotocol.org/docs/0.3/guides#company-agents)
 
 Not every authorization server supports client ID metadata documents. One that needs registration can register the personal agents a company accepts by their `client_id` URL, and reject others with `invalid_client`.
+
+#### Session storage and load balancers
+
+[Guides: Sessions](https://personalagentprotocol.org/docs/0.3/guides#company-sessions)
+
+Session records need not be durable. Conversations are stored separately and can outlast their Sessions. Servers behind a load balancer share any Session state they keep, as with server-side cookie sessions.
 
 #### API descriptions and one feedback channel
 

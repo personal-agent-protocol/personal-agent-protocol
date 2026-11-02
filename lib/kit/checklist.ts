@@ -98,6 +98,7 @@ const SECTIONS: Record<string, Record<string, Milestone>> = {
         "company-without-oauth": "foundation",
         "both-key-rotation": "foundation",
         "both-fetching": "foundation",
+        "both-replies": "interfaces",
         "both-retries": "interfaces",
         "both-rate-limits": "foundation",
         "both-transport": "foundation",
