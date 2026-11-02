@@ -231,7 +231,7 @@ A session is named by the `client_id` and `sid` of its Session JWTs (5.3). Keep 
 
 ### Specification: [8.2 Requests](https://personalagentprotocol.org/docs/0.3/spec#conversation-requests)
 
-- [ ] **MUST**: The Company MUST reject requests from any other `client_id`, User, or account.
+- [ ] **MUST**: The Company MUST reject any other request, as the table shows:
 - [ ] **MUST NOT**: Beyond these rules, the side that chooses an ID decides its format, and the other side MUST NOT depend on it.
 
 ### Specification: [8.4 Message fields](https://personalagentprotocol.org/docs/0.3/spec#message-fields)

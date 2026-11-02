@@ -721,7 +721,7 @@ export const CATALOG: CheckInfo[] = [
         "conversations.other-user",
         "Reading another User's conversation returns conversation_not_found",
         "spec#conversation-requests",
-        "The Company MUST reject requests from any other client_id, User, or account.",
+        "The Company MUST reject any other request, as the table shows",
     ),
     interfaces(
         "conversations.empty-message",

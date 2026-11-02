@@ -160,6 +160,12 @@ Mediated Sign-In is a transitional step, not where the protocol is headed, like 
 
 ### Minor changes
 
+#### Conversation ownership
+
+[Spec 2](https://personalagentprotocol.org/docs/0.3/spec#terms) · [Spec 8.2](https://personalagentprotocol.org/docs/0.3/spec#conversation-requests)
+
+A conversation belongs to the Personal Agent's `client_id` and the User ID that started it, and, once it uses an account, to that account too. Earlier text said the account replaced the User ID. A table shows which requests continue a conversation before and after it uses an account. Agent IDs aren't part of ownership.
+
 #### Company logo
 
 [Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) · [Guides: Finding a company](https://personalagentprotocol.org/docs/0.3/guides#agent-discovery)

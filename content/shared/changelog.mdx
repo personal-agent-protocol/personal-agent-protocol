@@ -360,6 +360,15 @@ Companies that offer Direct or Device Sign-In make their scopes and APIs cover w
 
 ### Minor changes {#v0-3-minor}
 
+<Change title="Conversation ownership" sections="2, 8.2">
+
+A conversation belongs to the Personal Agent's `client_id` and the User ID that started it, and, once
+it uses an account, to that account too. Earlier text said the account replaced the User ID. A table
+shows which requests continue a conversation before and after it uses an account. Agent IDs aren't
+part of ownership.
+
+</Change>
+
 <Change title="Company logo" sections="3, 3.1, guides#agent-discovery">
 
 `organization` can include a `logo_uri`, an HTTPS URL of the Company's logo, named as in client

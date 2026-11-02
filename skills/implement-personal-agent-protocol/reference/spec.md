@@ -49,7 +49,7 @@ The [Company adoption guide](https://personalagentprotocol.org/docs/0.3/guides#c
 | **Conversations** |  |
 | Company Agent | A Company's own agent, reached through a supported conversation protocol. |
 | Direct Conversation | A new conversation, linked to an earlier one, in which the User talks with the Company through the Personal Agent's interface (8.10). |
-| Conversation ID | Identifies one conversation, in the URL of each request about it. A conversation belongs to one Personal Agent and one User or account (8.2). |
+| Conversation ID | Identifies one conversation, in the URL of each request about it. A conversation belongs to one Personal Agent and one User, and to an account once it uses one (8.2). |
 
 **OAuth terms.** Poppy uses standard OAuth for account access, with OAuth's names for its tokens (section 4), and adds the Session header (section 5):
 
@@ -789,7 +789,15 @@ Personal Agent Protocol conversations use JSON over HTTPS. Below, `{endpoint}` i
 | `POST {endpoint}/{id}/handoff` | Ask for a person at the Company (8.9). |
 | `POST {endpoint}/{id}/close` | Close the conversation (8.12). |
 
-A conversation belongs to the Personal Agent's `client_id` and the User ID that started it. Once it uses the User's account, it belongs to that account instead. Any Session that matches can continue it, so a conversation can outlast the Session that started it. The Company MUST reject requests from any other `client_id`, User, or account.
+A conversation belongs to the Personal Agent's `client_id` and the User ID that started it, and, once it uses the User's account, to that account too. A request continues it only when all of them match, so any Session that matches can continue it, and a conversation can outlast the Session that started it. Agent IDs aren't part of ownership. The Company MUST reject any other request, as the table shows:
+
+| Request on the conversation | Before it uses an account | After it uses account A |
+| --- | --- | --- |
+| Same Personal Agent and User, signed out | Continues | Rejected with a challenge (8.11) |
+| Same Personal Agent and User, signed in to account A | Continues, and the conversation now uses A (8.11) | Continues |
+| Same Personal Agent and User, signed in to account B | Continues, and the conversation now uses B (8.11) | Rejected with `conversation_not_found` (8.13) |
+| Same Personal Agent, another User ID | Rejected with `conversation_not_found` (8.13) | Rejected with `conversation_not_found` (8.13) |
+| Another Personal Agent | Rejected with `conversation_not_found` (8.13) | Rejected with `conversation_not_found` (8.13) |
 
 **IDs.** Conversation IDs, message IDs, and event IDs are strings of 1 to 256 characters from the URL-safe base64 alphabet ([RFC 4648, section 5](https://www.rfc-editor.org/rfc/rfc4648#section-5)): letters, digits, `-`, and `_`. The Company chooses Conversation IDs and event IDs, and the Personal Agent chooses message IDs for its own messages. Beyond these rules, the side that chooses an ID decides its format, and the other side MUST NOT depend on it.
 
