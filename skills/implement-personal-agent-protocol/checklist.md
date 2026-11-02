@@ -33,6 +33,7 @@ are left out.
     - [ ] If it lists more than one, such as one for the Company's employees, `auth.issuer` in `poppy.json` names the one Personal Agents use (3.1). RFC 9728 leaves the choice among them to the client, but User IDs and refresh tokens belong to one issuer (5.1), so every Personal Agent has to choose the same one.
 - [ ] **MUST NOT**: It MUST NOT fall back for a Company whose issuer it already knows unless a successful discovery explicitly establishes that the issuer was removed.
 - [ ] **MUST**: `auth.issuer` is optional, and if present MUST name that server (3.1).
+- [ ] **MUST NOT**: A Company that sets `auth.disabled` MUST NOT list the Mediated Sign-In extension or `signed_in` access (below).
 - [ ] **MUST**: The Company MUST select that same issuer on each domain (above).
 - [ ] **MUST**: The Company MUST give each scope the same authorization meaning across these domains.
 - [ ] **SHOULD**: The Company SHOULD publish the same scope descriptions and hints across these domains, but MAY expose different scopes or capabilities.
@@ -42,7 +43,7 @@ are left out.
 - [ ] **MUST**: Its `protected_resources` (RFC 9728 §4) MUST list `https://{domain}` for every domain whose issuer it is, with no path, port, or trailing slash.
 - [ ] **MUST**: Required, and it MUST include `refresh_token` (4.4).
 - [ ] **SHOULD**: A Company that offers sign-in SHOULD publish it and include every scope a Personal Agent can request (4.7).
-- [ ] **MUST**: A Company that lists `signed_in` MUST have an issuer.
+- [ ] **MUST**: A Company that lists `signed_in` MUST have an issuer, and MUST NOT set `auth.disabled`.
 
 ### Specification: [4.1 Agent identity](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)
 
@@ -203,6 +204,14 @@ A session is named by the `client_id` and `sid` of its Session JWTs (5.3). Keep 
 - [ ] Companies can share a token endpoint, servers, and signing keys. Only the issuer decides which company a token belongs to.
 - [ ] Record the issuer with every session and token, and check it on every request. An access token, refresh token, or Session JWT for Outfitters must not work at Books, even when both are served by the same code.
 - [ ] Don't use one company's records for another. A user's sessions, user IDs, and accounts at one company are unknown to every other company the platform hosts.
+
+### Recommended: [Offering personal agents less](https://personalagentprotocol.org/docs/0.3/guides#company-agent-issuer)
+
+A company can offer personal agents less than its other OAuth clients get without a second issuer:
+
+- [ ] Limit the scopes it grants by client, as OAuth allows (4.7). It can also leave scopes it doesn't offer personal agents out of `scopes_supported`, as RFC 8414 allows (3.2). That list is discovery, not enforcement: agents can request scopes documented by an API or sign-in extension too.
+- [ ] Refuse sign-in, or one sign-in type, to a personal agent with `unauthorized_client` from the grant's endpoint, and keep accepting it for signed-out sessions (4.1). `grant_types_supported` lists the grants every client can see, so a refusal by `client_id` is how you keep direct or device sign-in from some personal agents.
+- [ ] Turn off sign-in for every personal agent with `auth.disabled`, for example while your issuer already serves other clients and you aren't ready for personal agents (3.2). Personal agents don't try to sign in, and still use signed-out sessions. Remove it when you're ready.
 
 ## Interfaces
 

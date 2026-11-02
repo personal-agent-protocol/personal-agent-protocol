@@ -197,6 +197,12 @@ export const CATALOG: CheckInfo[] = [
         "Anyone else MUST start an extension's name with a domain they control, such as example.com/gift-wrap.",
     ),
     foundation(
+        "discovery.sign-in-disabled",
+        "A Company that turns off sign-in lists no way to sign in",
+        "spec#oauth-server",
+        "A Company that sets auth.disabled MUST NOT list the Mediated Sign-In extension or signed_in access",
+    ),
+    foundation(
         "discovery.excluded-tasks",
         "The excluded-tasks document loads and has the fields in 9.1",
         "spec#excluded-tasks",

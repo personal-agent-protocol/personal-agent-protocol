@@ -40,6 +40,12 @@ token-endpoint checks. Build the same client and Session verification as any oth
 When an issuer is added, it becomes the Company's identifier; if that changes the identifier,
 Users need new IDs and Sessions. Earlier state does not transfer automatically.
 
+A Company whose issuer already serves other clients, but that isn't ready to let Personal Agents
+sign in, keeps the issuer and sets `auth.disabled` to `true` in `poppy.json` instead
+([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)). It then lists no Mediated
+Sign-In and no `access: signed_in` hints, and its identifier doesn't change when it turns sign-in
+on.
+
 ## What to build
 
 **1. `poppy.json`** at `https://{domain}/.well-known/poppy.json` (section 3).

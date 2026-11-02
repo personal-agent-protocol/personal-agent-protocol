@@ -213,16 +213,21 @@ export function formatSurvey(s: SurveyReport): string {
             const meta = s.authorizationServer?.fields as Metadata | undefined;
             const direct = offersGrant(meta, SIGN_IN_GRANTS.direct);
             const device = offersGrant(meta, SIGN_IN_GRANTS.device);
-            if (direct)
-                out.push("  sign-in direct    authorization_code in the OAuth server metadata");
-            if (device) out.push("  sign-in device    device_code in the OAuth server metadata");
             const mediated = p?.extensions?.["mediated-sign-in"];
-            if (mediated)
-                out.push(
-                    `  sign-in mediated  scopes ${JSON.stringify(mediated.scopes)}, at the token endpoint`,
-                );
-            if (!direct && !device && !mediated)
-                out.push("  sign-in           none (signed-out Sessions only)");
+            if (p?.auth?.disabled === true)
+                out.push("  sign-in           turned off (auth.disabled in poppy.json)");
+            else {
+                if (direct)
+                    out.push("  sign-in direct    authorization_code in the OAuth server metadata");
+                if (device)
+                    out.push("  sign-in device    device_code in the OAuth server metadata");
+                if (mediated)
+                    out.push(
+                        `  sign-in mediated  scopes ${JSON.stringify(mediated.scopes)}, at the token endpoint`,
+                    );
+                if (!direct && !device && !mediated)
+                    out.push("  sign-in           none (signed-out Sessions only)");
+            }
         } else out.push("  issuer            none found");
         if (p?.auth?.scopes)
             out.push(`  scopes            ${Object.keys(p.auth.scopes).join(", ")}`);

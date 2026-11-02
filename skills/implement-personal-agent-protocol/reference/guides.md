@@ -162,6 +162,7 @@ Read OpenAPI security requirements before an operation, including operation-leve
 ### Choosing how to sign in
 
 - Before asking the user to sign in, check whether a refresh token you hold already covers the task ([5.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
+- Don't offer sign-in at a company that sets `auth.disabled` (MUST, [3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)). When a company refuses a sign-in type with `unauthorized_client`, continue signed out, tell the user the company doesn't offer that sign-in to you, and remember the refusal for a while rather than asking the user again on the next task ([4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)).
 - Prefer direct or device sign-in to mediated sign-in (SHOULD, [Mediated Sign-In 6](https://personalagentprotocol.org/docs/0.3/extensions/mediated-sign-in#security)), and direct to device sign-in ([4.3](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)). With direct and device sign-in, the user's password stays with the company.
 - Use `scopes_supported`, the company's OpenAPI description, and its sign-in extension metadata to find scopes. The advertised list may be incomplete. Read descriptions where available to pick the ones the task needs ([4.7](https://personalagentprotocol.org/docs/0.3/spec#scopes)); a missing description or hint says nothing about whether a scope is safe to request automatically.
 - Use `auth.scope_hints` to decide which scopes need the user's go-ahead before you request them ([4.7](https://personalagentprotocol.org/docs/0.3/spec#scopes)). For example, request a scope whose `changes` is `irreversible`, or whose `personal_data` is `true`, only when the user agreed to that kind of access, and let the user set that preference once rather than for every sign-in. Treat a scope without hints as `irreversible` with personal data.
@@ -263,6 +264,8 @@ If your bot defenses block personal agents, plan operator recognition alongside 
 You can offer signed-out Sessions, conversations, APIs, feedback, and browser join without running an authorization server ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)). Return 404 from the domain's protected resource metadata URL, or publish valid metadata without authorization servers. Leave out `auth.issuer`, sign-in extensions, and `access: signed_in` hints. Verify Session JWTs against `https://{organization.domain}`, with the host in lowercase and no trailing slash. The Personal Agent's client metadata and delegations need verification before you use Session claims or state ([5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification)).
 
 When you add OAuth, publish protected resource and authorization server metadata together, and start using the issuer as the Company's identifier. If that identifier changes, Users get new IDs and Sessions. Plan an explicit migration if you need to retain their earlier state; the protocol does not link those identities automatically. Different issuerless domains are separate Companies.
+
+If your issuer already serves other clients and you aren't ready to let personal agents sign in, keep it and set `auth.disabled` instead ([Offering personal agents less](#company-agent-issuer)). Your identifier stays the issuer, so nothing changes for users when you turn sign-in on.
 
 ### Verifying personal agents
 
@@ -411,13 +414,15 @@ The two Outfitters storefronts share an issuer, so they are one company: a user 
 - Record the issuer with every session and token, and check it on every request. An access token, refresh token, or Session JWT for Outfitters must not work at Books, even when both are served by the same code.
 - Don't use one company's records for another. A user's sessions, user IDs, and accounts at one company are unknown to every other company the platform hosts.
 
-### An issuer for personal agents
+### Offering personal agents less
 
-A company can offer personal agents less than its other OAuth clients get without a second issuer by limiting the scopes it grants by client, as OAuth allows ([4.7](https://personalagentprotocol.org/docs/0.3/spec#scopes)). It can also leave scopes it doesn't offer personal agents out of `scopes_supported`, as RFC 8414 allows ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)). That list is discovery, not enforcement: agents can request scopes documented by an API or sign-in extension too.
+A company can offer personal agents less than its other OAuth clients get without a second issuer:
 
-Sign-in types are different. `grant_types_supported` has no such allowance, and a company whose issuer offers the authorization code or device grant to other clients offers direct or device sign-in to personal agents too ([section 4](https://personalagentprotocol.org/docs/0.3/spec#oauth)). To keep one of them from personal agents, use an issuer only for personal agents, such as `https://auth.example.com/agents`. It can share servers, signing keys, and user accounts with the main issuer.
+- Limit the scopes it grants by client, as OAuth allows ([4.7](https://personalagentprotocol.org/docs/0.3/spec#scopes)). It can also leave scopes it doesn't offer personal agents out of `scopes_supported`, as RFC 8414 allows ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)). That list is discovery, not enforcement: agents can request scopes documented by an API or sign-in extension too.
+- Refuse sign-in, or one sign-in type, to a personal agent with `unauthorized_client` from the grant's endpoint, and keep accepting it for signed-out sessions ([4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)). `grant_types_supported` lists the grants every client can see, so a refusal by `client_id` is how you keep direct or device sign-in from some personal agents.
+- Turn off sign-in for every personal agent with `auth.disabled`, for example while your issuer already serves other clients and you aren't ready for personal agents ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)). Personal agents don't try to sign in, and still use signed-out sessions. Remove it when you're ready.
 
-Choose the issuer before launch. User IDs and refresh tokens belong to the issuer ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)), so changing it later makes the company a new company to every personal agent: existing sessions and refresh tokens stop working, and users sign in again.
+If your authorization server can't refuse by client, an issuer only for personal agents, such as `https://auth.example.com/agents`, keeps a sign-in type from them. It can share servers, signing keys, and user accounts with the main issuer. Choose the issuer before launch. User IDs and refresh tokens belong to the issuer ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)), so changing it later makes the company a new company to every personal agent: existing sessions and refresh tokens stop working, and users sign in again.
 
 ### Guest access
 

@@ -33,6 +33,7 @@ export const DISCOVERY_IDS = [
     "discovery.domain-matches-host",
     "discovery.interface-present",
     "discovery.extension-names",
+    "discovery.sign-in-disabled",
 ];
 
 export const EXCLUDED_TASKS_IDS = ["discovery.excluded-tasks", "discovery.alternative-references"];
@@ -310,6 +311,7 @@ export function checkPoppyDocument(
     }
 
     checkExtensionNames(r, poppy, ex);
+    checkSignInDisabled(r, poppy, ex);
 
     // Personal Agents skip API types they don't recognize (section 7), so another type isn't a
     // problem for the Company, but this validator can't check it.
@@ -430,6 +432,25 @@ export async function checkExcludedTasks(ctx: Context, r: Recorder): Promise<voi
         });
     } else {
         r.pass("discovery.alternative-references");
+    }
+}
+
+// A Company that turns off sign-in doesn't advertise ways to sign in (3.2).
+function checkSignInDisabled(r: Recorder, poppy: Poppy, ex: Exchange | undefined): void {
+    if (poppy.auth?.disabled !== true) {
+        r.pass("discovery.sign-in-disabled", { summary: "Sign-in isn't turned off." });
+        return;
+    }
+    const conflicts = needsIssuer(poppy).filter((n) => n !== "auth.issuer");
+    if (conflicts.length) {
+        r.fail("discovery.sign-in-disabled", {
+            exchange: ex,
+            got: `auth.disabled true, with ${conflicts.join(" and ")}`,
+            expected: "auth.disabled true, with no signed_in access and no Mediated Sign-In",
+            cause: "Personal Agents don't sign in to a Company that sets auth.disabled. Remove what asks them to, or remove auth.disabled once sign-in is ready.",
+        });
+    } else {
+        r.pass("discovery.sign-in-disabled", { summary: "Sign-in is turned off." });
     }
 }
 
@@ -751,9 +772,10 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
 
     const mediated = mediatedSignIn(poppy)?.scopes;
     const signsIn =
-        offersGrant(json, SIGN_IN_GRANTS.direct) ||
-        offersGrant(json, SIGN_IN_GRANTS.device) ||
-        mediatedSignIn(poppy) !== undefined;
+        poppy.auth?.disabled !== true &&
+        (offersGrant(json, SIGN_IN_GRANTS.direct) ||
+            offersGrant(json, SIGN_IN_GRANTS.device) ||
+            mediatedSignIn(poppy) !== undefined);
     const supported = json.scopes_supported;
     if (!signsIn) {
         r.skip("metadata.scopes-supported", "The Company offers no type of sign-in.");

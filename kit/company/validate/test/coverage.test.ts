@@ -58,6 +58,10 @@ const SCENARIOS: Scenario[] = [
         flaws: { poppy: (d) => (d.extensions["gift-wrap"] = { version: "1" }) },
         fails: ["discovery.extension-names"],
     },
+    {
+        flaws: { poppy: (d) => (d.auth = { ...d.auth, disabled: true }) },
+        fails: ["discovery.sign-in-disabled"],
+    },
     { flaws: { excludedTasksInvalid: true }, fails: ["discovery.excluded-tasks"] },
     { flaws: { unlistedAlternativeApi: true }, fails: ["discovery.alternative-references"] },
 

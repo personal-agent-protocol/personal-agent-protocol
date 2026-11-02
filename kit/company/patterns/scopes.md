@@ -33,9 +33,11 @@ permissions it grants:
   when the User already granted some
   ([guides](https://personalagentprotocol.org/docs/guides#company-consent)).
 - If the issuer also serves other OAuth clients, leave scopes you don't offer Personal Agents out of
-  `scopes_supported`, and limit the scopes you grant by client (3.2, 4.7). Keeping Direct or Device
-  Sign-In from Personal Agents needs an issuer only for them, chosen before launch, because changing
-  the issuer later makes every User look new to the Company
+  `scopes_supported`, and limit the scopes you grant by client (3.2, 4.7). To keep Direct or Device
+  Sign-In from Personal Agents, return `unauthorized_client` for their `client_id` (4.1), or set
+  `auth.disabled` to turn off sign-in for all of them (3.2). An issuer only for Personal Agents is
+  the fallback when the authorization server can't refuse by client; choose it before launch,
+  because changing the issuer later makes every User look new to the Company
   ([guides](https://personalagentprotocol.org/docs/guides#company-agent-issuer)).
 - Agents can also request scopes documented by the Company's APIs or sign-in extensions, even if
   `scopes_supported` omits them. Direct and Device Sign-In can grant the scopes their policies allow. Decide which Mediated Sign-In

@@ -321,6 +321,10 @@ not automatically reconnect an account the User disconnected.
 
 - Before asking the user to sign in, check whether a refresh token you hold already covers the task
   ([5.4](/docs/spec#sign-in)).
+- Don't offer sign-in at a company that sets `auth.disabled` (MUST, [3.2](/docs/spec#oauth-server)).
+  When a company refuses a sign-in type with `unauthorized_client`, continue signed out, tell the
+  user the company doesn't offer that sign-in to you, and remember the refusal for a while rather
+  than asking the user again on the next task ([4.1](/docs/spec#agent-identity)).
 - Prefer direct or device sign-in to mediated sign-in (SHOULD, [Mediated Sign-In
   6](/docs/extensions/mediated-sign-in#security)), and
   direct to device sign-in ([4.3](/docs/spec#device-sign-in)). With direct and device sign-in, the
@@ -535,6 +539,10 @@ When you add OAuth, publish protected resource and authorization server metadata
 start using the issuer as the Company's identifier. If that identifier changes, Users get new IDs
 and Sessions. Plan an explicit migration if you need to retain their earlier state; the protocol
 does not link those identities automatically. Different issuerless domains are separate Companies.
+
+If your issuer already serves other clients and you aren't ready to let personal agents sign in,
+keep it and set `auth.disabled` instead ([Offering personal agents less](#company-agent-issuer)).
+Your identifier stays the issuer, so nothing changes for users when you turn sign-in on.
 
 ### Verifying personal agents {#company-agents}
 
@@ -806,23 +814,29 @@ though it runs on the same servers.
 - Don't use one company's records for another. A user's sessions, user IDs, and accounts at one
   company are unknown to every other company the platform hosts.
 
-### An issuer for personal agents {#company-agent-issuer}
+### Offering personal agents less {#company-agent-issuer}
 
-A company can offer personal agents less than its other OAuth clients get without a second issuer
-by limiting the scopes it grants by client, as OAuth allows ([4.7](/docs/spec#scopes)). It can also
-leave scopes it doesn't offer personal agents out of `scopes_supported`, as RFC 8414 allows
-([3.2](/docs/spec#oauth-server)). That list is discovery, not enforcement: agents can request
-scopes documented by an API or sign-in extension too.
+A company can offer personal agents less than its other OAuth clients get without a second issuer:
 
-Sign-in types are different. `grant_types_supported` has no such allowance, and a company whose
-issuer offers the authorization code or device grant to other clients offers direct or device
-sign-in to personal agents too ([section 4](/docs/spec#oauth)). To keep one of them from personal
-agents, use an issuer only for personal agents, such as `https://auth.example.com/agents`. It can
-share servers, signing keys, and user accounts with the main issuer.
+- Limit the scopes it grants by client, as OAuth allows ([4.7](/docs/spec#scopes)). It can also
+  leave scopes it doesn't offer personal agents out of `scopes_supported`, as RFC 8414 allows
+  ([3.2](/docs/spec#oauth-server)). That list is discovery, not enforcement: agents can request
+  scopes documented by an API or sign-in extension too.
+- Refuse sign-in, or one sign-in type, to a personal agent with `unauthorized_client` from the
+  grant's endpoint, and keep accepting it for signed-out sessions ([4.1](/docs/spec#agent-identity)).
+  `grant_types_supported` lists the grants every client can see, so a refusal by `client_id` is how
+  you keep direct or device sign-in from some personal agents.
+- Turn off sign-in for every personal agent with `auth.disabled`, for example while your issuer
+  already serves other clients and you aren't ready for personal agents
+  ([3.2](/docs/spec#oauth-server)). Personal agents don't try to sign in, and still use signed-out
+  sessions. Remove it when you're ready.
 
-Choose the issuer before launch. User IDs and refresh tokens belong to the issuer
-([3.2](/docs/spec#oauth-server)), so changing it later makes the company a new company to every
-personal agent: existing sessions and refresh tokens stop working, and users sign in again.
+If your authorization server can't refuse by client, an issuer only for personal agents, such as
+`https://auth.example.com/agents`, keeps a sign-in type from them. It can share servers, signing
+keys, and user accounts with the main issuer. Choose the issuer before launch. User IDs and refresh
+tokens belong to the issuer ([3.2](/docs/spec#oauth-server)), so changing it later makes the company
+a new company to every personal agent: existing sessions and refresh tokens stop working, and users
+sign in again.
 
 ### Guest access {#company-guest}
 

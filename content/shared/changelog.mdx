@@ -270,6 +270,18 @@ another. The references add RFC 9474.
 
 </Change>
 
+<Change title="Turning off sign-in, and refusing it by client" sections="3.1, 3.2, 4, 4.1, guides#agent-choosing-sign-in, guides#company-without-oauth, guides#company-agent-issuer">
+
+A Company whose issuer serves other clients can set `auth.disabled` in `poppy.json` to offer
+Personal Agents no sign-in, keeping the issuer as its identifier. Personal Agents then don't start
+any sign-in, and the Company lists no Mediated Sign-In or `signed_in` access. A Company can also
+refuse sign-in, or one sign-in type, to a particular Personal Agent with `unauthorized_client`,
+while accepting it for signed-out Sessions. An issuer only for Personal Agents is now the fallback
+for authorization servers that can't refuse by client, rather than the way to keep a sign-in type
+from them.
+
+</Change>
+
 <Change title="Extension content in messages" breaking sections="3.3, 8.4, 11, Operations 2, Operations 4, Operations 6, Links 1, Links 2, Links 3, Disclosures 1, Disclosures 2, Disclosures 3, guides#agent-conversations, guides#company-conversations">
 
 Content that an extension defines goes in a message's new `extensions` object, keyed by the

@@ -137,8 +137,9 @@ An example document:
 | --- | --- | --- |
 | `protocol_version` | Yes | The protocol version the document follows, as `major.minor`. This draft is `0.3`. Before 1.0, each version can change the protocol in ways that aren't backward compatible, so a Personal Agent MUST NOT use a document whose `major.minor` version it doesn't support. From 1.0, a newer minor version won't break older Personal Agents, which use the document and ignore fields they don't recognize. |
 | `organization` | Yes | The Company's display `name`, its `domain`, and an optional `logo_uri`, an HTTPS URL of the Company's logo, named as in client metadata (4.1). `domain` MUST be the host that serves the document, after any redirects. Domains are compared ignoring case, with no other normalization. |
-| `auth` | No | The Company's sign-in details: `issuer`, `scopes`, and `scope_hints`, below. |
+| `auth` | No | The Company's sign-in details: `issuer`, `disabled`, `scopes`, and `scope_hints`, below. |
 | `auth.issuer` | If the domain's protected resource metadata lists more than one authorization server | The Company's OAuth issuer identifier, naming the one Personal Agents use (3.2). It MUST be in that list. With one authorization server, the Company MAY leave it out, and if it includes it, it MUST name that server. |
+| `auth.disabled` | No | `true` if the Company offers Personal Agents no sign-in, even though it has an issuer (3.2). Defaults to `false`. |
 | `auth.scopes` | No | Scope descriptions, keyed by scope name, in the same form as the `scopes` of an OAuth 2.0 security scheme in OpenAPI. Recommended for scopes no OpenAPI description the Company lists describes (4.7). |
 | `auth.scope_hints` | No | Hints about what each scope allows, keyed by scope name: `changes` and `personal_data` (4.7). They apply wherever the scope is described. |
 | `agent` | One of `agent`, `apis`, or `web` | The Company Agent. `protocols` lists its supported conversation protocols, each with a `type` and HTTPS `endpoint` (section 8). A `poppy` entry may include an `access` hint (3.2). |
@@ -160,6 +161,8 @@ The Personal Agent finds the issuer from the protected resource metadata ([RFC 9
 - A Personal Agent MUST NOT use the domain fallback after a timeout, another error status, invalid metadata, or a failure to verify an issuer. It MUST NOT fall back for a Company whose issuer it already knows unless a successful discovery explicitly establishes that the issuer was removed.
 - If it lists one authorization server, that is the Company's issuer. `auth.issuer` is optional, and if present MUST name that server (3.1).
 - If it lists more than one, such as one for the Company's employees, `auth.issuer` in `poppy.json` names the one Personal Agents use (3.1). RFC 9728 leaves the choice among them to the client, but User IDs and refresh tokens belong to one issuer (5.1), so every Personal Agent has to choose the same one.
+
+**Turning off sign-in.** A Company whose issuer serves other clients, but that doesn't yet offer sign-in to Personal Agents, sets `auth.disabled` to `true` in `poppy.json`. Its identifier is still its issuer. A Personal Agent MUST NOT start Direct, Device, or Mediated Sign-In with a Company that sets it. Refresh tokens the Company issued earlier keep working until it revokes them (4.4). A Company that sets `auth.disabled` MUST NOT list the [Mediated Sign-In extension](https://personalagentprotocol.org/docs/0.3/extensions/mediated-sign-in) or `signed_in` access (below).
 
 *GET https://example.com/.well-known/oauth-protected-resource*
 
@@ -214,7 +217,7 @@ The Personal Agent uses these fields of the metadata:
 
 The metadata MAY have other fields, which Personal Agents ignore.
 
-**Account access in advance.** A `poppy` entry in `agent.protocols` MAY have `access` set to `session` (the default) or `signed_in`. `signed_in` says the interface requires account access before useful work can begin, so the Personal Agent can arrange sign-in before its first request. A Company that lists `signed_in` MUST have an issuer. Both values require the Session header. Personal Agents MUST ignore unknown values and handle them as an absent hint. The hint grants no permission: runtime challenges and authorization events remain authoritative. OpenAPI describes account access and scopes through its security requirements, and MCP uses its own authorization (section 7); neither needs another Poppy declaration of scopes.
+**Account access in advance.** A `poppy` entry in `agent.protocols` MAY have `access` set to `session` (the default) or `signed_in`. `signed_in` says the interface requires account access before useful work can begin, so the Personal Agent can arrange sign-in before its first request. A Company that lists `signed_in` MUST have an issuer, and MUST NOT set `auth.disabled`. Both values require the Session header. Personal Agents MUST ignore unknown values and handle them as an absent hint. The hint grants no permission: runtime challenges and authorization events remain authoritative. OpenAPI describes account access and scopes through its security requirements, and MCP uses its own authorization (section 7); neither needs another Poppy declaration of scopes.
 
 ### 3.3 Extensions
 
@@ -250,7 +253,7 @@ Poppy uses standard OAuth for account access. When obtaining account access, a P
 
 The flows below follow OAuth 2.0 ([RFC 6749](https://www.rfc-editor.org/rfc/rfc6749)) and the OAuth Security Best Current Practice ([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700)). A Company can use an existing authorization server that supports the standards it needs. Some servers support them and some don't.
 
-The Company's `grant_types_supported` advertises Direct and Device Sign-In (3.2). Personal Agents read it from the same metadata as every other client, so an issuer that offers a grant to its other clients offers it to Personal Agents as well. A Company can use an issuer only for Personal Agents to keep a sign-in type unavailable to them; the [guides](https://personalagentprotocol.org/docs/0.3/guides#company-agent-issuer) describe that choice.
+The Company's `grant_types_supported` advertises Direct and Device Sign-In (3.2). Personal Agents read it from the same metadata as every other client, so it can list a grant the Company doesn't offer them. A Company can turn off sign-in for every Personal Agent (3.2), or refuse sign-in, or one sign-in type, by `client_id` (4.1). The [guides](https://personalagentprotocol.org/docs/0.3/guides#company-agent-issuer) describe these choices.
 
 ### 4.1 Agent identity
 
@@ -278,7 +281,7 @@ A Personal Agent's `client_id` MUST be an HTTPS URL that returns its metadata do
 - Client assertions follow RFC 7523 §3. The Personal Agent MUST make them short-lived, and MUST include `iat` and a unique, unguessable `jti`. The Company MAY reject a reused `jti`, as RFC 7523 §3 allows.
 - Companies MUST accept client assertions signed with `ES256`, and SHOULD accept ones signed with `PS384`. `PS384` lets a Personal Agent have its client assertions signed blindly (10.7).
 
-A Company decides which Personal Agents it accepts, and how it approves them is outside this specification. A refused Personal Agent gets the OAuth `invalid_client` error at the authorization server, or `invalid_session` at a resource (5.3).
+A Company decides which Personal Agents it accepts, and how it approves them is outside this specification. A refused Personal Agent gets the OAuth `invalid_client` error at the authorization server, or `invalid_session` at a resource (5.3). A Company can also accept a Personal Agent for signed-out Sessions but refuse it sign-in, or one sign-in type, with the OAuth `unauthorized_client` error from the grant's endpoint. The Personal Agent then continues signed out.
 
 ### 4.2 Direct Sign-In
 

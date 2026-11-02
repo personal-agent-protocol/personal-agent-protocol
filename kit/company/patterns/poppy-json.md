@@ -47,6 +47,9 @@ the provider.
   must not silently choose this fallback.
 - `auth.issuer` is required when that metadata lists more than one authorization server. With one,
   it's optional, and if present it must name that server (3.1).
+- `auth.disabled: true` tells Personal Agents not to sign in, for a Company whose issuer serves
+  other clients but that isn't ready for Personal Agents (3.2). It can't be combined with Mediated
+  Sign-In or `access: signed_in`.
 - Domains that share an issuer are one Company and must select that issuer and give scopes the
   same authorization meaning ([3.2](https://personalagentprotocol.org/docs/spec#oauth-server)).
   Matching scope descriptions and hints are recommended; domains can expose different scopes and

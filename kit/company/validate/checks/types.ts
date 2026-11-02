@@ -48,6 +48,7 @@ export type Poppy = {
     organization?: { name?: string; domain?: string };
     auth?: {
         issuer?: string;
+        disabled?: boolean;
         scopes?: Record<string, string>;
         scope_hints?: Record<string, { changes: string; personal_data: boolean }>;
     };

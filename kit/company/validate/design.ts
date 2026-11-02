@@ -84,8 +84,8 @@ export function progress(
             web: fieldOf(poppy, "web", "browser_session_endpoint") !== undefined,
         } as Record<string, boolean>,
         "sign-in": {
-            direct: offersGrant(metadata, SIGN_IN_GRANTS.direct),
-            device: offersGrant(metadata, SIGN_IN_GRANTS.device),
+            direct: !poppy?.auth?.disabled && offersGrant(metadata, SIGN_IN_GRANTS.direct),
+            device: !poppy?.auth?.disabled && offersGrant(metadata, SIGN_IN_GRANTS.device),
         } as Record<string, boolean>,
         extension: Object.fromEntries(
             Object.keys(extensionsOf(poppy)).map((k) => [k, true]),

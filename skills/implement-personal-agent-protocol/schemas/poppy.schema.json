@@ -33,6 +33,10 @@
                 "issuer": {
                     "$ref": "#/$defs/https_url"
                 },
+                "disabled": {
+                    "description": "true if the Company offers Personal Agents no sign-in, even though it has an issuer (spec 3.2).",
+                    "type": "boolean"
+                },
                 "scopes": {
                     "description": "Scope descriptions, keyed by scope name, in the same form as an OpenAPI OAuth 2.0 security scheme. Describing offered scopes here or in a listed OpenAPI description is recommended.",
                     "type": "object",
