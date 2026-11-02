@@ -209,6 +209,8 @@ When a company offers the [Mediated Sign-In extension](https://personalagentprot
 - On `cursor_expired`, tell the user that part of the conversation is missing ([8.5](https://personalagentprotocol.org/docs/0.3/spec#reading-events)).
 - Show `text-delta` pieces only as a preview. Act only on the complete `message` event ([8.6](https://personalagentprotocol.org/docs/0.3/spec#streaming)).
 - Put structured details in `data`, not JSON or other markup in `text` ([8.4](https://personalagentprotocol.org/docs/0.3/spec#message-fields)).
+- With the [Links extension](https://personalagentprotocol.org/docs/0.3/extensions/links), show a link's title with the domain of its `url`, so the user can see where it goes.
+- With the [Disclosures extension](https://personalagentprotocol.org/docs/0.3/extensions/disclosures), when a disclosure is relevant to what you tell the user, such as an allergen warning on food they're buying, show it in full, apart from the rest of the message. Leave out disclosures that read like promotion rather than a notice.
 - With a company agent, skip greetings and small talk, and keep text short ([8.8](https://personalagentprotocol.org/docs/0.3/spec#human-or-ai)).
 - Before asking for a person, send a short message that sums up the problem, so they don't have to read the whole conversation ([8.9](https://personalagentprotocol.org/docs/0.3/spec#handoff)).
 - When a person takes over, write for them: concise, plain sentences, details in `text` rather than only in `data`, and time to reply.
@@ -423,6 +425,9 @@ Let a signed-out personal agent session do what a signed-out visitor can do on y
 
 - Let your company agent do everything customers can do by phone, as fully as you can, so personal agents have no reason to call.
 - Put structured details in `data`, not JSON or other markup in `text` ([8.4](https://personalagentprotocol.org/docs/0.3/spec#message-fields)).
+- To a personal agent that lists the [Links extension](https://personalagentprotocol.org/docs/0.3/extensions/links), send the pages a reply refers to as links, rather than URLs in `text`.
+- To a personal agent that lists the [Disclosures extension](https://personalagentprotocol.org/docs/0.3/extensions/disclosures), send notices users need to see, such as allergen or regulatory warnings, as disclosures, and keep them to those. Personal agents decide which to show, and skip ones that read like promotion. Without the extension, put the notice in `text`.
+- Keep what a message says in `text` and `data`, and use extension content to add to it, so a personal agent that ignores an extension still gets the message ([8.4](https://personalagentprotocol.org/docs/0.3/spec#message-fields)).
 - Write for whoever is on the other side ([8.8](https://personalagentprotocol.org/docs/0.3/spec#human-or-ai)). With a personal agent, skip greetings and small talk and keep text short. With the user, use plain sentences, a pace they can follow, and details in `text` rather than only in `data`. In a direct conversation, reply as you would to the customer on your own channels.
 - Keep a conversation's events for at least 30 days, so a personal agent that reconnects rarely hits `cursor_expired` ([8.5](https://personalagentprotocol.org/docs/0.3/spec#reading-events)).
 - On a stream with nothing to send, send an SSE comment every 15 to 30 seconds, so proxies don't close it ([8.6](https://personalagentprotocol.org/docs/0.3/spec#streaming)).

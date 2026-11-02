@@ -97,6 +97,26 @@
             "permanent": false
         },
         {
+            "source": "/docs/extensions/links",
+            "destination": "/docs/0.3/extensions/links",
+            "permanent": false
+        },
+        {
+            "source": "/docs/extensions/links.md",
+            "destination": "/docs/0.3/extensions/links.md",
+            "permanent": false
+        },
+        {
+            "source": "/docs/extensions/disclosures",
+            "destination": "/docs/0.3/extensions/disclosures",
+            "permanent": false
+        },
+        {
+            "source": "/docs/extensions/disclosures.md",
+            "destination": "/docs/0.3/extensions/disclosures.md",
+            "permanent": false
+        },
+        {
             "source": "/docs/guides",
             "destination": "/docs/0.3/guides",
             "permanent": false

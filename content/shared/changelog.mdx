@@ -270,6 +270,19 @@ another. The references add RFC 9474.
 
 </Change>
 
+<Change title="Extension content in messages" breaking sections="3.3, 8.4, 11, Operations 2, Operations 4, Operations 6, Links 1, Links 2, Links 3, Disclosures 1, Disclosures 2, Disclosures 3, guides#agent-conversations, guides#company-conversations">
+
+Content that an extension defines goes in a message's new `extensions` object, keyed by the
+extension's name, as in `poppy.json`, rather than in fields of its own beside `text` and `data`. A
+side sends an extension's content only to a side that lists the same version, and an extension
+that defines message content publishes a JSON Schema for it. A message needs `text`, `data`,
+`context`, or `extensions`. The Operations extension's `operation` and `approval` move to
+`extensions.operations`. Two new extensions use the same shape: Links, for web pages a Company
+message refers to, and Disclosures, for notices such as allergen warnings, which the Personal Agent
+decides whether to show.
+
+</Change>
+
 <Change title="Operations version 2: retry with approval" breaking sections="8.4, 8.13, Operations 1, Operations 2, Operations 3, Operations 4, Operations 5, Operations 6, Operations 7, Operations 8.1, Operations 9, guides#agent-operations, guides#company-operations">
 
 The optional `operations` extension moves from version 1 to incompatible version 2. Both the Company
@@ -281,10 +294,9 @@ exact terms and run at most once.
 Instead of returning a proposed operation with HTTP 202 and having the Personal Agent confirm it at
 an operations endpoint, a Company refuses the request with the operation, and the Personal Agent
 makes the same request again with the User's approval: in the `Poppy-Approval` header (an RFC 9651
-Dictionary) at APIs, in `_meta` for MCP tools, and in a message's new `approval` field in
+Dictionary) at APIs, in `_meta` for MCP tools, and in a message's `extensions.operations` in
 conversations. APIs return the new `approval_required` error (403), in a JSON body with the
-operation. Section 8.4 lets an extension define message content, so a message can carry only
-`operation` or `approval`. The Company checks that the request matches the approved revision,
+operation. The Company checks that the request matches the approved revision,
 performs it at most once, and responds as it would have without operations. While it is being
 performed, or its outcome is unknown, a retry gets HTTP 503 with `Retry-After`.
 

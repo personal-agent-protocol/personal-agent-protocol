@@ -6,6 +6,8 @@
             "extensions",
             "extensions/operations",
             "extensions/mediated-sign-in",
+            "extensions/links",
+            "extensions/disclosures",
             "guides"
         ]
     },

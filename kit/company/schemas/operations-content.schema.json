@@ -1,0 +1,23 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "operations-content.schema.json",
+    "title": "Operations extension message content",
+    "description": "The value of extensions.operations in a conversation message (spec 8.4, Operations 2): operation in a Company message (Operations 4), approval in a Personal Agent message (Operations 6).",
+    "type": "object",
+    "properties": {
+        "operation": {
+            "$ref": "operation.schema.json"
+        },
+        "approval": {
+            "$ref": "approval.schema.json"
+        }
+    },
+    "oneOf": [
+        {
+            "required": ["operation"]
+        },
+        {
+            "required": ["approval"]
+        }
+    ]
+}

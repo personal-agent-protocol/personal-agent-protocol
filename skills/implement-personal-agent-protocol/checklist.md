@@ -236,7 +236,8 @@ A session is named by the `client_id` and `sid` of its Session JWTs (5.3). Keep 
 
 ### Specification: [8.4 Message fields](https://personalagentprotocol.org/docs/0.3/spec#message-fields)
 
-- [ ] **MUST**: A message MUST have at least one of `text`, `data`, or `context`, unless an extension both sides support defines another content field.
+- [ ] **MUST**: A message MUST have at least one of `text`, `data`, `context`, or `extensions`.
+- [ ] **MUST NOT**: A side MUST NOT send an extension's content unless the other side lists that extension with the same version: the Company checks the Personal Agent's client metadata document (4.1), and the Personal Agent checks the Company's `poppy.json` (3.1).
 
 ### Specification: [8.5 Reading events](https://personalagentprotocol.org/docs/0.3/spec#reading-events)
 
@@ -295,6 +296,9 @@ A language model usually reads your API descriptions and MCP tool descriptions t
 
 - [ ] Let your company agent do everything customers can do by phone, as fully as you can, so personal agents have no reason to call.
 - [ ] Put structured details in `data`, not JSON or other markup in `text` (8.4).
+- [ ] To a personal agent that lists the Links extension, send the pages a reply refers to as links, rather than URLs in `text`.
+- [ ] To a personal agent that lists the Disclosures extension, send notices users need to see, such as allergen or regulatory warnings, as disclosures, and keep them to those. Personal agents decide which to show, and skip ones that read like promotion. Without the extension, put the notice in `text`.
+- [ ] Keep what a message says in `text` and `data`, and use extension content to add to it, so a personal agent that ignores an extension still gets the message (8.4).
 - [ ] Write for whoever is on the other side (8.8). With a personal agent, skip greetings and small talk and keep text short. With the user, use plain sentences, a pace they can follow, and details in `text` rather than only in `data`. In a direct conversation, reply as you would to the customer on your own channels.
 - [ ] Keep a conversation's events for at least 30 days, so a personal agent that reconnects rarely hits `cursor_expired` (8.5).
 - [ ] On a stream with nothing to send, send an SSE comment every 15 to 30 seconds, so proxies don't close it (8.6).

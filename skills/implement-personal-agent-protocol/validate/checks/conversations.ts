@@ -410,7 +410,7 @@ async function conversationChecks(
             "POST",
             `${conv}/messages`,
             { message: message() },
-            "a message with no text, data, or context",
+            "a message with no text, data, context, or extensions",
         );
         expectError(
             r,
@@ -418,7 +418,7 @@ async function conversationChecks(
             ex,
             400,
             "invalid_request",
-            "Reject messages that have none of text, data, or context.",
+            "Reject messages that have none of text, data, context, or extensions.",
         );
     }
 
@@ -695,12 +695,16 @@ function eventChecks(
     const eventErrors = read.exchanges.flatMap((ex) =>
         ex.status === 200 && ex.json ? check("events-response.schema.json", ex.json) : [],
     );
-    // The test Personal Agent lists no extensions, so an operation is never for it (Operations 2).
-    const operations = read.events.flatMap((e, i) =>
-        e.message && typeof e.message === "object" && "operation" in e.message
-            ? [`events[${i}].message.operation`]
-            : [],
-    );
+    // The test Personal Agent lists no extensions, so no extension content is for it (8.4).
+    const operations = read.events.flatMap((e, i) => {
+        const extensions =
+            e.message && typeof e.message === "object"
+                ? (e.message as { extensions?: unknown }).extensions
+                : undefined;
+        return extensions && typeof extensions === "object"
+            ? Object.keys(extensions).map((k) => `events[${i}].message.extensions.${k}`)
+            : [];
+    });
     if (eventErrors.length)
         r.fail("conversations.events-schema", {
             exchange: read.last,
@@ -712,7 +716,7 @@ function eventChecks(
         r.fail("conversations.events-schema", {
             exchange: read.last,
             got: operations.join(", "),
-            expected: "Message events without operation",
+            expected: "Message events without extension content",
             cause: "operation is a field of the Operations extension, and the test Personal Agent's client metadata doesn't list it. A Company doesn't return operations to a Personal Agent that doesn't list the extension (Operations 2).",
         });
     else r.pass("conversations.events-schema", { summary: `${read.events.length} event(s).` });

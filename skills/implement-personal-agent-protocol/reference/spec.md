@@ -234,6 +234,7 @@ Extensions add optional features on top of this protocol. A Company lists the on
 - Each entry has a `version`, the extension's major version. Changes that implementations can safely ignore keep the version, and incompatible changes get a new one. Each extension defines its other fields.
 - A Personal Agent lists the extensions it supports the same way, in `extensions` in its client metadata document (4.1). It doesn't need to list an extension that the Company recognizes from the request itself, such as one that defines its own grant type.
 - Personal Agents and Companies MUST ignore extensions they don't support and fields they don't recognize, so either side can work with the other under this specification alone.
+- An extension can define content for conversation messages, which they carry in `extensions` (8.4). The extension MUST publish a [JSON Schema](https://json-schema.org/draft/2020-12) for that content.
 - A Company MAY refuse a request it handles only with an extension the Personal Agent doesn't list, unless the request itself uses the extension. It returns `extension_required` (HTTP 403) with the extension's name in `extension`. At the token endpoint and at endpoints this protocol or an extension defines, such as conversations, the error is a JSON body, like other errors there. At APIs, it goes in the `WWW-Authenticate` header, like the errors in section 7.
 
 *Response body: Company → Personal Agent*
@@ -870,8 +871,9 @@ Content-Type: application/json
 | `text` | No | The message in natural language. |
 | `data` | No | A JSON object for structured details that would need markup, like a list or a table, to fit in a sentence. The protocol doesn't define its keys. |
 | `context` | No | Facts about the User's situation, such as `locale`, `time_zone`, and `user_available` (below). |
+| `extensions` | No | Content defined by extensions, keyed by extension name (below). |
 
-A message MUST have at least one of `text`, `data`, or `context`, unless an extension both sides support defines another content field.
+A message MUST have at least one of `text`, `data`, `context`, or `extensions`.
 
 Use `text` for the message itself, including simple values like an email address or an order number. Use `data` for structured details that would otherwise need markup to fit in a sentence. The Company Agent's replies use `data` the same way.
 
@@ -919,7 +921,7 @@ Any message can carry `context`, and fields it leaves out keep their previous va
 }
 ```
 
-Company messages have `id`, `role`, `author`, `text`, and `data`, with an ID the Company chooses. Only the Personal Agent sends `context`. Extensions can add fields, such as `operation` and `approval` in the [Operations extension](https://personalagentprotocol.org/docs/0.3/extensions/operations).
+Company messages have `id`, `role`, `author`, `text`, `data`, and `extensions`, with an ID the Company chooses. Only the Personal Agent sends `context`.
 
 **Author.** `author` is an object that says who wrote the message:
 
@@ -929,6 +931,24 @@ Company messages have `id`, `role`, `author`, `text`, and `data`, with an ID the
 - `image` is the URL of the author's picture, for the Personal Agent to show next to the name.
 
 Only Company messages have `id`, `name`, and `image`, and each is optional. A Company whose messages come from several people or AI personas MAY use them to say which one wrote each message. Like `text`, the author's name and picture are content from the Company (10.1).
+
+**Extensions.** `extensions` holds content defined by extensions (3.3), keyed by extension name, as in `poppy.json`. Each value is a JSON object in the format its extension defines. For example, a Company message with a link from the [Links extension](https://personalagentprotocol.org/docs/0.3/extensions/links):
+
+*Message: Company → Personal Agent*
+
+```
+{
+  "id": "msg_p7Rt",
+  "role": "company",
+  "author": { "type": "agent" },
+  "text": "Unopened boxes can be returned within 30 days. We can't take back opened food.",
+  "extensions": {
+    "links": { "items": [{ "url": "https://example.com/help/returns", "title": "Return policy" }] }
+  }
+}
+```
+
+A side MUST NOT send an extension's content unless the other side lists that extension with the same version: the Company checks the Personal Agent's client metadata document (4.1), and the Personal Agent checks the Company's `poppy.json` (3.1). Like other fields, extension content the receiver doesn't support is ignored (3.3), so `text` and `data` carry what the message says.
 
 ### 8.5 Reading events
 
@@ -1361,6 +1381,7 @@ This draft uses these standards and versions:
 | Token binding and audience | [RFC 9449](https://www.rfc-editor.org/rfc/rfc9449), [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707), [RFC 8725](https://www.rfc-editor.org/rfc/rfc8725) |
 | Web browsing | [RFC 9111](https://www.rfc-editor.org/rfc/rfc9111), [RFC 6265bis](https://datatracker.ietf.org/doc/draft-ietf-httpbis-rfc6265bis/) |
 | Security | [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700), [RFC 10027](https://www.rfc-editor.org/rfc/rfc10027) |
+| Extension content | [JSON Schema 2020-12](https://json-schema.org/draft/2020-12) |
 | APIs | [OpenAPI Specification 3.1](https://spec.openapis.org/oas/v3.1.1.html), [Model Context Protocol 2025-06-18](https://modelcontextprotocol.io/specification/2025-06-18), [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728) |
 
 ---

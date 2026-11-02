@@ -49,11 +49,11 @@ the Personal Agent lists that version too. Otherwise handle approval yourself, o
   ([Operations 4](https://personalagentprotocol.org/docs/extensions/operations#approval-required)):
   perform nothing. An API returns 403 with a JSON body: `error` `approval_required` and the operation in
   `operation`, not a `WWW-Authenticate` challenge. An MCP tool returns an error result with the operation in
-  `structuredContent`. The Company Agent puts it in `operation` on its message.
+  `structuredContent`. The Company Agent puts it in `extensions.operations.operation` on its message.
 - **Approvals**
   ([Operations 6](https://personalagentprotocol.org/docs/extensions/operations#sending-approval)):
   read the `Poppy-Approval` header at APIs, `personalagentprotocol.org/approval` in an MCP tool call's
-  `_meta`, and `approval` on a Personal Agent's message. Make all three checks before acting; their
+  `_meta`, and `extensions.operations.approval` on a Personal Agent's message. Make all three checks before acting; their
   order is recommended. Preserve authorization, response semantics, and at-most-once behavior. When the
   revision isn't one you returned, has expired, or the request doesn't match it, return a new
   revision instead. Never answer an approval with the revision it names.

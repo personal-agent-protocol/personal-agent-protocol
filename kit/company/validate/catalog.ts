@@ -727,7 +727,7 @@ export const CATALOG: CheckInfo[] = [
         "conversations.empty-message",
         "A message without content returns invalid_request",
         "spec#message-fields",
-        "A message MUST have at least one of text, data, or context, unless an extension both sides support defines another content field.",
+        "A message MUST have at least one of text, data, context, or extensions.",
     ),
     interfaces(
         "conversations.invalid-message-id",
@@ -745,7 +745,7 @@ export const CATALOG: CheckInfo[] = [
         "conversations.data-only",
         "A message with only data is accepted",
         "spec#message-fields",
-        "A message MUST have at least one of text, data, or context, unless an extension both sides support defines another content field.",
+        "A message MUST have at least one of text, data, context, or extensions.",
     ),
     interfaces(
         "conversations.context-only",

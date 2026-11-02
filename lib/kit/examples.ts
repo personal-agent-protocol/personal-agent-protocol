@@ -38,6 +38,7 @@ const EXAMPLES: Record<string, Target> = {
     "sending-messages:4": "conversation-request.schema.json",
     "message-fields:1": "message.schema.json",
     "message-fields:2": "message.schema.json",
+    "message-fields:3": "message.schema.json",
     "reading-events:1": "events-response.schema.json",
     "status:1": "events-response.schema.json",
     "human-or-ai:1": "conversation-request.schema.json",
@@ -135,6 +136,16 @@ function checkExamples(
     return problems;
 }
 
+const LINKS_EXAMPLES: Record<string, Target> = {
+    "support:1": excerpt("extensions", "poppy.schema.json#/properties/extensions"),
+    "links:1": "message.schema.json",
+};
+
+const DISCLOSURES_EXAMPLES: Record<string, Target> = {
+    "support:1": excerpt("extensions", "poppy.schema.json#/properties/extensions"),
+    "disclosures:1": "message.schema.json",
+};
+
 export function checkSpecExamples(schemas: Record<string, object>): string[] {
     return [
         ...checkExamples(SPEC_HREF, EXAMPLES, schemas),
@@ -144,5 +155,7 @@ export function checkSpecExamples(schemas: Record<string, object>): string[] {
             MEDIATED_SIGN_IN_EXAMPLES,
             schemas,
         ),
+        ...checkExamples(docsHref("extensions/links")!, LINKS_EXAMPLES, schemas),
+        ...checkExamples(docsHref("extensions/disclosures")!, DISCLOSURES_EXAMPLES, schemas),
     ];
 }

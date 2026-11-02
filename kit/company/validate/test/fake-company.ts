@@ -600,11 +600,15 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                 text: "Thanks. This is a test Company.",
                 ...(flaws.returnOperations
                     ? {
-                          operation: {
-                              operation_id: "exc_5Rt2",
-                              revision: "1",
-                              summary: "Exchange a test item.",
-                              expires_at: "2026-10-08T20:00:00Z",
+                          extensions: {
+                              operations: {
+                                  operation: {
+                                      operation_id: "exc_5Rt2",
+                                      revision: "1",
+                                      summary: "Exchange a test item.",
+                                      expires_at: "2026-10-08T20:00:00Z",
+                                  },
+                              },
                           },
                       }
                     : {}),
@@ -629,11 +633,13 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
         if (message.text !== undefined && typeof message.text !== "string") return true;
         if (message.data !== undefined && !isObject(message.data)) return true;
         if (message.context !== undefined && !isObject(message.context)) return true;
+        if (message.extensions !== undefined && !isObject(message.extensions)) return true;
         if (flaws.requireText && message.text === undefined) return true;
         const hasContent =
             message.text !== undefined ||
             message.data !== undefined ||
-            message.context !== undefined;
+            message.context !== undefined ||
+            message.extensions !== undefined;
         return !hasContent && !flaws.acceptEmptyMessage;
     }
 

@@ -127,6 +127,22 @@ const TABS: TabInfo[] = [
                     "A transitional way for a personal agent to sign in with credentials the user gave it, at companies that don't offer OAuth sign-in yet.",
                 outlineDepth: 2,
             },
+            {
+                slug: "extensions/links",
+                navTitle: "Links",
+                title: "Personal Agent Protocol: Links extension",
+                description:
+                    "Company messages carry the web pages they refer to as links a personal agent can show.",
+                outlineDepth: 2,
+            },
+            {
+                slug: "extensions/disclosures",
+                navTitle: "Disclosures",
+                title: "Personal Agent Protocol: Disclosures extension",
+                description:
+                    "Company messages mark notices such as allergen or regulatory warnings apart from the rest of the message.",
+                outlineDepth: 2,
+            },
         ],
     },
     {

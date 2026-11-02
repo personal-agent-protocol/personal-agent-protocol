@@ -45,6 +45,8 @@ The extension is used only when both sides list `operations` with `version` `"2"
 
 When only the Personal Agent supports this version, it uses the Company's interfaces without the extension and leaves approval to the Company. A different major version doesn't count as support for this version.
 
+In conversations, this extension's content is in `extensions.operations` ([spec 8.4](https://personalagentprotocol.org/docs/0.3/spec#message-fields)): an object with `operation` in a Company message (4) or `approval` in a Personal Agent message (6). Its JSON Schema is [operations-content.schema.json](https://personalagentprotocol.org/kit/company/schemas/operations-content.schema.json).
+
 ## 3. The operation
 
 An operation is one action the Company will perform once the User approves it:
@@ -141,7 +143,7 @@ The tool returns an error result, with `isError` set to `true`, the operation in
 
 ### Conversations
 
-A Company message carries the operation in `operation` ([spec 8.4](https://personalagentprotocol.org/docs/0.3/spec#message-fields)), when the Company Agent would perform the action:
+A Company message carries the operation in `extensions.operations.operation` ([spec 8.4](https://personalagentprotocol.org/docs/0.3/spec#message-fields)), when the Company Agent would perform the action:
 
 *Event: Company → Personal Agent*
 
@@ -155,17 +157,19 @@ A Company message carries the operation in `operation` ([spec 8.4](https://perso
     "role": "company",
     "author": { "type": "agent" },
     "text": "I can exchange it for the insulated version in medium for $70 more. I'll do it once you approve.",
-    "operation": {
-      "operation_id": "exc_5Rt2",
-      "revision": "1791487200-k3Jd9Qx2mW8v",
-      "summary": "Exchange the Stormline Jacket (M) on order ord_7Hk2 for the Stormline Insulated Jacket (M), for $70.00 more, charged to the card used for the order.",
-      "expires_at": "2026-10-08T12:20:00-07:00"
+    "extensions": {
+      "operations": {
+        "operation": {
+          "operation_id": "exc_5Rt2",
+          "revision": "1791487200-k3Jd9Qx2mW8v",
+          "summary": "Exchange the Stormline Jacket (M) on order ord_7Hk2 for the Stormline Insulated Jacket (M), for $70.00 more, charged to the card used for the order.",
+          "expires_at": "2026-10-08T12:20:00-07:00"
+        }
+      }
     }
   }
 }
 ```
-
-The `operation` field is content for a Company message ([spec 8.4](https://personalagentprotocol.org/docs/0.3/spec#message-fields)), so the message can carry it without `text` or `data`.
 
 If the terms change during the conversation, the Company sends the new revision in a later message.
 
@@ -225,7 +229,7 @@ The Personal Agent calls the same tool again, with the same arguments, and the a
 
 ### Conversations
 
-The Personal Agent sends a message with the approval as a JSON object in `approval` ([spec 8.4](https://personalagentprotocol.org/docs/0.3/spec#message-fields)):
+The Personal Agent sends a message with the approval as a JSON object in `extensions.operations.approval` ([spec 8.4](https://personalagentprotocol.org/docs/0.3/spec#message-fields)):
 
 *Message: Personal Agent → Company*
 
@@ -234,13 +238,13 @@ The Personal Agent sends a message with the approval as a JSON object in `approv
   "id": "msg_Qd4hVn2Rx8TfLe1M",
   "author": { "type": "agent" },
   "text": "The user approved the exchange.",
-  "approval": { "operation_id": "exc_5Rt2", "revision": "1791487200-k3Jd9Qx2mW8v" }
+  "extensions": {
+    "operations": { "approval": { "operation_id": "exc_5Rt2", "revision": "1791487200-k3Jd9Qx2mW8v" } }
+  }
 }
 ```
 
-The `approval` field is content for a Personal Agent message ([spec 8.4](https://personalagentprotocol.org/docs/0.3/spec#message-fields)), so the message can carry it without `text`, `data`, or `context`.
-
-The message's `text` doesn't approve anything, whatever it says. Only `approval` does. The Company Agent performs the action and says how it went in a later message.
+The message's `text` doesn't approve anything, whatever it says. Only the approval does. The Company Agent performs the action and says how it went in a later message.
 
 ### What the Company checks
 

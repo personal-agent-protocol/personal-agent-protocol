@@ -170,6 +170,9 @@ const OVERRIDES: [string, Party | "none"][] = [
     ["domain MUST be the host that serves the document", "company"],
     ["redirect_uri MUST exactly match an entry", "company"],
     ["Anyone else MUST start an extension's name", "both"],
+    // A rule for whoever writes an extension, not for either side.
+    ["The extension MUST publish a JSON Schema", "none"],
+    ["A side MUST NOT send an extension's content", "both"],
     ["client_id MUST equal the URL", "agent"],
     ["jwks_uri MUST be an HTTPS URL on the same domain", "agent"],
     ["Each entry MUST be an HTTPS URL on the same domain as client_id, or a loopback", "agent"],

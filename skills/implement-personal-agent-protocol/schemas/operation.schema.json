@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "operation.schema.json",
     "title": "Operation",
-    "description": "An action the Company performs only once the User approves its exact terms. Operations extension 3 (The operation). Returned in the body of an approval_required API error, in structuredContent of an MCP tool result, or in a Company message's operation field (Operations 4).",
+    "description": "An action the Company performs only once the User approves its exact terms. Operations extension 3 (The operation). Returned in the body of an approval_required API error, in structuredContent of an MCP tool result, or in a Company message's extensions.operations.operation (Operations 4).",
     "type": "object",
     "required": ["operation_id", "revision", "summary", "expires_at"],
     "properties": {

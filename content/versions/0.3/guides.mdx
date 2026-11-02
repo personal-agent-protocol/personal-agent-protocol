@@ -422,6 +422,11 @@ When a company offers the [Mediated Sign-In extension](/docs/extensions/mediated
   ([8.6](/docs/spec#streaming)).
 - Put structured details in `data`, not JSON or other markup in `text`
   ([8.4](/docs/spec#message-fields)).
+- With the [Links extension](/docs/extensions/links), show a link's title with the domain of its
+  `url`, so the user can see where it goes.
+- With the [Disclosures extension](/docs/extensions/disclosures), when a disclosure is relevant to
+  what you tell the user, such as an allergen warning on food they're buying, show it in full, apart
+  from the rest of the message. Leave out disclosures that read like promotion rather than a notice.
 - With a company agent, skip greetings and small talk, and keep text short
   ([8.8](/docs/spec#human-or-ai)).
 - Before asking for a person, send a short message that sums up the problem, so they don't have to
@@ -826,6 +831,14 @@ rate limits by `client_id`, not by turning personal agents away.
   agents have no reason to call.
 - Put structured details in `data`, not JSON or other markup in `text`
   ([8.4](/docs/spec#message-fields)).
+- To a personal agent that lists the [Links extension](/docs/extensions/links), send the pages a
+  reply refers to as links, rather than URLs in `text`.
+- To a personal agent that lists the [Disclosures extension](/docs/extensions/disclosures), send
+  notices users need to see, such as allergen or regulatory warnings, as disclosures, and keep them
+  to those. Personal agents decide which to show, and skip ones that read like promotion. Without
+  the extension, put the notice in `text`.
+- Keep what a message says in `text` and `data`, and use extension content to add to it, so a
+  personal agent that ignores an extension still gets the message ([8.4](/docs/spec#message-fields)).
 - Write for whoever is on the other side ([8.8](/docs/spec#human-or-ai)). With a personal agent,
   skip greetings and small talk and keep text short. With the user, use plain sentences, a pace they
   can follow, and details in `text` rather than only in `data`. In a direct conversation, reply as
