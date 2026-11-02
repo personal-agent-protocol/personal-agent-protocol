@@ -174,7 +174,7 @@ export function htuOf(url: string): string {
 export type SessionJwtOptions = {
     // The delegated key that signs the JWT. Its kid is its JWK thumbprint (spec 5.2).
     key: SigningKey;
-    // The delegation that vouches for `key`, sent in the pap_dlg header. Null sends none.
+    // The delegation that vouches for `key`, sent in the poppy_dlg header. Null sends none.
     delegation: string | null;
     iss: string;
     aud: string;
@@ -200,7 +200,7 @@ export async function signSessionJwt(options: SessionJwtOptions): Promise<string
         alg: "ES256",
         kid: options.kid ?? options.key.publicJwk.kid ?? (await thumbprint(options.key.publicJwk)),
     };
-    if (options.delegation) header.pap_dlg = options.delegation;
+    if (options.delegation) header.poppy_dlg = options.delegation;
     const payload: Record<string, unknown> = {
         iss: options.iss,
         aud: options.aud,
@@ -289,7 +289,7 @@ export async function signDelegation(options: {
     const rsa = options.root.publicJwk.kty === "RSA";
     const header: Record<string, unknown> = {
         alg: rsa ? "PS384" : "ES256",
-        typ: options.typ ?? "pap-delegation+jwt",
+        typ: options.typ ?? "poppy-delegation+jwt",
     };
     const kid = options.kid ?? options.root.publicJwk.kid;
     if (kid) header.kid = kid;

@@ -40,7 +40,6 @@ export const RESOURCE_IDS = [
     "session.delegation-typ",
     "session.delegation-iss",
     "session.delegation-kid",
-    "session.iat-after-delegation",
     "session.claims",
     "session.aud",
     "session.htm",
@@ -185,14 +184,6 @@ export async function checkResources(ctx: Context, r: Recorder): Promise<void> {
     const identity = ctx.identity;
     const delegated = identity.key.publicJwk;
     const stranger = await generateKey(false);
-    // A delegation whose exp is a few seconds away, for a Session JWT signed "after" it.
-    const shortDelegation = await signDelegation({
-        root: identity.rootKey,
-        delegated,
-        iss: identity.clientId,
-        iat: now - 3600,
-        lifetime: 3600 + 5,
-    });
     const cases: [string, SessionOptions, string, string][] = [
         [
             "session.typ",
@@ -216,7 +207,7 @@ export async function checkResources(ctx: Context, r: Recorder): Promise<void> {
             "session.without-delegation",
             { key: identity.rootKey, delegation: null },
             "with a Session JWT signed directly with the key in jwks.json, and no delegation",
-            "Session JWTs are signed only with delegated keys. Reject one without pap_dlg, even when a key in jwks_uri signed it.",
+            "Session JWTs are signed only with delegated keys. Reject one without poppy_dlg, even when a key in jwks_uri signed it.",
         ],
         [
             "session.delegation-signature",
@@ -269,7 +260,7 @@ export async function checkResources(ctx: Context, r: Recorder): Promise<void> {
                 }),
             },
             "with a Session JWT whose delegation's typ is JWT",
-            "The endpoint doesn't check the delegation's typ, so another JWT signed by a key in jwks_uri could be used as a delegation. Require pap-delegation+jwt.",
+            "The endpoint doesn't check the delegation's typ, so another JWT signed by a key in jwks_uri could be used as a delegation. Require poppy-delegation+jwt.",
         ],
         [
             "session.delegation-iss",
@@ -295,12 +286,6 @@ export async function checkResources(ctx: Context, r: Recorder): Promise<void> {
             },
             "with a Session JWT whose delegation's kid names no key in jwks_uri",
             "The endpoint doesn't verify the delegation with the key its kid names in the Personal Agent's jwks_uri.",
-        ],
-        [
-            "session.iat-after-delegation",
-            { delegation: shortDelegation, iat: now + 20 },
-            "with a Session JWT whose iat is 15 seconds after its delegation's exp",
-            "The endpoint doesn't check that the Session JWT's iat is no later than the delegation's exp (5.2, step 4), so a delegated key could keep signing after its delegation ends.",
         ],
         [
             "session.claims",

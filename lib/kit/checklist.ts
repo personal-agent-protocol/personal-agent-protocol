@@ -160,7 +160,7 @@ const OVERRIDES: [string, Party | "none"][] = [
     ["Their documents MUST have the same auth", "company"],
     ["Its protected_resources (RFC 9728 §4) MUST list", "company"],
     ["The resource in the server's protected resource metadata MUST equal", "company"],
-    ["typ MUST be pap-delegation+jwt", "agent"],
+    ["typ MUST be poppy-delegation+jwt", "agent"],
     ["exp MUST be at most 24 hours after iat", "agent"],
     ["It MUST also check that protected_resources includes https://{organization.domain}", "agent"],
     ["Required, and it MUST include refresh_token", "company"],

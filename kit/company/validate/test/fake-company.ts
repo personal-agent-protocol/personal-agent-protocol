@@ -76,8 +76,6 @@ export type Flaws = {
     // Checks delegations only with EC keys, so a PS384 delegation fails.
     rejectPs384Delegation?: boolean;
     acceptExpiredDelegation?: boolean;
-    // Accepts a Session JWT signed after its delegation expired.
-    acceptIatAfterDelegation?: boolean;
     acceptOtherDelegationTyp?: boolean;
     acceptOtherDelegationIss?: boolean;
     // Tries every key in jwks.json, whatever the delegation's kid.
@@ -338,7 +336,7 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
     async function verifyDelegated(jwt: string): Promise<DecodedJwt | null> {
         const keys = roots().filter((k) => !flaws.rejectPs384Delegation || k.kty === "EC");
         const token = decodeJwt(jwt);
-        const dlg = token.header.pap_dlg;
+        const dlg = token.header.poppy_dlg;
         if (typeof dlg !== "string") {
             if (!flaws.acceptMissingDelegation) return null;
             const ec = keys.find((k): k is EcPublicJwk => k.kty === "EC")!;
@@ -362,7 +360,7 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                       : null;
         }
         if (!delegation) return null;
-        if (delegation.header.typ !== "pap-delegation+jwt" && !flaws.acceptOtherDelegationTyp)
+        if (delegation.header.typ !== "poppy-delegation+jwt" && !flaws.acceptOtherDelegationTyp)
             return null;
         const d = delegation.payload as { iss?: unknown; iat?: number; exp?: number };
         if (d.iss !== clientId() && !flaws.acceptOtherDelegationIss) return null;
@@ -375,7 +373,6 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
         if (!verified) return flaws.acceptUnknownKey ? token : null;
         if (verified.header.kid !== (await thumbprint(jwk)) && !flaws.ignoreKidThumbprint)
             return null;
-        if (Number(verified.payload.iat) > d.exp && !flaws.acceptIatAfterDelegation) return null;
         return verified;
     }
 

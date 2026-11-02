@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "delegation.schema.json",
     "title": "Delegation",
-    "description": "A delegation as its decoded JWT header and payload: signed with ES256 or PS384 by a key in the Personal Agent's jwks_uri, it vouches for the delegated key in cnf.jwk (RFC 7800), which signs the Personal Agent's Session JWTs. Spec section 5.2 (Delegated keys). exp is at most 24 hours after iat. A delegation names no User, Agent ID, or Company. The header and payload are also available on their own as delegation.schema.json#/$defs/header and #/$defs/payload. The Session JWT that carries a delegation in pap_dlg is session-jwt.schema.json.",
+    "description": "A delegation as its decoded JWT header and payload: signed with ES256 or PS384 by a key in the Personal Agent's jwks_uri, it vouches for the delegated key in cnf.jwk (RFC 7800), which signs the Personal Agent's Session JWTs. Spec section 5.2 (Delegated keys). exp is at most 24 hours after iat. A delegation names no User, Agent ID, or Company. The header and payload are also available on their own as delegation.schema.json#/$defs/header and #/$defs/payload. The Session JWT that carries a delegation in poppy_dlg is session-jwt.schema.json.",
     "type": "object",
     "required": ["header", "payload"],
     "properties": {
@@ -15,7 +15,7 @@
             "required": ["alg", "typ", "kid"],
             "properties": {
                 "alg": { "enum": ["ES256", "PS384"] },
-                "typ": { "const": "pap-delegation+jwt" },
+                "typ": { "const": "poppy-delegation+jwt" },
                 "kid": { "type": "string", "minLength": 1 }
             }
         },

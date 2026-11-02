@@ -106,10 +106,9 @@ use no Session claims or state. Conversations, Session carts, browser join, and 
 verification. When verifying:
 
 - Fetch the client metadata named by `iss` and its `jwks_uri`, and apply the design's policy.
-- Verify the delegation in `pap_dlg` with the key from `jwks_uri` that its `kid` names (`ES256`
+- Verify the delegation in `poppy_dlg` with the key from `jwks_uri` that its `kid` names (`ES256`
   required, `PS384` recommended), its `typ`, `iss`, expiry, and a lifetime of at most 24 hours. Then verify the Session
-  JWT with the delegation's `cnf.jwk`, check that `kid` is that key's thumbprint, and that `iat` is
-  no later than the delegation's `exp`. Reject a Session JWT without a delegation, including one
+  JWT with the delegation's `cnf.jwk`, and check that `kid` is that key's thumbprint. Reject a Session JWT without a delegation, including one
   signed directly with a key from `jwks_uri`.
 - Check `typ` `poppy-session+jwt`, `alg` `ES256`, `aud` equal to the issuer, or the HTTPS domain when there is none, `htm` and `htu`
   against the request, and `iat` within your acceptance window.

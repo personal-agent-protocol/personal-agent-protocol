@@ -294,9 +294,7 @@ for (const [flaw, id] of [
     ["acceptAthWithoutToken", "session.ath-without-token"],
 ] as const) {
     test(`a resource with ${flaw} fails ${id}`, async () => {
-        // A Session JWT signed now is also signed after an expired delegation's exp.
-        const extra = flaw === "acceptExpiredDelegation" ? { acceptIatAfterDelegation: true } : {};
-        const { byId } = await run({ [flaw]: true, ...extra }, "foundation", ["session."]);
+        const { byId } = await run({ [flaw]: true }, "foundation", ["session."]);
         const result = byId(id);
         assert.equal(result.status, "fail");
         assert.equal(byId("session.start").status, "pass");

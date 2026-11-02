@@ -74,7 +74,7 @@ A Personal Agent that acts for a User through several agents can say which one a
 
 Breaking · [Spec 2](https://personalagentprotocol.org/docs/0.3/spec#terms) · [Spec 4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity) · [Spec 4.8](https://personalagentprotocol.org/docs/0.3/spec#oauth-additions) · [Spec 5.2](https://personalagentprotocol.org/docs/0.3/spec#session-header) · [Spec 10.7](https://personalagentprotocol.org/docs/0.3/spec#delegated-key-security) · [Spec 11](https://personalagentprotocol.org/docs/0.3/spec#references) · [Guides: Signing and verifying JWTs](https://personalagentprotocol.org/docs/0.3/guides#both-signing) · [Guides: Rotating keys](https://personalagentprotocol.org/docs/0.3/guides#both-key-rotation) · [Guides: The Session header](https://personalagentprotocol.org/docs/0.3/guides#agent-session-header) · [Guides: Native and distributed apps](https://personalagentprotocol.org/docs/0.3/guides#agent-native-apps)
 
-The keys in a Personal Agent's `jwks_uri`, which signed Session and browser assertions in 0.2, don't sign Session JWTs. They sign delegations: JWTs, typed `pap-delegation+jwt`, that vouch for a delegated key in an RFC 7800 `cnf` claim and last at most 24 hours. The Personal Agent signs its Session JWTs with the delegated key and carries the delegation in the JWT's `pap_dlg` header, and the Company verifies the delegation, then the JWT. A delegation carries nothing about the User or Companies, so the keys in `jwks_uri` sign only delegations and client assertions, and say nothing about which Companies a User uses. Each delegated key signs for one User ID, so a leaked one exposes one User at one Company, and Companies can't match Users by their keys. Companies don't expect a delegated key to stay the same, and the guides suggest rounding a delegation's times. 10.7 says what delegations hide from the Personal Agent's own systems, and what they don't. The references add RFC 7638 and RFC 7800.
+The keys in a Personal Agent's `jwks_uri`, which signed Session and browser assertions in 0.2, don't sign Session JWTs. They sign delegations: JWTs, typed `poppy-delegation+jwt`, that vouch for a delegated key in an RFC 7800 `cnf` claim and last at most 24 hours. The Personal Agent signs its Session JWTs with the delegated key and carries the delegation in the JWT's `poppy_dlg` header, and the Company verifies the delegation, then the JWT. A delegation carries nothing about the User or Companies, so the keys in `jwks_uri` sign only delegations and client assertions, and say nothing about which Companies a User uses. Each delegated key signs for one User ID, so a leaked one exposes one User at one Company, and Companies can't match Users by their keys. Companies don't expect a delegated key to stay the same, and the guides suggest rounding a delegation's times. 10.7 says what delegations hide from the Personal Agent's own systems, and what they don't. The references add RFC 7638 and RFC 7800.
 
 #### Recommended operator signatures for edge compatibility
 
@@ -195,6 +195,42 @@ Section 9.4 no longer says Personal Agents should warn the User when they skip a
 [Spec 4.8](https://personalagentprotocol.org/docs/0.3/spec#oauth-additions)
 
 Section 4.8 now lists every rule Poppy adds to OAuth: `jwks_uri` and `redirect_uris` on the `client_id`'s domain, the required `revocation_endpoint` and `grant_types_supported`, the check of a Device Sign-In link's host, a refresh token from every sign-in whose use doesn't extend its lifetime, and `auth.disabled`. Exact matching of `redirect_uri` is described as following RFC 9700, not as stricter than OAuth. No requirement changes.
+
+#### `poppy` names for delegations
+
+[Spec 5.2](https://personalagentprotocol.org/docs/0.3/spec#session-header) · [Spec 5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification)
+
+Delegations are typed `poppy-delegation+jwt` and travel in the Session JWT's `poppy_dlg` header. Earlier in this draft they were `pap-delegation+jwt` and `pap_dlg`. Every name the protocol defines now starts with `poppy`.
+
+#### Delegation `iat` check removed
+
+[Spec 5.2](https://personalagentprotocol.org/docs/0.3/spec#session-header)
+
+A resource no longer checks that a Session JWT's `iat` is no later than its delegation's `exp`. The check that the delegation hasn't expired, together with the `iat` acceptance window (5.3), already covers it.
+
+#### Direct Conversation parent errors
+
+[Spec 8.10](https://personalagentprotocol.org/docs/0.3/spec#direct-conversations)
+
+Each parent problem now has its own error: `conversation_not_found` for an unknown parent or one with a different owner, `conversation_closed` for a closed one, `invalid_request` for one that is a Direct Conversation, and `direct_conversation_open` for one that already has an open Direct Conversation. Before, the text listed the errors without saying which one goes with which problem.
+
+#### Clarifications
+
+[Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#refresh-tokens) · [Spec 5](https://personalagentprotocol.org/docs/0.3/spec#sessions) · [Spec 5.2](https://personalagentprotocol.org/docs/0.3/spec#session-header) · [Spec 5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification) · [Spec 5.5](https://personalagentprotocol.org/docs/0.3/spec#ending-sessions) · [Spec 8.9](https://personalagentprotocol.org/docs/0.3/spec#handoff)
+
+`poppy.json` needs at least one of `agent`, `apis`, and `web`, not exactly one. 4.4 explains in plain terms why blind signing affects refresh tokens. 5.3 says why Session errors use 400 rather than 401. 8.9 says why handoff returns 202, while closing returns 200. Section 5 says a Session needs no separate start step, 5.2 says the Session JWT doesn't replace DPoP, and 5.5 says a Company keeps a Session's User ID and Agent ID only as long as the Session lasts.
+
+#### Citations instead of restatements
+
+[Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server) · [Spec 4.4](https://personalagentprotocol.org/docs/0.3/spec#refresh-tokens) · [Spec 4.7](https://personalagentprotocol.org/docs/0.3/spec#scopes) · [Spec 5.6](https://personalagentprotocol.org/docs/0.3/spec#sending-requests) · [Spec 9.1](https://personalagentprotocol.org/docs/0.3/spec#excluded-tasks) · [Spec 10.2](https://personalagentprotocol.org/docs/0.3/spec#secrets) · [Spec 10.4](https://personalagentprotocol.org/docs/0.3/spec#assertion-audience) · [Spec 11](https://personalagentprotocol.org/docs/0.3/spec#references) · [Operations 6](https://personalagentprotocol.org/docs/0.3/extensions/operations#sending-approval) · [Operations 9](https://personalagentprotocol.org/docs/0.3/extensions/operations#references)
+
+Rate limits cite RFC 6585 and RFC 9110, refresh token rotation cites RFC 6749 §6, and the `protected_resources` comparison cites RFC 3986 for host case. The section 11 references add the standards the text already cites, including RFC 9110, RFC 9421, Web Bot Auth, MCP 2026-07-28, and server-sent events. Operations cites the `Idempotency-Key` draft. 10.2 follows draft-ietf-wimse-aims rather than quoting it as a requirement. Rules stated twice are now stated once: the issuer check (3.2), the `scopes_supported` recommendation (3.2), skipping unknown fields (3.3), and separate Sessions for separate accounts (5.4).
+
+#### Operations check order
+
+[Operations 6](https://personalagentprotocol.org/docs/0.3/extensions/operations#sending-approval)
+
+The Company's approval checks are no longer a recommended order plus a rule that any other order give the same results. The Company responds as the first check that fails in the listed order says.
 
 #### Conversation ownership
 
@@ -409,6 +445,12 @@ Feedback reports no longer have `kind`, whose only value was `missing`, and Comp
 ### Guides
 
 Advice that goes with the spec. Guides aren't requirements.
+
+#### Guides match the spec
+
+[Guides: Signing and verifying JWTs](https://personalagentprotocol.org/docs/0.3/guides#both-signing) · [Guides: Retries](https://personalagentprotocol.org/docs/0.3/guides#both-retries) · [Guides: Storing tokens](https://personalagentprotocol.org/docs/0.3/guides#agent-tokens) · [Guides: Direct and device sign-in](https://personalagentprotocol.org/docs/0.3/guides#agent-direct-device) · [Guides: Conversations](https://personalagentprotocol.org/docs/0.3/guides#agent-conversations) · [Guides: Account settings](https://personalagentprotocol.org/docs/0.3/guides#company-account-settings) · [Guides: Conversations](https://personalagentprotocol.org/docs/0.3/guides#company-conversations) · [Guides: Sessions](https://personalagentprotocol.org/docs/0.3/guides#company-sessions)
+
+Companies are no longer told to accept RS256 client assertions, which Personal Agents never send. Idempotency records are scoped to the Personal Agent, the User, and any account rather than the Session, so a retry in a new Session still matches. A Personal Agent requests a token for one service only when the service's `resource` isn't the Company's domain, as in 4.5. PKCE with `S256` cites RFC 9700. Disconnecting a Personal Agent revokes its refresh tokens, and invalidating their access tokens is advice, as RFC 7009 §2.1 allows. Advice for Personal Agents whose OAuth library raises on a challenge in a successful response moved to the Personal Agent section. The Company sessions guides say a gateway can verify the Session header for the endpoints behind it.
 
 #### Explicit replies and crossed approvals
 

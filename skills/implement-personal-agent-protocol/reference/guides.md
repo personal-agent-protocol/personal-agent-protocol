@@ -28,7 +28,7 @@ To handle them:
 
 Client assertions, delegations, Session JWTs, and DPoP proofs are JWTs. To sign and verify them consistently:
 
-- Personal agents: sign Session JWTs with ES256 (MUST, [5.2](https://personalagentprotocol.org/docs/0.3/spec#session-header)). Sign client assertions and delegations with ES256, or with PS384 if you sign them blindly ([10.7](https://personalagentprotocol.org/docs/0.3/spec#delegated-key-security)). Companies: accept ES256 (MUST) and PS384 (SHOULD) in client assertions and delegations ([4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity), [5.2](https://personalagentprotocol.org/docs/0.3/spec#delegated-keys)), and RS256 in client assertions. Use RSA keys of at least 2048 bits.
+- Personal agents: sign Session JWTs with ES256 (MUST, [5.2](https://personalagentprotocol.org/docs/0.3/spec#session-header)). Sign client assertions and delegations with ES256, or with PS384 if you sign them blindly ([10.7](https://personalagentprotocol.org/docs/0.3/spec#delegated-key-security)). Companies: accept ES256 (MUST) and PS384 (SHOULD) in client assertions and delegations ([4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity), [5.2](https://personalagentprotocol.org/docs/0.3/spec#delegated-keys)). Use RSA keys of at least 2048 bits.
 - Personal agents: use `token_endpoint_auth_signing_alg_values_supported` in the Company's OAuth metadata to choose a supported client-assertion algorithm. This list does not establish support for delegation signatures. The protocol has no delegation-algorithm discovery field, and `invalid_session` does not distinguish an unsupported algorithm from other failures. An agent that requires blind signing may be unable to work with a Company that doesn't support PS384. Falling back to ES256 needs a suitable published key and gives up this blind-signing mechanism; don't switch automatically when blind signing is required by the User's privacy settings.
 - Reject `alg: none` and symmetric algorithms such as HS256.
 - Verify client assertions and delegations only with keys from the personal agent's verified `jwks_uri` ([4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)), and Session JWTs only with the key their verified delegation names in `cnf.jwk` ([5.2](https://personalagentprotocol.org/docs/0.3/spec#delegated-keys)). Ignore `jku`, `x5u`, and any other key embedded in a JWT. DPoP proofs for DPoP-bound access tokens are the one other exception: the public key in their `jwk` header is how they work.
@@ -74,12 +74,12 @@ Personal agents fetch `poppy.json` files, OAuth and protected resource metadata,
 
 ### Retries
 
-- Send an `Idempotency-Key` on API writes that accept one. Use a random UUID (version 4), and reuse the same key when you retry the same request.
+- Send an `Idempotency-Key` ([draft-ietf-httpapi-idempotency-key-header](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/)) on API writes that accept one. Use a random UUID (version 4), and reuse the same key when you retry the same request.
 - Give each conversation message an `id` with at least 128 random bits, and reuse it when you retry the message ([8.3](https://personalagentprotocol.org/docs/0.3/spec#sending-messages)).
 - Each retry needs a new Session JWT, and a new DPoP proof if the access token is DPoP-bound. A retried token request needs a new assertion. The company may reject a `jti` it has already seen.
 - Wait at least as long as `Retry-After` says on a 429 (MUST, [5.6](https://personalagentprotocol.org/docs/0.3/spec#sending-requests)) or a 503.
 - Otherwise, back off exponentially with jitter, cap the delay, and limit the number of attempts.
-- Companies keep idempotency records for a set time, such as a day, scoped to the session. They return the original response for a repeated key, and reject a repeated key with a different body.
+- Companies keep idempotency records for a set time, such as a day, scoped to the personal agent's `client_id` and the user ID, and to the account when there is one, not to the session, so a retry in a new session still matches. They return the original response for a repeated key, and reject a repeated key with a different body.
 
 ### Rate limits
 
@@ -155,7 +155,7 @@ Keep the mapping of each user's IDs across companies confidential (MUST, [5.1](h
 - Store refresh tokens as secrets ([10.2](https://personalagentprotocol.org/docs/0.3/spec#secrets)). Encrypt them at rest, apart from the model and its tools. Give tools a reference to the token, not the token.
 - Keep access tokens in memory and drop them when they expire.
 - Store refresh tokens by the company's full issuer, as for [user IDs](#agent-user-ids), so a token from one company hosted by a provider is never sent to another.
-- Before the first signed-in call to a service, fetch its protected resource metadata. If it has some, request a token for its `resource` and use that token only there ([4.5](https://personalagentprotocol.org/docs/0.3/spec#access-tokens)). Cache the metadata by its HTTP caching headers, and fetch it again when the service answers `invalid_token` with `resource_metadata`.
+- Before the first signed-in call to a service, fetch its protected resource metadata. If it has some and its `resource` isn't `https://{organization.domain}`, request a token for that `resource` and use that token only there ([4.5](https://personalagentprotocol.org/docs/0.3/spec#access-tokens)). Cache the metadata by its HTTP caching headers, and fetch it again when the service answers `invalid_token` with `resource_metadata`.
 - At an MCP server, always use a token whose `resource` is the server's `url` (MUST, [section 7](https://personalagentprotocol.org/docs/0.3/spec#apis)), with the scheme `token_type` names. Send the Session header there too: the server may ignore it, but you can't tell in advance.
 - When the company returns a new refresh token, you MUST use it from then on ([4.4](https://personalagentprotocol.org/docs/0.3/spec#refresh-tokens)). Replace the stored one right away. When a refresh response omits it, keep the existing refresh token.
 - After the user signs in again for more scopes, revoke the old refresh token ([4.7](https://personalagentprotocol.org/docs/0.3/spec#scopes)).
@@ -182,7 +182,7 @@ Read OpenAPI security requirements before an operation, including operation-leve
 - Use direct or device sign-in only when the user signs in themselves (MUST, [5.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). Never type the user's password, enter their one-time code, or click the company's approval controls for them.
 - Open the authorization URL in the user's own browser, not in a browser you automate.
 - Make `state` random and single-use. Record which company it belongs to, and exchange the code only at that company's `token_endpoint`. Check that the redirect's `iss` matches that company's issuer (MUST, [4.2](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)).
-- Use PKCE with `code_challenge_method=S256` ([4.2](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)).
+- Use PKCE with `code_challenge_method=S256`, as [RFC 9700 §2.1.1](https://www.rfc-editor.org/rfc/rfc9700#section-2.1.1) recommends.
 - If you can't receive the redirect on the device the user is talking to you on, send the authorization URL to the user, for example to their phone, with a redirect URI you control. Fall back to device sign-in only when that isn't possible ([4.3](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)).
 - For device sign-in ([4.3](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)), show `verification_uri_complete` as a link or QR code, and show `user_code` too so the user can confirm it matches. Keep `device_code` private. Show the link only if its host is the company's issuer host or the host of a URL in its `protected_resources`, or a subdomain of either, and show the company's name and domain with it (MUST, [4.3](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)).
 - Poll no faster than `interval`. On `slow_down`, add 5 seconds to the interval, as [RFC 8628](https://www.rfc-editor.org/rfc/rfc8628#section-3.5) describes.
@@ -228,6 +228,7 @@ When a company offers the [Mediated Sign-In extension](https://personalagentprot
 - When the user accepts a `user_requested` invitation, start the direct conversation with `parent_conversation_id` and `user_requested_event_id`. Omit `message` to let the company speak first ([8.10](https://personalagentprotocol.org/docs/0.3/spec#direct-conversations)). Keep reading or streaming its events while the user is participating, including when the user hasn't sent a message.
 - When the user returns control to the personal agent, close their direct conversation before continuing in the parent ([8.10](https://personalagentprotocol.org/docs/0.3/spec#direct-conversations)). Merely switching away from the direct conversation needn't close it.
 - If a company agent asks in a message for a one-time code, or for details to verify the user, such as a date of birth or part of an account number, ask it to request sign-in with an `authorization` event instead ([8.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)). Don't send codes in messages ([Handling secrets](#both-secrets)).
+- Some OAuth libraries raise an exception when a successful response carries a `WWW-Authenticate` challenge. If yours does, check the original status, read the accepted response and its `authorization` event, and handle the header and event as one sign-in need, without sending the accepted message again ([8.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)).
 
 ### Choosing an interface
 
@@ -311,12 +312,13 @@ Verify Session headers generally (SHOULD, [5.3](https://personalagentprotocol.or
 
 ### Sessions
 
-A session is named by the `client_id` and `sid` of its Session JWTs ([5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification)). Keep the Poppy session record at your resources, alongside your existing OAuth integration. Session records don't need durable storage. Conversations are separate records that can outlast the session that started them ([8.2](https://personalagentprotocol.org/docs/0.3/spec#conversation-requests)).
+A session is named by the `client_id` and `sid` of its Session JWTs ([5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification)). Keep the Poppy session record at your resources, alongside your existing OAuth integration. Session records don't need durable storage, and you keep each one only as long as the session lasts. Conversations are separate records that can outlast the session that started them ([8.2](https://personalagentprotocol.org/docs/0.3/spec#conversation-requests)).
 
 When keeping session state:
 
 - Behind a load balancer, share session state across the servers that handle it, as with server-side cookie sessions, so requests reach the same state whichever server handles them.
 - Record the user ID and agent ID a session starts with, and reject later Session JWTs for it with different ones ([5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification)).
+- Session verification needs no state until the session lookup, so a gateway in front of your endpoints can verify the header once and pass the verified claims on. Endpoints that use no Session claims don't need to change ([5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification)).
 - Your authorization server doesn't see the Session header. Sign-in and refresh are plain OAuth, and a session is signed in on each request that carries an access token ([5.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
 - Remember the `sid`s of sessions you end, and answer them with `session_ended` ([5.5](https://personalagentprotocol.org/docs/0.3/spec#ending-sessions)). Choose a retention period that fits your session lifetimes.
 - Use separate sessions for separate accounts. If your policy refuses a second account in a session, answer with `session_ended` ([5.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
@@ -388,7 +390,7 @@ If you offer mediated sign-in, protect the credentials you accept ([Mediated Sig
 ### Account settings
 
 - In account settings, list each connected personal agent with its name, domain, scopes, and when it was last used.
-- Offer a control to disconnect each one. Disconnecting revokes its refresh tokens and access tokens, and its sessions continue signed out ([5.5](https://personalagentprotocol.org/docs/0.3/spec#ending-sessions)).
+- Offer a control to disconnect each one. Disconnecting revokes its refresh tokens, and its sessions continue signed out ([5.5](https://personalagentprotocol.org/docs/0.3/spec#ending-sessions)). Also invalidate the access tokens issued under them, as [RFC 7009 §2.1](https://www.rfc-editor.org/rfc/rfc7009#section-2.1) allows.
 
 ### Browser sessions
 
@@ -488,7 +490,7 @@ Let a signed-out personal agent session do what a signed-out visitor can do on y
 - When sign-in can verify the user, send an `authorization` event ([8.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)) rather than asking for identifying details in messages, such as a date of birth, part of an account number, or a code sent by text. Sign-in proves who the user is, and it keeps codes and personal details out of messages and model context ([Handling secrets](#both-secrets)).
 - Give the people a conversation is handed to ([8.9](https://personalagentprotocol.org/docs/0.3/spec#handoff)) the same way to ask for sign-in, so they don't fall back to verification questions.
 
-For a conversation endpoint that requires account access before useful work, list `access: signed_in` on its `agent.protocols` entry. Keep it absent or `session` when general questions work signed out. Use the existing authorization event when the account is needed later. If response headers are still available, you can also send a matching `WWW-Authenticate` header ([8.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)). Do not change a successful status to a failure after accepting the message, or depend on OAuth libraries reading a challenge from a successful response. Some libraries expose the challenge as an exception even on a successful response. Personal agents using them should check the original status, read the accepted response and its authorization event, and handle the header and event together without retrying the accepted message.
+For a conversation endpoint that requires account access before useful work, list `access: signed_in` on its `agent.protocols` entry. Keep it absent or `session` when general questions work signed out. Use the existing authorization event when the account is needed later. If response headers are still available, you can also send a matching `WWW-Authenticate` header ([8.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)). Do not change a successful status to a failure after accepting the message, or depend on OAuth libraries reading a challenge from a successful response.
 
 ### Excluded tasks and feedback
 

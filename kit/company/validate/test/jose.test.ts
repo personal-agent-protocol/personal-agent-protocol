@@ -75,7 +75,7 @@ test("Session JWTs carry the fields spec 5.2 requires", async () => {
     assert.equal(header.typ, "poppy-session+jwt");
     assert.equal(header.alg, "ES256");
     assert.equal(header.kid, await thumbprint(key.publicJwk));
-    assert.equal(header.pap_dlg, delegation);
+    assert.equal(header.poppy_dlg, delegation);
     assert.equal(payload.htm, "GET");
     assert.equal(payload.htu, "https://a.example/x");
     assert.equal(payload.ath, await ath("tok"));
@@ -84,7 +84,7 @@ test("Session JWTs carry the fields spec 5.2 requires", async () => {
     assert.ok(await verifyJwt(jwt, key.publicJwk));
 
     const dlg = decodeJwt(delegation);
-    assert.equal(dlg.header.typ, "pap-delegation+jwt");
+    assert.equal(dlg.header.typ, "poppy-delegation+jwt");
     assert.equal(dlg.header.kid, "root");
     assert.ok((dlg.payload.exp as number) - (dlg.payload.iat as number) <= MAX_DELEGATION_LIFETIME);
     assert.ok(await verifyJwt(delegation, root.publicJwk));

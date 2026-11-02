@@ -204,7 +204,7 @@ Poppy-Approval: operation_id="exc_5Rt2", revision="1791487200-k3Jd9Qx2mW8v"
 { "item_id": "itm_4Qa", "replacement_sku": "stormline-insulated-m" }
 ```
 
-An `Idempotency-Key` sent with the first request doesn't carry over: the request with the approval has its own, or none. The operation ID identifies its retries (7). Companies MUST ignore members of `Poppy-Approval` they don't recognize, so later versions can add members.
+An `Idempotency-Key` ([draft-ietf-httpapi-idempotency-key-header](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/)) sent with the first request doesn't carry over: the request with the approval has its own, or none. The operation ID identifies its retries (7). Companies MUST ignore members of `Poppy-Approval` they don't recognize, so later versions can add members.
 
 ### MCP
 
@@ -248,13 +248,11 @@ The message's `text` doesn't approve anything, whatever it says. Only the approv
 
 ### What the Company checks
 
-After the Session header checks in [spec 5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification) and the token checks in [spec 7](https://personalagentprotocol.org/docs/0.3/spec#apis), the Company MUST make the following checks before performing the action. It SHOULD make them in this order:
+After the Session header checks in [spec 5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification) and the token checks in [spec 7](https://personalagentprotocol.org/docs/0.3/spec#apis), the Company MUST make the following checks before performing the action, and respond as the first one that fails says, whatever order it makes them in internally:
 
 1. The Session can approve the operation (3). If it can't, the Company handles the request as if it had no approval.
 2. The operation hasn't been performed already. If it has, or is being performed, the Company responds as section 7 describes.
 3. The `revision` is one the Company returned for this operation, it hasn't expired, and the request asks for exactly what it describes. The API request or tool call is the one that returned the operation, and in a conversation, the operation is the conversation's.
-
-The Company MUST NOT let a different internal check order change which Session can approve, the response for a request without valid approval, or the retry and at-most-once behavior in section 7.
 
 If every check passes, the Company performs the action and responds as it would have without operations. If check 3 fails, it performs nothing and returns the operation with a revision for what the request asks, as in section 4. A Company MUST NOT answer an approval with the revision it names, so a Personal Agent never retries the same approval in a loop.
 
@@ -278,7 +276,7 @@ It doesn't prove that the User saw the terms or approved them. The Company can't
 
 ## 9. References
 
-This extension uses [RFC 9651](https://www.rfc-editor.org/rfc/rfc9651) for the `Poppy-Approval` header and [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/) for `summary` formatting.
+This extension uses [RFC 9651](https://www.rfc-editor.org/rfc/rfc9651) for the `Poppy-Approval` header, [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/) for `summary` formatting, and [draft-ietf-httpapi-idempotency-key-header](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/) for the `Idempotency-Key` header.
 
 ---
 

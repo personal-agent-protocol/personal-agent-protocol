@@ -2,7 +2,7 @@
 
 Every request to the Company's APIs, conversations, feedback, browser-session `/authorize`, and
 extension endpoints carries a `Poppy-Session` header: a JWT the Personal Agent signs for that one
-request with a delegated key, carrying the delegation in its `pap_dlg` header
+request with a delegated key, carrying the delegation in its `poppy_dlg` header
 ([5.2](https://personalagentprotocol.org/docs/0.3/spec#session-header)). The Company SHOULD verify it
 generally and MUST complete the checks in
 [5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification) before trusting Session claims
@@ -43,12 +43,12 @@ Each service verifies the header itself, with a shared library.
 
 1. Fetch the client metadata at `iss` and its `jwks_uri` (4.1), and apply the allowlist,
    blocklist, or registration policy.
-2. Verify the delegation in `pap_dlg` with the key in `jwks_uri` named by its `kid`, `ES256` or
-   `PS384` (ES256 required, PS384 recommended). Check its `typ` is `pap-delegation+jwt`, its `iss` is the Session JWT's `iss`, it
+2. Verify the delegation in `poppy_dlg` with the key in `jwks_uri` named by its `kid`, `ES256` or
+   `PS384` (ES256 required, PS384 recommended). Check its `typ` is `poppy-delegation+jwt`, its `iss` is the Session JWT's `iss`, it
    hasn't expired, and its `exp` is at most 24 hours after its `iat`
    ([Delegated keys](https://personalagentprotocol.org/docs/0.3/spec#delegated-keys)).
 3. Verify the Session JWT's `ES256` signature with the delegation's `cnf.jwk`, check that its `kid`
-   is that key's JWK thumbprint, and that its `iat` is no later than the delegation's `exp`.
+   is that key's JWK thumbprint.
 4. Check `typ` `poppy-session+jwt`, `aud` equal to the Company's identifier character for character
    (its issuer, or `https://{organization.domain}` with a lowercase host and no trailing slash when
    it has none), `htm` and

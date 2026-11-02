@@ -149,9 +149,9 @@ same Agent ID, or none, and the Company rejects one that differs from the Sessio
 <Change title="Session JWTs signed with delegated keys" breaking sections="2, 4.1, 4.8, 5.2, 10.7, 11, guides#both-signing, guides#both-key-rotation, guides#agent-session-header, guides#agent-native-apps">
 
 The keys in a Personal Agent's `jwks_uri`, which signed Session and browser assertions in 0.2, don't
-sign Session JWTs. They sign delegations: JWTs, typed `pap-delegation+jwt`, that vouch for a
+sign Session JWTs. They sign delegations: JWTs, typed `poppy-delegation+jwt`, that vouch for a
 delegated key in an RFC 7800 `cnf` claim and last at most 24 hours. The Personal Agent signs its
-Session JWTs with the delegated key and carries the delegation in the JWT's `pap_dlg` header, and
+Session JWTs with the delegated key and carries the delegation in the JWT's `poppy_dlg` header, and
 the Company verifies the delegation, then the JWT. A delegation carries nothing about the User or
 Companies, so the keys in `jwks_uri` sign only delegations and client assertions, and say nothing
 about which Companies a User uses. Each delegated key signs for one User ID, so a leaked one exposes
@@ -417,6 +417,60 @@ Section 4.8 now lists every rule Poppy adds to OAuth: `jwks_uri` and `redirect_u
 Device Sign-In link's host, a refresh token from every sign-in whose use doesn't extend its lifetime,
 and `auth.disabled`. Exact matching of `redirect_uri` is described as following RFC 9700, not as
 stricter than OAuth. No requirement changes.
+
+</Change>
+
+<Change title="`poppy` names for delegations" sections="5.2, 5.3">
+
+Delegations are typed `poppy-delegation+jwt` and travel in the Session JWT's `poppy_dlg` header.
+Earlier in this draft they were `pap-delegation+jwt` and `pap_dlg`. Every name the protocol defines
+now starts with `poppy`.
+
+</Change>
+
+<Change title="Delegation `iat` check removed" sections="5.2">
+
+A resource no longer checks that a Session JWT's `iat` is no later than its delegation's `exp`. The
+check that the delegation hasn't expired, together with the `iat` acceptance window (5.3), already
+covers it.
+
+</Change>
+
+<Change title="Direct Conversation parent errors" sections="8.10">
+
+Each parent problem now has its own error: `conversation_not_found` for an unknown parent or one
+with a different owner, `conversation_closed` for a closed one, `invalid_request` for one that is a
+Direct Conversation, and `direct_conversation_open` for one that already has an open Direct
+Conversation. Before, the text listed the errors without saying which one goes with which problem.
+
+</Change>
+
+<Change title="Clarifications" sections="3.1, 4.4, 5, 5.2, 5.3, 5.5, 8.9">
+
+`poppy.json` needs at least one of `agent`, `apis`, and `web`, not exactly one. 4.4 explains in
+plain terms why blind signing affects refresh tokens. 5.3 says why Session errors use 400 rather
+than 401. 8.9 says why handoff returns 202, while closing returns 200. Section 5 says a Session
+needs no separate start step, 5.2 says the Session JWT doesn't replace DPoP, and 5.5 says a
+Company keeps a Session's User ID and Agent ID only as long as the Session lasts.
+
+</Change>
+
+<Change title="Citations instead of restatements" sections="3, 3.2, 4.4, 4.7, 5.6, 9.1, 10.2, 10.4, 11, Operations 6, Operations 9">
+
+Rate limits cite RFC 6585 and RFC 9110, refresh token rotation cites RFC 6749 §6, and the
+`protected_resources` comparison cites RFC 3986 for host case. The section 11 references add the
+standards the text already cites, including RFC 9110, RFC 9421, Web Bot Auth, MCP 2026-07-28, and
+server-sent events. Operations cites the `Idempotency-Key` draft. 10.2 follows draft-ietf-wimse-aims
+rather than quoting it as a requirement. Rules stated twice are now stated once: the issuer check
+(3.2), the `scopes_supported` recommendation (3.2), skipping unknown fields (3.3), and separate
+Sessions for separate accounts (5.4).
+
+</Change>
+
+<Change title="Operations check order" sections="Operations 6">
+
+The Company's approval checks are no longer a recommended order plus a rule that any other order
+give the same results. The Company responds as the first check that fails in the listed order says.
 
 </Change>
 
@@ -754,6 +808,19 @@ protocol. A later version can add a field when there is a second kind of report.
 ### Guides {#v0-3-guides}
 
 Advice that goes with the spec. Guides aren't requirements.
+
+<Change title="Guides match the spec" sections="guides#both-signing, guides#both-retries, guides#agent-tokens, guides#agent-direct-device, guides#agent-conversations, guides#company-account-settings, guides#company-conversations, guides#company-sessions">
+
+Companies are no longer told to accept RS256 client assertions, which Personal Agents never send.
+Idempotency records are scoped to the Personal Agent, the User, and any account rather than the
+Session, so a retry in a new Session still matches. A Personal Agent requests a token for one
+service only when the service's `resource` isn't the Company's domain, as in 4.5. PKCE with `S256`
+cites RFC 9700. Disconnecting a Personal Agent revokes its refresh tokens, and invalidating their
+access tokens is advice, as RFC 7009 §2.1 allows. Advice for Personal Agents whose OAuth library
+raises on a challenge in a successful response moved to the Personal Agent section. The Company sessions
+guides say a gateway can verify the Session header for the endpoints behind it.
+
+</Change>
 
 <Change title="Explicit replies and crossed approvals" sections="guides#both-replies, guides#agent-operations" issue="27">
 

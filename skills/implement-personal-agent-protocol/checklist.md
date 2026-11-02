@@ -96,7 +96,7 @@ To handle them:
 
 Client assertions, delegations, Session JWTs, and DPoP proofs are JWTs. To sign and verify them consistently:
 
-- [ ] Personal agents: sign Session JWTs with ES256 (MUST, 5.2). Sign client assertions and delegations with ES256, or with PS384 if you sign them blindly (10.7). Companies: accept ES256 (MUST) and PS384 (SHOULD) in client assertions and delegations (4.1, 5.2), and RS256 in client assertions. Use RSA keys of at least 2048 bits.
+- [ ] Personal agents: sign Session JWTs with ES256 (MUST, 5.2). Sign client assertions and delegations with ES256, or with PS384 if you sign them blindly (10.7). Companies: accept ES256 (MUST) and PS384 (SHOULD) in client assertions and delegations (4.1, 5.2). Use RSA keys of at least 2048 bits.
 - [ ] Personal agents: use `token_endpoint_auth_signing_alg_values_supported` in the Company's OAuth metadata to choose a supported client-assertion algorithm. This list does not establish support for delegation signatures. The protocol has no delegation-algorithm discovery field, and `invalid_session` does not distinguish an unsupported algorithm from other failures. An agent that requires blind signing may be unable to work with a Company that doesn't support PS384. Falling back to ES256 needs a suitable published key and gives up this blind-signing mechanism; don't switch automatically when blind signing is required by the User's privacy settings.
 - [ ] Reject `alg: none` and symmetric algorithms such as HS256.
 - [ ] Verify client assertions and delegations only with keys from the personal agent's verified `jwks_uri` (4.1), and Session JWTs only with the key their verified delegation names in `cnf.jwk` (5.2). Ignore `jku`, `x5u`, and any other key embedded in a JWT. DPoP proofs for DPoP-bound access tokens are the one other exception: the public key in their `jwk` header is how they work.
@@ -186,6 +186,7 @@ When keeping session state:
 
 - [ ] Behind a load balancer, share session state across the servers that handle it, as with server-side cookie sessions, so requests reach the same state whichever server handles them.
 - [ ] Record the user ID and agent ID a session starts with, and reject later Session JWTs for it with different ones (5.3).
+- [ ] Session verification needs no state until the session lookup, so a gateway in front of your endpoints can verify the header once and pass the verified claims on. Endpoints that use no Session claims don't need to change (5.3).
 - [ ] Your authorization server doesn't see the Session header. Sign-in and refresh are plain OAuth, and a session is signed in on each request that carries an access token (5.4).
 - [ ] Remember the `sid`s of sessions you end, and answer them with `session_ended` (5.5). Choose a retention period that fits your session lifetimes.
 - [ ] Use separate sessions for separate accounts. If your policy refuses a second account in a session, answer with `session_ended` (5.4).
@@ -286,12 +287,12 @@ A company can offer personal agents less than its other OAuth clients get withou
 
 ### Recommended: [Retries](https://personalagentprotocol.org/docs/0.3/guides#both-retries)
 
-- [ ] Send an `Idempotency-Key` on API writes that accept one. Use a random UUID (version 4), and reuse the same key when you retry the same request.
+- [ ] Send an `Idempotency-Key` (draft-ietf-httpapi-idempotency-key-header) on API writes that accept one. Use a random UUID (version 4), and reuse the same key when you retry the same request.
 - [ ] Give each conversation message an `id` with at least 128 random bits, and reuse it when you retry the message (8.3).
 - [ ] Each retry needs a new Session JWT, and a new DPoP proof if the access token is DPoP-bound. A retried token request needs a new assertion. The company may reject a `jti` it has already seen.
 - [ ] Wait at least as long as `Retry-After` says on a 429 (MUST, 5.6) or a 503.
 - [ ] Otherwise, back off exponentially with jitter, cap the delay, and limit the number of attempts.
-- [ ] Companies keep idempotency records for a set time, such as a day, scoped to the session. They return the original response for a repeated key, and reject a repeated key with a different body.
+- [ ] Companies keep idempotency records for a set time, such as a day, scoped to the personal agent's `client_id` and the user ID, and to the account when there is one, not to the session, so a retry in a new session still matches. They return the original response for a repeated key, and reject a repeated key with a different body.
 
 ### Recommended: [Describing APIs](https://personalagentprotocol.org/docs/0.3/guides#company-api-descriptions)
 
@@ -364,7 +365,6 @@ A language model usually reads your API descriptions and MCP tool descriptions t
 
 ### Specification: [4.7 Scopes and token responses](https://personalagentprotocol.org/docs/0.3/spec#scopes)
 
-- [ ] **SHOULD**: The Company SHOULD list the scopes it supports in `scopes_supported` in its OAuth server metadata (3.2).
 - [ ] **SHOULD**: The Company SHOULD describe each scope it offers Personal Agents, so the Personal Agent can choose the ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it lists (section 7), or otherwise in `auth.scopes`.
 - [ ] **MUST**: A Company MUST include both fields in each entry.
 - [ ] **MUST NOT**: The Company MUST NOT grant scopes beyond those requested.
@@ -434,7 +434,7 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
 ### Recommended: [Account settings](https://personalagentprotocol.org/docs/0.3/guides#company-account-settings)
 
 - [ ] In account settings, list each connected personal agent with its name, domain, scopes, and when it was last used.
-- [ ] Offer a control to disconnect each one. Disconnecting revokes its refresh tokens and access tokens, and its sessions continue signed out (5.5).
+- [ ] Offer a control to disconnect each one. Disconnecting revokes its refresh tokens, and its sessions continue signed out (5.5). Also invalidate the access tokens issued under them, as RFC 7009 §2.1 allows.
 
 ### Recommended: [Enforcing scopes everywhere](https://personalagentprotocol.org/docs/0.3/guides#company-scopes)
 
@@ -467,12 +467,10 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
 ### Operations: [6. Sending the approval](https://personalagentprotocol.org/docs/0.3/extensions/operations#sending-approval)
 
 - [ ] **MUST**: Companies MUST ignore members of `Poppy-Approval` they don't recognize, so later versions can add members.
-- [ ] **MUST**: After the Session header checks in spec 5.3 and the token checks in spec 7, the Company MUST make the following checks before performing the action.
-- [ ] **SHOULD**: It SHOULD make them in this order:
+- [ ] **MUST**: After the Session header checks in spec 5.3 and the token checks in spec 7, the Company MUST make the following checks before performing the action, and respond as the first one that fails says, whatever order it makes them in internally:
     - [ ] The Session can approve the operation (3). If it can't, the Company handles the request as if it had no approval.
     - [ ] The operation hasn't been performed already. If it has, or is being performed, the Company responds as section 7 describes.
     - [ ] The `revision` is one the Company returned for this operation, it hasn't expired, and the request asks for exactly what it describes. The API request or tool call is the one that returned the operation, and in a conversation, the operation is the conversation's.
-- [ ] **MUST NOT**: The Company MUST NOT let a different internal check order change which Session can approve, the response for a request without valid approval, or the retry and at-most-once behavior in section 7.
 - [ ] **MUST NOT**: A Company MUST NOT answer an approval with the revision it names, so a Personal Agent never retries the same approval in a loop.
 
 ### Operations: [7. Retries and at most once](https://personalagentprotocol.org/docs/0.3/extensions/operations#at-most-once)
