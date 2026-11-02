@@ -136,6 +136,9 @@
                 }
             }
         },
+        "skill_index": {
+            "$ref": "skill-index.schema.json"
+        },
         "extensions": {
             "type": "object",
             "properties": {

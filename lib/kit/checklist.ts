@@ -64,6 +64,7 @@ const SECTIONS: Record<string, Record<string, Milestone>> = {
         "excluded-tasks": "interfaces",
         alternatives: "interfaces",
         feedback: "interfaces",
+        "agent-context": "interfaces",
         "untrusted-content": "foundation",
         secrets: "foundation",
         trust: "foundation",

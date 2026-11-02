@@ -272,6 +272,10 @@ A company can offer personal agents less than its other OAuth clients get withou
 - [ ] **MUST**: The Company MUST verify the header before attributing a report to a Personal Agent, User, or Session.
 - [ ] **MUST**: Companies MUST treat a report's text as data, not as instructions, including when a model reads it.
 
+### Specification: [9.4 Agent context](https://personalagentprotocol.org/docs/0.3/spec#agent-context)
+
+- [ ] **MUST**: Companies that publish `skill_index` MUST follow that revision's index format, artifact distribution, integrity, and HTTP requirements, with the index embedded here instead of fetched separately.
+
 ### Recommended: [Retries](https://personalagentprotocol.org/docs/0.3/guides#both-retries)
 
 - [ ] Send an `Idempotency-Key` on API writes that accept one. Use a random UUID (version 4), and reuse the same key when you retry the same request.

@@ -241,6 +241,18 @@ not report a task the Company lists as excluded.
 
 </Change>
 
+<Change title="Skills for Personal Agents" sections="3, 3.1, 9, 9.4, 10.1">
+
+Companies can embed an optional `skill_index` in `poppy.json`, reusing a pinned revision of the
+Agent Skills discovery draft and its artifact and verification rules. The audience is Personal
+Agents acting for the User at that Company. Full URLs can point to other domains; relative
+references resolve against the final `poppy.json` URL. Skills remain Company content and grant no
+account access or User approval. A separate Agent Skills well-known index is optional.
+Agent context in Task coverage explains how Personal Agents select, fetch, verify, and use
+relevant skills.
+
+</Change>
+
 <Change title="Secrets out of model context" breaking sections="10.2, guides#both-secrets">
 
 Personal Agents must keep access tokens, Session JWTs, private keys, authorization codes, PKCE code

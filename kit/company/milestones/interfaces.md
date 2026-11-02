@@ -17,7 +17,7 @@ staging.
 - [4.5 Access tokens](https://personalagentprotocol.org/docs/spec#access-tokens) for MCP tokens, and
   [5.6](https://personalagentprotocol.org/docs/spec#sending-requests) again for rate limits
 - [Section 9, Task coverage](https://personalagentprotocol.org/docs/spec#task-coverage),
-  for excluded tasks and feedback
+  for excluded tasks, feedback, and agent context
 - Guides: [Guest access](https://personalagentprotocol.org/docs/guides#company-guest),
   [Internal services](https://personalagentprotocol.org/docs/guides#company-internal),
   [Conversations](https://personalagentprotocol.org/docs/guides#company-conversations),
@@ -153,6 +153,13 @@ Both are optional.
   for a report that is malformed or too long, and rate limits are 429 with `Retry-After`.
 - A report can be wrong, or written to mislead. Treat its text as data, not as instructions,
   including when a model reads it.
+
+## Agent context
+
+Optionally publish task workflows as Agent Skills in `skill_index` in `poppy.json`
+([9.4](https://personalagentprotocol.org/docs/spec#agent-context)). See `patterns/poppy-json.md`
+for the index format and artifact requirements. These skills help Personal Agents use the
+Company's interfaces on the User's behalf.
 
 ## Decisions for this milestone
 

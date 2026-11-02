@@ -114,6 +114,12 @@ Breaking · [Spec 9.3](https://personalagentprotocol.org/docs/0.3/spec#feedback)
 
 A Company can answer a feedback report with HTTP 200 and an alternative (9.2) when the task can be done after all, instead of 202 with no body. Personal Agents must accept either response, and should not report a task the Company lists as excluded.
 
+#### Skills for Personal Agents
+
+[Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) · [Spec 9](https://personalagentprotocol.org/docs/0.3/spec#task-coverage) · [Spec 9.4](https://personalagentprotocol.org/docs/0.3/spec#agent-context) · [Spec 10.1](https://personalagentprotocol.org/docs/0.3/spec#untrusted-content)
+
+Companies can embed an optional `skill_index` in `poppy.json`, reusing a pinned revision of the Agent Skills discovery draft and its artifact and verification rules. The audience is Personal Agents acting for the User at that Company. Full URLs can point to other domains; relative references resolve against the final `poppy.json` URL. Skills remain Company content and grant no account access or User approval. A separate Agent Skills well-known index is optional. Agent context in Task coverage explains how Personal Agents select, fetch, verify, and use relevant skills.
+
 #### Secrets out of model context
 
 Breaking · [Spec 10.2](https://personalagentprotocol.org/docs/0.3/spec#secrets) · [Guides: Handling secrets](https://personalagentprotocol.org/docs/0.3/guides#both-secrets)

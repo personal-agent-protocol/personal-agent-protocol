@@ -71,7 +71,7 @@ A Company MUST publish its `poppy.json` document at `https://{domain}/.well-know
 1. `organization.domain` is the host that served the document (3.1). This stops a document copied to another domain from speaking for the Company.
 2. When there is an issuer, its `protected_resources` lists `https://{organization.domain}` (3.2). This stops a domain from claiming another Company's issuer and receiving its tokens.
 
-**HTTPS.** Every URL this protocol defines or exchanges MUST be an HTTPS URL: in `poppy.json`, in authorization server and protected resource metadata, in client metadata documents (4.1), in extensions, and in assertions, Session JWTs, and responses. Personal Agents MUST NOT use a URL from a Company that has another scheme, and Companies MUST reject one from a Personal Agent. This doesn't cover the pages of a Company's website, which Personal Agents browse as any visitor would (section 6), or loopback redirect URIs (4.2).
+**HTTPS.** Every URL this protocol defines or exchanges MUST be an HTTPS URL: in `poppy.json`, in authorization server and protected resource metadata, in client metadata documents (4.1), in extensions, and in assertions, Session JWTs, and responses. Personal Agents MUST NOT use a URL from a Company that has another scheme, and Companies MUST reject one from a Personal Agent. This doesn't cover the pages of a Company's website, which Personal Agents browse as any visitor would (section 6), or loopback redirect URIs (4.2). Skill artifact URL references (9.4) are resolved before this rule applies.
 
 **Redirects and addresses.** Outside discovery, a redirect never carries the protocol's secrets. If the token, revocation, or device authorization endpoint, an API, `{browser_session_endpoint}/authorize`, or a conversation, feedback, or extension endpoint answers with a redirect, the Personal Agent MUST NOT send a token, Session JWT, assertion, or credentials to the new URL. Personal Agents and Companies MUST NOT connect to a loopback, private, or link-local address for a URL the other party gave them, unless they were configured to on purpose. Otherwise a Company could aim Personal Agents at another Company's servers or at internal ones.
 
@@ -148,6 +148,7 @@ An example document:
 | `feedback` | No | `endpoint` is an HTTPS URL where Personal Agents report a User's task that can't be done through this protocol (9.3). |
 | `excluded_tasks` | No | `url` is an HTTPS URL of the document that lists the tasks the Company chose not to offer through this protocol (9.1). |
 | `extensions` | No | The extensions the Company supports, keyed by name (below). |
+| `skill_index` | No | An Agent Skills discovery index for Personal Agents acting for the User at this Company (9.4). |
 
 ### 3.2 OAuth server
 
@@ -1229,6 +1230,8 @@ A Personal Agent can spend a long time looking for a way to do a task that the C
 
 Neither is for errors. A Company already returns errors in its responses (sections 7 and 8), including for a task it doesn't offer, and can see them in its own logs.
 
+A Company can also publish agent context as skills that help Personal Agents carry out supported tasks (9.4).
+
 ### 9.1 Excluded tasks
 
 A Company that lists tasks it doesn't offer lists `excluded_tasks.url` in `poppy.json` (3.1). The URL points to a JSON document:
@@ -1326,13 +1329,48 @@ A Company that wants feedback lists `feedback.endpoint` in `poppy.json` (3.1). W
 
 The Company responds with HTTP 202 and no body. When the task can be done after all, it MAY instead respond with HTTP 200 and an alternative (9.2) as the body, such as the one in 9.2 for paying with a gift card. Personal Agents MUST accept either response. Token errors and `invalid_session` (5.3) are the ones in section 7. Other errors have a JSON body with an `error` code, as in 8.13: `invalid_request` (400) for a report that is malformed or too long. Rate limits follow 5.6.
 
+### 9.4 Agent context
+
+A Company MAY include `skill_index` in `poppy.json` to publish skills for Personal Agents acting on the User's behalf at that Company. A skill describes how to perform a task, such as changing a booking through the Company's APIs. This index is for those Personal Agents, not for developers implementing Poppy or for the Company's own agents.
+
+APIs describe available operations. A skill can explain how to combine them into a task: the prerequisites, the order of calls, and how to handle common outcomes. Publishing the index in `poppy.json` lets a Personal Agent find these workflows during Company discovery and identify relevant skills from their descriptions before fetching their contents. Using the Agent Skills format lets Companies reuse existing skills and tooling.
+
+`skill_index` contains a complete index from the [Agent Skills discovery proposal](https://github.com/jonathanhefner/agentskills/blob/ab2ff8db3d5c9597985b06f94ea3caf1996ce82e/docs/well-known-uri.mdx), using its `0.2.0` schema identifier. That proposal is a draft, not an adopted Agent Skills standard; this specification refers to the linked revision. Companies that publish `skill_index` MUST follow that revision's index format, artifact distribution, integrity, and HTTP requirements, with the index embedded here instead of fetched separately. Its HTTP requirements for `index.json` apply to the enclosing `poppy.json` document. Skills use the [Agent Skills format](https://agentskills.io/specification).
+
+*Excerpt from poppy.json*
+
+```
+"skill_index": {
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "manage-bookings",
+      "description": "Manage the User's bookings with this Company.",
+      "type": "skill-md",
+      "url": "https://cdn.example.com/skills/manage-bookings/SKILL.md",
+      "digest": "sha256:1b2a8cde934e632f7e14fa080a627ad7191e29d412d2b8a7aa07d9c9ab2f475e"
+    }
+  ]
+}
+```
+
+Every entry has `name`, `description`, `type`, `url`, and `digest`. `type` is `skill-md` for a single `SKILL.md` file or `archive` for a skill with supporting files. `digest` is the SHA-256 of the artifact's raw bytes, prefixed with `sha256:` and written as 64 lowercase hex characters. The proposal defines the archive formats, layout, and extraction checks. Personal Agents that use the index MUST follow its verification and archive safety requirements before using a skill.
+
+**Using a skill.** A Personal Agent can match the User's task against entry names and descriptions, fetch a relevant artifact from its resolved `url`, verify its `digest`, and load the skill's contents as needed. The Personal Agent then uses the workflow through the Company's advertised channels, following the usual Session, account access, and approval requirements. Personal Agents MAY ignore `skill_index` and use those channels directly; a Company does not need to publish skills to support Poppy.
+
+**URLs.** Personal Agents MUST resolve an entry's `url` against the final `poppy.json` URL after redirects, using [RFC 3986 §5](https://www.rfc-editor.org/rfc/rfc3986#section-5). Relative references such as `skills/manage-bookings/SKILL.md`, origin-relative references such as `/skills/manage-bookings/SKILL.md`, and full URLs on other domains are all allowed. Resolved URLs and redirects still follow section 3's HTTPS and address rules. Listing an artifact on another domain does not make that domain an API endpoint or authorize sending it credentials or Session headers.
+
+**Compatibility.** Personal Agents SHOULD ignore unknown index fields, and SHOULD skip entries with an unknown `type` and warn the User. Personal Agents SHOULD warn the User and ignore the index when `$schema` is absent or unknown; the rest of `poppy.json` remains usable. `$schema` is an opaque version identifier, not a URL Personal Agents need to fetch. A Company MAY also publish the same index at `/.well-known/agent-skills/index.json` for other clients. Absolute URLs let it reuse entries unchanged at either location; relative references use each document's URL as their base. Poppy does not require that separate index or require other skill clients to discover `poppy.json`.
+
+**Authority.** A skill is Company content (10.1). Personal Agents MAY use its descriptions and workflows to carry out the User's task. A skill grants no account access, changes no OAuth scopes, and supplies no User approval. It does not authorize another task or override the Personal Agent's policies. Personal Agents MUST NOT execute scripts from a skill unless the User or the Personal Agent's configuration explicitly allows it.
+
 ## 10. Security considerations
 
 This section collects risks that cut across the protocol. The sections it points to hold the detailed rules.
 
 ### 10.1 Content from Companies
 
-A Personal Agent passes what a Company returns to its model: conversation messages, API descriptions and responses, MCP tool descriptions and results, web pages, excluded tasks and alternatives (section 9). The same model may hold the User's personal context and have Sessions open at other Companies. A malicious or compromised Company can write content that tries to direct the model, known as prompt injection.
+A Personal Agent passes what a Company returns to its model: conversation messages, API descriptions and responses, MCP tool descriptions and results, web pages, skill indexes and skill contents (9.4), excluded tasks and alternatives (section 9). The same model may hold the User's personal context and have Sessions open at other Companies. A malicious or compromised Company can write content that tries to direct the model, known as prompt injection.
 
 - Personal Agents MUST treat content from a Company as data, not as instructions. Only the User decides what the Personal Agent does.
 - A Personal Agent MUST NOT act at one Company, or send it information, because content from another Company asked it to. It acts at a Company only when the User's task needs it.
@@ -1386,6 +1424,7 @@ This draft uses these standards and versions:
 | Subject | References |
 | --- | --- |
 | Requirement words | [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119), [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174) |
+| Skills | [Agent Skills format](https://agentskills.io/specification), [Agent Skills discovery proposal, pinned revision](https://github.com/jonathanhefner/agentskills/blob/ab2ff8db3d5c9597985b06f94ea3caf1996ce82e/docs/well-known-uri.mdx), [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986) |
 | OAuth | [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749), [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750), [RFC 7009](https://www.rfc-editor.org/rfc/rfc7009), [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414), [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728) |
 | Sign-in | [RFC 7636](https://www.rfc-editor.org/rfc/rfc7636), [RFC 8252](https://www.rfc-editor.org/rfc/rfc8252), [RFC 8628](https://www.rfc-editor.org/rfc/rfc8628), [RFC 9207](https://www.rfc-editor.org/rfc/rfc9207) |
 | User IDs | [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html) |
