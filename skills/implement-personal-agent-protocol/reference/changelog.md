@@ -170,6 +170,16 @@ A one-time code is the OAuth error `code_required`, with `sign_in_id`, `sent_to`
 
 Mediated Sign-In is a transitional step, not where the protocol is headed, like OAuth's password grant. Companies should offer it only until they can add Direct or Device Sign-In, and stop once those cover the same scopes. The protocol plans to remove it, on a date set when version 1.0 is published, and after that the community will look for ways to encourage the Companies that still offer it to move to Direct or Device Sign-In. Personal Agents should use Direct or Device Sign-In rather than Mediated Sign-In when the Company offers it and its scopes cover the task, where 0.2 only suggested this in the guides. A new section 10.5 explains what a Company gives up when Personal Agents sign in with the User's credentials outside the protocol, and the guides suggest that Companies that offer Direct or Device Sign-In make their scopes and APIs cover what Users need.
 
+#### UCP extension
+
+[Spec 3.3](https://personalagentprotocol.org/docs/0.3/spec#extensions) · [Spec 8.1](https://personalagentprotocol.org/docs/0.3/spec#conversation-protocols) · [UCP](https://personalagentprotocol.org/docs/0.3/extensions/ucp)
+
+A new [UCP extension](https://personalagentprotocol.org/docs/0.3/extensions/ucp), version 1, says how a Company that speaks the Universal Commerce Protocol connects. The Company lists `ucp` in `extensions`; its UCP profile is at UCP's well-known URL on `organization.domain`, fetched without following redirects, and negotiation follows UCP. This protocol finds the Company, identifies the Personal Agent and a pseudonymous User, and signs the User in; UCP is the business protocol for how a Personal Agent shops.
+
+UCP requests carry the Personal Agent's platform profile in the transport's form, the Session header, which the Company MAY verify, a recommended operator signature that can cover both protocols' components, and a Bearer access token when signed in. Both protocols discover the Company's issuer from the same protected resource metadata, and the Company's scopes for UCP operations are UCP's, listed in `scopes_supported`. Platform profiles aren't specific to a User.
+
+A Company can list UCP Ask in `agent.protocols` with type `ucp`, next to `poppy`. Carts, checkouts, orders, and payment are defined by UCP, with UCP's checkout review as the one approval for a purchase. A UCP `continue_url` goes to the User's browser, presented like a Direct Sign-In URL. A UCP endpoint MAY ignore the Session header and still takes signed-out calls, since UCP identifies the Personal Agent itself.
+
 ### Minor changes
 
 #### Protocol layers overview

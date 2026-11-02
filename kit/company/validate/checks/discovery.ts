@@ -333,7 +333,13 @@ export function checkPoppyDocument(
 }
 
 // The extensions this version of the protocol defines, whose plain names are reserved for them.
-export const PROTOCOL_EXTENSIONS = ["disclosures", "links", "mediated-sign-in", "operations"];
+export const PROTOCOL_EXTENSIONS = [
+    "disclosures",
+    "links",
+    "mediated-sign-in",
+    "operations",
+    "ucp",
+];
 
 // An extension name that starts with a domain, such as example.com/gift-wrap.
 const DOMAIN_NAME =

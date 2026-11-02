@@ -4,10 +4,11 @@
         "pages": [
             "spec",
             "extensions",
-            "extensions/operations",
-            "extensions/mediated-sign-in",
-            "extensions/links",
             "extensions/disclosures",
+            "extensions/links",
+            "extensions/mediated-sign-in",
+            "extensions/operations",
+            "extensions/ucp",
             "guides"
         ]
     },

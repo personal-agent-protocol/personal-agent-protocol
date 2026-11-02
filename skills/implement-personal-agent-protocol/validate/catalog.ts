@@ -107,6 +107,18 @@ export const SECTION_NUMBERS: Record<string, string> = {
     "disclosures#intro": "1",
     "disclosures#support": "2",
     "disclosures#disclosures": "3",
+    "ucp#intro": "1",
+    "ucp#support": "2",
+    "ucp#discovery": "3",
+    "ucp#authorization": "4",
+    "ucp#conversations": "5",
+    "ucp#commerce": "6",
+    "ucp#escalation": "7",
+    "ucp#sessions": "8",
+    "ucp#errors": "9",
+    "ucp#security": "10",
+    "ucp#example": "11",
+    "ucp#references": "12",
 };
 
 function foundation(
