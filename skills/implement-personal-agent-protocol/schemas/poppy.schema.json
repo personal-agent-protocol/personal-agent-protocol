@@ -20,6 +20,9 @@
                 },
                 "domain": {
                     "$ref": "#/$defs/domain"
+                },
+                "logo_uri": {
+                    "$ref": "#/$defs/https_url"
                 }
             }
         },

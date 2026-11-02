@@ -107,6 +107,8 @@ A deployment that also uses the Universal Commerce Protocol (UCP) can reuse an a
 
 When the company you reach is on a different domain from the one the user asked for, tell the user which company you're dealing with, its `organization.name` and domain, before you sign in or act for them. A well-known URL can redirect to any host's `/.well-known/poppy.json` ([section 3](https://personalagentprotocol.org/docs/0.3/spec#discovery)). A rebrand, such as `oldname.example` redirecting to `newname.example`, then costs one line, and a domain that sends you to another company can't move the user's task there without them noticing.
 
+A company's `organization.logo_uri` helps the user recognize it. Show the logo next to the company's name and domain, never in place of the domain, because any company can use another's logo. Fetch it as you fetch other metadata ([guides](#both-fetching)) and serve your own copy, rather than having the user's device load it from the company.
+
 ### User IDs
 
 Each user needs a stable, opaque ID for each company ([5.1](https://personalagentprotocol.org/docs/0.3/spec#user-ids)). Two ways to make one:

@@ -160,6 +160,12 @@ Mediated Sign-In is a transitional step, not where the protocol is headed, like 
 
 ### Minor changes
 
+#### Company logo
+
+[Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) · [Guides: Finding a company](https://personalagentprotocol.org/docs/0.3/guides#agent-discovery)
+
+`organization` can include a `logo_uri`, an HTTPS URL of the Company's logo, named as in client metadata. Personal Agents show it with the Company's name and domain.
+
 #### OAuth terms for Poppy names
 
 [Spec 2](https://personalagentprotocol.org/docs/0.3/spec#terms)

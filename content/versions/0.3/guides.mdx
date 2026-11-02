@@ -207,6 +207,11 @@ them. A well-known URL can redirect to any host's `/.well-known/poppy.json` ([se
 then costs one line, and a domain that sends you to another company can't move the user's task there
 without them noticing.
 
+A company's `organization.logo_uri` helps the user recognize it. Show the logo next to the
+company's name and domain, never in place of the domain, because any company can use another's
+logo. Fetch it as you fetch other metadata ([guides](#both-fetching)) and serve your own copy,
+rather than having the user's device load it from the company.
+
 ### User IDs {#agent-user-ids}
 
 Each user needs a stable, opaque ID for each company ([5.1](/docs/spec#user-ids)). Two ways
