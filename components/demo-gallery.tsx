@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { ExternalLink } from "lucide-react";
+import { LATEST } from "../content/docs";
 
 // A list of community demos, each an <Demo>.
 export function DemoGallery({ children }: { children?: ReactNode }) {
@@ -8,8 +9,8 @@ export function DemoGallery({ children }: { children?: ReactNode }) {
 
 // A community demo in an <DemoGallery>: a screenshot that links to the demo, then its heading
 // and description, which are the children, then links to the demo and its source and the Poppy
-// version it implements. `label` names the link to the demo, "Try <title>" by default.
-// remarkCardNames sets `id` and `title` from the heading.
+// version it implements, highlighted when it's the latest. `label` names the link to the demo,
+// "Try <title>" by default. remarkCardNames sets `id` and `title` from the heading.
 export function Demo({
     href,
     repo,
@@ -59,7 +60,7 @@ export function Demo({
                             <ExternalLink size={13} aria-hidden="true" />
                         </a>
                     ) : null}
-                    <span className={version === "0.2" ? "tag tag-current" : "tag"}>
+                    <span className={version === LATEST.id ? "tag tag-current" : "tag"}>
                         Version {version}
                     </span>
                 </p>
