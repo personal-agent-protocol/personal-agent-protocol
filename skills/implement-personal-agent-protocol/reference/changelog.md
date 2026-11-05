@@ -52,6 +52,14 @@ A Company whose website treats `poppy:browser-sign-in` as the account's full acc
 
 A Company sets `web.disabled` to ask Personal Agents to use only its Company Agent and APIs. A Personal Agent should not browse its website. A Company that sets it lists no `browser_session_endpoint`, and lists `agent` or `apis`. The protocol can't enforce it, so it isn't a promise that Personal Agents won't browse.
 
+### Minor changes
+
+#### When and how the User approved
+
+[Operations 6](https://personalagentprotocol.org/docs/0.4/extensions/operations#sending-approval) · [Operations 8.1](https://personalagentprotocol.org/docs/0.4/extensions/operations#approval-proof)
+
+An approval can say when the User approved, in `approved_at`, and how they gave their answer, in `input_type`, such as `tap`, `typed`, or `voice`. The Personal Agent SHOULD include both. They are its statements, like the approval itself, and a Company doesn't reject an approval without them. Section 8.1 says a later version or extension can add a signature over the terms from the User's device.
+
 ## Version 0.3
 
 Published November 4, 2026. It's frozen at [/docs/0.3/spec](https://personalagentprotocol.org/docs/0.3/spec). Major changes are design decisions. Minor changes fill gaps, make the text consistent, or follow an RFC. A change tagged "Breaking" can require an implementation that followed the 0.2 text to change, whether it's major or minor.

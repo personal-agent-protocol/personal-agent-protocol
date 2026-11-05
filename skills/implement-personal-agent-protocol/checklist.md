@@ -502,6 +502,7 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
 
 ### Operations: [6. Sending the approval](https://personalagentprotocol.org/docs/0.4/extensions/operations#sending-approval)
 
+- [ ] **MUST NOT**: A Company MAY record `approved_at` and `input_type`, and MUST NOT reject an approval because either is missing or because it doesn't recognize the `input_type`.
 - [ ] **MUST**: Companies MUST ignore members of `Poppy-Approval` they don't recognize, so later versions can add members.
 - [ ] **MUST**: After the Session header checks in spec 5.3 and the token checks in spec 7, the Company MUST make the following checks before performing the action, and respond as the first one that fails says, whatever order it makes them in internally:
     - [ ] The Session can approve the operation (3). If it can't, the Company handles the request as if it had no approval.

@@ -88,6 +88,18 @@ a promise that Personal Agents won't browse.
 
 </Change>
 
+### Minor changes {#v0-4-minor}
+
+<Change title="When and how the User approved" sections="Operations 6, Operations 8.1">
+
+An approval can say when the User approved, in `approved_at`, and how they gave their answer, in
+`input_type`, such as `tap`, `typed`, or `voice`. The Personal Agent SHOULD include both. They are
+its statements, like the approval itself, and a Company doesn't reject an approval without them.
+Section 8.1 says a later version or extension can add a signature over the terms from the User's
+device.
+
+</Change>
+
 ## Version 0.3 {#v0-3}
 
 Published November 4, 2026. It's frozen at [/docs/0.3/spec](/docs/0.3/spec). Major changes are

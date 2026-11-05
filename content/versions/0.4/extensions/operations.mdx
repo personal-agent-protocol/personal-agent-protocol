@@ -233,13 +233,26 @@ approval states that the User approved this revision of the operation.
 ## 6. Sending the approval {#sending-approval}
 
 The Personal Agent sends the approval through the interface that returned the operation. An
-approval names the `operation_id` and the `revision`.
+approval names the `operation_id` and the `revision`. It can also say when and how the User gave
+it:
+
+- `approved_at` is when the User approved, in Unix seconds. It can be earlier than the request, for
+  example when the Personal Agent sends the approval later.
+- `input_type` is how the User gave their answer, as a short string, such as `tap`, `typed`, or
+  `voice`. Other values are allowed. It MUST NOT contain personal data, or anything that identifies
+  the User or their device.
+
+The Personal Agent SHOULD include both. They describe the User's approval of this revision only. A
+Company MAY record `approved_at` and `input_type`, and MUST NOT reject an approval because either is
+missing or because it doesn't recognize the `input_type`. Like the approval itself, they are the
+Personal Agent's statements (8.1).
 
 ### APIs
 
 The Personal Agent sends the same request again, with the same method, URL, and body, and the
 approval in the `Poppy-Approval` header. The header is a Dictionary Structured Field ([RFC
-9651](https://www.rfc-editor.org/rfc/rfc9651)) with `operation_id` and `revision` as Strings:
+9651](https://www.rfc-editor.org/rfc/rfc9651)) with `operation_id`, `revision`, and `input_type` as
+Strings, and `approved_at` as an Integer:
 
 ```http label="Request: Personal Agent → Company"
 POST https://api.example.com/orders/ord_7Hk2/exchanges
@@ -248,7 +261,7 @@ Poppy-Version: 0.4
 Authorization: Bearer eyJhbGciOi…Qp4w
 Content-Type: application/json
 Idempotency-Key: 9a3d7b2e-5c1f-4e8a-b6d0-2f7c4a1e9b3d
-Poppy-Approval: operation_id="exc_5Rt2", revision="1791487200-k3Jd9Qx2mW8v"
+Poppy-Approval: operation_id="exc_5Rt2", revision="1791487200-k3Jd9Qx2mW8v", approved_at=1791487260, input_type="tap"
 
 { "item_id": "itm_4Qa", "replacement_sku": "stormline-insulated-m" }
 ```
@@ -271,7 +284,12 @@ object in `_meta` under `personalagentprotocol.org/approval`:
     "name": "exchange_item",
     "arguments": { "order_id": "ord_7Hk2", "item_id": "itm_4Qa", "replacement_sku": "stormline-insulated-m" },
     "_meta": {
-      "personalagentprotocol.org/approval": { "operation_id": "exc_5Rt2", "revision": "1791487200-k3Jd9Qx2mW8v" }
+      "personalagentprotocol.org/approval": {
+        "operation_id": "exc_5Rt2",
+        "revision": "1791487200-k3Jd9Qx2mW8v",
+        "approved_at": 1791487260,
+        "input_type": "tap"
+      }
     }
   }
 }
@@ -288,7 +306,14 @@ The Personal Agent sends a message with the approval as a JSON object in
   "author": { "type": "agent" },
   "text": "The user approved the exchange.",
   "extensions": {
-    "operations": { "approval": { "operation_id": "exc_5Rt2", "revision": "1791487200-k3Jd9Qx2mW8v" } }
+    "operations": {
+      "approval": {
+        "operation_id": "exc_5Rt2",
+        "revision": "1791487200-k3Jd9Qx2mW8v",
+        "approved_at": 1791487260,
+        "input_type": "voice"
+      }
+    }
   }
 }
 ```
@@ -351,7 +376,14 @@ Agent's interface, so an approval works on trust, like the sign-in types ([spec
 5.4](/docs/spec#sign-in)). A Company MAY revoke the `client_id` of a Personal Agent that sends an
 approval the User didn't give ([spec 4.1](/docs/spec#agent-identity)). A Company that needs proof of the User's approval for an action can ask the User to approve on its own
 website, signed in, the way Direct Sign-In works. This extension doesn't define that step.
-Approvals the User signs are an [open topic](/docs/path-to-1#open-topics).
+
+`approved_at` and `input_type` (6) are the Personal Agent's statements too. They help a Company keep a
+record and judge risk, but don't show how the User approved.
+
+Approvals the User signs are an [open topic](/docs/path-to-1#open-topics). A later version or
+extension can add a signature over the operation's terms, made on the User's device with a key the
+User registered with the Company, so the Company can verify the User's approval itself. It would be
+another member of the approval, which Companies that don't support it ignore.
 
 ## 9. References {#references}
 
