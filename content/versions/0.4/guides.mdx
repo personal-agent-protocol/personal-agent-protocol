@@ -349,7 +349,7 @@ not automatically reconnect an account the User disconnected.
   than asking the user again on the next task ([4.1](/docs/spec#agent-identity)).
 - Prefer direct or device sign-in to mediated sign-in (SHOULD, [Mediated Sign-In
   6](/docs/extensions/mediated-sign-in#security)), and
-  direct to device sign-in ([4.3](/docs/spec#device-sign-in)). With direct and device sign-in, the
+  direct to device sign-in (SHOULD, [4](/docs/spec#oauth)). With direct and device sign-in, the
   user's password stays with the company.
 - Use `scopes_supported`, the company's OpenAPI description, and its sign-in extension metadata
   to find scopes. The advertised list may be incomplete. Read descriptions where available to pick
@@ -748,6 +748,11 @@ The page where the user approves access, in direct and device sign-in
 
 ### Device sign-in {#company-device}
 
+- Offer direct sign-in too (SHOULD, [4](/docs/spec#oauth)). Device sign-in is easier to use for
+  phishing.
+- RFC 10027 [§6.2.1.5](https://www.rfc-editor.org/rfc/rfc10027#section-6.2.1.5) advises against
+  the device authorization grant for sensitive, high-value, or business-critical resources. A
+  company whose accounts hold them, such as a bank, may offer only direct sign-in.
 - Follow the best practices for cross-device flows in [RFC
   10027](https://www.rfc-editor.org/rfc/rfc10027) §2 (MUST, [4.3](/docs/spec#device-sign-in)):
   assess the risk before offering device sign-in, and choose mitigations from its §6.1, such as

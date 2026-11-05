@@ -45,6 +45,10 @@ are left out.
 - [ ] **SHOULD**: A Company that offers sign-in SHOULD publish it and include every scope a Personal Agent can request (4.7).
 - [ ] **MUST**: A Company that lists `signed_in` MUST have an issuer, and MUST NOT set `auth.disabled`.
 
+### Specification: [4. OAuth](https://personalagentprotocol.org/docs/0.4/spec#oauth)
+
+- [ ] **SHOULD**: A Company that offers sign-in SHOULD offer Direct Sign-In.
+
 ### Specification: [4.1 Agent identity](https://personalagentprotocol.org/docs/0.4/spec#agent-identity)
 
 - [ ] **MUST**: Companies MUST reject a client assertion with any other `aud`, compared character for character, including their token endpoint URL.
@@ -415,6 +419,8 @@ The page where the user approves access, in direct and device sign-in (4.2, 4.3)
 
 ### Recommended: [Device sign-in](https://personalagentprotocol.org/docs/0.4/guides#company-device)
 
+- [ ] Offer direct sign-in too (SHOULD, 4). Device sign-in is easier to use for phishing.
+- [ ] RFC 10027 §6.2.1.5 advises against the device authorization grant for sensitive, high-value, or business-critical resources. A company whose accounts hold them, such as a bank, may offer only direct sign-in.
 - [ ] Follow the best practices for cross-device flows in RFC 10027 §2 (MUST, 4.3): assess the risk before offering device sign-in, and choose mitigations from its §6.1, such as short-lived single-use codes, rate limits, limited scopes, and a consent page that says which personal agent is asking and tells the user to decline a code they didn't ask for.
 - [ ] Opening the link MUST NOT approve the request by itself (4.3). The same goes for scanning the QR code. The user signs in and approves on the page.
 - [ ] Ask the user to confirm that the code on the page matches the one the personal agent shows.

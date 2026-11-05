@@ -4,7 +4,15 @@ What changed in each version of the specification, extensions, and guides, newes
 
 ## Draft 0.4
 
-In progress, at [/docs/spec](https://personalagentprotocol.org/docs/0.4/spec). This list grows until 0.4 is published.
+In progress, at [/docs/spec](https://personalagentprotocol.org/docs/0.4/spec). This list grows until 0.4 is published. Major changes are design decisions. Minor changes fill gaps, make the text consistent, or follow an RFC. A change tagged "Breaking" can require an implementation that followed the 0.3 text to change, whether it's major or minor.
+
+### Major changes
+
+#### Direct Sign-In preferred
+
+[Spec 4](https://personalagentprotocol.org/docs/0.4/spec#oauth) · [Spec 4.3](https://personalagentprotocol.org/docs/0.4/spec#device-sign-in) · [Guides: Device sign-in](https://personalagentprotocol.org/docs/0.4/guides#company-device) · [Issue #66](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/66)
+
+Direct Sign-In is the preferred sign-in type. A Company that offers sign-in SHOULD offer Direct Sign-In, and a Personal Agent SHOULD use it when the Company offers it. Device Sign-In stays in the specification. Section 4.3 no longer says that RFC 10027 §6.2.1.5 prefers Direct Sign-In: that section compares the device authorization grant with other cross-device flows. The guides point out that it advises against the device authorization grant for sensitive or high-value resources, so such a Company may offer only Direct Sign-In.
 
 ## Version 0.3
 

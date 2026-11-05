@@ -256,6 +256,8 @@ The flows below follow OAuth 2.0 ([RFC 6749](https://www.rfc-editor.org/rfc/rfc6
 
 The Company's `grant_types_supported` advertises Direct and Device Sign-In (3.2). Personal Agents read it from the same metadata as every other client, so it can list a grant the Company doesn't offer them. A Company can turn off sign-in for every Personal Agent (3.2), or refuse sign-in, or one sign-in type, by `client_id` (4.1). The [guides](https://personalagentprotocol.org/docs/0.4/guides#company-agent-issuer) describe these choices.
 
+Direct Sign-In (4.2) is the preferred sign-in type. A Company that offers sign-in SHOULD offer Direct Sign-In. A Personal Agent SHOULD use Direct Sign-In when the Company offers it.
+
 ### 4.1 Agent identity
 
 A Personal Agent's `client_id` MUST be an HTTPS URL that returns its metadata document. Companies fetch it to learn who the Personal Agent is, to get the keys it signs client assertions and delegations with, and to check where Direct Sign-In may return the User. This follows the [OAuth Client ID Metadata Document (CIMD) draft](https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/).
@@ -324,7 +326,7 @@ Device Sign-In is the OAuth 2.0 device authorization grant ([RFC 8628](https://w
 }
 ```
 
-Device Sign-In is a cross-device flow, and it is easier to use for phishing than Direct Sign-In: whoever holds the `device_code` gets the tokens, so an attacker can start a request and persuade the User to approve it ([RFC 10027](https://www.rfc-editor.org/rfc/rfc10027) §4.1.1). Companies that offer Device Sign-In and Personal Agents that use it MUST follow the best practices in RFC 10027 (BCP 247) §2. They include its protocol selection guidance, which says to use the device authorization grant only when other cross-device flows aren't viable (§6.2.1.5), so a Personal Agent uses Direct Sign-In when it can.
+Device Sign-In is a cross-device flow, and it is easier to use for phishing than Direct Sign-In: whoever holds the `device_code` gets the tokens, so an attacker can start a request and persuade the User to approve it ([RFC 10027](https://www.rfc-editor.org/rfc/rfc10027) §4.1.1). Companies that offer Device Sign-In and Personal Agents that use it MUST follow the best practices in RFC 10027 (BCP 247) §2. They include its guidance on when to use the device authorization grant (§6.2.1.5).
 
 Poppy adds these rules to the grant:
 
