@@ -60,6 +60,22 @@ A Company sets `web.disabled` to ask Personal Agents to use only its Company Age
 
 An approval can say when the User approved, in `approved_at`, and how they gave their answer, in `input_type`, such as `tap`, `typed`, or `voice`. The Personal Agent SHOULD include both. They are its statements, like the approval itself, and a Company doesn't reject an approval without them. Section 8.1 says a later version or extension can add a signature over the terms from the User's device.
 
+#### A DPoP key per User ID
+
+[Spec 4.5](https://personalagentprotocol.org/docs/0.4/spec#access-tokens)
+
+A Personal Agent uses each DPoP key for one User ID only, as it does each delegated key (5.2), so Companies can't link a User by the key's thumbprint. Version 0.2 had this rule, and 0.3 removed it with the other rules Poppy added to RFC 9449.
+
+### Guides
+
+Advice that goes with the spec. Guides aren't requirements.
+
+#### Protecting refresh tokens
+
+[Guides: Rotating keys](https://personalagentprotocol.org/docs/0.4/guides#both-key-rotation) · [Guides: Storing tokens](https://personalagentprotocol.org/docs/0.4/guides#agent-tokens) · [Guides: Token lifetimes and sign-out](https://personalagentprotocol.org/docs/0.4/guides#company-lifetimes)
+
+A refresh token is tied to the Personal Agent's `client_id`, not to a DPoP key, as RFC 9449 §5 says, so the guides advise Personal Agents to keep the client private key in a key service or hardware security module, apart from refresh tokens. Companies can rotate refresh tokens and detect reuse, as RFC 9700 §4.14.2 describes, and revoke every refresh token for a `client_id` whose key may have leaked. Personal Agents can rotate DPoP keys at refresh, using each for one User ID.
+
 ## Version 0.3
 
 Published November 4, 2026. It's frozen at [/docs/0.3/spec](https://personalagentprotocol.org/docs/0.3/spec). Major changes are design decisions. Minor changes fill gaps, make the text consistent, or follow an RFC. A change tagged "Breaking" can require an implementation that followed the 0.2 text to change, whether it's major or minor.

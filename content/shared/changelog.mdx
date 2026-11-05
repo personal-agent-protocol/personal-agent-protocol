@@ -100,6 +100,28 @@ device.
 
 </Change>
 
+<Change title="A DPoP key per User ID" sections="4.5">
+
+A Personal Agent uses each DPoP key for one User ID only, as it does each delegated key (5.2), so
+Companies can't link a User by the key's thumbprint. Version 0.2 had this rule, and 0.3 removed it
+with the other rules Poppy added to RFC 9449.
+
+</Change>
+
+### Guides {#v0-4-guides}
+
+Advice that goes with the spec. Guides aren't requirements.
+
+<Change title="Protecting refresh tokens" sections="guides#both-key-rotation, guides#agent-tokens, guides#company-lifetimes">
+
+A refresh token is tied to the Personal Agent's `client_id`, not to a DPoP key, as RFC 9449 §5
+says, so the guides advise Personal Agents to keep the client private key in a key service or
+hardware security module, apart from refresh tokens. Companies can rotate refresh tokens and detect
+reuse, as RFC 9700 §4.14.2 describes, and revoke every refresh token for a `client_id` whose key may
+have leaked. Personal Agents can rotate DPoP keys at refresh, using each for one User ID.
+
+</Change>
+
 ## Version 0.3 {#v0-3}
 
 Published November 4, 2026. It's frozen at [/docs/0.3/spec](/docs/0.3/spec). Major changes are

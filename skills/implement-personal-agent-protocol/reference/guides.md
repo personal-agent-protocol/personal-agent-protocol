@@ -54,6 +54,7 @@ The Session JWT is the core authentication mechanism. Personal agents should als
 - Publish a new key in `jwks_uri` before signing with it, early enough for companies' caches to pick it up.
 - Keep an old public key published until every client assertion and delegation signed with it has expired.
 - Personal agents: rotate delegated keys as often as you like. Each Session JWT carries its own delegation, so companies don't depend on a delegated key lasting ([5.2](https://personalagentprotocol.org/docs/0.4/spec#delegated-keys)).
+- Personal agents: rotate DPoP keys as often as you like too, but use each one for one user ID only (MUST, [4.5](https://personalagentprotocol.org/docs/0.4/spec#access-tokens)). Send a proof with the new key when you refresh, and the new access token is bound to it.
 - Companies refetch `jwks_uri` when they see an unknown `kid`. The refetch happens before any signature is checked, so anyone can trigger it by naming a real personal agent and a made-up `kid`. Refetch each `jwks_uri` at most once per interval, such as 30 seconds, and count failed fetches too. Otherwise a stream of bad assertions can flood the personal agent's server.
 - Rotating signing keys doesn't affect refresh tokens. They are tied to the `client_id`, not a key ([4.4](https://personalagentprotocol.org/docs/0.4/spec#refresh-tokens)).
 
@@ -162,6 +163,7 @@ Keep the mapping of each user's IDs across companies confidential (MUST, [5.1](h
 
 - Store refresh tokens as secrets ([10.2](https://personalagentprotocol.org/docs/0.4/spec#secrets)). Encrypt them at rest, apart from the model and its tools. Give tools a reference to the token, not the token.
 - Keep access tokens in memory and drop them when they expire.
+- A refresh token is tied to your `client_id`, not to a DPoP key ([RFC 9449](https://www.rfc-editor.org/rfc/rfc9449) §5), so whoever holds it and your client private key can use it. Keep the client private key in a key service or hardware security module that signs without exporting it, and store refresh tokens apart from it.
 - Store refresh tokens by the company's full issuer, as for [user IDs](#agent-user-ids), so a token from one company hosted by a provider is never sent to another.
 - Before the first signed-in call to a service, fetch its protected resource metadata. If it has some and its `resource` isn't `https://{organization.domain}`, request a token for that `resource` and use that token only there ([4.5](https://personalagentprotocol.org/docs/0.4/spec#access-tokens)). Cache the metadata by its HTTP caching headers, and fetch it again when the service answers `invalid_token` with `resource_metadata`.
 - At an MCP server, always use a token whose `resource` is the server's `url` (MUST, [section 7](https://personalagentprotocol.org/docs/0.4/spec#apis)), with the scheme `token_type` names. Send the Session header there too: the server may ignore it, but you can't tell in advance.
@@ -357,6 +359,8 @@ When keeping session state:
 - Where work in progress can take consequential actions on the user's account, such as payments or changes that are hard to undo, tie it to the refresh token, so revoking access stops it right away.
 - Give refresh tokens a lifetime that fits the account, such as 90 days, and expire ones that go unused sooner.
 - Revoke a user's refresh tokens when they reset their password or you suspect the account is compromised.
+- Consider issuing a new refresh token on each refresh and revoking the grant when an old one is used again, as [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700) §4.14.2 describes. If a refresh token is copied, the grant ends as soon as both copies have been used.
+- If a personal agent's signing key may have leaked, revoke every refresh token issued to its `client_id`. Its refresh tokens are tied to the `client_id`, not to a DPoP key ([RFC 9449](https://www.rfc-editor.org/rfc/rfc9449) §5).
 
 ### Describing scopes
 

@@ -131,6 +131,7 @@ Client assertions, delegations, Session JWTs, and DPoP proofs are JWTs. To sign 
 - [ ] Publish a new key in `jwks_uri` before signing with it, early enough for companies' caches to pick it up.
 - [ ] Keep an old public key published until every client assertion and delegation signed with it has expired.
 - [ ] Personal agents: rotate delegated keys as often as you like. Each Session JWT carries its own delegation, so companies don't depend on a delegated key lasting (5.2).
+- [ ] Personal agents: rotate DPoP keys as often as you like too, but use each one for one user ID only (MUST, 4.5). Send a proof with the new key when you refresh, and the new access token is bound to it.
 - [ ] Companies refetch `jwks_uri` when they see an unknown `kid`. The refetch happens before any signature is checked, so anyone can trigger it by naming a real personal agent and a made-up `kid`. Refetch each `jwks_uri` at most once per interval, such as 30 seconds, and count failed fetches too. Otherwise a stream of bad assertions can flood the personal agent's server.
 - [ ] Rotating signing keys doesn't affect refresh tokens. They are tied to the `client_id`, not a key (4.4).
 
@@ -419,6 +420,8 @@ Personal agents work faster and more reliably through a company agent or APIs th
 - [ ] Where work in progress can take consequential actions on the user's account, such as payments or changes that are hard to undo, tie it to the refresh token, so revoking access stops it right away.
 - [ ] Give refresh tokens a lifetime that fits the account, such as 90 days, and expire ones that go unused sooner.
 - [ ] Revoke a user's refresh tokens when they reset their password or you suspect the account is compromised.
+- [ ] Consider issuing a new refresh token on each refresh and revoking the grant when an old one is used again, as RFC 9700 §4.14.2 describes. If a refresh token is copied, the grant ends as soon as both copies have been used.
+- [ ] If a personal agent's signing key may have leaked, revoke every refresh token issued to its `client_id`. Its refresh tokens are tied to the `client_id`, not to a DPoP key (RFC 9449 §5).
 
 ### Recommended: [Describing scopes](https://personalagentprotocol.org/docs/0.4/guides#company-scope-descriptions)
 

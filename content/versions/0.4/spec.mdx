@@ -593,7 +593,8 @@ binds its access tokens with DPoP is its choice, as in OAuth. Personal Agents SH
 because a Personal Agent that doesn't can't sign in at a Company that requires it. A Personal Agent
 that supports it sends a DPoP proof with its token requests when the issuer's metadata lists
 `dpop_signing_alg_values_supported` ([RFC 9449](https://www.rfc-editor.org/rfc/rfc9449) §5.1), so
-the Company can bind the tokens. The Company decides for each token whether to bind it, and returns
+the Company can bind the tokens. The Personal Agent MUST use each DPoP key for one User ID only,
+for the same reason as delegated keys (5.2). The Company decides for each token whether to bind it, and returns
 `token_type` `Bearer` for one it doesn't bind, as RFC 9449 §5 allows, such as a token for a service
 that doesn't accept DPoP. A signed-in
 request also carries the Session header (5.2), whose `ath` covers the access token.
