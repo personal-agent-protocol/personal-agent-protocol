@@ -23,25 +23,23 @@ A Company that supports this extension lists it in `extensions` in its `poppy.js
 
 ```
 "extensions": {
-  "operations": { "version": "2" }
+  "operations": [{ "version": "2" }]
 }
 ```
 
 Support means that the Company can return operations and accept approvals through the interfaces where it offers actions that need approval, and checks approvals and prevents duplicate execution as this extension defines.
 
-A Personal Agent that supports this extension lists it in `extensions` in its client metadata document ([spec 4.1](https://personalagentprotocol.org/docs/0.4/spec#agent-identity)):
+A Personal Agent that supports this extension declares it in `Poppy-Extensions` ([spec 3.4](https://personalagentprotocol.org/docs/0.4/spec#versions)):
 
-*Excerpt from the client metadata document*
+*Request header: Personal Agent → Company*
 
 ```
-"extensions": {
-  "operations": { "version": "2" }
-}
+Poppy-Extensions: "operations";v="2"
 ```
 
 Support means that the Personal Agent can receive operations, get the User's approval, send it through the interface that returned the operation, and handle retries as this extension defines, on each interface it uses.
 
-The extension is used only when both sides list `operations` with `version` `"2"`. A Company MUST NOT return operations to a Personal Agent that doesn't list that version. It handles approval itself, such as on its website or in a Direct Conversation, or refuses the request with `extension_required` and `extension` set to `operations` ([spec 3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)). An MCP server returns that error only to refuse the Personal Agent entirely. A tool that needs the extension returns an ordinary tool error instead ([spec 7](https://personalagentprotocol.org/docs/0.4/spec#apis)).
+The extension is used only when the Company lists `operations` with `version` `"2"` and the request declares that version. A Company MUST NOT return operations in response to a request that doesn't declare it. It handles approval itself, such as on its website or in a Direct Conversation, or refuses the request with `extension_required` and `extension` set to `operations` ([spec 3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)). An MCP server returns that error only to refuse the Personal Agent entirely. A tool that needs the extension returns an ordinary tool error instead ([spec 7](https://personalagentprotocol.org/docs/0.4/spec#apis)).
 
 When only the Personal Agent supports this version, it uses the Company's interfaces without the extension and leaves approval to the Company. A different major version doesn't count as support for this version.
 
@@ -196,6 +194,7 @@ The Personal Agent sends the same request again, with the same method, URL, and 
 ```
 POST https://api.example.com/orders/ord_7Hk2/exchanges
 Poppy-Session: eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…
+Poppy-Version: 0.4
 Authorization: Bearer eyJhbGciOi…Qp4w
 Content-Type: application/json
 Idempotency-Key: 9a3d7b2e-5c1f-4e8a-b6d0-2f7c4a1e9b3d

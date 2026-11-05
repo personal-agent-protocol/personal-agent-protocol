@@ -8,17 +8,25 @@ This page defines version 1 of the `links` extension. It uses the terms in the [
 
 ## 2. Advertising support
 
-A Company that sends links lists the extension in `extensions` in its `poppy.json` ([spec 3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)), and a Personal Agent that can show them lists it in its client metadata document ([spec 4.1](https://personalagentprotocol.org/docs/0.4/spec#agent-identity)):
+A Company that sends links lists the extension in `extensions` in its `poppy.json` ([spec 3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)):
 
-*Excerpt from poppy.json or the client metadata document*
+*Excerpt from poppy.json*
 
 ```
 "extensions": {
-  "links": { "version": "1" }
+  "links": [{ "version": "1" }]
 }
 ```
 
-The Company sends links only to a Personal Agent that lists this version ([spec 8.4](https://personalagentprotocol.org/docs/0.4/spec#message-fields)).
+A Personal Agent that can show them declares it in `Poppy-Extensions` ([spec 3.4](https://personalagentprotocol.org/docs/0.4/spec#versions)):
+
+*Request header: Personal Agent → Company*
+
+```
+Poppy-Extensions: "links";v="1"
+```
+
+The Company sends links only in response to a request that declares this version ([spec 8.4](https://personalagentprotocol.org/docs/0.4/spec#message-fields)).
 
 ## 3. Links in messages
 

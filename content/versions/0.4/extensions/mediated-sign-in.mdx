@@ -30,14 +30,16 @@ A Company that offers Mediated Sign-In lists it in `extensions` in its `poppy.js
 
 ```json label="Excerpt from poppy.json"
 "extensions": {
-  "mediated-sign-in": {
-    "version": "1",
-    "fields": [
-      { "name": "email", "label": "Email", "secret": false },
-      { "name": "password", "label": "Password", "secret": true }
-    ],
-    "scopes": ["orders:read"]
-  }
+  "mediated-sign-in": [
+    {
+      "version": "1",
+      "fields": [
+        { "name": "email", "label": "Email", "secret": false },
+        { "name": "password", "label": "Password", "secret": true }
+      ],
+      "scopes": ["orders:read"]
+    }
+  ]
 }
 ```
 
@@ -53,8 +55,8 @@ A Company that offers Mediated Sign-In lists it in `extensions` in its `poppy.js
   SHOULD also include them in `scopes_supported`. It often grants less than Direct or Device Sign-In. The Company MUST
   NOT grant scopes beyond those requested and listed here.
 
-The Personal Agent doesn't need to list the extension in its client metadata document. The Company
-learns that it uses the extension from the grant type ([spec 3.3](/docs/spec#extensions)).
+The Personal Agent doesn't need to declare the extension in `Poppy-Extensions`, which the token
+endpoint doesn't receive. The Company learns that it uses the extension from the grant type ([spec 3.3](/docs/spec#extensions)).
 
 ## 3. Signing in {#signing-in}
 

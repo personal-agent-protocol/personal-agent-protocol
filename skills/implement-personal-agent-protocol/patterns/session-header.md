@@ -59,7 +59,12 @@ Each service verifies the header itself, with a shared library.
 6. Look up the Session by `client_id` and `sid`. Create a signed-out Session for an unknown `sid`.
    For a known one, check the same `sub` and `agent_id`, and that it hasn't ended.
 
-Any failure returns HTTP 400 with `{"error": "invalid_session"}`, except an ended Session, which
+7. Check `Poppy-Version` is a version you serve
+   ([3.4](https://personalagentprotocol.org/docs/0.4/spec#versions)). A missing or unsupported one
+   returns HTTP 400 with `{"error": "version_unsupported"}`. Read `Poppy-Extensions` for the
+   extensions the request uses, and pass both inward with the Session.
+
+Any other failure returns HTTP 400 with `{"error": "invalid_session"}`, except an ended Session, which
 returns `{"error": "session_ended"}` so the Personal Agent knows to start a new one (5.5). When handling a request depends on
 Session claims, a request without the Session header is refused too, even with an access token
 (5.3).

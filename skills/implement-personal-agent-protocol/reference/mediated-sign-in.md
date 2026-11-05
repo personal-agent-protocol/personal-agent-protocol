@@ -16,14 +16,16 @@ A Company that offers Mediated Sign-In lists it in `extensions` in its `poppy.js
 
 ```
 "extensions": {
-  "mediated-sign-in": {
-    "version": "1",
-    "fields": [
-      { "name": "email", "label": "Email", "secret": false },
-      { "name": "password", "label": "Password", "secret": true }
-    ],
-    "scopes": ["orders:read"]
-  }
+  "mediated-sign-in": [
+    {
+      "version": "1",
+      "fields": [
+        { "name": "email", "label": "Email", "secret": false },
+        { "name": "password", "label": "Password", "secret": true }
+      ],
+      "scopes": ["orders:read"]
+    }
+  ]
 }
 ```
 
@@ -33,7 +35,7 @@ A Company that offers Mediated Sign-In lists it in `extensions` in its `poppy.js
   - `secret` marks a value the Personal Agent MUST protect: never shown back to the User, written to logs, or sent anywhere else.
 - `scopes` lists the scopes Mediated Sign-In can grant ([spec 4.7](https://personalagentprotocol.org/docs/0.4/spec#scopes)). The Company SHOULD also include them in `scopes_supported`. It often grants less than Direct or Device Sign-In. The Company MUST NOT grant scopes beyond those requested and listed here.
 
-The Personal Agent doesn't need to list the extension in its client metadata document. The Company learns that it uses the extension from the grant type ([spec 3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)).
+The Personal Agent doesn't need to declare the extension in `Poppy-Extensions`, which the token endpoint doesn't receive. The Company learns that it uses the extension from the grant type ([spec 3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)).
 
 ## 3. Signing in
 

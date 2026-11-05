@@ -22,15 +22,7 @@
                 "anyOf": [{ "$ref": "#/$defs/https_url" }, { "$ref": "#/$defs/loopback_url" }]
             }
         },
-        "token_endpoint_auth_method": { "const": "private_key_jwt" },
-        "extensions": {
-            "type": "object",
-            "additionalProperties": {
-                "type": "object",
-                "required": ["version"],
-                "properties": { "version": { "type": "string", "minLength": 1 } }
-            }
-        }
+        "token_endpoint_auth_method": { "const": "private_key_jwt" }
     },
     "$defs": {
         "https_url": { "type": "string", "pattern": "^https://[^\\s/?#]+", "format": "uri" },

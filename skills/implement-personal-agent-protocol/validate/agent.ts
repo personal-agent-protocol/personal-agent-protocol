@@ -2,6 +2,7 @@
 // carries a Session JWT in the Poppy-Session header, signed for that request with a delegated key
 // (spec 5.2).
 
+import { PROTOCOL_VERSION } from "./catalog.ts";
 import type { Exchange } from "./http.ts";
 import { userIdFor } from "./identity.ts";
 import { randomId, signSessionJwt, type SigningKey } from "./jose.ts";
@@ -76,6 +77,9 @@ export async function sessionRequest(
         method?: string;
         url: string;
         session?: SessionOptions | "none";
+        // Poppy-Version, which goes with the Session header: this validator's version unless set,
+        // or none when null (spec 3.4).
+        version?: string | null;
         body?: unknown;
         headers?: Record<string, string>;
         note?: string;
@@ -86,8 +90,11 @@ export async function sessionRequest(
     const method = (options.method ?? "GET").toUpperCase();
     const headers: Record<string, string> = { Accept: "application/json", ...options.headers };
     const session = options.session;
-    if (session !== "none")
+    if (session !== "none") {
         headers["Poppy-Session"] = await sessionJwt(ctx, method, options.url, session);
+        const version = options.version === undefined ? PROTOCOL_VERSION : options.version;
+        if (version !== null) headers["Poppy-Version"] = version;
+    }
     let body: string | undefined;
     if (options.body !== undefined) {
         body = typeof options.body === "string" ? options.body : JSON.stringify(options.body);

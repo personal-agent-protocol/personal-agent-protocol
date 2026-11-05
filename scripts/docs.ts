@@ -142,9 +142,21 @@ function startDraft(id: string | undefined) {
             text
                 .replace(new RegExp(`(This is draft version )${old}\\.`), `$1${id}.`)
                 .replace(new RegExp(`("protocol_version": ")${old}"`, "g"), `$1${id}"`)
+                .replace(new RegExp(`^(Poppy-Version: )${old}$`, "gm"), `$1${id}`)
                 .replace(new RegExp(`(This draft is \`)${old}\``), `$1${id}\``),
         "change the version number",
     );
+    // The version in examples on every page: poppy.json documents and the Poppy-Version header.
+    // Pages without examples don't change.
+    for (const page of pages.filter((page) => page !== "spec")) {
+        const path = join(root, `content/versions/${id}/${page}.mdx`);
+        writeFileSync(
+            path,
+            readFileSync(path, "utf8")
+                .replace(new RegExp(`("protocol_version": ")${old}"`, "g"), `$1${id}"`)
+                .replace(new RegExp(`^(Poppy-Version: )${old}$`, "gm"), `$1${id}`),
+        );
+    }
     edit(
         CATALOG,
         (text) =>

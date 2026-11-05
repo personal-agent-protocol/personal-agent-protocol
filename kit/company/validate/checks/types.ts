@@ -45,6 +45,7 @@ export type CheckResult = CheckInfo & {
 
 export type Poppy = {
     protocol_version?: string;
+    supported_versions?: Record<string, string>;
     organization?: { name?: string; domain?: string };
     auth?: {
         issuer?: string;
@@ -57,12 +58,13 @@ export type Poppy = {
     feedback?: { endpoint?: string };
     excluded_tasks?: { url?: string };
     apis?: { type?: string; url?: string; description?: string }[];
-    extensions?: Record<string, { version?: string }> & {
+    // Each extension has an entry for each version (spec 3.3).
+    extensions?: Record<string, { version?: string }[]> & {
         "mediated-sign-in"?: {
             version?: string;
             fields?: unknown[];
             scopes?: string[];
-        };
+        }[];
     };
 };
 
@@ -442,14 +444,25 @@ export function extensionsOf(poppy: Poppy | undefined): Record<string, unknown> 
     return isObject(value) ? value : {};
 }
 
+// An extension's entry for one version, if poppy.json lists it (spec 3.3).
+export function extensionEntry(
+    poppy: Poppy | undefined,
+    name: string,
+    version: string,
+): Record<string, unknown> | undefined {
+    const entries = extensionsOf(poppy)[name];
+    return Array.isArray(entries)
+        ? entries.find((e): e is Record<string, unknown> => isObject(e) && e.version === version)
+        : undefined;
+}
+
 // The Mediated Sign-In extension, when it's listed with a version this validator supports, "1".
 export function mediatedSignIn(
     poppy: Poppy | undefined,
 ): { version: "1"; fields?: unknown; scopes?: unknown } | undefined {
-    const entry = extensionsOf(poppy)["mediated-sign-in"];
-    return isObject(entry) && entry.version === "1"
-        ? (entry as { version: "1"; fields?: unknown; scopes?: unknown })
-        : undefined;
+    return extensionEntry(poppy, "mediated-sign-in", "1") as
+        | { version: "1"; fields?: unknown; scopes?: unknown }
+        | undefined;
 }
 
 // Whether a value is an HTTPS URL with a valid host and port, and no spaces or userinfo.

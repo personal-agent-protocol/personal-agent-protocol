@@ -25,7 +25,8 @@ as MCP authorization already requires. Ignore the Session header.
 ## B. An MCP server that accepts the Session header
 
 The server verifies the Session header as the other resources do (`patterns/session-header.md`),
-often reusing their library or gateway, as well as the access token.
+including the `Poppy-Version` check, often reusing their library or gateway, as well as the access
+token. `Poppy-Version` is separate from MCP's own protocol version header.
 
 - Fits: a new MCP server in front of existing APIs, or one whose calls should join the Session.
 - Needs: Session header verification, and the Session store.

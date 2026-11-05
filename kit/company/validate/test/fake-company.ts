@@ -223,6 +223,16 @@ export type Flaws = {
     directIgnoresParent?: boolean;
     // The Company's reply carries an operation.
     returnOperations?: boolean;
+
+    // --- Versions ---
+    // poppy.json links another version's document from supported_versions: an older one ("older"),
+    // or, for "newer", poppy.json is for 0.3 and links this version's document. The others link an
+    // older document that breaks a rule of spec 3.4.
+    versions?: "older" | "newer" | "otherHost" | "redirect" | "nested" | "mismatch" | "otherIssuer";
+    // Doesn't check Poppy-Version, so a missing or unknown version is handled.
+    ignorePoppyVersion?: boolean;
+    // Rejects an unknown Poppy-Version, but handles a request without one.
+    acceptMissingPoppyVersion?: boolean;
 };
 
 export const ORIGIN = "https://shop.test";
@@ -409,6 +419,12 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
             return { error: invalidSession(), sub: "" };
         }
         if (!token) return { error: invalidSession(), sub: "" };
+        const version = headers.get("poppy-version");
+        if (
+            !flaws.ignorePoppyVersion &&
+            (version ? version !== PROTOCOL_VERSION : !flaws.acceptMissingPoppyVersion)
+        )
+            return { error: json(400, { error: "version_unsupported" }), sub: "" };
         const { header, payload } = token;
         const bad = () => ({ error: invalidSession(), sub: "" });
         const required = ["iss", "aud", "sid", "sub", "htm", "htu", "iat", "jti"];
@@ -833,18 +849,49 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
             excluded_tasks: { url: `${ORIGIN}/poppy/excluded-tasks.json` },
             feedback: { endpoint: FEEDBACK },
             extensions: {
-                "mediated-sign-in": {
-                    version: "1",
-                    fields: [
-                        { name: "email", label: "Email", secret: false },
-                        { name: "password", label: "Password", secret: true },
-                    ],
-                    scopes: ["orders:read"],
-                },
-                "shop.test/gift-wrap": { version: "1", endpoint: `${ORIGIN}/poppy/gift-wrap` },
+                "mediated-sign-in": [
+                    {
+                        version: "1",
+                        fields: [
+                            { name: "email", label: "Email", secret: false },
+                            { name: "password", label: "Password", secret: true },
+                        ],
+                        scopes: ["orders:read"],
+                    },
+                ],
+                "shop.test/gift-wrap": [{ version: "1", endpoint: `${ORIGIN}/poppy/gift-wrap` }],
             },
         };
         if (which === "main") flaws.poppy?.(doc);
+        return doc;
+    };
+
+    // The document at the well-known URL, with supported_versions when flaws.versions is set.
+    const OLD_VERSION = "0.3";
+    const topPoppy = () => {
+        const doc = poppy(flaws.domain ?? "shop.test", "main");
+        if (!flaws.versions) return doc;
+        if (flaws.versions === "newer")
+            return {
+                ...doc,
+                protocol_version: OLD_VERSION,
+                supported_versions: { [PROTOCOL_VERSION]: `${ORIGIN}/poppy/current.json` },
+            };
+        const url =
+            flaws.versions === "otherHost"
+                ? `https://cdn.shop.test/poppy/${OLD_VERSION}.json`
+                : `${ORIGIN}/poppy/${OLD_VERSION}.json`;
+        return { ...doc, supported_versions: { [OLD_VERSION]: url } };
+    };
+    const olderPoppy = () => {
+        const doc: Record<string, any> = {
+            ...poppy(flaws.domain ?? "shop.test", "main"),
+            protocol_version: flaws.versions === "mismatch" ? "0.2" : OLD_VERSION,
+        };
+        if (flaws.versions === "nested")
+            doc.supported_versions = { [PROTOCOL_VERSION]: `${ORIGIN}/.well-known/poppy.json` };
+        if (flaws.versions === "otherIssuer")
+            doc.auth = { ...doc.auth, issuer: "https://other-issuer.test" };
         return doc;
     };
 
@@ -1111,10 +1158,17 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                     status: 200,
                     headers: { "content-type": "text/html" },
                 });
-            return json(200, poppy(flaws.domain ?? "shop.test", "main"), {
-                "cache-control": "max-age=300",
-            });
+            return json(200, topPoppy(), { "cache-control": "max-age=300" });
         }
+        if (flaws.versions === "newer" && path === "/poppy/current.json")
+            return json(200, poppy(flaws.domain ?? "shop.test", "main"));
+        if (flaws.versions && path === `/poppy/${OLD_VERSION}.json`)
+            return flaws.versions === "redirect"
+                ? new Response(null, {
+                      status: 301,
+                      headers: { location: `${ORIGIN}/poppy/old.json` },
+                  })
+                : json(200, olderPoppy());
         if (path === "/poppy/excluded-tasks.json" && method === "GET")
             return json(200, excludedTasks(), { "cache-control": "max-age=300" });
         if (path === "/.well-known/oauth-protected-resource" && flaws.resourceMetadataStatus)

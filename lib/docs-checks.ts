@@ -103,6 +103,7 @@ const VERSION_MENTIONS = [
     /This is draft version (\d+\.\d+)\./g,
     /This draft is `(\d+\.\d+)`/g,
     /"protocol_version": "(\d+\.\d+)"/g,
+    /^Poppy-Version: (\d+\.\d+)$/gm,
 ];
 
 // Each version's spec states that version's number.

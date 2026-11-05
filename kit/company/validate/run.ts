@@ -41,7 +41,7 @@ export const UNAVAILABLE: Partial<Record<Milestone, string>> = {
     "sign-in":
         "Most Milestone 3 (sign-in and accounts) checks need a real sign-in, which the validator never does. It checks only what it can without one, such as Mediated Sign-In's grant type and an unknown sign_in_id. Check the rest by hand against checklist.md.",
     extensions:
-        "Extension checks are limited to what a signed-out run can see, such as no operations returned to a Personal Agent that doesn't list the Operations extension. Check the rest by hand against checklist.md.",
+        "Extension checks are limited to what a signed-out run can see, such as no operations returned in response to a request that doesn't declare the Operations extension. Check the rest by hand against checklist.md.",
 };
 
 export async function runChecks(

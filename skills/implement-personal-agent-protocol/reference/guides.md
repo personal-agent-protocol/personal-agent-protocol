@@ -114,6 +114,12 @@ When the company you reach is on a different domain from the one the user asked 
 
 A company's `organization.logo_uri` helps the user recognize it. Show the logo next to the company's name and domain, never in place of the domain, because any company can use another's logo. Fetch it as you fetch other metadata ([guides](#both-fetching)) and serve your own copy, rather than having the user's device load it from the company.
 
+### Versions
+
+You choose a protocol version and extension versions for each company, so you can move to a new version one company at a time, or for some sessions first, and move back while the company still lists the older version ([3.4](https://personalagentprotocol.org/docs/0.4/spec#versions)). Change versions only at a new session. If you roll out by user, keep it from setting apart a user's anonymous user IDs, for example by choosing versions for those sessions the same way for every user ([5.1](https://personalagentprotocol.org/docs/0.4/spec#user-ids)).
+
+Declare in `Poppy-Extensions` only the extensions the company lists, so you don't tell each company which others you support. A `Deprecation` or `Sunset` header on a response is a sign to move that company to a newer version before the date it gives.
+
 ### User IDs
 
 Each user needs a stable, opaque ID for each company ([5.1](https://personalagentprotocol.org/docs/0.4/spec#user-ids)). Two ways to make one:
@@ -278,6 +284,19 @@ Start with the tasks you want personal agents to accomplish and the interfaces y
 These choices are independent. An OAuth-backed API can work without shared Session state, and a signed-out conversation can use verified Sessions without account access. Personal agents keep sending the Session header on every request covered by [5.2](https://personalagentprotocol.org/docs/0.4/spec#session-header).
 
 If your bot defenses block personal agents, plan operator recognition alongside whichever capabilities you choose. [Operator signatures](#both-operator-signatures) provide compatibility with existing defenses; an edge that verifies delegated Session JWTs can recognize the client directly. Recognition is separate from your decision to accept the client and authorize its work.
+
+### Serving several versions
+
+To add a protocol version ([3.4](https://personalagentprotocol.org/docs/0.4/spec#versions)):
+
+1. Publish the new version's document at a path of your own, such as `/poppy/0.4.json`, on the host that serves `poppy.json`. Static files work: each version is one file. Keep the URL the same for as long as you list the version.
+2. Accept both versions at your endpoints, telling them apart by `Poppy-Version`. Where a version needs its own endpoint, such as a browser-session page that changed, give that version's document its own URL.
+3. Make it your preferred version: in one deploy, serve it at `/.well-known/poppy.json` and add the older document's URL to `supported_versions`.
+4. To retire a version, send `Deprecation` and `Sunset` on its responses for a while, then remove it from `supported_versions`, then stop accepting it. A personal agent with a cached document gets `version_unsupported`, fetches `poppy.json` again, and moves.
+
+You can offer several versions of an extension the same way, with an entry for each in `extensions` ([3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)), and handle each request by the version it declares.
+
+If you serve one version, check `Poppy-Version` where you verify the Session header, and there is nothing else to do.
 
 ### Signed-out support without OAuth
 
@@ -480,8 +499,8 @@ Let a signed-out personal agent session do what a signed-out visitor can do on y
 
 - Let your company agent do everything customers can do by phone, as fully as you can, so personal agents have no reason to call.
 - Put structured details in `data`, not JSON or other markup in `text` ([8.4](https://personalagentprotocol.org/docs/0.4/spec#message-fields)).
-- To a personal agent that lists the [Links extension](https://personalagentprotocol.org/docs/0.4/extensions/links), send the pages a reply refers to as links, rather than URLs in `text`.
-- To a personal agent that lists the [Disclosures extension](https://personalagentprotocol.org/docs/0.4/extensions/disclosures), send notices users need to see, such as allergen or regulatory warnings, as disclosures, and keep them to those. Personal agents decide which to show, and skip ones that read like promotion. Without the extension, put the notice in `text`.
+- To a personal agent that declares the [Links extension](https://personalagentprotocol.org/docs/0.4/extensions/links), send the pages a reply refers to as links, rather than URLs in `text`.
+- To a personal agent that declares the [Disclosures extension](https://personalagentprotocol.org/docs/0.4/extensions/disclosures), send notices users need to see, such as allergen or regulatory warnings, as disclosures, and keep them to those. Personal agents decide which to show, and skip ones that read like promotion. Without the extension, put the notice in `text`.
 - Keep what a message says in `text` and `data`, and use extension content to add to it, so a personal agent that ignores an extension still gets the message ([8.4](https://personalagentprotocol.org/docs/0.4/spec#message-fields)).
 - Write for whoever is on the other side ([8.8](https://personalagentprotocol.org/docs/0.4/spec#human-or-ai)). With a personal agent, skip greetings and small talk and keep text short. With the user, use plain sentences, a pace they can follow, and details in `text` rather than only in `data`. In a direct conversation, reply as you would to the customer on your own channels.
 - Keep a conversation's events for at least 30 days, so a personal agent that reconnects rarely hits `cursor_expired` ([8.5](https://personalagentprotocol.org/docs/0.4/spec#reading-events)).

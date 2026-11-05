@@ -45,6 +45,13 @@ are left out.
 - [ ] **SHOULD**: A Company that offers sign-in SHOULD publish it and include every scope a Personal Agent can request (4.7).
 - [ ] **MUST**: A Company that lists `signed_in` MUST have an issuer, and MUST NOT set `auth.disabled`.
 
+### Specification: [3.4 Versions](https://personalagentprotocol.org/docs/0.4/spec#versions)
+
+- [ ] **MUST**: Each URL in `supported_versions` MUST be an HTTPS URL on the host that served `poppy.json`, after any redirects.
+- [ ] **MUST**: Every document a Company serves at the same time MUST have the same `organization.domain` and select the same issuer (3.2), so that a new version doesn't change the Company's identifier, and with it User IDs and refresh tokens.
+- [ ] **MUST**: An endpoint that verifies the Session header (5.3) MUST also check `Poppy-Version`.
+- [ ] **MUST NOT**: It rejects a request without it, or with a version that isn't compatible with one the Company serves, with `version_unsupported` (HTTP 400, JSON body), and MUST NOT handle the request under another version.
+
 ### Specification: [4. OAuth](https://personalagentprotocol.org/docs/0.4/spec#oauth)
 
 - [ ] **SHOULD**: A Company that offers sign-in SHOULD offer Direct Sign-In.
@@ -161,6 +168,15 @@ Start with the tasks you want personal agents to accomplish and the interfaces y
 - [ ] Account access. Add OAuth when tasks need access to a user's account. Your endpoints can rely on OAuth alone if they use no Session claims. They still validate tokens and enforce scopes and any required DPoP checks. Check your existing authorization server against what Poppy adds to OAuth and client metadata support.
 - [ ] Channels and other capabilities. Offer APIs, web browsing, conversations, or a combination. Add browser join to connect website activity to a Session. Advertise excluded tasks, feedback, and extensions where they help users complete the tasks you support.
 
+### Recommended: [Serving several versions](https://personalagentprotocol.org/docs/0.4/guides#company-versions)
+
+To add a protocol version (3.4):
+
+- [ ] Publish the new version's document at a path of your own, such as `/poppy/0.4.json`, on the host that serves `poppy.json`. Static files work: each version is one file. Keep the URL the same for as long as you list the version.
+- [ ] Accept both versions at your endpoints, telling them apart by `Poppy-Version`. Where a version needs its own endpoint, such as a browser-session page that changed, give that version's document its own URL.
+- [ ] Make it your preferred version: in one deploy, serve it at `/.well-known/poppy.json` and add the older document's URL to `supported_versions`.
+- [ ] To retire a version, send `Deprecation` and `Sunset` on its responses for a while, then remove it from `supported_versions`, then stop accepting it. A personal agent with a cached document gets `version_unsupported`, fetches `poppy.json` again, and moves.
+
 ### Recommended: [Verifying personal agents](https://personalagentprotocol.org/docs/0.4/guides#company-agents)
 
 - [ ] Fetch the `client_id` URL without following redirects. Its `client_id` MUST equal the URL you fetched (4.1).
@@ -252,7 +268,7 @@ A company can offer personal agents less than its other OAuth clients get withou
 ### Specification: [8.4 Message fields](https://personalagentprotocol.org/docs/0.4/spec#message-fields)
 
 - [ ] **MUST**: A message MUST have at least one of `text`, `data`, `context`, or `extensions`.
-- [ ] **MUST NOT**: A side MUST NOT send an extension's content unless the other side lists that extension with the same version: the Company checks the Personal Agent's client metadata document (4.1), and the Personal Agent checks the Company's `poppy.json` (3.1).
+- [ ] **MUST NOT**: A side MUST NOT send an extension's content unless the other side uses that extension with the same version: the Company checks the request's `Poppy-Extensions` (3.4), and the Personal Agent checks the Company's document for the version it chose (3.1).
 
 ### Specification: [8.5 Reading events](https://personalagentprotocol.org/docs/0.4/spec#reading-events)
 
@@ -330,8 +346,8 @@ A language model usually reads your API descriptions and MCP tool descriptions t
 
 - [ ] Let your company agent do everything customers can do by phone, as fully as you can, so personal agents have no reason to call.
 - [ ] Put structured details in `data`, not JSON or other markup in `text` (8.4).
-- [ ] To a personal agent that lists the Links extension, send the pages a reply refers to as links, rather than URLs in `text`.
-- [ ] To a personal agent that lists the Disclosures extension, send notices users need to see, such as allergen or regulatory warnings, as disclosures, and keep them to those. Personal agents decide which to show, and skip ones that read like promotion. Without the extension, put the notice in `text`.
+- [ ] To a personal agent that declares the Links extension, send the pages a reply refers to as links, rather than URLs in `text`.
+- [ ] To a personal agent that declares the Disclosures extension, send notices users need to see, such as allergen or regulatory warnings, as disclosures, and keep them to those. Personal agents decide which to show, and skip ones that read like promotion. Without the extension, put the notice in `text`.
 - [ ] Keep what a message says in `text` and `data`, and use extension content to add to it, so a personal agent that ignores an extension still gets the message (8.4).
 - [ ] Write for whoever is on the other side (8.8). With a personal agent, skip greetings and small talk and keep text short. With the user, use plain sentences, a pace they can follow, and details in `text` rather than only in `data`. In a direct conversation, reply as you would to the customer on your own channels.
 - [ ] Keep a conversation's events for at least 30 days, so a personal agent that reconnects rarely hits `cursor_expired` (8.5).
@@ -455,11 +471,11 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
 ### Specification: [3.3 Extensions](https://personalagentprotocol.org/docs/0.4/spec#extensions)
 
 - [ ] **MUST**: Anyone else MUST start an extension's name with a domain they control, such as `example.com/gift-wrap`.
-- [ ] **MUST**: Personal Agents and Companies MUST ignore extensions they don't support and fields they don't recognize, so either side can work with the other under this specification alone.
+- [ ] **MUST**: Personal Agents and Companies MUST ignore extensions and versions they don't support and fields they don't recognize, so either side can work with the other under this specification alone.
 
 ### Operations: [2. Advertising support](https://personalagentprotocol.org/docs/0.4/extensions/operations#support)
 
-- [ ] **MUST NOT**: A Company MUST NOT return operations to a Personal Agent that doesn't list that version.
+- [ ] **MUST NOT**: A Company MUST NOT return operations in response to a request that doesn't declare it.
 
 ### Operations: [3. The operation](https://personalagentprotocol.org/docs/0.4/extensions/operations#operation-object)
 

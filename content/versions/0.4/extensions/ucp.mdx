@@ -25,7 +25,7 @@ A Company that speaks UCP lists the extension in `extensions` in its `poppy.json
 
 ```json label="Excerpt from poppy.json"
 "extensions": {
-  "ucp": { "version": "1" }
+  "ucp": [{ "version": "1" }]
 }
 ```
 
@@ -49,10 +49,10 @@ A Company that speaks UCP lists the extension in `extensions` in its `poppy.json
   ([spec 5.2](/docs/spec#session-header)), and the Company handles its requests as UCP defines (4,
   8).
 
-A Personal Agent that supports this extension SHOULD list `"ucp": {"version": "1"}` in its client
-metadata document, so a Company can tell before a UCP request that the Personal Agent speaks UCP,
-for example to point it to UCP from another of its interfaces. A Company doesn't rely on the
-listing: it recognizes a UCP request from the request itself ([spec 3.3](/docs/spec#extensions)),
+A Personal Agent that supports this extension SHOULD declare `"ucp";v="1"` in `Poppy-Extensions`
+([spec 3.4](/docs/spec#versions)), so a Company can tell from its other requests that the Personal
+Agent speaks UCP, for example to point it to UCP from another of its interfaces. A Company doesn't
+rely on the declaration: it recognizes a UCP request from the request itself ([spec 3.3](/docs/spec#extensions)),
 which names the Personal Agent's UCP platform profile (3).
 
 A Personal Agent that doesn't support this extension ignores the entry and uses the Company's
@@ -411,7 +411,7 @@ Kettle & Leaf sells tea at `kettleandleaf.example`.
 
 ```json label="GET https://kettleandleaf.example/.well-known/poppy.json"
 {
-  "protocol_version": "0.3",
+  "protocol_version": "0.4",
   "organization": { "name": "Kettle & Leaf", "domain": "kettleandleaf.example" },
   "auth": {
     "scopes": {
@@ -437,7 +437,7 @@ Kettle & Leaf sells tea at `kettleandleaf.example`.
     }
   ],
   "extensions": {
-    "ucp": { "version": "1" }
+    "ucp": [{ "version": "1" }]
   }
 }
 ```

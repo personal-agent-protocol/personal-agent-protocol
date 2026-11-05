@@ -13,17 +13,18 @@ ignores it, and the two sides still work together under the specification alone.
 
 The rules are in [the specification's Extensions section](/docs/spec#extensions). In short:
 
-- A company lists the extensions it supports in `extensions` in its `poppy.json`, with each
-  extension's settings, such as an endpoint.
-- A personal agent lists the extensions it supports in `extensions` in its client metadata document,
-  so the company knows what it can use.
+- A company lists the extensions it supports in `extensions` in its `poppy.json`, with an entry for
+  each version it supports and that version's settings, such as an endpoint.
+- A personal agent declares the extensions it uses with a company, one version of each, in the
+  `Poppy-Extensions` header of its requests, so it can use different versions with different
+  companies.
 - Each entry has a `version`, the extension's major version. It changes only when an update would
   break existing implementations.
 - Plain names are reserved for extensions defined on this site. Anyone can define their own, named
   with a domain they control, such as `example.com/gift-wrap`.
 - An extension can add content to conversation messages, in their `extensions`, keyed by the
   extension's name. It publishes a JSON Schema for that content, and each side sends it only to a
-  side that lists the same version.
+  side that uses the same version.
 - A company that won't do something without an extension refuses that request with
   `extension_required`.
 

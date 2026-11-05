@@ -12,16 +12,22 @@ This page defines version 1 of the `links` extension. It uses the terms in the
 ## 2. Advertising support {#support}
 
 A Company that sends links lists the extension in `extensions` in its `poppy.json` ([spec
-3.3](/docs/spec#extensions)), and a Personal Agent that can show them lists it in its client
-metadata document ([spec 4.1](/docs/spec#agent-identity)):
+3.3](/docs/spec#extensions)):
 
-```json label="Excerpt from poppy.json or the client metadata document"
+```json label="Excerpt from poppy.json"
 "extensions": {
-  "links": { "version": "1" }
+  "links": [{ "version": "1" }]
 }
 ```
 
-The Company sends links only to a Personal Agent that lists this version ([spec
+A Personal Agent that can show them declares it in `Poppy-Extensions` ([spec
+3.4](/docs/spec#versions)):
+
+```http label="Request header: Personal Agent → Company"
+Poppy-Extensions: "links";v="1"
+```
+
+The Company sends links only in response to a request that declares this version ([spec
 8.4](/docs/spec#message-fields)).
 
 ## 3. Links in messages {#links}

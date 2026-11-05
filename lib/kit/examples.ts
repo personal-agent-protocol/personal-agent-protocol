@@ -22,6 +22,8 @@ const EXAMPLES: Record<string, Target> = {
     "oauth-server:2": "authorization-server-metadata.schema.json",
     "extensions:1": excerpt("extensions", "poppy.schema.json#/properties/extensions"),
     "extensions:2": "error.schema.json",
+    "versions:1": excerpt("supported_versions", "poppy.schema.json#/properties/supported_versions"),
+    "versions:2": "error.schema.json",
     "agent-identity:1": "client-metadata.schema.json",
     "device-sign-in:1": "device-authorization-response.schema.json",
     "scopes:1": "token-response.schema.json",
@@ -63,7 +65,6 @@ const MEDIATED_SIGN_IN_EXAMPLES: Record<string, Target> = {
 
 const OPERATIONS_EXAMPLES: Record<string, Target> = {
     "support:1": excerpt("extensions", "poppy.schema.json#/properties/extensions"),
-    "support:2": excerpt("extensions", "client-metadata.schema.json#/properties/extensions"),
     "operation-object:1": "operation.schema.json",
     "approval-required:1": {
         type: "object",

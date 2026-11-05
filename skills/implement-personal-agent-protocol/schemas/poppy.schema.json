@@ -10,6 +10,16 @@
             "type": "string",
             "pattern": "^[0-9]+\\.[0-9]+$"
         },
+        "supported_versions": {
+            "description": "The other protocol versions the Company serves, each mapped to the HTTPS URL of that version's document, on the host that served poppy.json (spec 3.4). A version's document has no supported_versions.",
+            "type": "object",
+            "propertyNames": {
+                "pattern": "^[0-9]+\\.[0-9]+$"
+            },
+            "additionalProperties": {
+                "$ref": "#/$defs/https_url"
+            }
+        },
         "organization": {
             "type": "object",
             "required": ["name", "domain"],
@@ -143,84 +153,93 @@
             "type": "object",
             "properties": {
                 "mediated-sign-in": {
-                    "description": "The Mediated Sign-In extension (Mediated Sign-In 2). Version 1 has the credentials to collect, each sent as a token request parameter of that name, and the scopes it can grant. The grant is at the issuer's token_endpoint, which lists https://personalagentprotocol.org/grant/mediated-sign-in in grant_types_supported.",
-                    "type": "object",
-                    "required": ["version"],
-                    "properties": {
-                        "version": {
-                            "type": "string",
-                            "minLength": 1
-                        }
-                    },
-                    "if": {
-                        "properties": {
-                            "version": {
-                                "const": "1"
-                            }
-                        }
-                    },
-                    "then": {
-                        "required": ["version", "fields", "scopes"],
+                    "description": "The Mediated Sign-In extension (Mediated Sign-In 2), with an entry for each version. Version 1 has the credentials to collect, each sent as a token request parameter of that name, and the scopes it can grant. The grant is at the issuer's token_endpoint, which lists https://personalagentprotocol.org/grant/mediated-sign-in in grant_types_supported.",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "required": ["version"],
                         "properties": {
                             "version": {
                                 "type": "string",
                                 "minLength": 1
-                            },
-                            "fields": {
-                                "type": "array",
-                                "minItems": 1,
-                                "items": {
-                                    "type": "object",
-                                    "required": ["name", "label", "secret"],
-                                    "properties": {
-                                        "name": {
-                                            "description": "Not grant_type, scope, resource, a client authentication parameter such as client_id or client_assertion, or a parameter the extension defines, such as sign_in_id.",
-                                            "type": "string",
-                                            "minLength": 1,
-                                            "not": {
-                                                "enum": [
-                                                    "grant_type",
-                                                    "scope",
-                                                    "client_id",
-                                                    "client_secret",
-                                                    "client_assertion",
-                                                    "client_assertion_type",
-                                                    "resource",
-                                                    "sign_in_id",
-                                                    "one_time_code"
-                                                ]
+                            }
+                        },
+                        "if": {
+                            "properties": {
+                                "version": {
+                                    "const": "1"
+                                }
+                            }
+                        },
+                        "then": {
+                            "required": ["version", "fields", "scopes"],
+                            "properties": {
+                                "version": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "fields": {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items": {
+                                        "type": "object",
+                                        "required": ["name", "label", "secret"],
+                                        "properties": {
+                                            "name": {
+                                                "description": "Not grant_type, scope, resource, a client authentication parameter such as client_id or client_assertion, or a parameter the extension defines, such as sign_in_id.",
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "not": {
+                                                    "enum": [
+                                                        "grant_type",
+                                                        "scope",
+                                                        "client_id",
+                                                        "client_secret",
+                                                        "client_assertion",
+                                                        "client_assertion_type",
+                                                        "resource",
+                                                        "sign_in_id",
+                                                        "one_time_code"
+                                                    ]
+                                                }
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "minLength": 1
+                                            },
+                                            "secret": {
+                                                "type": "boolean"
                                             }
-                                        },
-                                        "label": {
-                                            "type": "string",
-                                            "minLength": 1
-                                        },
-                                        "secret": {
-                                            "type": "boolean"
                                         }
                                     }
+                                },
+                                "scopes": {
+                                    "$ref": "#/$defs/scopes"
                                 }
-                            },
-                            "scopes": {
-                                "$ref": "#/$defs/scopes"
                             }
                         }
                     }
                 }
             },
             "additionalProperties": {
-                "type": "object",
-                "required": ["version"],
-                "properties": {
-                    "version": {
-                        "type": "string",
-                        "minLength": 1
-                    },
-                    "endpoint": {
-                        "$ref": "#/$defs/https_url"
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                    "type": "object",
+                    "required": ["version"],
+                    "properties": {
+                        "version": {
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        "endpoint": {
+                            "$ref": "#/$defs/https_url"
+                        }
                     }
                 }
-            }
+            },
+            "description": "The extensions the Company supports, keyed by name, each a list with an entry for each major version (spec 3.3)."
         }
     },
     "allOf": [

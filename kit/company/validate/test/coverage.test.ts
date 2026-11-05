@@ -55,9 +55,27 @@ const SCENARIOS: Scenario[] = [
     { flaws: { domain: "other.test" }, fails: ["discovery.domain-matches-host"] },
     { flaws: { poppy: without("agent", "apis", "web") }, fails: ["discovery.interface-present"] },
     {
-        flaws: { poppy: (d) => (d.extensions["gift-wrap"] = { version: "1" }) },
+        flaws: { poppy: (d) => (d.extensions["gift-wrap"] = [{ version: "1" }]) },
         fails: ["discovery.extension-names"],
     },
+    {
+        flaws: { versions: "older" },
+        passes: ["discovery.supported-versions", "discovery.versions-same-company"],
+    },
+    {
+        flaws: { versions: "newer" },
+        passes: ["discovery.supported-versions", "discovery.protocol-version", "session.start"],
+    },
+    { flaws: { versions: "otherHost" }, fails: ["discovery.supported-versions"] },
+    { flaws: { versions: "redirect" }, fails: ["discovery.supported-versions"] },
+    { flaws: { versions: "nested" }, fails: ["discovery.supported-versions"] },
+    { flaws: { versions: "mismatch" }, fails: ["discovery.supported-versions"] },
+    { flaws: { versions: "otherIssuer" }, fails: ["discovery.versions-same-company"] },
+    {
+        flaws: { ignorePoppyVersion: true },
+        fails: ["session.version-missing", "session.version-unsupported"],
+    },
+    { flaws: { acceptMissingPoppyVersion: true }, fails: ["session.version-missing"] },
     {
         flaws: { poppy: (d) => (d.auth = { ...d.auth, disabled: true }) },
         fails: ["discovery.sign-in-disabled"],

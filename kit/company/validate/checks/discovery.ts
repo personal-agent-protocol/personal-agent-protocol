@@ -12,6 +12,7 @@ import {
     describeSent,
     extensionsOf,
     isObject,
+    isHttpsUrl,
     mediatedSignIn,
     skipRest,
     type Context,
@@ -29,6 +30,8 @@ export const DISCOVERY_IDS = [
     "discovery.redirects-well-known",
     "discovery.json",
     "discovery.schema",
+    "discovery.supported-versions",
+    "discovery.versions-same-company",
     "discovery.protocol-version",
     "discovery.domain-matches-host",
     "discovery.interface-present",
@@ -181,7 +184,89 @@ export async function checkPoppyOnline(ctx: Context, r: Recorder): Promise<void>
     const finalHost = new URL(final.url).host;
     ctx.discovered.poppyUrl = final.url;
     ctx.discovered.finalHost = finalHost;
-    checkPoppyDocument(ctx, r, final, notes);
+    const linked = await checkSupportedVersions(ctx, r, final, finalHost);
+    checkPoppyDocument(ctx, r, linked ?? final, notes);
+}
+
+// Fetches and checks the documents supported_versions links to (spec 3.4). Returns the one for the
+// version this validator checks, when poppy.json is for another version and that one is usable.
+async function checkSupportedVersions(
+    ctx: Context,
+    r: Recorder,
+    final: Exchange,
+    host: string,
+): Promise<Exchange | undefined> {
+    const top = isObject(final.json) ? (final.json as Poppy) : undefined;
+    const links = top?.supported_versions;
+    if (!isObject(links) || Object.keys(links).length === 0) {
+        r.skip("discovery.supported-versions", "poppy.json lists no supported_versions.");
+        r.skip("discovery.versions-same-company", "poppy.json lists no supported_versions.");
+        return undefined;
+    }
+    const bad: Exchange[] = [];
+    const problems: string[] = [];
+    const usable: { version: string; ex: Exchange; doc: Poppy }[] = [];
+    for (const [version, url] of Object.entries(links).slice(0, 10)) {
+        if (!isHttpsUrl(url) || new URL(url).host.toLowerCase() !== host.toLowerCase()) {
+            problems.push(`${version}: ${JSON.stringify(url)} isn't an HTTPS URL on ${host}`);
+            continue;
+        }
+        const ex = await ctx.http.request({
+            method: "GET",
+            url,
+            headers: { Accept: "application/json" },
+            note: `the document for version ${version}, which supported_versions links to`,
+        });
+        const doc = isObject(ex.json) ? (ex.json as Poppy) : undefined;
+        const problem = ex.error
+            ? `no response (${ex.error})`
+            : ex.status !== undefined && ex.status >= 300 && ex.status < 400
+              ? `a ${ex.status} redirect, which Personal Agents don't follow`
+              : ex.status !== 200 || !doc
+                ? `${ex.status}, not 200 with a JSON object`
+                : doc.protocol_version !== version
+                  ? `protocol_version is ${JSON.stringify(doc.protocol_version)}`
+                  : doc.supported_versions !== undefined
+                    ? "it has its own supported_versions"
+                    : undefined;
+        if (problem) {
+            bad.push(ex);
+            problems.push(`${version} at ${url}: ${problem}`);
+        } else usable.push({ version, ex, doc: doc! });
+    }
+    if (problems.length)
+        r.fail("discovery.supported-versions", {
+            exchange: bad,
+            got: problems.join("; "),
+            expected:
+                "Each URL is HTTPS on the host that served poppy.json, answers 200 without a redirect, and serves a document with that protocol_version and no supported_versions",
+            cause: "Personal Agents use a linked document only when poppy.json's host vouches for it and it is exactly one version's document. Serve each version's document on the same host, at a URL that doesn't redirect.",
+        });
+    else r.pass("discovery.supported-versions", { summary: Object.keys(links).join(", ") });
+
+    if (usable.length === 0)
+        r.skip("discovery.versions-same-company", "No linked document could be loaded.");
+    else {
+        const domain = (p: Poppy) => p.organization?.domain?.toLowerCase();
+        const different = usable.filter(
+            ({ doc }) => domain(doc) !== domain(top!) || doc.auth?.issuer !== top!.auth?.issuer,
+        );
+        if (different.length === 0) r.pass("discovery.versions-same-company");
+        else
+            r.fail("discovery.versions-same-company", {
+                exchange: different.map((u) => u.ex),
+                got: different
+                    .map(
+                        (u) =>
+                            `${u.version}: organization.domain ${JSON.stringify(u.doc.organization?.domain)}, auth.issuer ${JSON.stringify(u.doc.auth?.issuer)}`,
+                    )
+                    .join("; "),
+                expected: `organization.domain ${JSON.stringify(top!.organization?.domain)} and auth.issuer ${JSON.stringify(top!.auth?.issuer)}, as in poppy.json`,
+                cause: "Every version's document describes the same Company, so moving to a new version doesn't change the Company's identifier, User IDs, or refresh tokens (3.2, 5.1).",
+            });
+    }
+    if (top?.protocol_version === PROTOCOL_VERSION) return undefined;
+    return usable.find((u) => u.version === PROTOCOL_VERSION)?.ex;
 }
 
 // Checks a loaded poppy.json body. `ex` is the exchange it came from, or undefined for --file.
@@ -252,7 +337,7 @@ export function checkPoppyDocument(
             exchange: ex,
             got: `protocol_version is ${JSON.stringify(version)}`,
             expected: `A string "major.minor", such as "${PROTOCOL_VERSION}"`,
-            cause: `Set protocol_version to "${PROTOCOL_VERSION}", the draft this validator checks.`,
+            cause: `Set protocol_version to "${PROTOCOL_VERSION}", the draft this validator checks, or link a document for it in supported_versions (3.4).`,
         });
         unusable.push("discovery.protocol-version");
     } else if (version !== PROTOCOL_VERSION) {
@@ -260,7 +345,7 @@ export function checkPoppyDocument(
             exchange: ex,
             got: `protocol_version ${version}`,
             expected: `protocol_version ${PROTOCOL_VERSION}`,
-            cause: `Before 1.0, each version can break the one before, so Personal Agents that support only draft ${PROTOCOL_VERSION} won't use this document. This validator checks draft ${PROTOCOL_VERSION}: set protocol_version to "${PROTOCOL_VERSION}" once the implementation follows it. See https://personalagentprotocol.org/docs/changelog for what changed.`,
+            cause: `Before 1.0, each version can break the one before, so Personal Agents that support only draft ${PROTOCOL_VERSION} won't use this document. This validator checks draft ${PROTOCOL_VERSION}: once the implementation follows it, set protocol_version to "${PROTOCOL_VERSION}", or link its document in supported_versions (3.4). See https://personalagentprotocol.org/docs/changelog for what changed.`,
         });
         unusable.push("discovery.protocol-version");
     } else {

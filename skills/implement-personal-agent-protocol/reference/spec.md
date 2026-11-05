@@ -135,7 +135,8 @@ An example document:
 
 | Field | Req. | Description |
 | --- | --- | --- |
-| `protocol_version` | Yes | The protocol version the document follows, as `major.minor`. This draft is `0.4`. Before 1.0, each version can change the protocol in ways that aren't backward compatible, so a Personal Agent MUST NOT use a document whose `major.minor` version it doesn't support. From 1.0, a newer minor version won't break older Personal Agents, which use the document and ignore fields they don't recognize. |
+| `protocol_version` | Yes | The protocol version the document follows, as `major.minor`. This draft is `0.4`. A Personal Agent uses the document only if the version is compatible with one it implements (3.4). From 1.0, a newer minor version won't break older Personal Agents, which use the document and ignore fields they don't recognize. |
+| `supported_versions` | No | The other protocol versions the Company serves, each mapped to the URL of that version's document (3.4). |
 | `organization` | Yes | The Company's display `name`, its `domain`, and an optional `logo_uri`, an HTTPS URL of the Company's logo, named as in client metadata (4.1). `domain` MUST be the host that serves the document, after any redirects. Domains are compared ignoring case, with no other normalization. |
 | `auth` | No | The Company's sign-in details: `issuer`, `disabled`, `scopes`, and `scope_hints`, below. |
 | `auth.issuer` | If the domain's protected resource metadata lists more than one authorization server | The Company's OAuth issuer identifier, naming the one Personal Agents use (3.2). It MUST be in that list. With one authorization server, the Company MAY leave it out, and if it includes it, it MUST name that server. |
@@ -147,7 +148,7 @@ An example document:
 | `web` | At least one of `agent`, `apis`, or `web` | The Company's website. The optional `browser_session_endpoint` is where the Personal Agent's browser joins a Session (section 6). Without it, Personal Agents browse the site as ordinary signed-out visitors. |
 | `feedback` | No | `endpoint` is an HTTPS URL where Personal Agents report a User's task that can't be done through this protocol (9.3). |
 | `excluded_tasks` | No | `url` is an HTTPS URL of the document that lists the tasks the Company chose not to offer through this protocol (9.1). |
-| `extensions` | No | The extensions the Company supports, keyed by name (below). |
+| `extensions` | No | The extensions the Company supports, keyed by name, with an entry for each version (3.3). |
 | `skill_index` | No | An Agent Skills discovery index for Personal Agents acting for the User at this Company (9.4). |
 
 ### 3.2 OAuth server
@@ -222,31 +223,72 @@ The metadata MAY have other fields, which Personal Agents ignore.
 
 ### 3.3 Extensions
 
-Extensions add optional features on top of this protocol. A Company lists the ones it supports in `extensions`:
+Extensions add optional features on top of this protocol. A Company lists the ones it supports in `extensions`, with an entry for each major version it supports:
 
 *Excerpt from poppy.json*
 
 ```
 "extensions": {
-  "example.com/gift-wrap": {
-    "version": "1",
-    "endpoint": "https://api.example.com/poppy/gift-wrap"
-  }
+  "example.com/gift-wrap": [
+    { "version": "2", "endpoint": "https://api.example.com/poppy/gift-wrap/v2" },
+    { "version": "1", "endpoint": "https://api.example.com/poppy/gift-wrap" }
+  ]
 }
 ```
 
 - Plain names, without a domain, are reserved for extensions defined with this protocol. Anyone else MUST start an extension's name with a domain they control, such as `example.com/gift-wrap`.
-- Each entry has a `version`, the extension's major version. Changes that implementations can safely ignore keep the version, and incompatible changes get a new one. Each extension defines its other fields.
-- A Personal Agent lists the extensions it supports the same way, in `extensions` in its client metadata document (4.1). It doesn't need to list an extension that the Company recognizes from the request itself, such as one that defines its own grant type.
-- Personal Agents and Companies MUST ignore extensions they don't support and fields they don't recognize, so either side can work with the other under this specification alone.
+- Each entry has a `version`, the extension's major version. Changes that implementations can safely ignore keep the version, and incompatible changes get a new one. Each extension defines the entry's other fields for each of its versions.
+- A Personal Agent declares the extensions it uses with a Company, one version of each, in the `Poppy-Extensions` header (3.4). It doesn't need to declare an extension that the Company recognizes from the request itself, such as one that defines its own grant type.
+- Personal Agents and Companies MUST ignore extensions and versions they don't support and fields they don't recognize, so either side can work with the other under this specification alone.
 - An extension can define content for conversation messages, which they carry in `extensions` (8.4). The extension MUST publish a [JSON Schema](https://json-schema.org/draft/2020-12) for that content.
-- A Company MAY refuse a request it handles only with an extension the Personal Agent doesn't list, unless the request itself uses the extension. It returns `extension_required` (HTTP 403) with the extension's name in `extension`. At the token endpoint and at endpoints this protocol or an extension defines, such as conversations, the error is a JSON body, like other errors there. At APIs, it goes in the `WWW-Authenticate` header, like the errors in section 7.
+- A Company MAY refuse a request it handles only with an extension that the request doesn't declare, in a version the Company lists, unless the request itself uses the extension. It returns `extension_required` (HTTP 403) with the extension's name in `extension`. At endpoints this protocol or an extension defines, such as conversations, the error is a JSON body, like other errors there. At APIs, it goes in the `WWW-Authenticate` header, like the errors in section 7.
 
 *Response body: Company → Personal Agent*
 
 ```
 { "error": "extension_required", "extension": "example.com/gift-wrap" }
 ```
+
+### 3.4 Versions
+
+A Company can serve several protocol versions at once, so Personal Agents can move to a new version at their own pace. Its `poppy.json` is the document for the version it prefers, and `supported_versions` maps each other version it serves to the URL of that version's document, as UCP's [version selection](https://ucp.dev/latest/specification/overview/#version-selection) does:
+
+*Excerpt from poppy.json*
+
+```
+"protocol_version": "0.4",
+"supported_versions": {
+  "0.3": "https://example.com/poppy/0.3.json"
+}
+```
+
+- Each URL in `supported_versions` MUST be an HTTPS URL on the host that served `poppy.json`, after any redirects. The Personal Agent MUST NOT follow a redirect from it. The document there has the `protocol_version` it is listed under, and no `supported_versions`. Its path can be anything, unlike `poppy.json`'s (section 3), because `poppy.json` names it.
+- Every document a Company serves at the same time MUST have the same `organization.domain` and select the same issuer (3.2), so that a new version doesn't change the Company's identifier, and with it User IDs and refresh tokens. Other fields MAY differ by version.
+- Two versions are compatible when they have the same major version and, before 1.0, the same minor version. The Personal Agent chooses the newest version, among `protocol_version` and the versions in `supported_versions`, that is compatible with one it implements, and uses that version's document. If none is, it MUST NOT use any of them.
+
+**Declaring versions.** On every request with the Session header (5.2), the Personal Agent sends the protocol version it implements, compatible with the chosen one, in `Poppy-Version`, as `major.minor`. When it uses extensions with the Company, it also sends `Poppy-Extensions`: an [RFC 9651](https://www.rfc-editor.org/rfc/rfc9651) List of Strings, each the name of an extension in the chosen document, with the version it uses as a String in the `v` parameter. Without `Poppy-Extensions`, or when it fails to parse (RFC 9651 §4.2), the request declares no extensions. The Personal Agent MUST send the same values on every request in a Session, and starts a new Session to change them.
+
+*Request headers: Personal Agent → Company*
+
+```
+Poppy-Session: eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…
+Poppy-Version: 0.4
+Poppy-Extensions: "operations";v="2", "links";v="1"
+```
+
+Requests without the Session header, such as discovery and OAuth requests, don't carry these headers. A browser joins a Session at the `browser_session_endpoint` of the chosen version's document (section 6).
+
+**Checking the version.** An endpoint that verifies the Session header (5.3) MUST also check `Poppy-Version`. It rejects a request without it, or with a version that isn't compatible with one the Company serves, with `version_unsupported` (HTTP 400, JSON body), and MUST NOT handle the request under another version. The Personal Agent then fetches `poppy.json` again, without using a cached copy, and chooses again. If it chooses another version, it starts a new Session and sends the request again, once. Otherwise it stops sending the request.
+
+*Response body: Company → Personal Agent*
+
+```
+{ "error": "version_unsupported" }
+```
+
+A Company that plans to stop serving a version MAY say so in its responses to requests in that version, with the `Deprecation` ([RFC 9745](https://www.rfc-editor.org/rfc/rfc9745)) and `Sunset` ([RFC 8594](https://www.rfc-editor.org/rfc/rfc8594)) headers.
+
+From 1.0, the location of `poppy.json` and how it is fetched (section 3), `protocol_version`, `supported_versions`, `Poppy-Version`, and `version_unsupported` keep their meaning in every version, so a Personal Agent and a Company that implement different major versions can find one they share, or tell that there is none.
 
 ## 4. OAuth
 
@@ -278,7 +320,6 @@ A Personal Agent's `client_id` MUST be an HTTPS URL that returns its metadata do
 - `client_id` MUST equal the URL the document was fetched from.
 - `jwks_uri` MUST be an HTTPS URL on the same domain as `client_id`. The key set contains only public keys. They sign client assertions, and the delegations that vouch for the keys that sign Session JWTs (5.2).
 - `redirect_uris` lists where Direct Sign-In may send the User back to (4.2). Each entry MUST be an HTTPS URL on the same domain as `client_id`, or a loopback redirect URI for an app on the User's computer, as [RFC 8252](https://www.rfc-editor.org/rfc/rfc8252) §7.3 defines.
-- `extensions` lists the extensions the Personal Agent supports, keyed by name, each with its `version` (3.3). It is optional.
 - The Personal Agent authenticates at the token endpoint with a client assertion signed by a key from `jwks_uri` (`private_key_jwt`, [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523)). Its Session JWTs are signed with delegated keys instead (5.2).
 - The client assertion's `aud` MUST be the Company's issuer, as a single string. Companies MUST reject a client assertion with any other `aud`, compared character for character, including their token endpoint URL. This follows [draft-ietf-oauth-rfc7523bis](https://datatracker.ietf.org/doc/draft-ietf-oauth-rfc7523bis/). The endpoints in a Company's metadata aren't checked (3.2), so an `aud` set to an endpoint could name another Company's endpoint, and that Company would accept the assertion.
 - Client assertions follow RFC 7523 §3. The Personal Agent MUST make them short-lived, and MUST include `iat` and a unique, unguessable `jti`. The Company MAY reject a reused `jti`, as RFC 7523 §3 allows.
@@ -404,7 +445,7 @@ OAuth errors follow the relevant grant's RFC, including `invalid_client`, `inval
 ### 4.8 What Poppy adds to OAuth
 
 - **Choices stricter than OAuth:** a `client_id` that is the URL of a client metadata document, authenticated with `private_key_jwt` and an assertion addressed to the issuer, with its `jwks_uri` and `redirect_uris` on the `client_id`'s domain (4.1); `revocation_endpoint` and `grant_types_supported`, including `refresh_token`, in the issuer's metadata (3.2); `iss` in every authorization response, and exact matching of `redirect_uri` as RFC 9700 requires (4.2); RFC 10027's best practices for Device Sign-In, and a check of the sign-in link's host (4.3); a refresh token from every sign-in, whose use doesn't extend its lifetime (4.4); and `scope` on every sign-in request, with at least one scope granted and none beyond those requested (4.7).
-- **Discovery and descriptions:** `poppy.json`, including `auth.disabled` to offer no sign-in, client extensions, described scopes, and scope hints (section 3, 4.7).
+- **Discovery and descriptions:** `poppy.json`, including `auth.disabled` to offer no sign-in, supported versions, described scopes, and scope hints (section 3, 4.7).
 - **Sessions:** the Session header, which names the Personal Agent, the User, and the Session on every request, signed in or out, without an authorization-server grant (section 5). It is signed with a delegated key, which a key in the Personal Agent's `jwks_uri` vouches for in a delegation carried in the JWT's `poppy_dlg` header (5.2).
 - **Interactions above OAuth:** browser join (section 6), APIs (section 7), conversations (section 8), excluded tasks and feedback (section 9), and extensions (3.3), including [Operations](https://personalagentprotocol.org/docs/0.4/extensions/operations).
 - **An extension grant:** the [Mediated Sign-In extension](https://personalagentprotocol.org/docs/0.4/extensions/mediated-sign-in) adds a grant type at the token endpoint, as RFC 6749 §4.5 allows.
@@ -436,12 +477,13 @@ The Personal Agent holds the User IDs and Agent IDs of each of its Users at ever
 
 The Personal Agent MUST send a `Poppy-Session` header on every request to a Company's APIs, conversations, and other resource endpoints this protocol or an extension defines. The destinations come from the Company's `poppy.json`: the request URLs its listed APIs describe (section 7), and protocol endpoints listed there or derived as the protocol or extension defines. For example, conversation requests use the selected `agent.protocols[].endpoint` and the routes in 8.2, and browser authorization uses `{browser_session_endpoint}/authorize` (section 6). Sharing a hostname with one of these URLs doesn't make another URL a Session destination.
 
-The Personal Agent MUST NOT send a Company's Session JWT to any other destination. Discovery and description documents, OAuth endpoints, and website pages don't carry this header. The header holds a JWT that the Personal Agent signs for that one request, with a delegated key that a key from its `jwks_uri` vouches for (Delegated keys, below):
+The Personal Agent MUST NOT send a Company's Session JWT to any other destination. Discovery and description documents, OAuth endpoints, and website pages don't carry this header. Requests that carry it also carry `Poppy-Version`, and `Poppy-Extensions` when the Personal Agent uses extensions with the Company (3.4). The header holds a JWT that the Personal Agent signs for that one request, with a delegated key that a key from its `jwks_uri` vouches for (Delegated keys, below):
 
 *Request headers: Personal Agent → Company*
 
 ```
 Poppy-Session: eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…
+Poppy-Version: 0.4
 Authorization: Bearer eyJhbGciOi…Qp4w
 ```
 
@@ -662,6 +704,7 @@ The [guides](https://personalagentprotocol.org/docs/0.4/guides#company-browsing)
 ```
 POST https://example.com/poppy/browser-session/authorize
 Poppy-Session: eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…
+Poppy-Version: 0.4
 Authorization: Bearer eyJhbGciOi…Qp4w
 Content-Type: application/json
 
@@ -746,6 +789,7 @@ The Personal Agent calls a Company API the way that API's type describes:
 ```
 POST https://api.example.com/orders/ord_7Hk2/exchanges
 Poppy-Session: eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…
+Poppy-Version: 0.4
 Authorization: Bearer eyJhbGciOi…Qp4w
 Content-Type: application/json
 Idempotency-Key: 4f1c2e8a-9b7d-4c3e-a5f6-0d8b1e2c3a4f
@@ -762,7 +806,8 @@ Access token errors follow OAuth: they are in the `WWW-Authenticate` header ([RF
 | `insufficient_scope` | 403 | The access token lacks the scopes the request needs, which the response names in the `scope` attribute. The Personal Agent uses a refresh token that covers them (4.4), or signs in (5.4), and retries, unless the User signed out or disconnected it (5.5). |
 | `invalid_session` | 400 | In a JSON body. A required Session header is missing or Session verification fails (5.3), or the Company refuses the `client_id` (4.1). A new Session doesn't fix it: the Personal Agent stops sending the request until it fixes the cause, such as an expired delegation or a wrong `htu`. |
 | `session_ended` | 400 | In a JSON body. The Session has ended, or the Company refuses an account change in it (5.4, 5.5). The Personal Agent starts a new Session and sends the request again, once. |
-| `extension_required` | 403 | In the `WWW-Authenticate` header. The request needs an extension the Personal Agent doesn't list, named in the `extension` attribute (3.3). An MCP server returns it only to refuse the Personal Agent entirely, not for one tool. |
+| `version_unsupported` | 400 | In a JSON body. `Poppy-Version` is missing, or the Company doesn't serve a compatible version (3.4). The Personal Agent fetches `poppy.json` again, and if it chooses another version, starts a new Session and sends the request again, once. |
+| `extension_required` | 403 | In the `WWW-Authenticate` header. The request needs an extension it doesn't declare, named in the `extension` attribute (3.3). An MCP server returns it only to refuse the Personal Agent entirely, not for one tool. |
 
 Verifying a Session header identifies the Personal Agent and User. An unverified header does not establish either identity.
 
@@ -820,6 +865,7 @@ A new conversation starts with its first message, except when accepting a `user_
 ```
 POST https://api.example.com/poppy/conversations
 Poppy-Session: eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…
+Poppy-Version: 0.4
 Authorization: Bearer eyJhbGciOi…Qp4w
 Content-Type: application/json
 
@@ -855,6 +901,7 @@ Later messages go to the conversation's `messages` URL, which returns HTTP 202 w
 ```
 POST https://api.example.com/poppy/conversations/cnv_8f3Kd2/messages
 Poppy-Session: eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…
+Poppy-Version: 0.4
 Authorization: Bearer eyJhbGciOi…Qp4w
 Content-Type: application/json
 
@@ -872,6 +919,7 @@ Content-Type: application/json
 ```
 POST https://api.example.com/poppy/conversations/cnv_8f3Kd2/messages?cursor=evt_c2&wait=10
 Poppy-Session: eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…
+Poppy-Version: 0.4
 Authorization: Bearer eyJhbGciOi…Qp4w
 Content-Type: application/json
 
@@ -967,7 +1015,7 @@ Only Company messages have `id`, `name`, and `image`, and each is optional. A Co
 }
 ```
 
-A side MUST NOT send an extension's content unless the other side lists that extension with the same version: the Company checks the Personal Agent's client metadata document (4.1), and the Personal Agent checks the Company's `poppy.json` (3.1). Like other fields, extension content the receiver doesn't support is ignored (3.3), so `text` and `data` carry what the message says.
+A side MUST NOT send an extension's content unless the other side uses that extension with the same version: the Company checks the request's `Poppy-Extensions` (3.4), and the Personal Agent checks the Company's document for the version it chose (3.1). Like other fields, extension content the receiver doesn't support is ignored (3.3), so `text` and `data` carry what the message says.
 
 ### 8.5 Reading events
 
@@ -978,6 +1026,7 @@ The Company records each conversation as an ordered list of events: the messages
 ```
 GET https://api.example.com/poppy/conversations/cnv_8f3Kd2/events?cursor=evt_c1&wait=30
 Poppy-Session: eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…
+Poppy-Version: 0.4
 Authorization: Bearer eyJhbGciOi…Qp4w
 ```
 
@@ -1115,6 +1164,7 @@ When the User steps in, the Personal Agent sends their words with `author.type` 
 ```
 POST https://api.example.com/poppy/conversations/cnv_8f3Kd2/messages
 Poppy-Session: eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…
+Poppy-Version: 0.4
 Authorization: Bearer eyJhbGciOi…Qp4w
 Content-Type: application/json
 
@@ -1132,6 +1182,7 @@ The Personal Agent asks for a person at the Company with an empty JSON object:
 ```
 POST https://api.example.com/poppy/conversations/cnv_8f3Kd2/handoff
 Poppy-Session: eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…
+Poppy-Version: 0.4
 Authorization: Bearer eyJhbGciOi…Qp4w
 Content-Type: application/json
 
@@ -1155,6 +1206,7 @@ The Personal Agent may observe every message in a Direct Conversation. The Compa
 ```
 POST https://api.example.com/poppy/conversations
 Poppy-Session: eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…
+Poppy-Version: 0.4
 Authorization: Bearer eyJhbGciOi…Qp4w
 Content-Type: application/json
 
@@ -1188,6 +1240,7 @@ The Personal Agent asks the User. If they agree, it starts a Direct Conversation
 ```
 POST https://api.example.com/poppy/conversations?wait=10
 Poppy-Session: eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…
+Poppy-Version: 0.4
 Authorization: Bearer eyJhbGciOi…Qp4w
 Content-Type: application/json
 
@@ -1239,7 +1292,7 @@ A closed conversation takes no more messages, and its events stay readable for a
 
 ### 8.13 Errors
 
-Token errors, `invalid_session`, and `session_ended` are the ones in section 7, and rate limits follow 5.6. Other errors have a JSON body with an `error` code, like OAuth error responses:
+Token errors, `invalid_session`, `session_ended`, and `version_unsupported` are the ones in section 7, and rate limits follow 5.6. Other errors have a JSON body with an `error` code, like OAuth error responses:
 
 | Error | Status | Meaning |
 | --- | --- | --- |
@@ -1250,7 +1303,7 @@ Token errors, `invalid_session`, and `session_ended` are the ones in section 7, 
 | `invalid_cursor` | 400 | The cursor is unknown or doesn't belong to this conversation. |
 | `cursor_expired` | 410 | The Company no longer has the events at this cursor (8.5). |
 | `invalid_request` | 400 | The request is malformed, such as a message with no content (8.4), an ID with characters not allowed (8.2), or a `wait` that isn't a whole number of seconds. |
-| `extension_required` | 403 | The request needs an extension the Personal Agent doesn't list, named in `extension` (3.3). |
+| `extension_required` | 403 | The request needs an extension it doesn't declare, named in `extension` (3.3). |
 
 ## 9. Task coverage
 
@@ -1462,7 +1515,7 @@ This draft uses these standards and versions:
 | Security | [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700), [RFC 10027](https://www.rfc-editor.org/rfc/rfc10027), [draft-ietf-wimse-aims](https://datatracker.ietf.org/doc/draft-ietf-wimse-aims/) |
 | Extension content | [JSON Schema 2020-12](https://json-schema.org/draft/2020-12) |
 | APIs | [OpenAPI Specification 3.1](https://spec.openapis.org/oas/v3.1.1.html), [Model Context Protocol 2025-06-18](https://modelcontextprotocol.io/specification/2025-06-18), [Model Context Protocol 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28), [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728), [draft-ietf-httpapi-idempotency-key-header](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/) |
-| HTTP and formats | [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110), [RFC 6585](https://www.rfc-editor.org/rfc/rfc6585), [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339), [RFC 4648](https://www.rfc-editor.org/rfc/rfc4648), [RFC 5646](https://www.rfc-editor.org/rfc/rfc5646) |
+| HTTP and formats | [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110), [RFC 6585](https://www.rfc-editor.org/rfc/rfc6585), [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339), [RFC 4648](https://www.rfc-editor.org/rfc/rfc4648), [RFC 5646](https://www.rfc-editor.org/rfc/rfc5646), [RFC 9651](https://www.rfc-editor.org/rfc/rfc9651), [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745), [RFC 8594](https://www.rfc-editor.org/rfc/rfc8594) |
 | Operator signatures | [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421), [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/) |
 | Streaming | [Server-sent events (HTML Living Standard)](https://html.spec.whatwg.org/multipage/server-sent-events.html) |
 

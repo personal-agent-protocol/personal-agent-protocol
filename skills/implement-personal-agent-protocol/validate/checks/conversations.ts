@@ -695,7 +695,7 @@ function eventChecks(
     const eventErrors = read.exchanges.flatMap((ex) =>
         ex.status === 200 && ex.json ? check("events-response.schema.json", ex.json) : [],
     );
-    // The test Personal Agent lists no extensions, so no extension content is for it (8.4).
+    // The test Personal Agent declares no extensions, so no extension content is for it (8.4).
     const operations = read.events.flatMap((e, i) => {
         const extensions =
             e.message && typeof e.message === "object"
@@ -717,7 +717,7 @@ function eventChecks(
             exchange: read.last,
             got: operations.join(", "),
             expected: "Message events without extension content",
-            cause: "operation is a field of the Operations extension, and the test Personal Agent's client metadata doesn't list it. A Company doesn't return operations to a Personal Agent that doesn't list the extension (Operations 2).",
+            cause: "operation is a field of the Operations extension, and the test Personal Agent's requests don't declare it. A Company doesn't return operations in response to a request that doesn't declare the extension (Operations 2).",
         });
     else r.pass("conversations.events-schema", { summary: `${read.events.length} event(s).` });
 
@@ -1133,18 +1133,11 @@ function operationPaths(value: unknown, path = ""): string[] {
     );
 }
 
-// The test Personal Agent doesn't list the Operations extension, so the Company returns it no
+// The test Personal Agent doesn't declare the Operations extension, so the Company returns it no
 // operations (Operations 2). Checks every conversation response the run received.
 export function checkOperationsNotReturned(ctx: Context, r: Recorder): void {
     const id = "operations.not-returned";
     if (!r.wants(id)) return;
-    const listed = (
-        ctx.identity?.agent.extensions as Record<string, { version?: unknown }> | undefined
-    )?.operations?.version;
-    if (listed === "2") {
-        r.skip(id, "The test Personal Agent's client metadata lists the Operations extension.");
-        return;
-    }
     const endpoint = conversationEndpoint(ctx.discovered.poppy);
     const responses = endpoint
         ? ctx.http.log.filter(
@@ -1175,6 +1168,6 @@ export function checkOperationsNotReturned(ctx: Context, r: Recorder): void {
             exchange: found.map((f) => f.ex),
             got: found.map((f) => `${f.ex.method} ${f.ex.url}: ${f.paths.join(", ")}`).join("; "),
             expected: "No operation in any response",
-            cause: "The test Personal Agent's client metadata doesn't list the Operations extension, so it can't approve operations. Handle approval another way, such as on the website or in a Direct Conversation, or refuse with extension_required.",
+            cause: "The test Personal Agent's requests don't declare the Operations extension, so it can't approve operations. Handle approval another way, such as on the website or in a Direct Conversation, or refuse with extension_required.",
         });
 }

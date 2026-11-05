@@ -30,8 +30,8 @@ the agent, and tell it whether a person is on the other side (`author.type` `hum
 [8.8](https://personalagentprotocol.org/docs/0.4/spec#human-or-ai)). Company messages need
 `author.type`: `agent` for the AI, `human` for a live agent. If the platform has several personas
 or live agents, you can name each with the `author`'s `id`, `name`, and `image`.
-Extension content goes in the message's `extensions`, keyed by extension name, and only to a
-Personal Agent whose client metadata lists that extension with the same version (8.4). If the
+Extension content goes in the message's `extensions`, keyed by extension name, and only in response
+to a request whose `Poppy-Extensions` declares that extension with the same version (8.4). If the
 platform has its own fields for links or notices, map them to the
 [Links](https://personalagentprotocol.org/docs/0.4/extensions/links) and
 [Disclosures](https://personalagentprotocol.org/docs/0.4/extensions/disclosures) extensions.

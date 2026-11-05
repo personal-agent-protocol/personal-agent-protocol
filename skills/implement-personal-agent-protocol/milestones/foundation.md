@@ -65,6 +65,12 @@ on.
 - Serve it on the Company's own domain. A redirect to a provider's domain doesn't work, because the
   document speaks for the host that serves it. See `patterns/poppy-json.md`.
 - Check the file offline before deploying, with `check --file ./poppy.json` (below).
+- `protocol_version` is the version this document describes. To serve more than one version, keep
+  the newest at the well-known URL and link the others from `supported_versions`, each an HTTPS URL
+  on the same host that serves its own version's document without a redirect. Every one has the
+  same `organization.domain` and issuer
+  ([3.4](https://personalagentprotocol.org/docs/0.4/spec#versions),
+  [guides](https://personalagentprotocol.org/docs/0.4/guides#company-versions)).
 
 **2. Protected resource metadata for the domain** at
 `https://{domain}/.well-known/oauth-protected-resource`
@@ -120,6 +126,9 @@ verification. When verifying:
   not have ended.
 - Any failure returns HTTP 400 with `{"error": "invalid_session"}`, except an ended Session, which
   gets `{"error": "session_ended"}`.
+- Check `Poppy-Version` too. A missing one, or one you don't serve, returns HTTP 400 with
+  `{"error": "version_unsupported"}`. Don't handle the request under another version
+  ([3.4](https://personalagentprotocol.org/docs/0.4/spec#versions)).
 - The Session JWT never grants account access, whatever it contains.
 - Don't key anything on the delegated key: it can change on any request
   ([Delegated keys](https://personalagentprotocol.org/docs/0.4/spec#delegated-keys)). If you cache

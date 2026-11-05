@@ -7,6 +7,7 @@ import {
     header,
     isInvalidSession,
     jsonError,
+    noResponse,
     parseChallenges,
     parseWwwAuthenticate,
     type Exchange,
@@ -46,12 +47,15 @@ export const RESOURCE_IDS = [
     "session.htu",
     "session.iat",
     "session.ath-without-token",
+    "session.version-missing",
+    "session.version-unsupported",
     "session.invalid-everywhere",
     "token.invented",
     "token.in-url",
 ];
 
 export const INVALID_SESSION = '400 {"error": "invalid_session"}';
+const VERSION_UNSUPPORTED = '400 {"error": "version_unsupported"}';
 
 export type Probe = {
     url: string;
@@ -328,6 +332,34 @@ export async function checkResources(ctx: Context, r: Recorder): Promise<void> {
         if (!r.wants(id)) continue;
         const ex = await sessionRequest(ctx, { url: probe.url, session, note });
         expect(id, ex, cause, id === "session.iat");
+    }
+
+    // Poppy-Version is checked wherever the Session header is verified (3.4).
+    const versions: [string, string | null, string][] = [
+        ["session.version-missing", null, "with no Poppy-Version"],
+        ["session.version-unsupported", "0.0", "with Poppy-Version 0.0"],
+    ];
+    for (const [id, version, note] of versions) {
+        if (!r.wants(id)) continue;
+        const ex = await sessionRequest(ctx, {
+            url: probe.url,
+            version,
+            note: `${probe.describe}, ${note}`,
+        });
+        if (ex.status === 400 && jsonError(ex) === "version_unsupported") r.pass(id);
+        else if (noResponse(ex))
+            r.inconclusive(id, {
+                exchange: ex,
+                expected: VERSION_UNSUPPORTED,
+                cause: "The request got no usable response.",
+            });
+        else
+            r.fail(id, {
+                exchange: ex,
+                expected: VERSION_UNSUPPORTED,
+                got: accepted(probe, ex) ? `${ex.status}, the request was handled` : undefined,
+                cause: "An endpoint that verifies the Session header also checks Poppy-Version, and rejects a request without it, or in a version the Company doesn't serve, with version_unsupported in a JSON body. Otherwise a Personal Agent on another version gets answers it misreads instead of an error that tells it to choose again.",
+            });
     }
 
     if (r.wants("session.invalid-everywhere")) await invalidEverywhere(ctx, r);

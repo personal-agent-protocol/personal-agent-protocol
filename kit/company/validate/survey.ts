@@ -207,13 +207,19 @@ export function formatSurvey(s: SurveyReport): string {
             `poppy.json: ${s.poppy.finalUrl}${s.poppy.finalUrl !== s.poppy.url ? ` (redirected from ${s.poppy.url})` : ""}`,
         );
         out.push(`  protocol_version  ${p?.protocol_version}`);
+        if (p?.supported_versions)
+            out.push(
+                `  other versions    ${Object.entries(p.supported_versions)
+                    .map(([v, url]) => `${v} ${url}`)
+                    .join(", ")}`,
+            );
         out.push(`  organization      ${p?.organization?.name} (${p?.organization?.domain})`);
         if (s.issuer) {
             out.push(`  issuer            ${s.issuer} (from the protected resource metadata)`);
             const meta = s.authorizationServer?.fields as Metadata | undefined;
             const direct = offersGrant(meta, SIGN_IN_GRANTS.direct);
             const device = offersGrant(meta, SIGN_IN_GRANTS.device);
-            const mediated = p?.extensions?.["mediated-sign-in"];
+            const mediated = p?.extensions?.["mediated-sign-in"]?.find?.((e) => e?.version === "1");
             if (p?.auth?.disabled === true)
                 out.push("  sign-in           turned off (auth.disabled in poppy.json)");
             else {
@@ -246,7 +252,10 @@ export function formatSurvey(s: SurveyReport): string {
         if (p?.extensions)
             out.push(
                 `  extensions        ${Object.entries(p.extensions)
-                    .map(([k, v]) => `${k} v${v?.version}`)
+                    .map(
+                        ([k, v]) =>
+                            `${k} ${Array.isArray(v) ? v.map((e) => `v${e?.version}`).join(" ") : "(not a list)"}`,
+                    )
                     .join(", ")}`,
             );
     }

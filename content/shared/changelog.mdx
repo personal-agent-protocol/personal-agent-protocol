@@ -23,6 +23,28 @@ such a Company may offer only Direct Sign-In.
 
 </Change>
 
+<Change title="Several protocol versions" breaking sections="3.1, 3.4, 5.2, 7, 8.13, 11, guides#agent-versions, guides#company-versions">
+
+A Company can serve several protocol versions at once. `poppy.json` is the document for the version
+it prefers, and `supported_versions` maps each other version to its document, on the same host and
+for the same Company. The Personal Agent chooses the newest compatible version and names it in
+`Poppy-Version` on every request with the Session header, the same throughout a Session. An endpoint
+that verifies the Session header rejects a missing or unserved version with `version_unsupported`,
+and the Personal Agent then chooses again. From 1.0, these keep their meaning in every version.
+
+</Change>
+
+<Change title="Extensions declared per request" breaking sections="3.1, 3.3, 3.4, 4.1, 4.8, 7, 8.4, 8.13, Operations 2, Links 2, Disclosures 2, Mediated Sign-In 2, UCP 2, UCP 11, guides#company-conversations">
+
+Each extension in `poppy.json` is a list with an entry for each version the Company supports. The
+Personal Agent declares the extensions it uses with a Company, one version of each, in the
+`Poppy-Extensions` header, instead of in `extensions` in its client metadata document, which is
+removed. It can use different versions with different Companies and roll out a new one gradually.
+`extension_required` and extension content in messages follow the request's declaration, and the
+token endpoint no longer returns `extension_required`.
+
+</Change>
+
 ## Version 0.3 {#v0-3}
 
 Published November 4, 2026. It's frozen at [/docs/0.3/spec](/docs/0.3/spec). Major changes are

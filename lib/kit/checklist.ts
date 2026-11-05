@@ -26,6 +26,7 @@ const SECTIONS: Record<string, Record<string, Milestone>> = {
         fields: "foundation",
         "oauth-server": "foundation",
         extensions: "extensions",
+        versions: "foundation",
         sessions: "foundation",
         "agent-identity": "foundation",
         "user-ids": "foundation",
@@ -95,6 +96,7 @@ const SECTIONS: Record<string, Record<string, Milestone>> = {
         "both-operator-signatures": "foundation",
         "both-interoperability": "interfaces",
         "company-adoption": "foundation",
+        "company-versions": "foundation",
         "company-without-oauth": "foundation",
         "both-key-rotation": "foundation",
         "both-fetching": "foundation",
@@ -210,6 +212,9 @@ const OVERRIDES: [string, Party | "none"][] = [
     ["The Personal Agent MUST ask the User about each operation", "agent"],
     ["An alternative MUST have at least one of instructions or references", "company"],
     ["An openapi or mcp reference MUST name an API listed", "company"],
+    ["Each URL in supported_versions MUST be an HTTPS URL", "company"],
+    ["If none is, it MUST NOT use any of them", "agent"],
+    ["An endpoint that verifies the Session header (5.3) MUST also check", "company"],
 ];
 
 function override(text: string): Party | "none" | undefined {

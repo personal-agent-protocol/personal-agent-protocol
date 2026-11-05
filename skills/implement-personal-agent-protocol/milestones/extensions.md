@@ -14,15 +14,18 @@ Local copies: `reference/extensions.md` and `reference/operations.md`.
 
 ## Every extension
 
-- List it in `extensions` in `poppy.json`, keyed by name, with its `version` and the fields it
-  defines ([3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)).
-- Read the Personal Agent's supported extensions from `extensions` in its client metadata document
-  ([4.1](https://personalagentprotocol.org/docs/0.4/spec#agent-identity)). Behave as the spec alone
-  describes for Personal Agents that don't list it, unless the request itself uses the extension,
-  such as Mediated Sign-In's grant type.
+- List it in `extensions` in `poppy.json`, keyed by name, as a list with an entry for each version
+  you support, each with its `version` and the fields that version defines
+  ([3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)).
+- Read the extensions a request uses from its `Poppy-Extensions` header, a list of names, each with
+  its version in `v`, such as `"operations";v="2"`
+  ([3.4](https://personalagentprotocol.org/docs/0.4/spec#versions)). Without the header, or when it
+  doesn't parse, the request uses none. Behave as the spec alone describes for a request that
+  doesn't declare the extension, unless the request itself uses it, such as Mediated Sign-In's
+  grant type.
 - If you refuse a request that needs the extension, return `extension_required` (HTTP 403) with the
-  name in `extension`: a JSON body at the token endpoint and at endpoints the protocol or an
-  extension defines, and in `WWW-Authenticate` at APIs (3.3, section 7). An MCP server returns it only
+  name in `extension`: a JSON body at endpoints the protocol or an extension defines, and in
+  `WWW-Authenticate` at APIs (3.3, section 7). An MCP server returns it only
   to refuse the Personal Agent entirely, not for one tool.
 - The Company's own extensions are named with a domain it controls, such as `example.com/gift-wrap`.
   Plain names are reserved for the protocol.
@@ -32,7 +35,7 @@ Local copies: `reference/extensions.md` and `reference/operations.md`.
 Optional. Build it for the actions that need the User's approval, on the interfaces that offer them
 ([Operations 1](https://personalagentprotocol.org/docs/0.4/extensions/operations#intro)). It adds no
 endpoints. List `operations` with `version: "2"` in `poppy.json` and use it only when
-the Personal Agent lists that version too. Otherwise handle approval yourself, or refuse with
+the request declares that version in `Poppy-Extensions`. Otherwise handle approval yourself, or refuse with
 `extension_required`. An MCP tool returns an ordinary tool error instead. See
 [Operations 2](https://personalagentprotocol.org/docs/0.4/extensions/operations#support).
 
@@ -80,8 +83,8 @@ the Personal Agent lists that version too. Otherwise handle approval yourself, o
 
 This version of the validator doesn't check extensions. Run `check --file ./poppy.json` for the
 `extensions` entry's shape, then go through the extensions section of `checklist.md` and test by
-hand on staging: a Personal Agent whose metadata doesn't list the extension gets the behavior the
-spec alone describes, or `extension_required`.
+hand on staging: a request that doesn't declare the extension gets the behavior the spec alone
+describes, or `extension_required`.
 
 - **Operations,** if offered: a request for an action that needs approval returns the operation and
   changes nothing. The same request with the approval performs it, and sending it again doesn't
@@ -89,7 +92,7 @@ spec alone describes, or `extension_required`.
   expired revision each get a new revision. Make a downstream system time out and see 503 until the
   outcome is known.
 
-Also try metadata with no `operations` entry or with `version: "1"`: return no operation and handle
-approval yourself, or refuse as above.
+Also try a request with no `operations` in `Poppy-Extensions`, or with `v="1"`: return no operation
+and handle approval yourself, or refuse as above.
 
 Log anything unclear in `plan/feedback.md`.

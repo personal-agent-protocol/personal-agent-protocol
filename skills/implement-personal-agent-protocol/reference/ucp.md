@@ -16,7 +16,7 @@ A Company that speaks UCP lists the extension in `extensions` in its `poppy.json
 
 ```
 "extensions": {
-  "ucp": { "version": "1" }
+  "ucp": [{ "version": "1" }]
 }
 ```
 
@@ -24,7 +24,7 @@ A Company that speaks UCP lists the extension in `extensions` in its `poppy.json
 - A Company that offers sign-in has an issuer ([spec 3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server)), found from the protected resource metadata at `https://{organization.domain}/.well-known/oauth-protected-resource`. For this extension, the Personal Agent selects the issuer as spec 3.2 describes, including `auth.issuer` when that document lists more than one authorization server, and the Company's UCP services SHOULD support account access through that issuer. If a UCP service requires a different issuer, the Personal Agent MUST NOT use that issuer through this extension. Account access through this extension is unavailable for that service, though UCP used independently may still offer it (below). A Company that offers no sign-in can offer UCP signed out without an issuer ([spec 3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server)), and one that sets `auth.disabled` offers UCP signed out to Personal Agents too. Its UCP identity linking stays available to UCP used independently of this extension (below).
 - Support means that the Company's UCP services, at the endpoints its profile lists, are endpoints this extension defines: the Personal Agent sends them the Session header ([spec 5.2](https://personalagentprotocol.org/docs/0.4/spec#session-header)), and the Company handles its requests as UCP defines (4, 8).
 
-A Personal Agent that supports this extension SHOULD list `"ucp": {"version": "1"}` in its client metadata document, so a Company can tell before a UCP request that the Personal Agent speaks UCP, for example to point it to UCP from another of its interfaces. A Company doesn't rely on the listing: it recognizes a UCP request from the request itself ([spec 3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)), which names the Personal Agent's UCP platform profile (3).
+A Personal Agent that supports this extension SHOULD declare `"ucp";v="1"` in `Poppy-Extensions` ([spec 3.4](https://personalagentprotocol.org/docs/0.4/spec#versions)), so a Company can tell from its other requests that the Personal Agent speaks UCP, for example to point it to UCP from another of its interfaces. A Company doesn't rely on the declaration: it recognizes a UCP request from the request itself ([spec 3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)), which names the Personal Agent's UCP platform profile (3).
 
 A Personal Agent that doesn't support this extension ignores the entry and uses the Company's `agent`, `apis`, and `web` as the specification describes. A Company MAY also list its UCP MCP endpoint in `apis`, for MCP clients that speak UCP but don't know this extension. The tools there are UCP's: UCP requires the Personal Agent to advertise its platform profile on every request, in the form the transport defines (3), so a client that does gets UCP's tools, and one that doesn't gets UCP's `invalid_profile_url` error rather than a result. An MCP endpoint listed in `apis` follows [spec 7](https://personalagentprotocol.org/docs/0.4/spec#apis): its protected resource metadata `resource` equals its `url`, and tokens for it are requested with that `resource`. Listing it is optional.
 
@@ -180,7 +180,7 @@ Kettle & Leaf sells tea at `kettleandleaf.example`.
 
 ```
 {
-  "protocol_version": "0.3",
+  "protocol_version": "0.4",
   "organization": { "name": "Kettle & Leaf", "domain": "kettleandleaf.example" },
   "auth": {
     "scopes": {
@@ -206,7 +206,7 @@ Kettle & Leaf sells tea at `kettleandleaf.example`.
     }
   ],
   "extensions": {
-    "ucp": { "version": "1" }
+    "ucp": [{ "version": "1" }]
   }
 }
 ```

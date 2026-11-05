@@ -37,6 +37,7 @@ export const SECTION_NUMBERS: Record<string, string> = {
     "spec#fields": "3.1",
     "spec#oauth-server": "3.2",
     "spec#extensions": "3.3",
+    "spec#versions": "3.4",
     "spec#oauth": "4",
     "spec#agent-identity": "4.1",
     "spec#direct-sign-in": "4.2",
@@ -194,10 +195,22 @@ export const CATALOG: CheckInfo[] = [
         "to tell Personal Agents how to start Sessions and sign in, and which APIs and Company Agent it offers",
     ),
     foundation(
+        "discovery.supported-versions",
+        "Each document supported_versions links to is on the same host, without redirects, for that version",
+        "spec#versions",
+        "Each URL in supported_versions MUST be an HTTPS URL on the host that served poppy.json, after any redirects.",
+    ),
+    foundation(
+        "discovery.versions-same-company",
+        "Every version's document has the same organization.domain and auth.issuer",
+        "spec#versions",
+        "Every document a Company serves at the same time MUST have the same organization.domain and select the same issuer (3.2)",
+    ),
+    foundation(
         "discovery.protocol-version",
-        "protocol_version is the version this validator checks",
-        "spec#fields",
-        "a Personal Agent MUST NOT use a document whose major.minor version it doesn't support.",
+        "poppy.json, or a document it links in supported_versions, is for the version this validator checks",
+        "spec#versions",
+        "If none is, it MUST NOT use any of them.",
     ),
     foundation(
         "discovery.domain-matches-host",
@@ -542,6 +555,18 @@ export const CATALOG: CheckInfo[] = [
         "A resource rejects a Session JWT with ath on a request without an access token",
         "spec#session-verification",
         "Without an access token, ath MUST be absent.",
+    ),
+    foundation(
+        "session.version-missing",
+        "A resource rejects a request without Poppy-Version with version_unsupported",
+        "spec#versions",
+        "An endpoint that verifies the Session header (5.3) MUST also check Poppy-Version.",
+    ),
+    foundation(
+        "session.version-unsupported",
+        "A resource rejects a version the Company doesn't serve with version_unsupported",
+        "spec#versions",
+        "MUST NOT handle the request under another version.",
     ),
     foundation(
         "session.invalid-everywhere",
@@ -916,9 +941,9 @@ export const CATALOG: CheckInfo[] = [
     // Milestone 4: the Operations extension, as far as a signed-out run sees it.
     extensions(
         "operations.not-returned",
-        "No operations are returned to a Personal Agent that doesn't list the Operations extension",
+        "No operations are returned in response to a request that doesn't declare the Operations extension",
         "operations#support",
-        "A Company MUST NOT return operations to a Personal Agent that doesn't list that version.",
+        "A Company MUST NOT return operations in response to a request that doesn't declare it.",
     ),
 ];
 

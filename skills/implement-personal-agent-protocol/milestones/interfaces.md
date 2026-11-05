@@ -38,7 +38,8 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
 - Return access token errors in the `WWW-Authenticate` header: a challenge with `scope` and no
   error code (401) for a signed-out request that needs the account, `invalid_token` (401),
   `insufficient_scope` (403, with `scope`) for an access token without the scopes, and
-  `extension_required` (403). `invalid_session` (400) is a JSON body (section 7).
+  `extension_required` (403). `invalid_session` and `version_unsupported` (400) are JSON bodies
+  (section 7).
 - Signed out, allow what a signed-out website visitor can do
   ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-guest)). Endpoints that need an
   account return the 401 challenge with the scopes they need.
@@ -109,7 +110,8 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
   `responder`, a `state` event, cancels any pending handoff. Closing again returns the same response
   and adds no event.
 - Errors are JSON bodies with the codes in
-  [8.13](https://personalagentprotocol.org/docs/0.4/spec#conversation-errors), and `invalid_session`.
+  [8.13](https://personalagentprotocol.org/docs/0.4/spec#conversation-errors), `invalid_session`, and
+  `version_unsupported`.
   Access token errors are the `WWW-Authenticate` errors of section 7.
 
 ## Web browsing
