@@ -72,7 +72,7 @@ const TABS: TabInfo[] = [
                 navTitle: "Path to 1.0",
                 title: "Personal Agent Protocol: Path to 1.0",
                 description:
-                    "How Personal Agent Protocol gets to 1.0, the feedback we want, areas the draft doesn't cover yet, and the design partners implementing it.",
+                    "Where Personal Agent Protocol stands, how it gets to 1.0, the feedback we want, areas the draft doesn't cover yet, and the design partners implementing it.",
                 outlineDepth: 2,
             },
             {

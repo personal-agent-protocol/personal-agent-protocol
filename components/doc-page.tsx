@@ -38,6 +38,15 @@ function Tag({ kind, tip, children }: { kind: string; tip?: string; children?: R
     );
 }
 
+// A box that sets text apart, such as the current status at the top of a page.
+function Callout({ children }: { children?: ReactNode }) {
+    return (
+        <aside className="callout" role="note">
+            {children}
+        </aside>
+    );
+}
+
 // A list of partner names, shown in columns.
 function PartnerList({ children }: { children?: ReactNode }) {
     return Children.map(children, (child) =>
@@ -97,6 +106,7 @@ function VersionBanner({ href }: { href: string }) {
 // The components content files can use, and the ones Markdown maps to.
 const COMPONENTS: MDXComponents = {
     table: SpecTable,
+    Callout,
     Change,
     CodeBlock,
     CommentingButton,

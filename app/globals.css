@@ -1806,6 +1806,14 @@ footer.site-footer .footer-github {
     margin: 0;
 }
 
+.callout ul {
+    margin: 8px 0 0;
+}
+
+.callout li:last-child {
+    margin-bottom: 0;
+}
+
 .callout.warn {
     border-left-color: var(--amber);
     background: var(--amber-soft);
