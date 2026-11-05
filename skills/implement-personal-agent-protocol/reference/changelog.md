@@ -26,6 +26,12 @@ Breaking · [Spec 3.1](https://personalagentprotocol.org/docs/0.4/spec#fields) �
 
 Each extension in `poppy.json` is a list with an entry for each version the Company supports. The Personal Agent declares the extensions it uses with a Company, one version of each, in the `Poppy-Extensions` header, instead of in `extensions` in its client metadata document, which is removed. It can use different versions with different Companies and roll out a new one gradually. `extension_required` and extension content in messages follow the request's declaration, and the token endpoint no longer returns `extension_required`.
 
+#### Conversations across versions
+
+[Spec 8.2](https://personalagentprotocol.org/docs/0.4/spec#conversation-requests) · [Spec 8.13](https://personalagentprotocol.org/docs/0.4/spec#conversation-errors) · [Guides: Versions](https://personalagentprotocol.org/docs/0.4/guides#agent-versions) · [Guides: Serving several versions](https://personalagentprotocol.org/docs/0.4/guides#company-versions)
+
+A conversation can continue in a Session that uses other versions, unless the Company can't carry it over. Then it MAY reject requests on the conversation, all of them or only some, with `version_mismatch` (HTTP 409), which gives the protocol version the conversation started in. The Personal Agent finishes it in a Session with those versions, or starts a new conversation.
+
 #### `poppy:browser-sign-in` for signed-in browser join
 
 Breaking · [Spec 3](https://personalagentprotocol.org/docs/0.4/spec#discovery) · [Spec 3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server) · [Spec 4.7](https://personalagentprotocol.org/docs/0.4/spec#scopes) · [Spec 4.8](https://personalagentprotocol.org/docs/0.4/spec#oauth-additions) · [Spec 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing) · [Guides: Web browsing](https://personalagentprotocol.org/docs/0.4/guides#agent-browsing) · [Guides: Browser sessions](https://personalagentprotocol.org/docs/0.4/guides#company-browsing) · [Guides: Enforcing scopes everywhere](https://personalagentprotocol.org/docs/0.4/guides#company-scopes) · [Guides: Consent pages](https://personalagentprotocol.org/docs/0.4/guides#company-consent)

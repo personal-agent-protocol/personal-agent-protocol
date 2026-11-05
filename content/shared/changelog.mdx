@@ -45,6 +45,15 @@ token endpoint no longer returns `extension_required`.
 
 </Change>
 
+<Change title="Conversations across versions" sections="8.2, 8.13, guides#agent-versions, guides#company-versions">
+
+A conversation can continue in a Session that uses other versions, unless the Company can't carry it
+over. Then it MAY reject requests on the conversation, all of them or only some, with
+`version_mismatch` (HTTP 409), which gives the protocol version the conversation started in. The
+Personal Agent finishes it in a Session with those versions, or starts a new conversation.
+
+</Change>
+
 <Change title="`poppy:browser-sign-in` for signed-in browser join" breaking sections="3, 3.2, 4.7, 4.8, 6, guides#agent-browsing, guides#company-browsing, guides#company-scopes, guides#company-consent">
 
 A signed-in browser join needs an access token with `poppy:browser-sign-in`, the only scope the

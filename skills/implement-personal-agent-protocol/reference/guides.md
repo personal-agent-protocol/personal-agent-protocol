@@ -120,6 +120,8 @@ You choose a protocol version and extension versions for each company, so you ca
 
 Declare in `Poppy-Extensions` only the extensions the company lists, so you don't tell each company which others you support. A `Deprecation` or `Sunset` header on a response is a sign to move that company to a newer version before the date it gives.
 
+Record the versions each conversation started in. A company can refuse to continue a conversation in a session with other versions, with `version_mismatch` ([8.2](https://personalagentprotocol.org/docs/0.4/spec#conversation-requests)). To finish it, open a session with those versions while the company still lists them. Otherwise start a new conversation, and tell the user if they were waiting on something in the old one.
+
 ### User IDs
 
 Each user needs a stable, opaque ID for each company ([5.1](https://personalagentprotocol.org/docs/0.4/spec#user-ids)). Two ways to make one:
@@ -297,6 +299,8 @@ To add a protocol version ([3.4](https://personalagentprotocol.org/docs/0.4/spec
 4. To retire a version, send `Deprecation` and `Sunset` on its responses for a while, then remove it from `supported_versions`, then stop accepting it. A personal agent with a cached document gets `version_unsupported`, fetches `poppy.json` again, and moves.
 
 You can offer several versions of an extension the same way, with an entry for each in `extensions` ([3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)), and handle each request by the version it declares.
+
+Conversations can outlast a version. Record the versions each conversation started in, and decide what you can carry over to a newer one. Where you can't, such as a pending operation whose format changed, reject requests on that conversation from sessions with other versions with `version_mismatch` ([8.2](https://personalagentprotocol.org/docs/0.4/spec#conversation-requests)). You can still allow reads, so the user can see what happened.
 
 If you serve one version, check `Poppy-Version` where you verify the Session header, and there is nothing else to do.
 

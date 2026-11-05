@@ -865,6 +865,16 @@ A conversation belongs to the Personal Agent's `client_id` and the User ID that 
 | Same Personal Agent, another User ID | Rejected with `conversation_not_found` (8.13) | Rejected with `conversation_not_found` (8.13) |
 | Another Personal Agent | Rejected with `conversation_not_found` (8.13) | Rejected with `conversation_not_found` (8.13) |
 
+**Versions.** A request on a conversation can come from a Session that uses a different protocol version, or different extension versions, from the Session that started it (3.4). Versions don't always carry a conversation over, so the Company MAY reject such requests, all of them or only some, such as new messages but not reads. It rejects them with `version_mismatch` (HTTP 409), giving the protocol version the conversation started in as `protocol_version`:
+
+*Response body: Company → Personal Agent*
+
+```
+{ "error": "version_mismatch", "protocol_version": "0.4" }
+```
+
+The Personal Agent can then continue the conversation in a Session that uses the versions it started with, if the Company still serves them, or start a new conversation.
+
 **IDs.** Conversation IDs, message IDs, and event IDs are strings of 1 to 256 characters from the URL-safe base64 alphabet ([RFC 4648, section 5](https://www.rfc-editor.org/rfc/rfc4648#section-5)): letters, digits, `-`, and `_`. The Company chooses Conversation IDs and event IDs, and the Personal Agent chooses message IDs for its own messages. Beyond these rules, the side that chooses an ID decides its format, and the other side MUST NOT depend on it.
 
 ### 8.3 Sending messages
@@ -1315,6 +1325,7 @@ Token errors, `invalid_session`, `session_ended`, and `version_unsupported` are 
 | `cursor_expired` | 410 | The Company no longer has the events at this cursor (8.5). |
 | `invalid_request` | 400 | The request is malformed, such as a message with no content (8.4), an ID with characters not allowed (8.2), or a `wait` that isn't a whole number of seconds. |
 | `extension_required` | 403 | The request needs an extension it doesn't declare, named in `extension` (3.3). |
+| `version_mismatch` | 409 | The conversation started in other versions, and the Company doesn't continue it in these. The protocol version it started in is in `protocol_version` (8.2). |
 
 ## 9. Task coverage
 

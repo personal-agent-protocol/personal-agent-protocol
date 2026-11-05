@@ -232,6 +232,11 @@ Declare in `Poppy-Extensions` only the extensions the company lists, so you don'
 which others you support. A `Deprecation` or `Sunset` header on a response is a sign to move that
 company to a newer version before the date it gives.
 
+Record the versions each conversation started in. A company can refuse to continue a conversation in
+a session with other versions, with `version_mismatch` ([8.2](/docs/spec#conversation-requests)). To
+finish it, open a session with those versions while the company still lists them. Otherwise start a
+new conversation, and tell the user if they were waiting on something in the old one.
+
 ### User IDs {#agent-user-ids}
 
 Each user needs a stable, opaque ID for each company ([5.1](/docs/spec#user-ids)). Two ways
@@ -605,6 +610,12 @@ To add a protocol version ([3.4](/docs/spec#versions)):
 
 You can offer several versions of an extension the same way, with an entry for each in
 `extensions` ([3.3](/docs/spec#extensions)), and handle each request by the version it declares.
+
+Conversations can outlast a version. Record the versions each conversation started in, and decide
+what you can carry over to a newer one. Where you can't, such as a pending operation whose format
+changed, reject requests on that conversation from sessions with other versions with
+`version_mismatch` ([8.2](/docs/spec#conversation-requests)). You can still allow reads, so the user
+can see what happened.
 
 If you serve one version, check `Poppy-Version` where you verify the Session header, and there is
 nothing else to do.

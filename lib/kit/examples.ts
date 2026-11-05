@@ -34,6 +34,7 @@ const EXAMPLES: Record<string, Target> = {
     "web-browsing:1": "browser-session-authorize.schema.json",
     // A request to the Company's own API, whose schema is the Company's.
     "apis:1": null,
+    "conversation-requests:1": "error.schema.json",
     "sending-messages:1": "conversation-request.schema.json",
     "sending-messages:2": "conversation-response.schema.json",
     "sending-messages:3": "conversation-message-request.schema.json",

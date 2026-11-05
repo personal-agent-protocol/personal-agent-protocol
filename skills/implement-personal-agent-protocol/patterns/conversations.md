@@ -36,6 +36,11 @@ platform has its own fields for links or notices, map them to the
 [Links](https://personalagentprotocol.org/docs/0.4/extensions/links) and
 [Disclosures](https://personalagentprotocol.org/docs/0.4/extensions/disclosures) extensions.
 
+**Versions.** Store the `Poppy-Version` and `Poppy-Extensions` a conversation started with. A later
+Session can use other versions. Continue the conversation when the platform can, or reject requests
+on it, all of them or only some, with `version_mismatch` (HTTP 409) and the conversation's
+`protocol_version` ([8.2](https://personalagentprotocol.org/docs/0.4/spec#conversation-requests)).
+
 **Status and responder.** Map the platform's states: the agent working is `working`, waiting for
 the Personal Agent is `idle`, waiting for a live agent is `queued`, and closed is `closed`.
 `responder` is `human` only once a person has joined (8.7).

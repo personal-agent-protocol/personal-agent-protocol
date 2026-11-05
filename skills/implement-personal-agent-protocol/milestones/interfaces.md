@@ -111,7 +111,8 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
   and adds no event.
 - Errors are JSON bodies with the codes in
   [8.13](https://personalagentprotocol.org/docs/0.4/spec#conversation-errors), `invalid_session`, and
-  `version_unsupported`.
+  `version_unsupported`. A conversation that started in other versions can be refused with
+  `version_mismatch` (8.2).
   Access token errors are the `WWW-Authenticate` errors of section 7.
 
 ## Web browsing
