@@ -1,10 +1,10 @@
 # Pattern: serving poppy.json
 
 `poppy.json` is served at `https://{domain}/.well-known/poppy.json` on the Company's own domain
-([section 3](https://personalagentprotocol.org/docs/0.3/spec#discovery)). The document speaks for the
+([section 3](https://personalagentprotocol.org/docs/0.4/spec#discovery)). The document speaks for the
 host that serves it at `/.well-known/poppy.json` after any redirects, so a redirect must end at that
 path, and `organization.domain` must be that host
-([3.1](https://personalagentprotocol.org/docs/0.3/spec#fields)).
+([3.1](https://personalagentprotocol.org/docs/0.4/spec#fields)).
 
 ## Options
 
@@ -14,7 +14,7 @@ serves it.
 - Fits: most Companies. The content changes only when an interface or extension is added.
 - Needs: a way to serve a path under `/.well-known/` with `Content-Type: application/json`.
 - Watch for: caching. Personal Agents cache by HTTP caching headers
-  ([guides](https://personalagentprotocol.org/docs/0.3/guides#both-fetching)), so use a short
+  ([guides](https://personalagentprotocol.org/docs/0.4/guides#both-fetching)), so use a short
   enough lifetime that a change takes effect when you need it to.
 
 **Generated per environment.** Build the file, and the domain's protected resource metadata, from
@@ -23,7 +23,7 @@ configuration, so staging and production list their own endpoints and issuer.
 - Fits: Companies with several environments or several country domains.
 - Watch for: every domain that names an issuer must appear, as exactly `https://{domain}` with no
   path or trailing slash, in that issuer's `protected_resources`
-  ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)).
+  ([3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server)).
 
 **Served by a provider on the Company's domain.** A provider that runs part of the Company's
 Poppy support can serve the document, through a reverse proxy or a hostname the Company points at
@@ -36,7 +36,7 @@ the provider.
 ## What to watch for
 
 - Optionally publish `skill_index` for Personal Agents performing the User's tasks at this
-  Company ([9.4](https://personalagentprotocol.org/docs/0.3/spec#agent-context)). Embed the complete Agent
+  Company ([9.4](https://personalagentprotocol.org/docs/0.4/spec#agent-context)). Embed the complete Agent
   Skills discovery `0.2.0` index with `$schema` and `skills`; every entry has `name`, `description`,
   `type`, `url`, and a `sha256:` digest of its raw artifact bytes. Follow the pinned discovery
   draft's distribution requirements. Full HTTPS URLs may point to a CDN or another domain.
@@ -49,7 +49,7 @@ the provider.
   and nothing else (3.1).
 - A Company that offers sign-in needs an issuer, found from the domain's protected resource
   metadata at `/.well-known/oauth-protected-resource`
-  ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)). Without one, return 404 or
+  ([3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server)). Without one, return 404 or
   publish valid metadata with no authorization servers. Session JWTs then name
   `https://{organization.domain}` with a lowercase host and no trailing slash. Discovery errors
   must not silently choose this fallback.
@@ -59,7 +59,7 @@ the provider.
   other clients but that isn't ready for Personal Agents (3.2). It can't be combined with Mediated
   Sign-In or `access: signed_in`.
 - Domains that share an issuer are one Company and must select that issuer and give scopes the
-  same authorization meaning ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)).
+  same authorization meaning ([3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server)).
   Matching scope descriptions and hints are recommended; domains can expose different scopes and
   capabilities.
 - List interfaces and extensions only when they work. Add each as it ships. Direct and Device

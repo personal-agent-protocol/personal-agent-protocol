@@ -6,38 +6,38 @@ granted scopes. Skip this milestone if the design offers only signed-out Session
 
 Sign-in is plain OAuth. It doesn't know about Sessions: a Session is signed in on each request that
 carries an access token alongside its Session header
-([5.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)).
+([5.4](https://personalagentprotocol.org/docs/0.4/spec#sign-in)).
 
 ## Read first
 
-- [5.4 Signing in](https://personalagentprotocol.org/docs/0.3/spec#sign-in), with
-  [4.7 Scopes](https://personalagentprotocol.org/docs/0.3/spec#scopes) for account access
-- [4.2 Direct Sign-In](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in),
-  [4.3 Device Sign-In](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in),
-  [Mediated Sign-In extension](https://personalagentprotocol.org/docs/0.3/extensions/mediated-sign-in): the ones the design chose
-- [4.4 Refresh tokens](https://personalagentprotocol.org/docs/0.3/spec#refresh-tokens) and
-  [4.5 Access tokens](https://personalagentprotocol.org/docs/0.3/spec#access-tokens)
-- [5.5 Ending Sessions and signing out](https://personalagentprotocol.org/docs/0.3/spec#ending-sessions)
-- [8.11 Sign-in during a conversation](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)
-- Guides: [Describing scopes](https://personalagentprotocol.org/docs/0.3/guides#company-scope-descriptions),
-  [Consent pages](https://personalagentprotocol.org/docs/0.3/guides#company-consent),
-  [Device sign-in](https://personalagentprotocol.org/docs/0.3/guides#company-device),
-  [Mediated sign-in](https://personalagentprotocol.org/docs/0.3/guides#company-mediated),
-  [Token lifetimes and sign-out](https://personalagentprotocol.org/docs/0.3/guides#company-lifetimes),
-  [Account settings](https://personalagentprotocol.org/docs/0.3/guides#company-account-settings),
-  [Enforcing scopes everywhere](https://personalagentprotocol.org/docs/0.3/guides#company-scopes)
+- [5.4 Signing in](https://personalagentprotocol.org/docs/0.4/spec#sign-in), with
+  [4.7 Scopes](https://personalagentprotocol.org/docs/0.4/spec#scopes) for account access
+- [4.2 Direct Sign-In](https://personalagentprotocol.org/docs/0.4/spec#direct-sign-in),
+  [4.3 Device Sign-In](https://personalagentprotocol.org/docs/0.4/spec#device-sign-in),
+  [Mediated Sign-In extension](https://personalagentprotocol.org/docs/0.4/extensions/mediated-sign-in): the ones the design chose
+- [4.4 Refresh tokens](https://personalagentprotocol.org/docs/0.4/spec#refresh-tokens) and
+  [4.5 Access tokens](https://personalagentprotocol.org/docs/0.4/spec#access-tokens)
+- [5.5 Ending Sessions and signing out](https://personalagentprotocol.org/docs/0.4/spec#ending-sessions)
+- [8.11 Sign-in during a conversation](https://personalagentprotocol.org/docs/0.4/spec#conversation-sign-in)
+- Guides: [Describing scopes](https://personalagentprotocol.org/docs/0.4/guides#company-scope-descriptions),
+  [Consent pages](https://personalagentprotocol.org/docs/0.4/guides#company-consent),
+  [Device sign-in](https://personalagentprotocol.org/docs/0.4/guides#company-device),
+  [Mediated sign-in](https://personalagentprotocol.org/docs/0.4/guides#company-mediated),
+  [Token lifetimes and sign-out](https://personalagentprotocol.org/docs/0.4/guides#company-lifetimes),
+  [Account settings](https://personalagentprotocol.org/docs/0.4/guides#company-account-settings),
+  [Enforcing scopes everywhere](https://personalagentprotocol.org/docs/0.4/guides#company-scopes)
 
 Patterns: `patterns/sign-in.md`, `patterns/scopes.md`, `patterns/session-records.md`,
 `patterns/token-endpoint.md`.
 
 ## What to build
 
-**Scopes** ([4.7](https://personalagentprotocol.org/docs/0.3/spec#scopes)). Listing every offered scope
+**Scopes** ([4.7](https://personalagentprotocol.org/docs/0.4/spec#scopes)). Listing every offered scope
 in `scopes_supported` and describing it are recommended. Agents can also use scopes documented by
 the APIs or sign-in extensions. Put descriptions in
 the OAuth security scheme of an OpenAPI description you list or in `auth.scopes`. Write them in
 words a User and a language model can understand
-([guides](https://personalagentprotocol.org/docs/0.3/guides#company-scope-descriptions)).
+([guides](https://personalagentprotocol.org/docs/0.4/guides#company-scope-descriptions)).
 The extension's `scopes` if you offer Mediated Sign-In. Every sign-in request must include `scope`.
 Reject missing or unknown scopes with `invalid_scope`. You may grant fewer than requested (say which in `scope`). Never grant more than was
 requested and allowed for the type. The User may approve fewer, but at least one: approving none is
@@ -48,12 +48,12 @@ granted `scope` when it differs from the request. `expires_in` is recommended. R
 `refresh_token` when it doesn't replace it; the agent keeps its existing token (RFC 6749 §6).
 Send `Cache-Control: no-store`.
 
-**Access tokens** ([4.5](https://personalagentprotocol.org/docs/0.3/spec#access-tokens)).
+**Access tokens** ([4.5](https://personalagentprotocol.org/docs/0.4/spec#access-tokens)).
 
 - Bearer or DPoP-bound, as the design chose. With DPoP, the request carries both the Session JWT
   and a DPoP proof, each signed with its own key.
 - Resources must be able to tell which `client_id` a token was issued to, for the Session header
-  check ([5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification)).
+  check ([5.3](https://personalagentprotocol.org/docs/0.4/spec#session-verification)).
 - A service that accepts only its own tokens publishes protected resource metadata. Issue a token
   for its `resource` (RFC 8707) at sign-in or refresh, accept it only there, and return
   `invalid_target` for a `resource` you don't serve. A service that gets a token not issued for it
@@ -66,12 +66,12 @@ Company may refuse a request whose access token is for a different account than 
 before, with `session_ended`. Decide whether to. Personal Agents should start a new Session for a
 second account.
 
-**Direct Sign-In** ([4.2](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)).
+**Direct Sign-In** ([4.2](https://personalagentprotocol.org/docs/0.4/spec#direct-sign-in)).
 
 - `authorization_endpoint` in the OAuth metadata, and `authorization_code` in its
   `grant_types_supported`.
 - The authorization code flow with PKCE. Accept `S256` only
-  ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-consent)).
+  ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-consent)).
 - `redirect_uri` exactly matches an entry in the Personal Agent's `redirect_uris`, except for the
   port of a loopback redirect URI.
 - The consent page shows the Personal Agent's name and logo, the domain of its `client_id`, the
@@ -80,7 +80,7 @@ second account.
 - Every redirect, success or error, carries `iss`.
 - The code exchange takes the client assertion.
 
-**Device Sign-In** ([4.3](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)).
+**Device Sign-In** ([4.3](https://personalagentprotocol.org/docs/0.4/spec#device-sign-in)).
 
 - Follow the best practices for cross-device flows in RFC 10027 §2 (MUST): assess the risk, and
   choose mitigations with the engineer.
@@ -93,7 +93,7 @@ second account.
   never approves by itself.
 - Poll responses: `authorization_pending`, `slow_down`, `access_denied`, `expired_token`.
 
-**Mediated Sign-In** ([extension](https://personalagentprotocol.org/docs/0.3/extensions/mediated-sign-in)).
+**Mediated Sign-In** ([extension](https://personalagentprotocol.org/docs/0.4/extensions/mediated-sign-in)).
 
 - Transitional. Offer it only until Direct or Device Sign-In covers the same scopes. The protocol
   plans to remove it, on a date set when version 1.0 is published.
@@ -109,9 +109,9 @@ second account.
   again until your attempt limit, then `invalid_grant`.
 - Errors are OAuth errors: `invalid_grant`, `expired_token`, `access_denied`, `invalid_scope`.
 - Rate-limit attempts, and require a one-time code when a sign-in looks unusual. Return the same `invalid_grant` for an unknown account and a wrong password
-  ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-mediated)).
+  ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-mediated)).
 
-**Refresh tokens** ([4.4](https://personalagentprotocol.org/docs/0.3/spec#refresh-tokens)).
+**Refresh tokens** ([4.4](https://personalagentprotocol.org/docs/0.4/spec#refresh-tokens)).
 
 - The `refresh_token` grant with the client assertion. Accept a refresh token only at
   `token_endpoint` and `revocation_endpoint`, and only from the `client_id` it was issued to.
@@ -121,25 +121,25 @@ second account.
   doesn't extend its lifetime. Rotation is optional.
 - Expired or revoked: `invalid_grant`, and the Personal Agent continues signed out.
 
-**Signing out** ([4.6](https://personalagentprotocol.org/docs/0.3/spec#revocation)). RFC 7009 revocation
+**Signing out** ([4.6](https://personalagentprotocol.org/docs/0.4/spec#revocation)). RFC 7009 revocation
 with the client assertion and `token_type_hint=refresh_token`. Then invalidate the access tokens
 issued under it, or check on each request whether the authorization is still active. If you do
 neither, keep access tokens to a few minutes (5.5). Sessions continue signed out.
 
 **Account settings** (5.5). The User can disconnect a Personal Agent, which revokes its refresh
 tokens for that account. List each connected Personal Agent with its name, domain, scopes, and last
-use ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-account-settings)).
+use ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-account-settings)).
 
 **Scopes on every channel** (4.7,
-[guides](https://personalagentprotocol.org/docs/0.3/guides#company-scopes)). One shared check that the
+[guides](https://personalagentprotocol.org/docs/0.4/guides#company-scopes)). One shared check that the
 website, APIs, MCP tools, the Company Agent's tools, and live agents' tools all call.
 Check read and write scopes separately. A signed-out request that needs the account gets a 401
 challenge with `scope`; an access token without the scopes gets `insufficient_scope` (403)
-([section 7](https://personalagentprotocol.org/docs/0.3/spec#apis)). On the website, a refusal for a
+([section 7](https://personalagentprotocol.org/docs/0.4/spec#apis)). On the website, a refusal for a
 missing scope should show a visible error naming the scopes
-([section 6](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)). See `patterns/scopes.md`.
+([section 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)). See `patterns/scopes.md`.
 
-**Conversations** ([8.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)).
+**Conversations** ([8.11](https://personalagentprotocol.org/docs/0.4/spec#conversation-sign-in)).
 
 - When the Company Agent needs the account, add an `authorization` event with `insufficient_scope`
   and the `scope` it needs, and also ask in a message.
@@ -152,7 +152,7 @@ missing scope should show a visible error naming the scopes
 
 **Website.** Step 2 of the browser join takes the access token, and the cookie set in step 3 acts
 for its account and scopes. It stops acting for the account when the User signs out or disconnects
-the Personal Agent ([section 6](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)).
+the Personal Agent ([section 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)).
 
 ## Decisions for this milestone
 
@@ -163,8 +163,8 @@ the Personal Agent ([section 6](https://personalagentprotocol.org/docs/0.3/spec#
   suspected compromise).
 - Whether to close conversations that used the account after sign-out, or leave them open and
   answer requests without the account's token with the 401 challenge
-  ([5.5](https://personalagentprotocol.org/docs/0.3/spec#ending-sessions),
-  [guides](https://personalagentprotocol.org/docs/0.3/guides#company-conversations)).
+  ([5.5](https://personalagentprotocol.org/docs/0.4/spec#ending-sessions),
+  [guides](https://personalagentprotocol.org/docs/0.4/guides#company-conversations)).
 - For Mediated Sign-In: attempt limits, when to require a one-time code, and how the User is told.
 
 ## Common mistakes
@@ -186,7 +186,7 @@ the Personal Agent ([section 6](https://personalagentprotocol.org/docs/0.3/spec#
 - A website that refuses a missing scope with a generic error or a sign-in page, without naming the
   scope (section 6).
 - Logging token request bodies, Mediated Sign-In credentials, or one-time codes
-  ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-mediated)).
+  ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-mediated)).
 
 ## Check it
 

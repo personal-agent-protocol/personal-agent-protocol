@@ -2,9 +2,13 @@
 
 What changed in each version of the specification, extensions, and guides, newest first. Each published version stays at its own URL, such as [/docs/0.1/spec](https://personalagentprotocol.org/docs/0.1/spec).
 
-## Draft 0.3
+## Draft 0.4
 
-In progress, at [/docs/spec](https://personalagentprotocol.org/docs/0.3/spec). This list grows until 0.3 is published. Major changes are design decisions. Minor changes fill gaps, make the text consistent, or follow an RFC. A change tagged "Breaking" can require an implementation that followed the 0.2 text to change, whether it's major or minor.
+In progress, at [/docs/spec](https://personalagentprotocol.org/docs/0.4/spec). This list grows until 0.4 is published.
+
+## Version 0.3
+
+Published November 4, 2026. It's frozen at [/docs/0.3/spec](https://personalagentprotocol.org/docs/0.3/spec). Major changes are design decisions. Minor changes fill gaps, make the text consistent, or follow an RFC. A change tagged "Breaking" can require an implementation that followed the 0.2 text to change, whether it's major or minor.
 
 ### Major changes
 
@@ -160,7 +164,7 @@ The operations endpoint, the extension entry's `endpoint` and `resource`, the op
 
 Breaking · [Spec 2](https://personalagentprotocol.org/docs/0.3/spec#terms) · [Spec 3](https://personalagentprotocol.org/docs/0.3/spec#discovery) · [Spec 3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) · [Spec 4.7](https://personalagentprotocol.org/docs/0.3/spec#scopes) · [Spec 4.8](https://personalagentprotocol.org/docs/0.3/spec#oauth-additions) · [Spec 10.2](https://personalagentprotocol.org/docs/0.3/spec#secrets) · [Spec 10.3](https://personalagentprotocol.org/docs/0.3/spec#trust) · [Spec 10.5](https://personalagentprotocol.org/docs/0.3/spec#credentials) · [Mediated Sign-In](https://personalagentprotocol.org/docs/0.3/extensions/mediated-sign-in) · [Guides: Choosing how to sign in](https://personalagentprotocol.org/docs/0.3/guides#agent-choosing-sign-in) · [Guides: Mediated sign-in](https://personalagentprotocol.org/docs/0.3/guides#agent-mediated) · [Guides: Mediated sign-in](https://personalagentprotocol.org/docs/0.3/guides#company-mediated)
 
-Mediated Sign-In moves out of the specification into the [Mediated Sign-In extension](https://personalagentprotocol.org/docs/0.3/extensions/mediated-sign-in), version 1, so the core protocol is OAuth and Sessions. A Company lists it in `extensions` in `poppy.json`, with the `fields` and `scopes` that were in `auth.mediated`, which is removed. It is now an OAuth extension grant at the Company's token endpoint, `https://personalagentprotocol.org/grant/mediated-sign-in`, which the Company lists in `grant_types_supported`, so it uses OAuth's client authentication, errors, and token responses. The Personal Agent sends the credentials as form parameters with its client assertion and `scope`, instead of as JSON with a Session Token, and `auth.mediated.endpoint` is removed. A field's `name` can't be `grant_type`, `scope`, `resource`, a client authentication parameter, or a parameter the extension defines. Personal Agents send credentials only to the issuer's token endpoint.
+Mediated Sign-In moves out of the specification into the [Mediated Sign-In extension](https://personalagentprotocol.org/docs/0.4/extensions/mediated-sign-in), version 1, so the core protocol is OAuth and Sessions. A Company lists it in `extensions` in `poppy.json`, with the `fields` and `scopes` that were in `auth.mediated`, which is removed. It is now an OAuth extension grant at the Company's token endpoint, `https://personalagentprotocol.org/grant/mediated-sign-in`, which the Company lists in `grant_types_supported`, so it uses OAuth's client authentication, errors, and token responses. The Personal Agent sends the credentials as form parameters with its client assertion and `scope`, instead of as JSON with a Session Token, and `auth.mediated.endpoint` is removed. A field's `name` can't be `grant_type`, `scope`, `resource`, a client authentication parameter, or a parameter the extension defines. Personal Agents send credentials only to the issuer's token endpoint.
 
 A one-time code is the OAuth error `code_required`, with `sign_in_id`, `sent_to`, which was `code.sent_to`, and `expires_in`, which replaces `expires_at`. The Personal Agent sends the grant again with `sign_in_id` and `one_time_code`, without the credentials or `scope`, and the sign-in keeps the first request's scopes. Only the `client_id` that started a sign-in can finish it, instead of the Session. Failures are `invalid_grant`, `expired_token`, `access_denied`, and `invalid_scope`. The `status` field, which returned every result with HTTP 200, and the errors `account_mismatch` and `sign_in_not_found` are removed. The Personal Agent doesn't need to list the extension in its client metadata, because the Company recognizes it from the grant type (3.3).
 
@@ -174,7 +178,7 @@ Mediated Sign-In is a transitional step, not where the protocol is headed, like 
 
 [Spec 3.3](https://personalagentprotocol.org/docs/0.3/spec#extensions) · [Spec 8.1](https://personalagentprotocol.org/docs/0.3/spec#conversation-protocols) · [UCP](https://personalagentprotocol.org/docs/0.3/extensions/ucp)
 
-A new [UCP extension](https://personalagentprotocol.org/docs/0.3/extensions/ucp), version 1, says how a Company that speaks the Universal Commerce Protocol connects. The Company lists `ucp` in `extensions`; its UCP profile is at UCP's well-known URL on `organization.domain`, fetched without following redirects, and negotiation follows UCP. This protocol finds the Company, identifies the Personal Agent and a pseudonymous User, and signs the User in; UCP is the business protocol for how a Personal Agent shops.
+A new [UCP extension](https://personalagentprotocol.org/docs/0.4/extensions/ucp), version 1, says how a Company that speaks the Universal Commerce Protocol connects. The Company lists `ucp` in `extensions`; its UCP profile is at UCP's well-known URL on `organization.domain`, fetched without following redirects, and negotiation follows UCP. This protocol finds the Company, identifies the Personal Agent and a pseudonymous User, and signs the User in; UCP is the business protocol for how a Personal Agent shops.
 
 UCP requests carry the Personal Agent's platform profile in the transport's form, the Session header, which the Company MAY verify, a recommended operator signature that can cover both protocols' components, and a Bearer access token when signed in. Both protocols discover the Company's issuer from the same protected resource metadata, and the Company's scopes for UCP operations are UCP's, listed in `scopes_supported`. Platform profiles aren't specific to a User.
 

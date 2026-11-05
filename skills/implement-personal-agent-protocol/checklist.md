@@ -1,6 +1,6 @@
 # Company checklist
 
-Generated from the Personal Agent Protocol docs, draft 0.3. It lists every
+Generated from the Personal Agent Protocol docs, draft 0.4. It lists every
 requirement on the Company in the specification and extensions, and the guides' advice for
 companies, grouped by milestone. Go through the sections for the milestones and features in
 your design. The validator checks some of these. The rest need a review or a manual test.
@@ -10,20 +10,20 @@ are left out.
 
 ## Foundation
 
-### Specification: [3. Discovery](https://personalagentprotocol.org/docs/0.3/spec#discovery)
+### Specification: [3. Discovery](https://personalagentprotocol.org/docs/0.4/spec#discovery)
 
 - [ ] **MUST**: A Company MUST publish its `poppy.json` document at `https://{domain}/.well-known/poppy.json` over HTTPS, where `{domain}` is the Company's domain or a subdomain it controls.
 - [ ] **MUST**: Every URL this protocol defines or exchanges MUST be an HTTPS URL: in `poppy.json`, in authorization server and protected resource metadata, in client metadata documents (4.1), in extensions, and in assertions, Session JWTs, and responses.
 - [ ] **MUST NOT**: Personal Agents MUST NOT use a URL from a Company that has another scheme, and Companies MUST reject one from a Personal Agent.
 - [ ] **MUST NOT**: Personal Agents and Companies MUST NOT connect to a loopback, private, or link-local address for a URL the other party gave them, unless they were configured to on purpose.
 
-### Specification: [3.1 Fields](https://personalagentprotocol.org/docs/0.3/spec#fields)
+### Specification: [3.1 Fields](https://personalagentprotocol.org/docs/0.4/spec#fields)
 
 - [ ] **MUST**: `domain` MUST be the host that serves the document, after any redirects.
 - [ ] **MUST**: It MUST be in that list.
 - [ ] **MUST**: With one authorization server, the Company MAY leave it out, and if it includes it, it MUST name that server.
 
-### Specification: [3.2 OAuth server](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)
+### Specification: [3.2 OAuth server](https://personalagentprotocol.org/docs/0.4/spec#oauth-server)
 
 - [ ] **MUST**: A Company that offers sign-in MUST have an OAuth issuer.
 - [ ] **MUST**: If the Company publishes this metadata, its `resource` MUST be exactly `https://{organization.domain}`, and its `authorization_servers`, when nonempty, names the issuer:
@@ -45,18 +45,18 @@ are left out.
 - [ ] **SHOULD**: A Company that offers sign-in SHOULD publish it and include every scope a Personal Agent can request (4.7).
 - [ ] **MUST**: A Company that lists `signed_in` MUST have an issuer, and MUST NOT set `auth.disabled`.
 
-### Specification: [4.1 Agent identity](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)
+### Specification: [4.1 Agent identity](https://personalagentprotocol.org/docs/0.4/spec#agent-identity)
 
 - [ ] **MUST**: Companies MUST reject a client assertion with any other `aud`, compared character for character, including their token endpoint URL.
 - [ ] **MUST**: Companies MUST accept client assertions signed with `ES256`, and SHOULD accept ones signed with `PS384`.
 
-### Specification: [Delegated keys](https://personalagentprotocol.org/docs/0.3/spec#delegated-keys)
+### Specification: [Delegated keys](https://personalagentprotocol.org/docs/0.4/spec#delegated-keys)
 
 - [ ] **MUST**: Companies MUST accept delegations signed with `ES256`, and SHOULD accept delegations signed with `PS384`.
 - [ ] **MUST**: When verifying a Session header (5.3), the Company MUST reject, with `invalid_session`, a Session JWT without a delegation, including one signed directly with a key from `jwks_uri`, and a Session JWT whose delegation fails any of these checks.
 - [ ] **MUST NOT**: So a Company MUST NOT expect a User's delegated key to stay the same between requests or Sessions, or treat a new one as a reason to reject a request.
 
-### Specification: [5.3 Verifying the Session header](https://personalagentprotocol.org/docs/0.3/spec#session-verification)
+### Specification: [5.3 Verifying the Session header](https://personalagentprotocol.org/docs/0.4/spec#session-verification)
 
 - [ ] **SHOULD**: Companies SHOULD verify the Session header on every request that carries it.
 - [ ] **MUST**: The Company MUST complete the following checks before relying on Session claims for client or User identity, ownership, continuity, or access to state, including creating or continuing a Session:
@@ -69,16 +69,16 @@ are left out.
 - [ ] **MUST NOT**: The Company MUST NOT use unverified Session claims to attribute a request to a Personal Agent, User, or Session, or to look up their state.
 - [ ] **MUST**: The Company MUST reject a request without the Session header when handling it depends on Session claims.
 
-### Specification: [Operator signatures](https://personalagentprotocol.org/docs/0.3/spec#operator-signatures)
+### Specification: [Operator signatures](https://personalagentprotocol.org/docs/0.4/spec#operator-signatures)
 
 - [ ] **MUST**: Before trusting any Session claim, the Company MUST verify the Session JWT independently (5.3).
 
-### Specification: [5.6 Sending requests](https://personalagentprotocol.org/docs/0.3/spec#sending-requests)
+### Specification: [5.6 Sending requests](https://personalagentprotocol.org/docs/0.4/spec#sending-requests)
 
 - [ ] **MUST**: Companies MUST accept the Session header and access token without requiring cookies.
 - [ ] **MUST NOT**: Personal Agents MUST NOT send tokens or Session JWTs in a URL, and Companies MUST NOT accept them from one.
 
-### Recommended: [Handling secrets](https://personalagentprotocol.org/docs/0.3/guides#both-secrets)
+### Recommended: [Handling secrets](https://personalagentprotocol.org/docs/0.4/guides#both-secrets)
 
 These are secrets:
 
@@ -92,7 +92,7 @@ To handle them:
 - [ ] Redact the `Authorization`, `Poppy-Session`, `DPoP`, and `Cookie` headers and credential fields before a request reaches a logger or tracer.
 - [ ] Send `Cache-Control: no-store` on every response that carries a token or code.
 
-### Recommended: [Signing and verifying JWTs](https://personalagentprotocol.org/docs/0.3/guides#both-signing)
+### Recommended: [Signing and verifying JWTs](https://personalagentprotocol.org/docs/0.4/guides#both-signing)
 
 Client assertions, delegations, Session JWTs, and DPoP proofs are JWTs. To sign and verify them consistently:
 
@@ -105,7 +105,7 @@ Client assertions, delegations, Session JWTs, and DPoP proofs are JWTs. To sign 
 - [ ] Personal agents: set a client assertion's `exp` at most five minutes after its `iat`.
 - [ ] Companies: reject a reused client assertion `jti` from the same `client_id` until it expires, as RFC 7523 §3 allows.
 
-### Recommended: [Operator signatures and bot defenses](https://personalagentprotocol.org/docs/0.3/guides#both-operator-signatures)
+### Recommended: [Operator signatures and bot defenses](https://personalagentprotocol.org/docs/0.4/guides#both-operator-signatures)
 
 - [ ] Build the request body, any DPoP proof, and Session JWT first, then the operator signature. Cover `poppy-session` and `authorization` when present, as the spec requires. Include method, authority, path, query, and a verified content digest when the verifier relies on those components.
 - [ ] Keep operator keys separate from delegated Session keys. Publishing every User's delegated key in an operator directory is not equivalent to verifying a delegation, and exposes a new key mapping.
@@ -114,7 +114,7 @@ Client assertions, delegations, Session JWTs, and DPoP proofs are JWTs. To sign 
 - [ ] Test the actual edge and origin together: registration, directory caching, key rotation, accepted signature components, body handling, and forwarded authentication results. Protect the origin from forged forwarding headers. A bot-verification result is not a replay check or account grant.
 - [ ] Remove the extra signature where an edge verifies delegated Session JWTs directly. Keep Company acceptance and all remaining Session and OAuth checks. The JWT covers method, URL without query, and access token, not the request body; do not assume removing an operator signature preserves any additional query or body protection it supplied.
 
-### Recommended: [Rotating keys](https://personalagentprotocol.org/docs/0.3/guides#both-key-rotation)
+### Recommended: [Rotating keys](https://personalagentprotocol.org/docs/0.4/guides#both-key-rotation)
 
 - [ ] Give every key in `jwks_uri` a `kid`.
 - [ ] Publish a new key in `jwks_uri` before signing with it, early enough for companies' caches to pick it up.
@@ -123,7 +123,7 @@ Client assertions, delegations, Session JWTs, and DPoP proofs are JWTs. To sign 
 - [ ] Companies refetch `jwks_uri` when they see an unknown `kid`. The refetch happens before any signature is checked, so anyone can trigger it by naming a real personal agent and a made-up `kid`. Refetch each `jwks_uri` at most once per interval, such as 30 seconds, and count failed fetches too. Otherwise a stream of bad assertions can flood the personal agent's server.
 - [ ] Rotating signing keys doesn't affect refresh tokens. They are tied to the `client_id`, not a key (4.4).
 
-### Recommended: [Fetching metadata safely](https://personalagentprotocol.org/docs/0.3/guides#both-fetching)
+### Recommended: [Fetching metadata safely](https://personalagentprotocol.org/docs/0.4/guides#both-fetching)
 
 Personal agents fetch `poppy.json` files, OAuth and protected resource metadata, API descriptions, and excluded-task documents. Companies fetch client metadata documents and key sets. Each fetch goes to a URL the other party controls, so:
 
@@ -133,7 +133,7 @@ Personal agents fetch `poppy.json` files, OAuth and protected resource metadata,
 - [ ] Reject loopback, private, and link-local addresses unless you've configured them on purpose. Check the address you actually connect to, not only the one DNS returned first.
 - [ ] Cache according to HTTP caching headers, within bounds you set, such as at least a minute and at most a day. The upper bound means a removed key stops being trusted.
 
-### Recommended: [Rate limits](https://personalagentprotocol.org/docs/0.3/guides#both-rate-limits)
+### Recommended: [Rate limits](https://personalagentprotocol.org/docs/0.4/guides#both-rate-limits)
 
 - [ ] Companies: limit by `client_id`, by user, and by session, so one busy personal agent or user doesn't crowd out others. Count a request against a `client_id` only after its Session JWT or client assertion's signature checks pass. Otherwise anyone can name a personal agent and use up its limit, so its real users are refused. Limit unverified requests by network instead.
 - [ ] Companies: also send the `RateLimit` and `RateLimit-Policy` headers (IETF draft), so personal agents can slow down before they hit a limit.
@@ -141,14 +141,14 @@ Personal agents fetch `poppy.json` files, OAuth and protected resource metadata,
 - [ ] Personal agents: prefer long polling or streaming over repeated short polls, and check for changes no more often than the task needs. Checking once a day for a price drop is usually enough.
 - [ ] Personal agents: run work that isn't time-sensitive, such as checking order status in the background, outside the company's busy hours, and spread it out instead of starting it all at the same moment.
 
-### Recommended: [Transport and JSON](https://personalagentprotocol.org/docs/0.3/guides#both-transport)
+### Recommended: [Transport and JSON](https://personalagentprotocol.org/docs/0.4/guides#both-transport)
 
 - [ ] Use TLS 1.2 or later. Prefer TLS 1.3.
 - [ ] Encode JSON as UTF-8 and reject objects with duplicate member names.
 - [ ] Write timestamps in RFC 3339 with a time zone offset, such as `2026-10-02T17:15:00-07:00`.
 - [ ] Ignore fields you don't recognize, so later versions can add them.
 
-### Recommended: [Choosing capabilities](https://personalagentprotocol.org/docs/0.3/guides#company-adoption)
+### Recommended: [Choosing capabilities](https://personalagentprotocol.org/docs/0.4/guides#company-adoption)
 
 Start with the tasks you want personal agents to accomplish and the interfaces you already have. Publish `poppy.json` with at least one of `apis`, `web`, or `agent` (MUST, 3.1). Then choose the capabilities those tasks need:
 
@@ -157,14 +157,14 @@ Start with the tasks you want personal agents to accomplish and the interfaces y
 - [ ] Account access. Add OAuth when tasks need access to a user's account. Your endpoints can rely on OAuth alone if they use no Session claims. They still validate tokens and enforce scopes and any required DPoP checks. Check your existing authorization server against what Poppy adds to OAuth and client metadata support.
 - [ ] Channels and other capabilities. Offer APIs, web browsing, conversations, or a combination. Add browser join to connect website activity to a Session. Advertise excluded tasks, feedback, and extensions where they help users complete the tasks you support.
 
-### Recommended: [Verifying personal agents](https://personalagentprotocol.org/docs/0.3/guides#company-agents)
+### Recommended: [Verifying personal agents](https://personalagentprotocol.org/docs/0.4/guides#company-agents)
 
 - [ ] Fetch the `client_id` URL without following redirects. Its `client_id` MUST equal the URL you fetched (4.1).
 - [ ] Cache client metadata and key sets, as described in Fetching metadata safely.
 - [ ] Keep allowlists or blocklists of `client_id` values, and rate-limit session creation and new `client_id` values (4.1).
 - [ ] Check whether your authorization server supports client ID metadata documents. Some do, some support them only for clients an administrator registers by URL, and some don't yet. If yours needs registration, register the personal agents you accept by their `client_id` URL and reject others with `invalid_client`, which 4.1 allows. Your OAuth integration can fetch and check the metadata document. Your resources also fetch it when verifying Session JWTs (5.3).
 
-### Recommended: [Verifying the Session header](https://personalagentprotocol.org/docs/0.3/guides#company-session-header)
+### Recommended: [Verifying the Session header](https://personalagentprotocol.org/docs/0.4/guides#company-session-header)
 
 Verify Session headers generally (SHOULD, 5.3). Complete all checks before trusting Session claims for identity, ownership, continuity, or state (MUST). Conversations, Session carts, browser join, and approval ownership need that verification. A stateless catalog endpoint can ignore the header. An account endpoint can use OAuth alone if it uses no Session claims or state. It still validates the token, its scopes and audience, and any required DPoP proof. To verify reliably:
 
@@ -180,7 +180,7 @@ Verify Session headers generally (SHOULD, 5.3). Complete all checks before trust
 - [ ] At an MCP server, accept a token issued for its `resource` only at that server (MUST, section 7). Accept the Session header there too, if you want its calls tied to sessions. Signed-out calls that use no Session state can work without verification.
 - [ ] Serve personal agent conversations only from your conversation endpoint (8.2). If your website chat or other channels can open the same conversations, they may not check the Session header, and anyone with a copied token could read them there.
 
-### Recommended: [Sessions](https://personalagentprotocol.org/docs/0.3/guides#company-sessions)
+### Recommended: [Sessions](https://personalagentprotocol.org/docs/0.4/guides#company-sessions)
 
 When keeping session state:
 
@@ -192,13 +192,13 @@ When keeping session state:
 - [ ] Use separate sessions for separate accounts. If your policy refuses a second account in a session, answer with `session_ended` (5.4).
 - [ ] Don't expect a user's delegated key to stay the same (MUST NOT, 5.2), and don't store anything by it.
 
-### Recommended: [Internal services](https://personalagentprotocol.org/docs/0.3/guides#company-internal)
+### Recommended: [Internal services](https://personalagentprotocol.org/docs/0.4/guides#company-internal)
 
 - [ ] Don't forward an access token or Session JWT from one of your services to another.
 - [ ] Verify them at the edge, then pass the verified `client_id`, session, user ID, account, and scopes to internal services through a gateway or service credentials.
 - [ ] Internal credentials used for a request shouldn't allow more than the access token does.
 
-### Recommended: [Hosting several companies](https://personalagentprotocol.org/docs/0.3/guides#company-hosting)
+### Recommended: [Hosting several companies](https://personalagentprotocol.org/docs/0.4/guides#company-hosting)
 
 - [ ] Publish metadata for each issuer at its own URL, such as `https://auth.platform.example/.well-known/oauth-authorization-server/outfitters` (3.2). Its `issuer` is the full issuer, and its `protected_resources` lists only that company's storefronts and resources, such as `https://outfitters.example`.
 - [ ] Publish protected resource metadata on each storefront's domain, with its company's issuer in `authorization_servers` (3.2).
@@ -207,7 +207,7 @@ When keeping session state:
 - [ ] Record the issuer with every session and token, and check it on every request. An access token, refresh token, or Session JWT for Outfitters must not work at Books, even when both are served by the same code.
 - [ ] Don't use one company's records for another. A user's sessions, user IDs, and accounts at one company are unknown to every other company the platform hosts.
 
-### Recommended: [Offering personal agents less](https://personalagentprotocol.org/docs/0.3/guides#company-agent-issuer)
+### Recommended: [Offering personal agents less](https://personalagentprotocol.org/docs/0.4/guides#company-agent-issuer)
 
 A company can offer personal agents less than its other OAuth clients get without a second issuer:
 
@@ -217,7 +217,7 @@ A company can offer personal agents less than its other OAuth clients get withou
 
 ## Interfaces
 
-### Specification: [6. Web browsing](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)
+### Specification: [6. Web browsing](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)
 
 - [ ] **MUST**: The Company MUST make the code unguessable and short-lived, and each code works once.
 - [ ] **MUST**: The Company MUST tie the code to the browser that loaded the page with a cookie set in the same response, so that only that browser can submit it.
@@ -233,59 +233,59 @@ A company can offer personal agents less than its other OAuth clients get withou
 - [ ] **MUST NOT**: MUST NOT outlive the Session.
 - [ ] **SHOULD**: When the website refuses an action because the Session lacks a scope, it SHOULD show a visible error message that names the missing scopes, so the Personal Agent can request them (5.4).
 
-### Specification: [7. APIs](https://personalagentprotocol.org/docs/0.3/spec#apis)
+### Specification: [7. APIs](https://personalagentprotocol.org/docs/0.4/spec#apis)
 
 - [ ] **MUST**: Every listed API MUST accept the Session header (5.2) and, when the Company offers account access, its access tokens (4.5), and enforce their scopes.
 - [ ] **MUST**: The `resource` in the server's protected resource metadata MUST equal that `url`.
 - [ ] **MUST**: The Company MUST reject it elsewhere.
 - [ ] **MUST**: It names the Company's issuer, not the Personal Agent: an MCP server that offers account access MUST include the Company's issuer in its `authorization_servers`.
 
-### Specification: [8.2 Requests](https://personalagentprotocol.org/docs/0.3/spec#conversation-requests)
+### Specification: [8.2 Requests](https://personalagentprotocol.org/docs/0.4/spec#conversation-requests)
 
 - [ ] **MUST**: The Company MUST reject any other request, as the table shows:
 - [ ] **MUST NOT**: Beyond these rules, the side that chooses an ID decides its format, and the other side MUST NOT depend on it.
 
-### Specification: [8.4 Message fields](https://personalagentprotocol.org/docs/0.3/spec#message-fields)
+### Specification: [8.4 Message fields](https://personalagentprotocol.org/docs/0.4/spec#message-fields)
 
 - [ ] **MUST**: A message MUST have at least one of `text`, `data`, `context`, or `extensions`.
 - [ ] **MUST NOT**: A side MUST NOT send an extension's content unless the other side lists that extension with the same version: the Company checks the Personal Agent's client metadata document (4.1), and the Personal Agent checks the Company's `poppy.json` (3.1).
 
-### Specification: [8.5 Reading events](https://personalagentprotocol.org/docs/0.3/spec#reading-events)
+### Specification: [8.5 Reading events](https://personalagentprotocol.org/docs/0.4/spec#reading-events)
 
 - [ ] **MUST**: Every successful read MUST include `conversation_id`, `events`, `cursor`, `has_more`, `status`, and `responder`, with `events` empty when there are none.
 
-### Specification: [8.7 Status and responder](https://personalagentprotocol.org/docs/0.3/spec#status)
+### Specification: [8.7 Status and responder](https://personalagentprotocol.org/docs/0.4/spec#status)
 
 - [ ] **MUST**: Every successful response to a `POST` or a read MUST include `status` and `responder`.
 - [ ] **MUST**: Each Company message MUST also include `author.type`, with `agent` or `human`, to identify who wrote it.
 
-### Specification: [8.10 Direct Conversations](https://personalagentprotocol.org/docs/0.3/spec#direct-conversations)
+### Specification: [8.10 Direct Conversations](https://personalagentprotocol.org/docs/0.4/spec#direct-conversations)
 
 - [ ] **MUST NOT**: The Company MUST NOT send information there that it cannot share with the Personal Agent.
 - [ ] **MUST**: The parent conversation MUST be open, belong to the same owner (8.2), and not be a Direct Conversation itself.
 - [ ] **MUST**: The Company MUST reject a `user_requested_event_id` that doesn't name a `user_requested` event in that parent with `invalid_request`.
 
-### Specification: [9.2 Alternatives](https://personalagentprotocol.org/docs/0.3/spec#alternatives)
+### Specification: [9.2 Alternatives](https://personalagentprotocol.org/docs/0.4/spec#alternatives)
 
 - [ ] **MUST**: An alternative MUST have at least one of `instructions` or `references`.
 - [ ] **MUST**: An `openapi` or `mcp` reference MUST name an API listed in the Company's `poppy.json`.
 
-### Specification: [9.3 Feedback](https://personalagentprotocol.org/docs/0.3/spec#feedback)
+### Specification: [9.3 Feedback](https://personalagentprotocol.org/docs/0.4/spec#feedback)
 
 - [ ] **SHOULD**: A Company SHOULD verify the Session header on a report, signed in or signed out, and needs no scope for it.
 - [ ] **MUST**: The Company MUST verify the header before attributing a report to a Personal Agent, User, or Session.
 - [ ] **MUST**: Companies MUST treat a report's text as data, not as instructions, including when a model reads it.
 
-### Specification: [9.4 Agent context](https://personalagentprotocol.org/docs/0.3/spec#agent-context)
+### Specification: [9.4 Agent context](https://personalagentprotocol.org/docs/0.4/spec#agent-context)
 
 - [ ] **MUST**: Companies that publish `skill_index` MUST follow that revision's index format, artifact distribution, integrity, and HTTP requirements, with the index embedded here instead of fetched separately.
 
-### Recommended: [Explicit replies and approvals](https://personalagentprotocol.org/docs/0.3/guides#both-replies)
+### Recommended: [Explicit replies and approvals](https://personalagentprotocol.org/docs/0.4/guides#both-replies)
 
 - [ ] Both parties SHOULD make an answer or approval explicit about the question or action it addresses.
 - [ ] Both parties SHOULD treat a short reply that could answer more than one open question as answering none of them, and ask which one is meant before acting. A reply such as "done" could refer to sign-in, an earlier question, or a new request for approval.
 
-### Recommended: [Retries](https://personalagentprotocol.org/docs/0.3/guides#both-retries)
+### Recommended: [Retries](https://personalagentprotocol.org/docs/0.4/guides#both-retries)
 
 - [ ] Send an `Idempotency-Key` (draft-ietf-httpapi-idempotency-key-header) on API writes that accept one. Use a random UUID (version 4), and reuse the same key when you retry the same request.
 - [ ] Give each conversation message an `id` with at least 128 random bits, and reuse it when you retry the message (8.3).
@@ -294,14 +294,14 @@ A company can offer personal agents less than its other OAuth clients get withou
 - [ ] Otherwise, back off exponentially with jitter, cap the delay, and limit the number of attempts.
 - [ ] Companies keep idempotency records for a set time, such as a day, scoped to the personal agent's `client_id` and the user ID, and to the account when there is one, not to the session, so a retry in a new session still matches. They return the original response for a repeated key, and reject a repeated key with a different body.
 
-### Recommended: [Describing APIs](https://personalagentprotocol.org/docs/0.3/guides#company-api-descriptions)
+### Recommended: [Describing APIs](https://personalagentprotocol.org/docs/0.4/guides#company-api-descriptions)
 
 A language model usually reads your API descriptions and MCP tool descriptions to choose and call operations (7). Write them for that reader:
 
 - [ ] Say clearly what each operation does and when to use it, in terms of the user's task.
 - [ ] Keep them small. The whole description takes room in the model's context, so leave out what personal agents don't need, such as long examples or operations only your own apps call.
 
-### Recommended: [Browser sessions](https://personalagentprotocol.org/docs/0.3/guides#company-browsing)
+### Recommended: [Browser sessions](https://personalagentprotocol.org/docs/0.4/guides#company-browsing)
 
 - [ ] Offer `web.browser_session_endpoint` if you want personal agents' browsing in the same session as their API calls and conversations, signed in or out. Without it, they browse your website only as ordinary signed-out visitors (section 6), and use your APIs and conversations for anything that needs the account.
 - [ ] Make each code at least 128 random bits, and expire it within 60 seconds.
@@ -314,7 +314,7 @@ A language model usually reads your API descriptions and MCP tool descriptions t
 - [ ] Make the session's cookie `Secure` and `HttpOnly`, and use the `__Host-` prefix unless it has to cover several hosts. Limit it to the hosts personal agents need, such as your main site, rather than your whole domain.
 - [ ] Look up the session on each request, so sign-out and scope changes take effect on the website right away.
 
-### Recommended: [A conversation endpoint at another provider](https://personalagentprotocol.org/docs/0.3/guides#company-conversation-provider)
+### Recommended: [A conversation endpoint at another provider](https://personalagentprotocol.org/docs/0.4/guides#company-conversation-provider)
 
 - [ ] List the conversation endpoint in `agent.protocols` in the company's `poppy.json`.
 - [ ] Use that endpoint URL as the service's resource identifier, including the tenant path so tokens for different companies have different audiences (RFC 8707 §3). Publish its protected resource metadata at the URL RFC 9728 §3.1 defines:
@@ -322,7 +322,7 @@ A language model usually reads your API descriptions and MCP tool descriptions t
 - [ ] The personal agent discovers the resource and requests its access token from the company's issuer with `resource` set to the endpoint URL, at sign-in or refresh (4.5). The issuer can also list the resource in its `protected_resources` (3.2).
 - [ ] Arrange for the conversation provider to validate access tokens from that issuer. For JWT access tokens following RFC 9068, use the issuer's metadata and signing keys and check the issuer, audience, expiry, and other validation rules. Another option is authenticated token introspection (RFC 7662). Enforce scopes and verify the Session header separately, including that the token was issued to the same client (5.3).
 
-### Recommended: [Conversations](https://personalagentprotocol.org/docs/0.3/guides#company-conversations)
+### Recommended: [Conversations](https://personalagentprotocol.org/docs/0.4/guides#company-conversations)
 
 - [ ] Let your company agent do everything customers can do by phone, as fully as you can, so personal agents have no reason to call.
 - [ ] Put structured details in `data`, not JSON or other markup in `text` (8.4).
@@ -338,7 +338,7 @@ A language model usually reads your API descriptions and MCP tool descriptions t
 - [ ] When sign-in can verify the user, send an `authorization` event (8.11) rather than asking for identifying details in messages, such as a date of birth, part of an account number, or a code sent by text. Sign-in proves who the user is, and it keeps codes and personal details out of messages and model context (Handling secrets).
 - [ ] Give the people a conversation is handed to (8.9) the same way to ask for sign-in, so they don't fall back to verification questions.
 
-### Recommended: [Excluded tasks and feedback](https://personalagentprotocol.org/docs/0.3/guides#company-excluded-tasks)
+### Recommended: [Excluded tasks and feedback](https://personalagentprotocol.org/docs/0.4/guides#company-excluded-tasks)
 
 - [ ] List the tasks you've chosen not to offer to personal agents, such as ones you allow only in your app for security or regulatory reasons (9.1). Personal agents then stop looking for a way to do them, and don't send feedback about them.
 - [ ] Write each task the way a customer would ask for it, such as "Send a wire transfer".
@@ -347,39 +347,39 @@ A language model usually reads your API descriptions and MCP tool descriptions t
 - [ ] When a feedback report asks for a task you do offer, answer with an alternative that says how, so the personal agent can finish the task (9.3).
 - [ ] Take feedback only at `feedback.endpoint` (9.3). Don't offer a second feedback operation in your APIs, so personal agents don't have to choose between them.
 
-### Recommended: [Error messages](https://personalagentprotocol.org/docs/0.3/guides#company-errors)
+### Recommended: [Error messages](https://personalagentprotocol.org/docs/0.4/guides#company-errors)
 
 - [ ] Keep `error_description` and other error text free of account details and other users' data.
 - [ ] Return the same error for "doesn't exist" and "belongs to someone else", as `conversation_not_found` does (8.13).
 
 ## Sign-in and accounts
 
-### Specification: [4.2 Direct Sign-In](https://personalagentprotocol.org/docs/0.3/spec#direct-sign-in)
+### Specification: [4.2 Direct Sign-In](https://personalagentprotocol.org/docs/0.4/spec#direct-sign-in)
 
 - [ ] **MUST**: `redirect_uri` MUST exactly match an entry in the Personal Agent's `redirect_uris` (4.1), except for the port of a loopback redirect URI, as RFC 8252 §7.3 describes.
 
-### Specification: [4.3 Device Sign-In](https://personalagentprotocol.org/docs/0.3/spec#device-sign-in)
+### Specification: [4.3 Device Sign-In](https://personalagentprotocol.org/docs/0.4/spec#device-sign-in)
 
 - [ ] **MUST**: Companies that offer Device Sign-In and Personal Agents that use it MUST follow the best practices in RFC 10027 (BCP 247) §2.
 - [ ] **MUST NOT**: Opening the link MUST NOT approve the request by itself.
 
-### Specification: [4.7 Scopes and token responses](https://personalagentprotocol.org/docs/0.3/spec#scopes)
+### Specification: [4.7 Scopes and token responses](https://personalagentprotocol.org/docs/0.4/spec#scopes)
 
 - [ ] **SHOULD**: The Company SHOULD describe each scope it offers Personal Agents, so the Personal Agent can choose the ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it lists (section 7), or otherwise in `auth.scopes`.
 - [ ] **MUST**: A Company MUST include both fields in each entry.
 - [ ] **MUST NOT**: The Company MUST NOT grant scopes beyond those requested.
 
-### Mediated Sign-In: [1. Introduction](https://personalagentprotocol.org/docs/0.3/extensions/mediated-sign-in#intro)
+### Mediated Sign-In: [1. Introduction](https://personalagentprotocol.org/docs/0.4/extensions/mediated-sign-in#intro)
 
 - [ ] **SHOULD**: A Company SHOULD offer Mediated Sign-In only until it can add Direct or Device Sign-In, and SHOULD stop offering it once those cover the scopes it grants.
 
-### Mediated Sign-In: [2. Advertising support](https://personalagentprotocol.org/docs/0.3/extensions/mediated-sign-in#support)
+### Mediated Sign-In: [2. Advertising support](https://personalagentprotocol.org/docs/0.4/extensions/mediated-sign-in#support)
 
 - [ ] **MUST NOT**: It MUST NOT be `grant_type`, `scope`, `resource`, a client authentication parameter such as `client_id` or `client_assertion`, or a parameter this extension defines, such as `sign_in_id`.
 - [ ] **SHOULD**: The Company SHOULD also include them in `scopes_supported`.
 - [ ] **MUST NOT**: The Company MUST NOT grant scopes beyond those requested and listed here.
 
-### Recommended: [Token lifetimes and sign-out](https://personalagentprotocol.org/docs/0.3/guides#company-lifetimes)
+### Recommended: [Token lifetimes and sign-out](https://personalagentprotocol.org/docs/0.4/guides#company-lifetimes)
 
 - [ ] Give access tokens a lifetime of hours, not days.
 - [ ] At sign-out, invalidate the access tokens issued under the revoked refresh token, as RFC 7009 §2.1 describes, or check on each request whether the authorization is still active, so sign-out takes effect right away. If you can do neither, keep access tokens to a few minutes (5.5).
@@ -388,7 +388,7 @@ A language model usually reads your API descriptions and MCP tool descriptions t
 - [ ] Give refresh tokens a lifetime that fits the account, such as 90 days, and expire ones that go unused sooner.
 - [ ] Revoke a user's refresh tokens when they reset their password or you suspect the account is compromised.
 
-### Recommended: [Describing scopes](https://personalagentprotocol.org/docs/0.3/guides#company-scope-descriptions)
+### Recommended: [Describing scopes](https://personalagentprotocol.org/docs/0.4/guides#company-scope-descriptions)
 
 Describe the scopes you offer personal agents, in the OAuth security scheme of an OpenAPI description you list or in `auth.scopes` (SHOULD, 4.7). Personal agents read them to choose scopes, and a language model often does the choosing:
 
@@ -399,7 +399,7 @@ Describe the scopes you offer personal agents, in the OAuth security scheme of a
 - [ ] Give each scope its hints in `auth.scope_hints` (4.7). Judge each scope by the most consequential operation that requires it: one operation that can't be undone makes the whole scope `irreversible`. When you're unsure about a scope, leave it out of `auth.scope_hints` rather than guess.
 - [ ] Splitting a scope can earn it a better hint. A personal agent may request `orders:read` freely but ask the user first before requesting a scope that can cancel orders.
 
-### Recommended: [Consent pages](https://personalagentprotocol.org/docs/0.3/guides#company-consent)
+### Recommended: [Consent pages](https://personalagentprotocol.org/docs/0.4/guides#company-consent)
 
 The page where the user approves access, in direct and device sign-in (4.2, 4.3):
 
@@ -413,7 +413,7 @@ The page where the user approves access, in direct and device sign-in (4.2, 4.3)
 - [ ] Return `iss` in every redirect, success or error (4.2). Personal agents reject a redirect without it.
 - [ ] For extra protection, support Pushed Authorization Requests (RFC 9126).
 
-### Recommended: [Device sign-in](https://personalagentprotocol.org/docs/0.3/guides#company-device)
+### Recommended: [Device sign-in](https://personalagentprotocol.org/docs/0.4/guides#company-device)
 
 - [ ] Follow the best practices for cross-device flows in RFC 10027 §2 (MUST, 4.3): assess the risk before offering device sign-in, and choose mitigations from its §6.1, such as short-lived single-use codes, rate limits, limited scopes, and a consent page that says which personal agent is asking and tells the user to decline a code they didn't ask for.
 - [ ] Opening the link MUST NOT approve the request by itself (4.3). The same goes for scanning the QR code. The user signs in and approves on the page.
@@ -421,7 +421,7 @@ The page where the user approves access, in direct and device sign-in (4.2, 4.3)
 - [ ] Return `slow_down` to personal agents that poll faster than `interval`, and limit wrong `user_code` entries.
 - [ ] Keep `expires_in` short, such as 10 minutes.
 
-### Recommended: [Mediated sign-in](https://personalagentprotocol.org/docs/0.3/guides#company-mediated)
+### Recommended: [Mediated sign-in](https://personalagentprotocol.org/docs/0.4/guides#company-mediated)
 
 If you offer mediated sign-in, protect the credentials you accept (Mediated Sign-In 6):
 
@@ -431,12 +431,12 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
 - [ ] Never store raw credentials or codes, including in logs, traces, and idempotency records.
 - [ ] Tell the user, for example by email, when a personal agent signs in.
 
-### Recommended: [Account settings](https://personalagentprotocol.org/docs/0.3/guides#company-account-settings)
+### Recommended: [Account settings](https://personalagentprotocol.org/docs/0.4/guides#company-account-settings)
 
 - [ ] In account settings, list each connected personal agent with its name, domain, scopes, and when it was last used.
 - [ ] Offer a control to disconnect each one. Disconnecting revokes its refresh tokens, and its sessions continue signed out (5.5). Also invalidate the access tokens issued under them, as RFC 7009 §2.1 allows.
 
-### Recommended: [Enforcing scopes everywhere](https://personalagentprotocol.org/docs/0.3/guides#company-scopes)
+### Recommended: [Enforcing scopes everywhere](https://personalagentprotocol.org/docs/0.4/guides#company-scopes)
 
 - [ ] Apply the same scope rules on your website, APIs, company agent, and live agents. One shared check that every channel calls is easiest to keep consistent.
 - [ ] Have the company agent's tools check the token's scopes on every call. Don't rely on the model to decide.
@@ -446,16 +446,16 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
 
 ## Extensions
 
-### Specification: [3.3 Extensions](https://personalagentprotocol.org/docs/0.3/spec#extensions)
+### Specification: [3.3 Extensions](https://personalagentprotocol.org/docs/0.4/spec#extensions)
 
 - [ ] **MUST**: Anyone else MUST start an extension's name with a domain they control, such as `example.com/gift-wrap`.
 - [ ] **MUST**: Personal Agents and Companies MUST ignore extensions they don't support and fields they don't recognize, so either side can work with the other under this specification alone.
 
-### Operations: [2. Advertising support](https://personalagentprotocol.org/docs/0.3/extensions/operations#support)
+### Operations: [2. Advertising support](https://personalagentprotocol.org/docs/0.4/extensions/operations#support)
 
 - [ ] **MUST NOT**: A Company MUST NOT return operations to a Personal Agent that doesn't list that version.
 
-### Operations: [3. The operation](https://personalagentprotocol.org/docs/0.3/extensions/operations#operation-object)
+### Operations: [3. The operation](https://personalagentprotocol.org/docs/0.4/extensions/operations#operation-object)
 
 - [ ] **MUST NOT**: It stays the same when the terms change (see "New terms"), and the Company MUST NOT use it for another action.
 - [ ] **MUST**: Everything that affects the action, such as what it changes, any amount, date, or recipient, or a condition for cancelling, MUST be in the revision's `summary`, and in `terms` if present.
@@ -464,7 +464,7 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
 - [ ] **MUST**: Whichever revision is approved, the Company MUST perform each operation at most once (7).
 - [ ] **SHOULD**: `expires_at` SHOULD leave the User long enough to read the terms and decide, unless the Company can't hold the terms that long, such as a price or a seat that can sell out.
 
-### Operations: [6. Sending the approval](https://personalagentprotocol.org/docs/0.3/extensions/operations#sending-approval)
+### Operations: [6. Sending the approval](https://personalagentprotocol.org/docs/0.4/extensions/operations#sending-approval)
 
 - [ ] **MUST**: Companies MUST ignore members of `Poppy-Approval` they don't recognize, so later versions can add members.
 - [ ] **MUST**: After the Session header checks in spec 5.3 and the token checks in spec 7, the Company MUST make the following checks before performing the action, and respond as the first one that fails says, whatever order it makes them in internally:
@@ -473,13 +473,13 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
     - [ ] The `revision` is one the Company returned for this operation, it hasn't expired, and the request asks for exactly what it describes. The API request or tool call is the one that returned the operation, and in a conversation, the operation is the conversation's.
 - [ ] **MUST NOT**: A Company MUST NOT answer an approval with the revision it names, so a Personal Agent never retries the same approval in a loop.
 
-### Operations: [7. Retries and at most once](https://personalagentprotocol.org/docs/0.3/extensions/operations#at-most-once)
+### Operations: [7. Retries and at most once](https://personalagentprotocol.org/docs/0.4/extensions/operations#at-most-once)
 
 - [ ] **MUST**: The Company MUST perform each operation at most once, however many times its approval is sent.
 - [ ] **MUST**: The Company MUST remember that it performed an operation at least until the approved revision's `expires_at`, and while it is being performed.
 - [ ] **MUST NOT**: While an operation is being performed, or the Company doesn't know whether it took effect, for example after a timeout in one of its own systems, the Company MUST NOT respond as if it failed.
 
-### Recommended: [Operations](https://personalagentprotocol.org/docs/0.3/guides#company-operations)
+### Recommended: [Operations](https://personalagentprotocol.org/docs/0.4/guides#company-operations)
 
 When you offer the Operations extension:
 

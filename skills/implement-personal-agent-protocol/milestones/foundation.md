@@ -5,18 +5,18 @@ Sessions with the `Poppy-Session` header. Every later milestone builds on this o
 
 ## Read first
 
-- [Section 3, Discovery](https://personalagentprotocol.org/docs/0.3/spec#discovery), with
-  [3.1](https://personalagentprotocol.org/docs/0.3/spec#fields) and
-  [3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)
-- [4.1 Agent identity](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)
-- [5.2 The Session header](https://personalagentprotocol.org/docs/0.3/spec#session-header), with
-  [Delegated keys](https://personalagentprotocol.org/docs/0.3/spec#delegated-keys)
-- [5.3 Verifying the Session header](https://personalagentprotocol.org/docs/0.3/spec#session-verification)
-- [5.6 Sending requests](https://personalagentprotocol.org/docs/0.3/spec#sending-requests)
-- Guides: [Verifying personal agents](https://personalagentprotocol.org/docs/0.3/guides#company-agents),
-  [Signing and verifying JWTs](https://personalagentprotocol.org/docs/0.3/guides#both-signing),
-  [Fetching metadata safely](https://personalagentprotocol.org/docs/0.3/guides#both-fetching),
-  [Handling secrets](https://personalagentprotocol.org/docs/0.3/guides#both-secrets)
+- [Section 3, Discovery](https://personalagentprotocol.org/docs/0.4/spec#discovery), with
+  [3.1](https://personalagentprotocol.org/docs/0.4/spec#fields) and
+  [3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server)
+- [4.1 Agent identity](https://personalagentprotocol.org/docs/0.4/spec#agent-identity)
+- [5.2 The Session header](https://personalagentprotocol.org/docs/0.4/spec#session-header), with
+  [Delegated keys](https://personalagentprotocol.org/docs/0.4/spec#delegated-keys)
+- [5.3 Verifying the Session header](https://personalagentprotocol.org/docs/0.4/spec#session-verification)
+- [5.6 Sending requests](https://personalagentprotocol.org/docs/0.4/spec#sending-requests)
+- Guides: [Verifying personal agents](https://personalagentprotocol.org/docs/0.4/guides#company-agents),
+  [Signing and verifying JWTs](https://personalagentprotocol.org/docs/0.4/guides#both-signing),
+  [Fetching metadata safely](https://personalagentprotocol.org/docs/0.4/guides#both-fetching),
+  [Handling secrets](https://personalagentprotocol.org/docs/0.4/guides#both-secrets)
 
 Local copies: `reference/spec.md`, `reference/guides.md`. Patterns: `patterns/poppy-json.md`,
 `patterns/token-endpoint.md`, `patterns/session-header.md`, `patterns/session-records.md`.
@@ -25,8 +25,8 @@ Local copies: `reference/spec.md`, `reference/guides.md`. Patterns: `patterns/po
 
 If the design offers only the website, without a `browser_session_endpoint`, publish `poppy.json`
 with `protocol_version`, `organization`, and `web`, and no `auth`
-([3.1](https://personalagentprotocol.org/docs/0.3/spec#fields)). Such a Company needs no issuer
-([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)). Check it with `check --file` and
+([3.1](https://personalagentprotocol.org/docs/0.4/spec#fields)). Such a Company needs no issuer
+([3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server)). Check it with `check --file` and
 `check --milestone foundation`, and stop here.
 
 ## Without OAuth
@@ -42,7 +42,7 @@ Users need new IDs and Sessions. Earlier state does not transfer automatically.
 
 A Company whose issuer already serves other clients, but that isn't ready to let Personal Agents
 sign in, keeps the issuer and sets `auth.disabled` to `true` in `poppy.json` instead
-([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)). It then lists no Mediated
+([3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server)). It then lists no Mediated
 Sign-In and no `access: signed_in` hints, and its identifier doesn't change when it turns sign-in
 on.
 
@@ -68,7 +68,7 @@ on.
 
 **2. Protected resource metadata for the domain** at
 `https://{domain}/.well-known/oauth-protected-resource`
-([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)), with `resource` exactly
+([3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server)), with `resource` exactly
 `https://{domain}` and the issuer in `authorization_servers`. This is how Personal Agents find the
 issuer.
 
@@ -78,15 +78,15 @@ the issuer named above, `token_endpoint`, `revocation_endpoint`, `grant_types_su
 it is, with no path, port, or trailing slash. `scopes_supported`, the sign-in grant
 types, `authorization_endpoint`, and `device_authorization_endpoint` come in the sign-in milestone.
 
-**4. Verifying Personal Agents** ([4.1](https://personalagentprotocol.org/docs/0.3/spec#agent-identity)).
+**4. Verifying Personal Agents** ([4.1](https://personalagentprotocol.org/docs/0.4/spec#agent-identity)).
 
 - Fetch the `client_id` URL without following redirects, and check that its `client_id` equals the
-  URL ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-agents)).
+  URL ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-agents)).
 - Check that `jwks_uri` and every `redirect_uris` entry are HTTPS URLs on the `client_id`'s domain,
   except that a `redirect_uris` entry may also be a loopback redirect URI, such as
   `http://127.0.0.1:8400/callback` or `http://[::1]/callback` (RFC 8252 §7.3).
 - Cache metadata and key sets within bounds, refetch on an unknown `kid` with a rate limit, and
-  apply the fetch limits in [Fetching metadata safely](https://personalagentprotocol.org/docs/0.3/guides#both-fetching).
+  apply the fetch limits in [Fetching metadata safely](https://personalagentprotocol.org/docs/0.4/guides#both-fetching).
 - Apply the design's policy: allowlist or blocklist, registration, and rate limits by `client_id`.
   A refused Personal Agent gets `invalid_client` at the authorization server and `invalid_session`
   at a resource.
@@ -97,8 +97,8 @@ types, `authorization_endpoint`, and `device_authorization_endpoint` come in the
   optional (4.1), and the guides suggest it.
 
 **5. The Session header at every resource**
-([5.2](https://personalagentprotocol.org/docs/0.3/spec#session-header),
-[5.3](https://personalagentprotocol.org/docs/0.3/spec#session-verification)). Every API, conversation,
+([5.2](https://personalagentprotocol.org/docs/0.4/spec#session-header),
+[5.3](https://personalagentprotocol.org/docs/0.4/spec#session-verification)). Every API, conversation,
 feedback, browser-session `/authorize`, and extension endpoint receives `Poppy-Session`. Verification
 is recommended generally and required before using any Session claim for identity, ownership,
 continuity, or state. Stateless APIs and OAuth-only account endpoints can ignore the header if they
@@ -122,7 +122,7 @@ verification. When verifying:
   gets `{"error": "session_ended"}`.
 - The Session JWT never grants account access, whatever it contains.
 - Don't key anything on the delegated key: it can change on any request
-  ([Delegated keys](https://personalagentprotocol.org/docs/0.3/spec#delegated-keys)). If you cache
+  ([Delegated keys](https://personalagentprotocol.org/docs/0.4/spec#delegated-keys)). If you cache
   verified delegations, key the cache by the whole delegation, not its `jti`.
 
 See `patterns/session-header.md`.
@@ -132,14 +132,14 @@ the engineer whether to use a shared cache, a per-server one, or none, and recor
 make requests that change something idempotent.
 
 **7. Errors and rate limits.** `invalid_session` (400) as a JSON body. Rate-limited requests return
-HTTP 429 with `Retry-After` ([5.6](https://personalagentprotocol.org/docs/0.3/spec#sending-requests)).
+HTTP 429 with `Retry-After` ([5.6](https://personalagentprotocol.org/docs/0.4/spec#sending-requests)).
 Keep error text free of account details
-([guides](https://personalagentprotocol.org/docs/0.3/guides#company-errors)).
+([guides](https://personalagentprotocol.org/docs/0.4/guides#company-errors)).
 
 **8. Records.** If the implementation uses Session identity or state, create the Session record,
 keyed by `client_id` and `sid`: User ID, optional
 Agent ID, whether it has ended, and later the account it used
-([5.4](https://personalagentprotocol.org/docs/0.3/spec#sign-in)). See `patterns/session-records.md`.
+([5.4](https://personalagentprotocol.org/docs/0.4/spec#sign-in)). See `patterns/session-records.md`.
 
 ## Set up the test identity
 
@@ -176,14 +176,14 @@ Agent ID, whether it has ended, and later the account it used
 - Accepting a Session JWT signed directly with a key from `jwks_uri`, or keying rate limits or fraud
   checks on the delegated key, which changes as often as the Personal Agent likes.
 - Following redirects when fetching the `client_id` URL, or trusting `jku`, `x5u`, or keys embedded
-  in a JWT ([guides](https://personalagentprotocol.org/docs/0.3/guides#both-signing)).
+  in a JWT ([guides](https://personalagentprotocol.org/docs/0.4/guides#both-signing)).
 - `htu` compared with the internal URL behind a proxy, so every request fails, or with the `Host`
   header, so the check can be bypassed.
 - Returning 401 or `invalid_token` for a bad Session header. It's 400 `invalid_session`; 401 is for
   access tokens.
 - Accepting a request whose `sid` is known but whose `sub` or `agent_id` differs.
 - Requiring a cookie, or accepting a token or Session JWT from a query parameter
-  ([5.6](https://personalagentprotocol.org/docs/0.3/spec#sending-requests)).
+  ([5.6](https://personalagentprotocol.org/docs/0.4/spec#sending-requests)).
 - Logging `Authorization`, `Poppy-Session`, `DPoP`, assertions, or request bodies at the token
   endpoint.
 

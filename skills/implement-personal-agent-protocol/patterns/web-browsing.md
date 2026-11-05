@@ -1,7 +1,7 @@
 # Pattern: web browsing
 
 With `web.browser_session_endpoint`, the Personal Agent's browser joins its Session in three steps
-([section 6](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)). The browser loads the
+([section 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)). The browser loads the
 endpoint and gets a page with a one-time code and a cookie that ties the code to that browser. The
 Personal Agent authorizes the code at `{browser_session_endpoint}/authorize`, with its Session
 header and, if signed in, its access token. The browser then submits the form with only the code,
@@ -50,7 +50,7 @@ Session.
   it has to cover several hosts.
 - The cookie acts for the account and scopes authorized at `/authorize`, stops acting for the
   account at sign-out or disconnect, and doesn't outlive the Session. Look up the Session on each
-  request ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-browsing)).
+  request ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-browsing)).
 - The website applies the cookie's scopes, as the APIs do (`patterns/scopes.md`). A signed-in
   website session for a Personal Agent may allow less than a person's own session.
 - While the browser carries the cookie, its requests belong to that Session. After a signed-in
@@ -59,7 +59,7 @@ Session.
 - A login the browser already has: a signed-in join replaces it, and the browser is signed out when
   the Session's sign-in ends, with no earlier login restored. A signed-out join shouldn't end or
   change it, so its own login decides the account. A Session cookie separate from your login cookie,
-  checked first, does both ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-browsing)).
+  checked first, does both ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-browsing)).
 - Limit the cookie to the hosts Personal Agents need, and don't log the endpoint's responses or
   request bodies, which contain codes
-  ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-browsing)).
+  ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-browsing)).

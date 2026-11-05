@@ -10,20 +10,20 @@ staging.
 
 ## Read first
 
-- [Section 7, APIs](https://personalagentprotocol.org/docs/0.3/spec#apis), for `openapi` and `mcp`
-- [Section 8, Conversations](https://personalagentprotocol.org/docs/0.3/spec#conversations), 8.1–8.13,
+- [Section 7, APIs](https://personalagentprotocol.org/docs/0.4/spec#apis), for `openapi` and `mcp`
+- [Section 8, Conversations](https://personalagentprotocol.org/docs/0.4/spec#conversations), 8.1–8.13,
   for `conversations`
-- [Section 6, Web browsing](https://personalagentprotocol.org/docs/0.3/spec#web-browsing), for `web`
-- [4.5 Access tokens](https://personalagentprotocol.org/docs/0.3/spec#access-tokens) for MCP tokens, and
-  [5.6](https://personalagentprotocol.org/docs/0.3/spec#sending-requests) again for rate limits
-- [Section 9, Task coverage](https://personalagentprotocol.org/docs/0.3/spec#task-coverage),
+- [Section 6, Web browsing](https://personalagentprotocol.org/docs/0.4/spec#web-browsing), for `web`
+- [4.5 Access tokens](https://personalagentprotocol.org/docs/0.4/spec#access-tokens) for MCP tokens, and
+  [5.6](https://personalagentprotocol.org/docs/0.4/spec#sending-requests) again for rate limits
+- [Section 9, Task coverage](https://personalagentprotocol.org/docs/0.4/spec#task-coverage),
   for excluded tasks, feedback, and agent context
-- Guides: [Guest access](https://personalagentprotocol.org/docs/0.3/guides#company-guest),
-  [Internal services](https://personalagentprotocol.org/docs/0.3/guides#company-internal),
-  [Conversations](https://personalagentprotocol.org/docs/0.3/guides#company-conversations),
-  [Browser sessions](https://personalagentprotocol.org/docs/0.3/guides#company-browsing),
-  [Error messages](https://personalagentprotocol.org/docs/0.3/guides#company-errors),
-  [Excluded tasks and feedback](https://personalagentprotocol.org/docs/0.3/guides#company-excluded-tasks)
+- Guides: [Guest access](https://personalagentprotocol.org/docs/0.4/guides#company-guest),
+  [Internal services](https://personalagentprotocol.org/docs/0.4/guides#company-internal),
+  [Conversations](https://personalagentprotocol.org/docs/0.4/guides#company-conversations),
+  [Browser sessions](https://personalagentprotocol.org/docs/0.4/guides#company-browsing),
+  [Error messages](https://personalagentprotocol.org/docs/0.4/guides#company-errors),
+  [Excluded tasks and feedback](https://personalagentprotocol.org/docs/0.4/guides#company-excluded-tasks)
 
 Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
 `patterns/web-browsing.md`, `patterns/session-header.md`.
@@ -31,31 +31,31 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
 ## OpenAPI
 
 - List the API in `apis` with `type: "openapi"`, the `url` of an OpenAPI 3.0 or 3.1 description,
-  and a short `description` ([section 7](https://personalagentprotocol.org/docs/0.3/spec#apis)).
+  and a short `description` ([section 7](https://personalagentprotocol.org/docs/0.4/spec#apis)).
 - Accept the `Poppy-Session` header on every request, and, when offering account access, the Company's access tokens in the
   `Authorization` header (section 7). Don't require cookies. Don't accept tokens or Session JWTs in
-  the URL ([5.6](https://personalagentprotocol.org/docs/0.3/spec#sending-requests)).
+  the URL ([5.6](https://personalagentprotocol.org/docs/0.4/spec#sending-requests)).
 - Return access token errors in the `WWW-Authenticate` header: a challenge with `scope` and no
   error code (401) for a signed-out request that needs the account, `invalid_token` (401),
   `insufficient_scope` (403, with `scope`) for an access token without the scopes, and
   `extension_required` (403). `invalid_session` (400) is a JSON body (section 7).
 - Signed out, allow what a signed-out website visitor can do
-  ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-guest)). Endpoints that need an
+  ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-guest)). Endpoints that need an
   account return the 401 challenge with the scopes they need.
 - Verify the Session header and token at the edge and pass the verified `client_id`, User ID,
   Session, account, and scopes inward. Don't forward the Session JWT or access token between
-  services ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-internal)).
+  services ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-internal)).
 
 ## MCP
 
 - List the server in `apis` with `type: "mcp"` and its Streamable HTTP endpoint as `url`, MCP version
-  2025-06-18 or later ([section 7](https://personalagentprotocol.org/docs/0.3/spec#apis)).
+  2025-06-18 or later ([section 7](https://personalagentprotocol.org/docs/0.4/spec#apis)).
 - When offering account access, publish RFC 9728 protected resource metadata whose `resource` is the server's `url` and whose
   `authorization_servers` includes the Company's issuer. Don't add the Personal Agent to that list.
   Each 401 carries a challenge for each scheme the server accepts, with `resource_metadata`.
 - Accept the Company's access tokens issued with `resource` set to the server's `url`, and only
   those. Refuse a token issued for another `resource`, including other paths on the same host, with
-  `invalid_token` and `resource_metadata` ([4.5](https://personalagentprotocol.org/docs/0.3/spec#access-tokens)).
+  `invalid_token` and `resource_metadata` ([4.5](https://personalagentprotocol.org/docs/0.4/spec#access-tokens)).
   The token endpoint returns `invalid_target` for a `resource` you don't serve.
 - Decide whether the server uses Session claims or state. If it does, verify the header. Otherwise
   it can use OAuth alone or serve signed-out requests without Session verification. Such calls
@@ -69,35 +69,35 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
 ## Conversations
 
 - List the endpoint in `agent.protocols` with `type: "poppy"`
-  ([8.1](https://personalagentprotocol.org/docs/0.3/spec#conversation-protocols)).
+  ([8.1](https://personalagentprotocol.org/docs/0.4/spec#conversation-protocols)).
 - Add `access: "signed_in"` if useful work requires account access from the start; otherwise omit
-  it or use `"session"` ([3.2](https://personalagentprotocol.org/docs/0.3/spec#oauth-server)). Runtime
+  it or use `"session"` ([3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server)). Runtime
   authorization events remain authoritative; a matching successful-response challenge is optional
-  ([8.11](https://personalagentprotocol.org/docs/0.3/spec#conversation-sign-in)).
-- The five requests in [8.2](https://personalagentprotocol.org/docs/0.3/spec#conversation-requests),
+  ([8.11](https://personalagentprotocol.org/docs/0.4/spec#conversation-sign-in)).
+- The five requests in [8.2](https://personalagentprotocol.org/docs/0.4/spec#conversation-requests),
   each with the Session header, and an access token when signed in. A conversation belongs to the
   `client_id` and User ID that started it, and any of their Sessions can continue it. Reject any
   other with `conversation_not_found`.
 - IDs follow 8.2. Validate the Personal Agent's message IDs.
-- Messages ([8.3](https://personalagentprotocol.org/docs/0.3/spec#sending-messages),
-  [8.4](https://personalagentprotocol.org/docs/0.3/spec#message-fields)): 201 for a new conversation and
+- Messages ([8.3](https://personalagentprotocol.org/docs/0.4/spec#sending-messages),
+  [8.4](https://personalagentprotocol.org/docs/0.4/spec#message-fields)): 201 for a new conversation and
   202 for later messages, each with `status` and `responder`. Retries with the same message ID and
   content return the original response; different content returns `message_id_conflict`. Message
   IDs are unique per User, not per conversation, so a retried first message returns the existing
   conversation. Set `role` yourself and ignore any sent. Pass `context` to the Company Agent.
 - `wait` and `cursor` on both `POST`s and on reads (8.3,
-  [8.5](https://personalagentprotocol.org/docs/0.3/spec#reading-events)). Every read includes `cursor`,
+  [8.5](https://personalagentprotocol.org/docs/0.4/spec#reading-events)). Every read includes `cursor`,
   `has_more`, `status`, and `responder`, even when empty. Return `invalid_cursor` and
   `cursor_expired` as 8.13 defines.
 - Record every accepted message as an event, and add a `state` event on every change to `status` or
-  `responder` ([8.7](https://personalagentprotocol.org/docs/0.3/spec#status)). Every Company message has
+  `responder` ([8.7](https://personalagentprotocol.org/docs/0.4/spec#status)). Every Company message has
   `author.type`.
-- Streaming is optional ([8.6](https://personalagentprotocol.org/docs/0.3/spec#streaming)). If you
+- Streaming is optional ([8.6](https://personalagentprotocol.org/docs/0.4/spec#streaming)). If you
   stream, `Last-Event-ID` wins over `cursor`, and `text-delta` events have no SSE `id`.
-- Handoff ([8.9](https://personalagentprotocol.org/docs/0.3/spec#handoff)): 202, `queued` while finding
+- Handoff ([8.9](https://personalagentprotocol.org/docs/0.4/spec#handoff)): 202, `queued` while finding
   someone, `responder: "human"` when a person joins, back to `idle` with a message if no one is
   available. A repeated handoff changes nothing.
-- Direct Conversations ([8.10](https://personalagentprotocol.org/docs/0.3/spec#direct-conversations)):
+- Direct Conversations ([8.10](https://personalagentprotocol.org/docs/0.4/spec#direct-conversations)):
   `parent_conversation_id`, the parent rules and errors, `direct_opened` and `direct_closed`
   events, `direct_conversation_open` with `conversation_id` on the parent, and closing the parent
   closes the Direct Conversation. `user_requested` events if the Company Agent can ask for the User.
@@ -105,23 +105,23 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
   first. Reject an event that isn't a `user_requested` event in that parent. After checking
   ownership, retries of the same parent and event return the same Direct Conversation, even after
   closing. Keep that association as long as the conversation.
-- Closing ([8.12](https://personalagentprotocol.org/docs/0.3/spec#closing)): 200 with `status` and
+- Closing ([8.12](https://personalagentprotocol.org/docs/0.4/spec#closing)): 200 with `status` and
   `responder`, a `state` event, cancels any pending handoff. Closing again returns the same response
   and adds no event.
 - Errors are JSON bodies with the codes in
-  [8.13](https://personalagentprotocol.org/docs/0.3/spec#conversation-errors), and `invalid_session`.
+  [8.13](https://personalagentprotocol.org/docs/0.4/spec#conversation-errors), and `invalid_session`.
   Access token errors are the `WWW-Authenticate` errors of section 7.
 
 ## Web browsing
 
 - List `web.browser_session_endpoint` in `poppy.json`
-  ([section 6](https://personalagentprotocol.org/docs/0.3/spec#web-browsing)).
+  ([section 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)).
 - **Step 1.** A GET to the endpoint returns a form with an unguessable, short-lived, one-time code
   in a hidden `code` field, posting to the endpoint. Caches can't store the page, other pages can't
   frame it, and its opener keeps no reference to it. It sets a cookie that ties the code to the
   browser, which forms on other sites don't send and other hosts on your domain can't set. Loading
   the page starts, ends, or changes no Session, and doesn't change the browser's other cookies. The
-  [guides](https://personalagentprotocol.org/docs/0.3/guides#company-browsing) suggest values: a code of
+  [guides](https://personalagentprotocol.org/docs/0.4/guides#company-browsing) suggest values: a code of
   at least 128 random bits that expires within 60 seconds, `Cache-Control: no-store`,
   `Content-Security-Policy: frame-ancestors 'none'`, `Cross-Origin-Opener-Policy: same-origin`, and
   a `__Host-`, `Secure`, `HttpOnly`, `SameSite=Strict` cookie.
@@ -145,15 +145,15 @@ Both are optional.
 
 - To list tasks you chose not to offer through Poppy, publish a JSON document with `tasks`, each a
   `task` and an optional `alternative`, and list its URL in `excluded_tasks.url`
-  ([9.1](https://personalagentprotocol.org/docs/0.3/spec#excluded-tasks)). An alternative has
+  ([9.1](https://personalagentprotocol.org/docs/0.4/spec#excluded-tasks)). An alternative has
   `instructions`, `references`, or both. An `openapi` or `mcp` reference names an API in `apis`
-  by its exact `url` ([9.2](https://personalagentprotocol.org/docs/0.3/spec#alternatives)).
+  by its exact `url` ([9.2](https://personalagentprotocol.org/docs/0.4/spec#alternatives)).
   A `web` reference can point to any HTTPS website or app. The link doesn't authorize sending a
   Session JWT or access token to its target.
 - To take feedback, list `feedback.endpoint` and accept reports signed in or out, with no scope
   needed. Session verification is recommended and required before attributing a report to a
   Personal Agent, User, or Session; otherwise keep it unattributed
-  ([9.3](https://personalagentprotocol.org/docs/0.3/spec#feedback)).
+  ([9.3](https://personalagentprotocol.org/docs/0.4/spec#feedback)).
   Answer 202 with no body, or
   200 with an alternative when the task can be done after all. Errors are `invalid_request` (400)
   for a report that is malformed or too long, and rate limits are 429 with `Retry-After`.
@@ -163,7 +163,7 @@ Both are optional.
 ## Agent context
 
 Optionally publish task workflows as Agent Skills in `skill_index` in `poppy.json`
-([9.4](https://personalagentprotocol.org/docs/0.3/spec#agent-context)). See `patterns/poppy-json.md`
+([9.4](https://personalagentprotocol.org/docs/0.4/spec#agent-context)). See `patterns/poppy-json.md`
 for the index format and artifact requirements. These skills help Personal Agents use the
 Company's interfaces on the User's behalf.
 
@@ -186,19 +186,19 @@ Company's interfaces on the User's behalf.
   challenge with `scope` and no error code; `insufficient_scope` is for an access token without the
   scopes (section 7).
 - Website chat or other channels that can open Poppy conversations without checking the Session
-  header ([8.2](https://personalagentprotocol.org/docs/0.3/spec#conversation-requests)).
+  header ([8.2](https://personalagentprotocol.org/docs/0.4/spec#conversation-requests)).
 - Message IDs deduplicated per conversation instead of per User, so a retried first message starts
   a second conversation (8.3).
 - `status` and `responder` missing from an empty read or from a `POST` response (8.5, 8.7).
 - Changing `responder` to `human` while still `queued` (8.7).
 - A different error for "conversation exists but isn't yours" than for "doesn't exist" (8.13).
 - A stream that goes silent long enough for a proxy to close it. Send an SSE comment every 15 to 30
-  seconds ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-conversations)).
+  seconds ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-conversations)).
 - Accepting a code in step 3 without the join cookie set with it, or one that wasn't authorized in
   step 2 (section 6).
 - A code that can be authorized or submitted twice, or after a failed request (section 6).
 - Logging responses or request bodies at the browser-session endpoint
-  ([guides](https://personalagentprotocol.org/docs/0.3/guides#company-browsing)).
+  ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-browsing)).
 
 ## Check it
 

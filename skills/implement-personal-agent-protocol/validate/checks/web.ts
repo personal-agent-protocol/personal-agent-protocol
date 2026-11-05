@@ -486,7 +486,7 @@ function joinCookieChecks(r: Recorder, page: Page): Cookie | undefined {
             exchange: page.ex,
             got: `${best.c.name}: ${best.v.problems.join("; ")}`,
             expected: "A cookie that other hosts on the domain can't set, such as a __Host- cookie",
-            cause: "The validator couldn't verify that other hosts on the domain can't set the cookie. The __Host- prefix is how a browser guarantees it; see https://personalagentprotocol.org/docs/0.3/guides#company-browsing.",
+            cause: "The validator couldn't verify that other hosts on the domain can't set the cookie. The __Host- prefix is how a browser guarantees it; see https://personalagentprotocol.org/docs/0.4/guides#company-browsing.",
             notes,
         });
     else

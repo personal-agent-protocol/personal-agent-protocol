@@ -4,7 +4,7 @@
 
 // The version of the spec this validator checks: the latest. The site build fails when it isn't,
 // and `pnpm docs:draft` changes it.
-export const PROTOCOL_VERSION = "0.3";
+export const PROTOCOL_VERSION = "0.4";
 
 export type Milestone = "foundation" | "interfaces" | "sign-in" | "extensions";
 

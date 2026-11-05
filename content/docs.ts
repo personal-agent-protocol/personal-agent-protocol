@@ -276,7 +276,7 @@ function docsVersion(entry: VersionEntry): DocsVersion {
     };
 }
 
-export const VERSION_ENTRIES: VersionEntry[] = VERSION_LIST;
+export const VERSION_ENTRIES = VERSION_LIST as VersionEntry[];
 
 // Every version of the docs, latest first.
 export const VERSIONS: DocsVersion[] = VERSION_ENTRIES.map(docsVersion);

@@ -1,6 +1,6 @@
 [
     {
-        "id": "0.3",
+        "id": "0.4",
         "pages": [
             "spec",
             "extensions",
@@ -11,6 +11,20 @@
             "extensions/ucp",
             "guides"
         ]
+    },
+    {
+        "id": "0.3",
+        "published": "2026-11-04",
+        "pages": {
+            "spec": "2bf4eaa68041e960f45d2397844d0dc4163d9610698c251d9c97b17b01b16fdd",
+            "extensions": "faf1eef88fc48f94edb46c948a4d97a64a83500f058fafb6d593c52a5c546130",
+            "extensions/disclosures": "5def27d62a9026c3763dc249ce647045003b15802589de158664e774f0dd317b",
+            "extensions/links": "ad7b6c62cc6cfbabb4186121c617be81ddb5b5cf03e475835c9e5950458c9997",
+            "extensions/mediated-sign-in": "2943daab8c0bf329284ba24f2171335325fed8cc8672683b69a5baf52a8517bd",
+            "extensions/operations": "fe41e0f97ad8a00f89058c163800e59785cab8f9e6f1fffbf9b24566b4a614db",
+            "extensions/ucp": "2e396cf528d20b6b83aeb7af4b5ba5d0c011709b3f6b39fe4cf6dd7d626f72d4",
+            "guides": "8bdcf140235c0d80617e16f493c548382b98c7bf2a200497c081527c24fb7e2c"
+        }
     },
     {
         "id": "0.2",
