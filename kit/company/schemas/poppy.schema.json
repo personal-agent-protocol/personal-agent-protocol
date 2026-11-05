@@ -123,6 +123,14 @@
             "properties": {
                 "browser_session_endpoint": {
                     "$ref": "#/$defs/https_url"
+                },
+                "disabled": {
+                    "description": "true if the Company asks Personal Agents not to browse its website, and to use its Company Agent and APIs instead (spec section 6).",
+                    "type": "boolean"
+                },
+                "unscoped": {
+                    "description": "true if the website doesn't apply the Company's other scopes, so poppy:browser-sign-in gives the account's full access there (spec section 6).",
+                    "type": "boolean"
                 }
             }
         },

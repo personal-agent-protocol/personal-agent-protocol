@@ -80,6 +80,14 @@ const SCENARIOS: Scenario[] = [
         flaws: { poppy: (d) => (d.auth = { ...d.auth, disabled: true }) },
         fails: ["discovery.sign-in-disabled"],
     },
+    {
+        flaws: { poppy: (d) => (d.web = { ...d.web, disabled: true }) },
+        fails: ["discovery.web-disabled"],
+    },
+    {
+        flaws: { poppy: (d) => (d.web = { unscoped: true }) },
+        fails: ["discovery.web-unscoped"],
+    },
     { flaws: { excludedTasksInvalid: true }, fails: ["discovery.excluded-tasks"] },
     { flaws: { unlistedAlternativeApi: true }, fails: ["discovery.alternative-references"] },
 

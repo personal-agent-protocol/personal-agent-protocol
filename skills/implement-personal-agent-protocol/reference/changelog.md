@@ -26,6 +26,26 @@ Breaking · [Spec 3.1](https://personalagentprotocol.org/docs/0.4/spec#fields) �
 
 Each extension in `poppy.json` is a list with an entry for each version the Company supports. The Personal Agent declares the extensions it uses with a Company, one version of each, in the `Poppy-Extensions` header, instead of in `extensions` in its client metadata document, which is removed. It can use different versions with different Companies and roll out a new one gradually. `extension_required` and extension content in messages follow the request's declaration, and the token endpoint no longer returns `extension_required`.
 
+#### `poppy:browser-sign-in` for signed-in browser join
+
+Breaking · [Spec 3](https://personalagentprotocol.org/docs/0.4/spec#discovery) · [Spec 3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server) · [Spec 4.7](https://personalagentprotocol.org/docs/0.4/spec#scopes) · [Spec 4.8](https://personalagentprotocol.org/docs/0.4/spec#oauth-additions) · [Spec 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing) · [Guides: Web browsing](https://personalagentprotocol.org/docs/0.4/guides#agent-browsing) · [Guides: Browser sessions](https://personalagentprotocol.org/docs/0.4/guides#company-browsing) · [Guides: Enforcing scopes everywhere](https://personalagentprotocol.org/docs/0.4/guides#company-scopes) · [Guides: Consent pages](https://personalagentprotocol.org/docs/0.4/guides#company-consent)
+
+A signed-in browser join needs an access token with `poppy:browser-sign-in`, the only scope the protocol defines. Without it, `/authorize` returns `insufficient_scope`, and the Personal Agent authorizes the same code without a token, or gets the scope and starts again. A Company that lists `browser_session_endpoint` and offers sign-in supports the scope.
+
+This replaces the requirement that every website apply the cookie's scopes, which websites whose permissions don't match their OAuth scopes couldn't meet. The website either applies the cookie's scopes, and the Company may then grant `poppy:browser-sign-in` without asking the User, or treats it as everything the account can do there. The Company then describes it that way and, in Direct and Device Sign-In, asks the User to approve it. Section 4.7 says the same. The guides describe four levels of website access, from none to signed in with the Company's scopes, and suggest naming each website the scope signs in to.
+
+#### `web.unscoped`
+
+[Spec 3.1](https://personalagentprotocol.org/docs/0.4/spec#fields) · [Spec 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing) · [Guides: Web browsing](https://personalagentprotocol.org/docs/0.4/guides#agent-browsing) · [Guides: Browser sessions](https://personalagentprotocol.org/docs/0.4/guides#company-browsing) · [Guides: Consent pages](https://personalagentprotocol.org/docs/0.4/guides#company-consent)
+
+A Company whose website treats `poppy:browser-sign-in` as the account's full access sets `web.unscoped`, so a Personal Agent knows what the scope allows before requesting it. The Company lists `browser_session_endpoint` with it, and domains with the same issuer set it together.
+
+#### `web.disabled`
+
+[Spec 3.1](https://personalagentprotocol.org/docs/0.4/spec#fields) · [Spec 4.8](https://personalagentprotocol.org/docs/0.4/spec#oauth-additions) · [Spec 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing) · [Guides: Web browsing](https://personalagentprotocol.org/docs/0.4/guides#agent-browsing) · [Guides: Browser sessions](https://personalagentprotocol.org/docs/0.4/guides#company-browsing)
+
+A Company sets `web.disabled` to ask Personal Agents to use only its Company Agent and APIs. A Personal Agent should not browse its website. A Company that sets it lists no `browser_session_endpoint`, and lists `agent` or `apis`. The protocol can't enforce it, so it isn't a promise that Personal Agents won't browse.
+
 ## Version 0.3
 
 Published November 4, 2026. It's frozen at [/docs/0.3/spec](https://personalagentprotocol.org/docs/0.3/spec). Major changes are design decisions. Minor changes fill gaps, make the text consistent, or follow an RFC. A change tagged "Breaking" can require an implementation that followed the 0.2 text to change, whether it's major or minor.

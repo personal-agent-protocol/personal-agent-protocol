@@ -91,7 +91,8 @@ An example document:
     "scopes": {
       "orders:read": "See your orders, returns, and bookings",
       "orders:write": "Exchange or return items, and change bookings",
-      "addresses": "See and change your saved shipping addresses"
+      "addresses": "See and change your saved shipping addresses",
+      "poppy:browser-sign-in": "Use the website signed in, with the other access you approve"
     },
     "scope_hints": {
       "orders:read": { "changes": "none", "personal_data": true },
@@ -145,7 +146,9 @@ An example document:
 | `auth.scope_hints` | No | Hints about what each scope allows, keyed by scope name: `changes` and `personal_data` (4.7). They apply wherever the scope is described. |
 | `agent` | At least one of `agent`, `apis`, or `web` | The Company Agent. `protocols` lists its supported conversation protocols, each with a `type` and HTTPS `endpoint` (section 8). A `poppy` entry may include an `access` hint (3.2). |
 | `apis` | At least one of `agent`, `apis`, or `web` | A list of APIs. Each has a `type`, such as those in section 7, a `url`, and a short `description` that helps the Personal Agent pick the right one. |
-| `web` | At least one of `agent`, `apis`, or `web` | The Company's website. The optional `browser_session_endpoint` is where the Personal Agent's browser joins a Session (section 6). Without it, Personal Agents browse the site as ordinary signed-out visitors. |
+| `web` | At least one of `agent`, `apis`, or `web` | The Company's website. The optional `browser_session_endpoint` is where the Personal Agent's browser joins a Session (section 6). Without it, Personal Agents browse the site as ordinary signed-out visitors, unless `web.disabled` is set. |
+| `web.disabled` | No | `true` if the Company asks Personal Agents not to browse its website, and to use its Company Agent and APIs instead (section 6). Defaults to `false`. |
+| `web.unscoped` | No | `true` if the website doesn't apply the Company's other scopes, so `poppy:browser-sign-in` gives the account's full access there (section 6). Defaults to `false`. |
 | `feedback` | No | `endpoint` is an HTTPS URL where Personal Agents report a User's task that can't be done through this protocol (9.3). |
 | `excluded_tasks` | No | `url` is an HTTPS URL of the document that lists the tasks the Company chose not to offer through this protocol (9.1). |
 | `extensions` | No | The extensions the Company supports, keyed by name, with an entry for each version (3.3). |
@@ -197,7 +200,7 @@ The issuer MUST publish OAuth Authorization Server Metadata ([RFC 8414](https://
     "authorization_code",
     "urn:ietf:params:oauth:grant-type:device_code"
   ],
-  "scopes_supported": ["orders:read", "orders:write", "addresses"],
+  "scopes_supported": ["orders:read", "orders:write", "addresses", "poppy:browser-sign-in"],
   "protected_resources": [
     "https://example.com",
     "https://example.co.uk",
@@ -403,7 +406,7 @@ The Personal Agent revokes a refresh token at the Company's `revocation_endpoint
 
 ### 4.7 Scopes and token responses
 
-Scopes say what account access a sign-in grants. Each Company defines its own scopes, such as `orders:read`, `orders:write`, and `addresses`, usually the OAuth scopes it already has. The protocol defines none.
+Scopes say what account access a sign-in grants. Each Company defines its own scopes, such as `orders:read`, `orders:write`, and `addresses`, usually the OAuth scopes it already has. The protocol defines one, `poppy:browser-sign-in`, which lets the Personal Agent sign its browser in to the Company's website (section 6).
 
 - `scopes_supported` in the OAuth server metadata lists the scopes the Company supports (3.2). A Personal Agent MAY also request scopes documented by the Company's APIs or sign-in extensions, even when absent from that list. The list MAY leave out scopes the Company offers only to its other clients, and the Company MAY limit the scopes it grants by client, as [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749#section-3.3) §3.3 allows.
 
@@ -416,7 +419,7 @@ Scopes say what account access a sign-in grants. Each Company defines its own sc
 
   A Company MUST include both fields in each entry. A scope with no entry has no hints, and a Personal Agent can't tell what it allows. A Personal Agent MUST ignore fields it doesn't recognize, and treat a `changes` value it doesn't recognize as `irreversible`, so later versions can add both. The hints follow the `readOnlyHint` and `destructiveHint` annotations of [MCP tools](https://modelcontextprotocol.io/specification/2025-06-18/server/tools), applied to a scope rather than one tool. They don't replace descriptions, and like other content from a Company (10.1), they are its claims, not the User's approval.
 
-- Companies decide which actions require each scope and enforce them across web browsing, APIs, and actions performed by the Company Agent.
+- Companies decide which actions require each scope and enforce them across APIs and actions performed by the Company Agent. A website may not be able to apply them. It can then give a signed-in browser the account's full access, and the Company and the User accept that through `poppy:browser-sign-in` (section 6).
 
 - The Company MUST NOT grant scopes beyond those requested. This is stricter than OAuth, which lets a server grant other scopes ([RFC 6749](https://www.rfc-editor.org/rfc/rfc6749#section-3.3) §3.3), because the User approved only the scopes the Personal Agent asked for.
 
@@ -445,9 +448,9 @@ OAuth errors follow the relevant grant's RFC, including `invalid_client`, `inval
 ### 4.8 What Poppy adds to OAuth
 
 - **Choices stricter than OAuth:** a `client_id` that is the URL of a client metadata document, authenticated with `private_key_jwt` and an assertion addressed to the issuer, with its `jwks_uri` and `redirect_uris` on the `client_id`'s domain (4.1); `revocation_endpoint` and `grant_types_supported`, including `refresh_token`, in the issuer's metadata (3.2); `iss` in every authorization response, and exact matching of `redirect_uri` as RFC 9700 requires (4.2); RFC 10027's best practices for Device Sign-In, and a check of the sign-in link's host (4.3); a refresh token from every sign-in, whose use doesn't extend its lifetime (4.4); and `scope` on every sign-in request, with at least one scope granted and none beyond those requested (4.7).
-- **Discovery and descriptions:** `poppy.json`, including `auth.disabled` to offer no sign-in, supported versions, described scopes, and scope hints (section 3, 4.7).
+- **Discovery and descriptions:** `poppy.json`, including `auth.disabled` to offer no sign-in and `web.disabled` to ask Personal Agents not to browse, supported versions, described scopes, and scope hints (section 3, 4.7).
 - **Sessions:** the Session header, which names the Personal Agent, the User, and the Session on every request, signed in or out, without an authorization-server grant (section 5). It is signed with a delegated key, which a key in the Personal Agent's `jwks_uri` vouches for in a delegation carried in the JWT's `poppy_dlg` header (5.2).
-- **Interactions above OAuth:** browser join (section 6), APIs (section 7), conversations (section 8), excluded tasks and feedback (section 9), and extensions (3.3), including [Operations](https://personalagentprotocol.org/docs/0.4/extensions/operations).
+- **Interactions above OAuth:** browser join, with its `poppy:browser-sign-in` scope (section 6), APIs (section 7), conversations (section 8), excluded tasks and feedback (section 9), and extensions (3.3), including [Operations](https://personalagentprotocol.org/docs/0.4/extensions/operations).
 - **An extension grant:** the [Mediated Sign-In extension](https://personalagentprotocol.org/docs/0.4/extensions/mediated-sign-in) adds a grant type at the token endpoint, as RFC 6749 §4.5 allows.
 
 ## 5. Sessions
@@ -661,6 +664,8 @@ A Personal Agent can browse the Company's website in the same Session it uses fo
 
 This is optional. A Company that supports it lists `web.browser_session_endpoint` in its `poppy.json` (section 3). When it does, the Personal Agent MUST join its browser to a Session before browsing the Company's website. On a website without the endpoint, the Personal Agent browses as an ordinary signed-out visitor.
 
+**Asking Personal Agents not to browse.** A Company that wants Personal Agents to use only its Company Agent and APIs sets `web.disabled` to `true` in `poppy.json`. A Personal Agent SHOULD NOT browse the website of a Company that sets it, and uses the interfaces the Company lists instead. A Company that sets `web.disabled` MUST NOT list `browser_session_endpoint`, and MUST list `agent` or `apis`. The protocol can't enforce `web.disabled`, because a Company can't always tell a Personal Agent's browser from a person's. It says what the Company prefers, and isn't a promise that Personal Agents won't browse.
+
 The Personal Agent MUST join only a browser it controls to a Session, never the User's own browser. Otherwise, the Company would treat the User's own visits as the Personal Agent's.
 
 **1. The browser opens the page.** The Personal Agent has its browser load the endpoint with a GET, as a top-level navigation. The Company responds with an HTML page with a form, and sets a short-lived cookie that ties the form's code to this browser. For example:
@@ -713,6 +718,8 @@ Content-Type: application/json
 
 The Company checks the Session header as at any resource (5.3), which starts the Session if its `sid` is new, and the access token, if any. It checks that the code is one it issued, hasn't expired, and hasn't been authorized before. It then records the code as authorized for that Session and, if signed in, for the token's account and scopes, and responds with HTTP 204. A code that fails these checks gets HTTP 400 with `{"error": "invalid_request"}`.
 
+**Signing in needs `poppy:browser-sign-in`.** The Company MUST reject an access token in step 2 that doesn't have the `poppy:browser-sign-in` scope, with `insufficient_scope` as at an API (section 7). The Personal Agent then either authorizes the same code again without an access token, or gets the scope as for any other request (5.4) and starts again at step 1. A Company that lists `browser_session_endpoint` and offers sign-in MUST support `poppy:browser-sign-in` (4.7), though it MAY grant it to fewer clients or Users, as for any scope. A Personal Agent requests `poppy:browser-sign-in` only from a Company that lists `browser_session_endpoint`.
+
 The Personal Agent MUST take the code only from the page its own browser loaded from the endpoint in step 1, and MUST NOT authorize a code from anywhere else, such as a message, a conversation, or another page. A code from anywhere else may come from someone else's browser, which would then join the User's Session (10.6). The Personal Agent reads the code and sends the request in software its model can't read (10.2).
 
 **3. The browser submits the form, and the Company sets the Session's cookie.** The Personal Agent has its browser submit the form:
@@ -760,7 +767,11 @@ Cookie: __Host-sb_session=Pz81kQ…
 - MUST act for the account and scopes authorized in step 2, if any, and MUST stop acting for the account when the User signs out or disconnects the Personal Agent (5.5).
 - MUST NOT outlive the Session.
 
-The website applies the cookie's scopes, as the Company's APIs apply an access token's. While the browser carries the Session's cookie, its requests belong to that Session. After a signed-in join, the Company handles them with the Session's account and scopes, whatever other cookies the browser holds from earlier visits. When the website refuses an action because the Session lacks a scope, it SHOULD show a visible error message that names the missing scopes, so the Personal Agent can request them (5.4).
+**What `poppy:browser-sign-in` allows.** After a signed-in join, the Company's website MUST either apply the cookie's scopes, as the Company's APIs apply an access token's, or treat `poppy:browser-sign-in` as access to everything the account can do on the website. When the website applies the cookie's scopes, `poppy:browser-sign-in` allows nothing beyond the token's other scopes, and the Company MAY grant it without asking the User. When `poppy:browser-sign-in` gives the account's full access on the website, the Company MUST describe it that way (4.7), such as "Browse the website, and see and do anything your account can do there," and in Direct and Device Sign-In MUST ask the User to approve it like any other scope. In Mediated Sign-In, which has no consent page, the Company decides whether to grant it. This lets a website that can't tell the Company's scopes apart still offer signed-in browsing, with the User's informed approval.
+
+A Company whose website treats `poppy:browser-sign-in` as the account's full access MUST set `web.unscoped` to `true` in `poppy.json`, so the Personal Agent knows what the scope allows before requesting it. A Company that sets `web.unscoped` MUST list `browser_session_endpoint`. Domains with the same issuer give the scope the same meaning (3.2), so if any of their websites is unscoped, each of them sets `web.unscoped`.
+
+While the browser carries the Session's cookie, its requests belong to that Session. After a signed-in join, the Company handles them with the Session's account and scopes, whatever other cookies the browser holds from earlier visits. When the website refuses an action because the Session lacks a scope, it SHOULD show a visible error message that names the missing scopes, so the Personal Agent can request them (5.4).
 
 The Personal Agent MAY join again at any time, for example to sign the website in after signing in, to change its scopes, or when the website no longer recognizes the Session. Each time, step 3 replaces the cookie the Company set before, and the new join's step 2 decides whether the browser is signed in.
 

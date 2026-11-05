@@ -239,11 +239,14 @@ A company can offer personal agents less than its other OAuth clients get withou
 
 ### Specification: [6. Web browsing](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)
 
+- [ ] **MUST NOT**: A Company that sets `web.disabled` MUST NOT list `browser_session_endpoint`, and MUST list `agent` or `apis`.
 - [ ] **MUST**: The Company MUST make the code unguessable and short-lived, and each code works once.
 - [ ] **MUST**: The Company MUST tie the code to the browser that loaded the page with a cookie set in the same response, so that only that browser can submit it.
 - [ ] **MUST NOT**: The cookie MUST NOT be sent with a form submitted from another site, and other hosts on the Company's domain MUST NOT be able to set it.
 - [ ] **MUST NOT**: The page MUST NOT be stored by caches, framed by other pages, or kept as a window reference by the page that opened it.
 - [ ] **MUST NOT**: Loading the page MUST NOT start, end, or change any Session, or change the browser's other cookies.
+- [ ] **MUST**: The Company MUST reject an access token in step 2 that doesn't have the `poppy:browser-sign-in` scope, with `insufficient_scope` as at an API (section 7).
+- [ ] **MUST**: A Company that lists `browser_session_endpoint` and offers sign-in MUST support `poppy:browser-sign-in` (4.7), though it MAY grant it to fewer clients or Users, as for any scope.
 - [ ] **MUST**: The Company MUST check that:
     - [ ] The request has the cookie from step 1, and it matches `code`.
     - [ ] The code was authorized in step 2, hasn't expired, and hasn't been submitted before. A code is used by the first request that submits it, whatever the result.
@@ -251,6 +254,10 @@ A company can offer personal agents less than its other OAuth clients get withou
 - [ ] **MUST**: MUST be set only in step 3.
 - [ ] **MUST**: MUST act for the account and scopes authorized in step 2, if any, and MUST stop acting for the account when the User signs out or disconnects the Personal Agent (5.5).
 - [ ] **MUST NOT**: MUST NOT outlive the Session.
+- [ ] **MUST**: After a signed-in join, the Company's website MUST either apply the cookie's scopes, as the Company's APIs apply an access token's, or treat `poppy:browser-sign-in` as access to everything the account can do on the website.
+- [ ] **MUST**: When `poppy:browser-sign-in` gives the account's full access on the website, the Company MUST describe it that way (4.7), such as "Browse the website, and see and do anything your account can do there," and in Direct and Device Sign-In MUST ask the User to approve it like any other scope.
+- [ ] **MUST**: A Company whose website treats `poppy:browser-sign-in` as the account's full access MUST set `web.unscoped` to `true` in `poppy.json`, so the Personal Agent knows what the scope allows before requesting it.
+- [ ] **MUST**: A Company that sets `web.unscoped` MUST list `browser_session_endpoint`.
 - [ ] **SHOULD**: When the website refuses an action because the Session lacks a scope, it SHOULD show a visible error message that names the missing scopes, so the Personal Agent can request them (5.4).
 
 ### Specification: [7. APIs](https://personalagentprotocol.org/docs/0.4/spec#apis)
@@ -323,7 +330,12 @@ A language model usually reads your API descriptions and MCP tool descriptions t
 
 ### Recommended: [Browser sessions](https://personalagentprotocol.org/docs/0.4/guides#company-browsing)
 
-- [ ] Offer `web.browser_session_endpoint` if you want personal agents' browsing in the same session as their API calls and conversations, signed in or out. Without it, they browse your website only as ordinary signed-out visitors (section 6), and use your APIs and conversations for anything that needs the account.
+Personal agents work faster and more reliably through a company agent or APIs than through a website, so start there for the tasks users ask for most. Then choose how much of your website personal agents can use, from least to most:
+
+- [ ] No browsing. Set `web.disabled`, and cover the tasks in your company agent or APIs. Personal agents that follow the protocol won't browse, but nothing stops one that doesn't (section 6).
+- [ ] Signed-out browsing. List `web` without a `browser_session_endpoint`. Personal agents browse as ordinary signed-out visitors, and use your company agent and APIs for anything that needs the account.
+- [ ] Signed-in browsing with the account's full access. List `browser_session_endpoint`, set `web.unscoped`, and let `poppy:browser-sign-in` allow everything the account can do on the website. This suits a website whose permissions don't match your OAuth scopes. Describe `poppy:browser-sign-in` that way in `auth.scopes`, give it hints that match the website's most consequential action, usually `irreversible` with `personal_data`, and show it on your consent page as its own choice (section 6).
+- [ ] Signed-in browsing with your scopes. Your website applies the same scopes as your APIs, so `poppy:browser-sign-in` adds nothing, and you can grant it without asking the user.
 - [ ] Make each code at least 128 random bits, and expire it within 60 seconds.
 - [ ] Set the cookie that ties the code to the browser as `__Host-poppy_join=…; Path=/; Max-Age=60; Secure; HttpOnly; SameSite=Strict`, with `Max-Age` no longer than the code's lifetime. The `__Host-` prefix keeps other hosts on your domain from setting it, and `SameSite=Strict` keeps a form on another site from sending it (RFC 6265bis).
 - [ ] Send the page with `Cache-Control: no-store`, `Content-Security-Policy: frame-ancestors 'none'`, and `Cross-Origin-Opener-Policy: same-origin`, so caches don't keep it, other pages can't frame it, and the page that opened it can't keep a reference to its window (section 6).
@@ -426,6 +438,8 @@ The page where the user approves access, in direct and device sign-in (4.2, 4.3)
 - [ ] Show the personal agent's name and logo, and the domain of its `client_id`. The personal agent chooses its own name, so the domain is what the user can trust.
 - [ ] Show the account being connected, the requested scopes in plain language, and how long access lasts. Group related scopes rather than listing their names.
 - [ ] Point out scopes that allow changes that can't be undone or that show personal data, the scopes your `auth.scope_hints` mark `irreversible` or with `personal_data`.
+- [ ] When `poppy:browser-sign-in` allows everything the account can do on your website, say so in plain language, such as "Use the website as you, with full access to your account", and let the user leave it out while approving the rest (section 6).
+- [ ] When your issuer serves several domains, `poppy:browser-sign-in` signs the browser in on each of them that lists a `browser_session_endpoint`. Name those websites when you ask the user to approve it, such as "Use example.com and example.co.uk as you" (3.2). If any of those websites is unscoped, describe the scope as full access and set `web.unscoped` on every domain (section 6).
 - [ ] When the user already granted some of the scopes, show which ones are new, so the user doesn't review the whole list again. A personal agent that needs more access requests every scope it needs again (4.7).
 - [ ] Protect the page against cross-site request forgery, and against framing by other sites with `Content-Security-Policy: frame-ancestors`.
 - [ ] `redirect_uri` MUST exactly match an entry in the personal agent's `redirect_uris` (4.2).
@@ -460,7 +474,7 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
 
 ### Recommended: [Enforcing scopes everywhere](https://personalagentprotocol.org/docs/0.4/guides#company-scopes)
 
-- [ ] Apply the same scope rules on your website, APIs, company agent, and live agents. One shared check that every channel calls is easiest to keep consistent.
+- [ ] Apply the same scope rules on your website, APIs, company agent, and live agents. One shared check that every channel calls is easiest to keep consistent. Until your website can, let `poppy:browser-sign-in` stand for the account's full access there (Browser sessions).
 - [ ] Have the company agent's tools check the token's scopes on every call. Don't rely on the model to decide.
 - [ ] Give live agents' tools the same checks, so a person can't make a change the token doesn't allow (8.11).
 - [ ] Check read and write scopes separately. If a write scope also allows reading, say so in its description.

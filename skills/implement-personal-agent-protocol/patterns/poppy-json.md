@@ -58,6 +58,13 @@ the provider.
 - `auth.disabled: true` tells Personal Agents not to sign in, for a Company whose issuer serves
   other clients but that isn't ready for Personal Agents (3.2). It can't be combined with Mediated
   Sign-In or `access: signed_in`.
+- `web.disabled: true` asks Personal Agents to use only the Company Agent and APIs, not the
+  website ([section 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)). It can't be
+  combined with `browser_session_endpoint`, and needs `agent` or `apis`. The protocol can't enforce
+  it.
+- `web.unscoped: true` says the website doesn't apply the Company's other scopes, so
+  `poppy:browser-sign-in` gives the account's full access there. It needs
+  `browser_session_endpoint`.
 - Domains that share an issuer are one Company and must select that issuer and give scopes the
   same authorization meaning ([3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server)).
   Matching scope descriptions and hints are recommended; domains can expose different scopes and

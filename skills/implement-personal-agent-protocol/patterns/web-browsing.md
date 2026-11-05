@@ -51,8 +51,17 @@ Session.
 - The cookie acts for the account and scopes authorized at `/authorize`, stops acting for the
   account at sign-out or disconnect, and doesn't outlive the Session. Look up the Session on each
   request ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-browsing)).
-- The website applies the cookie's scopes, as the APIs do (`patterns/scopes.md`). A signed-in
+- `/authorize` rejects an access token without `poppy:browser-sign-in` with `insufficient_scope`, as an API
+  would. A Company that offers sign-in supports `poppy:browser-sign-in` and lists it in `scopes_supported`.
+- The website either applies the cookie's scopes, as the APIs do (`patterns/scopes.md`), and then
+  may grant `poppy:browser-sign-in` without asking the User; or treats `poppy:browser-sign-in` as everything the
+  account can do on the website, and then asks the User to approve it and describes it that way in
+  `auth.scopes`, and sets `web.unscoped`
+  ([section 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)). A signed-in
   website session for a Personal Agent may allow less than a person's own session.
+- A Company that wants Personal Agents to use only its Company Agent and APIs sets `web.disabled`,
+  lists no `browser_session_endpoint`, and lists `agent` or `apis`. Personal Agents that follow the
+  protocol won't browse, but it can't stop those that don't.
 - While the browser carries the cookie, its requests belong to that Session. After a signed-in
   join, they use the Session's account and scopes, whatever other cookies the browser holds (section
   6).

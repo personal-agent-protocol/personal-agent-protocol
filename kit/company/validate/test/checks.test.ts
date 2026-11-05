@@ -541,6 +541,17 @@ test("a scope in scopes_supported with no description warns on metadata.scopes-d
     assert.doesNotMatch(r.got ?? "", /orders:read/);
 });
 
+test("scopes_supported without poppy:browser-sign-in warns when poppy.json lists a browser-session endpoint", async () => {
+    const { byId } = await run(
+        { metadata: (doc) => (doc.scopes_supported = ["orders:read"]) },
+        "foundation",
+        ["metadata."],
+    );
+    const r = byId("metadata.scopes-supported");
+    assert.equal(r.status, "warn");
+    assert.match(r.expected ?? "", /poppy:browser-sign-in/);
+});
+
 for (const incomplete of [false, true]) {
     test(`${incomplete ? "incomplete" : "absent"} scope metadata warns without blocking Sessions`, async () => {
         const { byId, results } = await run(

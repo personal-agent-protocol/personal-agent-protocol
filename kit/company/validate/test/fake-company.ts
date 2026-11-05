@@ -826,7 +826,10 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
     const auth = (domain: "main" | "other") => ({
         ...(flaws.authIssuer ? { issuer: flaws.authIssuer } : {}),
         ...(domain === "other" && flaws.otherDomainExplicitIssuer ? { issuer: ORIGIN } : {}),
-        ...(flaws.scopesInPoppy ? { scopes: { "orders:read": "See your orders" } } : {}),
+        scopes: {
+            ...(flaws.scopesInPoppy ? { "orders:read": "See your orders" } : {}),
+            "poppy:browser-sign-in": "Use the website signed in, with the other access you approve",
+        },
         scope_hints: {
             "orders:read": {
                 changes: "none",
@@ -909,8 +912,8 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                 MEDIATED_GRANT,
             ],
             scopes_supported: flaws.undescribedScope
-                ? ["orders:read", "addresses"]
-                : ["orders:read"],
+                ? ["orders:read", "addresses", "poppy:browser-sign-in"]
+                : ["orders:read", "poppy:browser-sign-in"],
             protected_resources: [ORIGIN, OTHER_DOMAIN, MCP],
         };
         flaws.metadata?.(doc);

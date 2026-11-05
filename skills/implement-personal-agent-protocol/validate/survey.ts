@@ -241,7 +241,7 @@ export function formatSurvey(s: SurveyReport): string {
             out.push(`  conversations     ${proto.type} ${proto.endpoint}`);
         if (p?.web)
             out.push(
-                `  web               ${p.web.browser_session_endpoint ? `browser_session_endpoint ${p.web.browser_session_endpoint}` : "listed, no browser_session_endpoint"}`,
+                `  web               ${p.web.disabled === true ? "turned off (web.disabled in poppy.json)" : p.web.browser_session_endpoint ? `browser_session_endpoint ${p.web.browser_session_endpoint}${p.web.unscoped === true ? " (unscoped)" : ""}` : "listed, no browser_session_endpoint"}`,
             );
         for (const api of apisOf(p))
             out.push(

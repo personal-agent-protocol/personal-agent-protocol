@@ -117,7 +117,8 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
 ## Web browsing
 
 - List `web.browser_session_endpoint` in `poppy.json`
-  ([section 6](https://personalagentprotocol.org/docs/spec#web-browsing)).
+  ([section 6](https://personalagentprotocol.org/docs/spec#web-browsing)). To keep Personal Agents
+  off the website instead, set `web.disabled` and list no endpoint.
 - **Step 1.** A GET to the endpoint returns a form with an unguessable, short-lived, one-time code
   in a hidden `code` field, posting to the endpoint. Caches can't store the page, other pages can't
   frame it, and its opener keeps no reference to it. It sets a cookie that ties the code to the
@@ -131,7 +132,8 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
   Session header and, when signed in, an access token. Verify both as at any resource (an unknown
   `sid` starts a signed-out Session), check that the code is yours, unexpired, and not authorized
   before, and record it as authorized for that Session and the token's account and scopes. Answer
-  204, or 400 `invalid_request` for a bad code.
+  204, or 400 `invalid_request` for a bad code. Reject a token without `poppy:browser-sign-in` with
+  `insufficient_scope`, as an API would.
 - **Step 3.** The form's POST carries only the code and the join cookie. Check that the cookie
   matches the code, and that the code was authorized, is unexpired, and wasn't submitted before.
   Then set the site's own session cookie for that Session, signed in to the account from step 2 if

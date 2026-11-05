@@ -54,7 +54,7 @@ export type Poppy = {
         scope_hints?: Record<string, { changes: string; personal_data: boolean }>;
     };
     agent?: { protocols?: { type?: string; endpoint?: string; access?: string }[] };
-    web?: { browser_session_endpoint?: string };
+    web?: { browser_session_endpoint?: string; disabled?: boolean; unscoped?: boolean };
     feedback?: { endpoint?: string };
     excluded_tasks?: { url?: string };
     apis?: { type?: string; url?: string; description?: string }[];

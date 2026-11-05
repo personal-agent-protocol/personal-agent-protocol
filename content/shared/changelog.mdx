@@ -45,6 +45,40 @@ token endpoint no longer returns `extension_required`.
 
 </Change>
 
+<Change title="`poppy:browser-sign-in` for signed-in browser join" breaking sections="3, 3.2, 4.7, 4.8, 6, guides#agent-browsing, guides#company-browsing, guides#company-scopes, guides#company-consent">
+
+A signed-in browser join needs an access token with `poppy:browser-sign-in`, the only scope the
+protocol defines. Without it, `/authorize` returns `insufficient_scope`, and the Personal Agent
+authorizes the same code without a token, or gets the scope and starts again. A Company that lists
+`browser_session_endpoint` and offers sign-in supports the scope.
+
+This replaces the requirement that every website apply the cookie's scopes, which websites whose
+permissions don't match their OAuth scopes couldn't meet. The website either applies the cookie's
+scopes, and the Company may then grant `poppy:browser-sign-in` without asking the User, or treats it
+as everything the account can do there. The Company then describes it that way and, in Direct and
+Device Sign-In, asks the User to approve it. Section 4.7 says the same. The guides describe four
+levels of website access, from none to signed in with the Company's scopes, and suggest naming each
+website the scope signs in to.
+
+</Change>
+
+<Change title="`web.unscoped`" sections="3.1, 6, guides#agent-browsing, guides#company-browsing, guides#company-consent">
+
+A Company whose website treats `poppy:browser-sign-in` as the account's full access sets
+`web.unscoped`, so a Personal Agent knows what the scope allows before requesting it. The Company
+lists `browser_session_endpoint` with it, and domains with the same issuer set it together.
+
+</Change>
+
+<Change title="`web.disabled`" sections="3.1, 4.8, 6, guides#agent-browsing, guides#company-browsing">
+
+A Company sets `web.disabled` to ask Personal Agents to use only its Company Agent and APIs. A
+Personal Agent should not browse its website. A Company that sets it lists no
+`browser_session_endpoint`, and lists `agent` or `apis`. The protocol can't enforce it, so it isn't
+a promise that Personal Agents won't browse.
+
+</Change>
+
 ## Version 0.3 {#v0-3}
 
 Published November 4, 2026. It's frozen at [/docs/0.3/spec](/docs/0.3/spec). Major changes are

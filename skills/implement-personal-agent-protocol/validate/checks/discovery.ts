@@ -37,6 +37,8 @@ export const DISCOVERY_IDS = [
     "discovery.interface-present",
     "discovery.extension-names",
     "discovery.sign-in-disabled",
+    "discovery.web-disabled",
+    "discovery.web-unscoped",
 ];
 
 export const EXCLUDED_TASKS_IDS = ["discovery.excluded-tasks", "discovery.alternative-references"];
@@ -399,6 +401,8 @@ export function checkPoppyDocument(
 
     checkExtensionNames(r, poppy, ex);
     checkSignInDisabled(r, poppy, ex);
+    checkWebDisabled(r, poppy, ex);
+    checkWebUnscoped(r, poppy, ex);
 
     // Personal Agents skip API types they don't recognize (section 7), so another type isn't a
     // problem for the Company, but this validator can't check it.
@@ -544,6 +548,47 @@ function checkSignInDisabled(r: Recorder, poppy: Poppy, ex: Exchange | undefined
         });
     } else {
         r.pass("discovery.sign-in-disabled", { summary: "Sign-in is turned off." });
+    }
+}
+
+// A Company that asks Personal Agents not to browse offers no browser join, and another
+// interface (section 6).
+function checkWebDisabled(r: Recorder, poppy: Poppy, ex: Exchange | undefined): void {
+    if (poppy.web?.disabled !== true) {
+        r.pass("discovery.web-disabled", { summary: "Browsing isn't turned off." });
+        return;
+    }
+    const conflicts = [
+        poppy.web.browser_session_endpoint !== undefined ? "browser_session_endpoint" : "",
+        poppy.agent === undefined && poppy.apis === undefined ? "no agent or apis" : "",
+    ].filter(Boolean);
+    if (conflicts.length) {
+        r.fail("discovery.web-disabled", {
+            exchange: ex,
+            got: `web.disabled true, with ${conflicts.join(" and ")}`,
+            expected: "web.disabled true, with no browser_session_endpoint, and agent or apis",
+            cause: "Personal Agents don't browse a Company that sets web.disabled, so they need its Company Agent or APIs, and have no use for a browser-session endpoint. List agent or apis, and remove browser_session_endpoint or web.disabled.",
+        });
+    } else {
+        r.pass("discovery.web-disabled", { summary: "Browsing is turned off." });
+    }
+}
+
+// web.unscoped describes what a signed-in browser join allows, so it needs the endpoint (section 6).
+function checkWebUnscoped(r: Recorder, poppy: Poppy, ex: Exchange | undefined): void {
+    if (poppy.web?.unscoped !== true) {
+        r.pass("discovery.web-unscoped", { summary: "The website applies the Company's scopes." });
+    } else if (poppy.web.browser_session_endpoint === undefined) {
+        r.fail("discovery.web-unscoped", {
+            exchange: ex,
+            got: "web.unscoped true, with no browser_session_endpoint",
+            expected: "web.unscoped true, with browser_session_endpoint",
+            cause: "web.unscoped says what poppy:browser-sign-in allows on the website, which only a browser join can grant. List browser_session_endpoint, or remove web.unscoped.",
+        });
+    } else {
+        r.pass("discovery.web-unscoped", {
+            summary: "poppy:browser-sign-in gives the account's full access on the website.",
+        });
     }
 }
 
@@ -891,12 +936,22 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
         const missing = Array.isArray(mediated)
             ? mediated.filter((scope) => !supported.includes(scope))
             : [];
+        const browse =
+            poppy.web?.browser_session_endpoint !== undefined &&
+            !supported.includes(BROWSER_SIGN_IN_SCOPE);
         if (missing.length) {
             r.fail("metadata.scopes-supported", {
                 exchange: ex,
                 got: `scopes_supported ${JSON.stringify(supported)}`,
                 expected: `scopes_supported including ${missing.join(", ")}`,
                 cause: "Including the Mediated Sign-In scopes in scopes_supported is recommended. Agents can also discover them in the extension's scopes (4.7).",
+            });
+        } else if (browse) {
+            r.fail("metadata.scopes-supported", {
+                exchange: ex,
+                got: `scopes_supported ${JSON.stringify(supported)}`,
+                expected: `scopes_supported including ${BROWSER_SIGN_IN_SCOPE}`,
+                cause: `poppy.json lists browser_session_endpoint, so a signed-in browser join needs ${BROWSER_SIGN_IN_SCOPE}, which the Company supports (section 6). Including it in scopes_supported is recommended.`,
             });
         } else r.pass("metadata.scopes-supported");
         await checkScopesDescribed(ctx, r, supported);
@@ -907,6 +962,9 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
 }
 
 const MEDIATED_GRANT = "https://personalagentprotocol.org/grant/mediated-sign-in";
+
+// The scope a signed-in browser join needs (section 6).
+const BROWSER_SIGN_IN_SCOPE = "poppy:browser-sign-in";
 
 // A Company that lists Mediated Sign-In lists its grant type (Mediated Sign-In 2).
 function checkMediatedGrant(r: Recorder, poppy: Poppy, json: Metadata, ex: Exchange): void {

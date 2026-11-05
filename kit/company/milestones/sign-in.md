@@ -150,9 +150,12 @@ missing scope should show a visible error naming the scopes
 - The Company Agent and live agents check scopes before reading account information or making a
   change. A message never authorizes an account action.
 
-**Website.** Step 2 of the browser join takes the access token, and the cookie set in step 3 acts
-for its account and scopes. It stops acting for the account when the User signs out or disconnects
-the Personal Agent ([section 6](https://personalagentprotocol.org/docs/spec#web-browsing)).
+**Website.** Step 2 of the browser join takes the access token, which needs `poppy:browser-sign-in`, and the
+cookie set in step 3 acts for its account and scopes. It stops acting for the account when the User
+signs out or disconnects the Personal Agent
+([section 6](https://personalagentprotocol.org/docs/spec#web-browsing)). If the website can't apply
+your scopes, `poppy:browser-sign-in` stands for the account's full access there: describe it that way, and
+ask the User to approve it.
 
 ## Decisions for this milestone
 

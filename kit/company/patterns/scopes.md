@@ -74,6 +74,7 @@ Company Agent's tools, and live agents' tools
   ([4.7](https://personalagentprotocol.org/docs/spec#scopes)). Their tools need the same check,
   which may mean changes to the live-agent desk.
 - A message never authorizes an account action (8.11).
-- The website applies the scopes authorized when the browser joined, through its cookie
+- The website applies the scopes authorized when the browser joined, through its cookie, or treats
+  `poppy:browser-sign-in` as the account's full access on the website
   ([section 6](https://personalagentprotocol.org/docs/spec#web-browsing)).
 - Never grant beyond what was requested and allowed for the sign-in type (4.7).

@@ -237,6 +237,18 @@ export const CATALOG: CheckInfo[] = [
         "A Company that sets auth.disabled MUST NOT list the Mediated Sign-In extension or signed_in access",
     ),
     foundation(
+        "discovery.web-disabled",
+        "A Company that asks Personal Agents not to browse lists no browser-session endpoint, and lists another interface",
+        "spec#web-browsing",
+        "A Company that sets web.disabled MUST NOT list browser_session_endpoint, and MUST list agent or apis.",
+    ),
+    foundation(
+        "discovery.web-unscoped",
+        "A Company whose website is unscoped lists a browser-session endpoint",
+        "spec#web-browsing",
+        "A Company that sets web.unscoped MUST list browser_session_endpoint.",
+    ),
+    foundation(
         "discovery.excluded-tasks",
         "The excluded-tasks document loads and has the fields in 9.1",
         "spec#excluded-tasks",
