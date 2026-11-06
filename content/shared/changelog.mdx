@@ -27,10 +27,12 @@ such a Company may offer only Direct Sign-In.
 
 A Company can serve several protocol versions at once. `poppy.json` is the document for the version
 it prefers, and `supported_versions` maps each other version to its document, on the same host and
-for the same Company. The Personal Agent chooses the newest compatible version and names it in
-`Poppy-Version` on every request with the Session header, the same throughout a Session. An endpoint
-that verifies the Session header rejects a missing or unserved version with `version_unsupported`,
-and the Personal Agent then chooses again. From 1.0, these keep their meaning in every version.
+for the same Company. The Personal Agent doesn't use a linked document on another host, or one whose
+`protocol_version` isn't the version it's listed under. It chooses the newest compatible version
+and names it in `Poppy-Version` on every request with the Session header, the same throughout a
+Session. An endpoint that verifies the Session header rejects a missing or unserved version with
+`version_unsupported`, and the Personal Agent then chooses again. From 1.0, these keep their meaning
+in every version.
 
 </Change>
 

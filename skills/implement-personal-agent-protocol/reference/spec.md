@@ -265,7 +265,7 @@ A Company can serve several protocol versions at once, so Personal Agents can mo
 }
 ```
 
-- Each URL in `supported_versions` MUST be an HTTPS URL on the host that served `poppy.json`, after any redirects. The Personal Agent MUST NOT follow a redirect from it. The document there has the `protocol_version` it is listed under, and no `supported_versions`. Its path can be anything, unlike `poppy.json`'s (section 3), because `poppy.json` names it.
+- Each URL in `supported_versions` MUST be an HTTPS URL on the host that served `poppy.json`, after any redirects. The Personal Agent MUST NOT use a document whose URL is on another host, and MUST NOT follow a redirect from it. Otherwise any domain's `poppy.json` could link to a file someone uploaded to a Company's domain and have it speak for that Company. The document there has the `protocol_version` it is listed under, and no `supported_versions`. The Personal Agent MUST NOT use it if its `protocol_version` is another one. Its path can be anything, unlike `poppy.json`'s (section 3), because `poppy.json` names it.
 - Every document a Company serves at the same time MUST have the same `organization.domain` and select the same issuer (3.2), so that a new version doesn't change the Company's identifier, and with it User IDs and refresh tokens. Other fields MAY differ by version.
 - Two versions are compatible when they have the same major version and, before 1.0, the same minor version. The Personal Agent chooses the newest version, among `protocol_version` and the versions in `supported_versions`, that is compatible with one it implements, and uses that version's document. If none is, it MUST NOT use any of them.
 
