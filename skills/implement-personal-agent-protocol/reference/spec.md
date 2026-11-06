@@ -855,7 +855,10 @@ Personal Agent Protocol conversations use JSON over HTTPS. Below, `{endpoint}` i
 | `POST {endpoint}/{id}/messages` | Send another message (8.3). |
 | `GET {endpoint}/{id}/events` | Read messages and other events, or stream them (8.5, 8.6). |
 | `POST {endpoint}/{id}/handoff` | Ask for a person at the Company (8.9). |
+| `POST {endpoint}/{id}/handoff/cancel` | Withdraw a request for a person (8.9). |
 | `POST {endpoint}/{id}/close` | Close the conversation (8.12). |
+
+Every `POST` has a JSON body with a request `id` (8.3), so retries are safe.
 
 A conversation belongs to the Personal Agent's `client_id` and the User ID that started it, and, once it uses the User's account, to that account too. A request continues it only when all of them match, so any Session that matches can continue it, and a conversation can outlast the Session that started it. Agent IDs aren't part of ownership. The Company MUST reject any other request, as the table shows:
 
@@ -877,7 +880,7 @@ A conversation belongs to the Personal Agent's `client_id` and the User ID that 
 
 The Personal Agent can then continue the conversation in a Session that uses the versions it started with, if the Company still serves them, or start a new conversation.
 
-**IDs.** Conversation IDs, message IDs, and event IDs are strings of 1 to 256 characters from the URL-safe base64 alphabet ([RFC 4648, section 5](https://www.rfc-editor.org/rfc/rfc4648#section-5)): letters, digits, `-`, and `_`. The Company chooses Conversation IDs and event IDs, and the Personal Agent chooses message IDs for its own messages. Beyond these rules, the side that chooses an ID decides its format, and the other side MUST NOT depend on it.
+**IDs.** Conversation IDs, request IDs, message IDs, and event IDs are strings of 1 to 256 characters from the URL-safe base64 alphabet ([RFC 4648, section 5](https://www.rfc-editor.org/rfc/rfc4648#section-5)): letters, digits, `-`, and `_`. The Company chooses Conversation IDs, event IDs, and the IDs of its own messages. The Personal Agent chooses request IDs, and each of its messages has its request's ID. Beyond these rules, the side that chooses an ID decides its format, and the other side MUST NOT depend on it.
 
 ### 8.3 Sending messages
 
@@ -893,8 +896,8 @@ Authorization: Bearer eyJhbGciOi…Qp4w
 Content-Type: application/json
 
 {
+  "id": "msg_Yq3v8LrT0aWc5NkE",
   "message": {
-    "id": "msg_Yq3v8LrT0aWc5NkE",
     "author": { "type": "agent" },
     "text": "The jacket from order #1042 isn't warm enough. The user wants to return it.",
     "context": { "locale": "en-US", "time_zone": "America/Los_Angeles", "user_available": true }
@@ -911,13 +914,11 @@ HTTP/1.1 201 Created
 Content-Type: application/json
 
 {
-  "conversation_id": "cnv_8f3Kd2",
-  "status": "working",
-  "responder": "agent"
+  "conversation_id": "cnv_8f3Kd2"
 }
 ```
 
-Later messages go to the conversation's `messages` URL, which returns HTTP 202 with the same fields:
+Later messages go to the conversation's `messages` URL, which returns HTTP 202 with the same body:
 
 *Request: Personal Agent → Company*
 
@@ -929,13 +930,18 @@ Authorization: Bearer eyJhbGciOi…Qp4w
 Content-Type: application/json
 
 {
-  "message": { "id": "msg_Hc72PwZn4eKs1QxB", "author": { "type": "agent" }, "text": "Does the insulated version come in medium?" }
+  "id": "msg_Hc72PwZn4eKs1QxB",
+  "message": { "author": { "type": "agent" }, "text": "Does the insulated version come in medium?" }
 }
 ```
 
-**Message IDs.** The Personal Agent chooses each message's `id`, and MUST make it unique for the User. To retry a message, it sends it again with the same ID. If the Company has already accepted a message with that ID and the same content, it returns the original response and doesn't add the message again. Because the ID is unique for the User rather than for one conversation, the Company can recognize a retried first message and return the conversation it already started. If the content is different, the Company returns `message_id_conflict`. The Company keeps this check for as long as it keeps the conversation.
+**Request IDs.** Every `POST` body has an `id`, chosen by the Personal Agent, which MUST make it unique for the User across all its requests. A message's ID is its request's ID, so the message itself has no `id`. To retry a request, the Personal Agent sends it again to the same path with the same ID. If the Company has already accepted a request with that ID, path, and body, it returns the original response and doesn't act on the request again. Query parameters, such as `cursor` and `wait`, aren't part of the path, so a retry can change them. Because the ID is unique for the User rather than for one conversation, the Company can recognize a retried first message and return the conversation it already started. If the path or body is different, the Company returns `request_id_conflict`. The Company keeps this check for as long as it keeps the conversation.
 
-**Replies in the response.** To get the Company's reply in the same request, the Personal Agent adds the `wait` query parameter to either `POST`, and `cursor` if it has one. The Company accepts the conversation or message, then responds as a read of the conversation's events from that cursor would (8.5), holding the request for up to `wait` seconds. Without a cursor, it reads from the start of the conversation. The status code stays 201 or 202:
+**Order.** The Company acts on a conversation's messages, handoff requests, and handoff cancels in the order it accepts them, whatever their URL. A close is the exception (8.12). Requests sent at the same time have no order, so the Personal Agent waits for one to be accepted before sending the next when the order matters.
+
+**Responses.** A successful `POST` means the Company accepted the request, not that it has acted on it. The response has only `conversation_id`. The Personal Agent reads what happened from the conversation's events and state (8.5, 8.7).
+
+**Replies in the response.** To get the Company's reply in the same request, the Personal Agent adds the `wait` query parameter to any `POST`, and `cursor` if it has one. The Company accepts the request, then responds as a read of the conversation's events from that cursor would (8.5), with the conversation's state, holding the request for up to `wait` seconds. Without a cursor, it reads from the start of the conversation. The status code stays 201 or 202:
 
 *Request: Personal Agent → Company*
 
@@ -947,7 +953,8 @@ Authorization: Bearer eyJhbGciOi…Qp4w
 Content-Type: application/json
 
 {
-  "message": { "id": "msg_Tb5nRw8Ke2Lp0VsD", "author": { "type": "agent" }, "text": "Medium, please." }
+  "id": "msg_Tb5nRw8Ke2Lp0VsD",
+  "message": { "author": { "type": "agent" }, "as_of_cursor": "evt_c2", "text": "Medium, please." }
 }
 ```
 
@@ -955,15 +962,24 @@ Content-Type: application/json
 
 | Field | Req. | Description |
 | --- | --- | --- |
-| `id` | Yes | The message's ID, chosen by the Personal Agent and unique for the User (8.3). |
-| `role` | No | `user` or `company`, the side the message came from. The Company sets it when it records the message as an event (8.5). The Personal Agent doesn't send it, and the Company ignores it if sent. |
+| `id` | No | The message's ID. The Company sets it when it records the message as an event (8.5): the request's ID for the Personal Agent's messages (8.3), or an ID it chooses for its own. |
+| `role` | No | `user` or `company`, the side the message came from. The Company sets it when it records the message as an event (8.5). |
+| `as_of_request` | No | On a message from the Company Agent, the ID of the latest request it took into account (below). |
+| `as_of_cursor` | No | On a message the Personal Agent wrote, the last cursor it had read (below). |
 | `author` | Yes | Who wrote the message. `type` is `agent` if the Personal Agent wrote it, `human` if the User wrote it (8.8). Company messages can also name the writer (below). |
 | `text` | No | The message in natural language. |
 | `data` | No | A JSON object for structured details that would need markup, like a list or a table, to fit in a sentence. The protocol doesn't define its keys. |
 | `context` | No | Facts about the User's situation, such as `locale`, `time_zone`, and `user_available` (below). |
 | `extensions` | No | Content defined by extensions, keyed by extension name (below). |
 
-A message MUST have at least one of `text`, `data`, `context`, or `extensions`.
+The Personal Agent doesn't send `id` or `role`, and the Company ignores them if sent. A message MUST have at least one of `text`, `data`, `context`, or `extensions`.
+
+**What a message took into account.** Messages cross: either side can write while the other side's latest message is still on its way. Two optional fields say what the writer had seen. They are hints for sequencing and interpreting replies, so a short message such as "Done" or "Medium" can be matched to what it answers. Only messages written by an AI carry them. A person types while messages arrive, so which messages they had read when they sent one isn't known.
+
+- `as_of_request`: a message from the Company Agent, with `author.type` `agent`, MAY include the ID of the latest message, handoff request, or handoff cancel from the Personal Agent that it took into account. Because the Company acts on requests in the order it accepts them (8.3), it also took into account every request accepted before that one. A Personal Agent can use it to tell whether a reply covers its latest message without waiting for `working` to be `false`. Taking a request into account doesn't mean the Company acted on it, because a close can drop requests (8.12).
+- `as_of_cursor`: a message the Personal Agent wrote, with `author.type` `agent`, MAY include the cursor of the last read it had handled when it wrote the message (8.5), if it has one. The Company can then tell which of its messages the Personal Agent had seen.
+
+A message the Company Agent sends before taking any request into account has no `as_of_request`. A message from a person at the Company, or written by the User, with `author.type` `human`, MUST NOT include either field. The Company and the Personal Agent MUST NOT depend on either field being present, and treat each only as a hint for interpreting the message.
 
 Use `text` for the message itself, including simple values like an email address or an order number. Use `data` for structured details that would otherwise need markup to fit in a sentence. The Company Agent's replies use `data` the same way.
 
@@ -973,7 +989,6 @@ For example, choosing seats for a family of six, with their loyalty and security
 
 ```
 {
-  "id": "msg_Ns8dXo1Gv6JpUa3C",
   "author": { "type": "agent" },
   "text": "The user would like seats together for their family of six on flight SB 482.",
   "data": {
@@ -1005,7 +1020,6 @@ Any message can carry `context`, and fields it leaves out keep their previous va
 
 ```
 {
-  "id": "msg_Lw0eFj7Tc2RbVy5H",
   "author": { "type": "agent" },
   "context": { "user_available": false }
 }
@@ -1067,6 +1081,7 @@ Authorization: Bearer eyJhbGciOi…Qp4w
         "id": "msg_r2Kq",
         "role": "company",
         "author": { "type": "agent" },
+        "as_of_request": "msg_Hc72PwZn4eKs1QxB",
         "text": "I can do that. The insulated version would be warmer. Want to exchange instead for $70 more?",
         "data": { "replacement_sku": "stormline-insulated-m", "price_difference": 70 }
       }
@@ -1074,8 +1089,10 @@ Authorization: Bearer eyJhbGciOi…Qp4w
   ],
   "cursor": "evt_c2",
   "has_more": false,
-  "status": "idle",
-  "responder": "agent"
+  "working": false,
+  "handoff": "none",
+  "responder": "agent",
+  "closed": false
 }
 ```
 
@@ -1084,7 +1101,7 @@ Every event has an `id`, a `type`, and a `created_at` time ([RFC 3339](https://w
 | Type | Fields |
 | --- | --- |
 | `message` | `message`: a message from either side, as it was sent, with `role` set by the Company to `user` or `company` for the side it came from. Every message the Company accepts is recorded, including one with only `context`. |
-| `state` | `status` and `responder`, after either one changes. See 8.7 for their values. |
+| `state` | `handoff`, `responder`, and `closed`, after any of them changes. See 8.7 for their values. |
 | `authorization` | `error` and `scope`: the Company needs sign-in or more scopes (8.11). |
 | `user_requested` | `reason`: the Company asks to talk with the User directly (8.10). |
 | `direct_opened`, `direct_closed` | `conversation_id`: a Direct Conversation linked to this one opened or closed (8.10). |
@@ -1093,8 +1110,9 @@ Personal Agents MUST skip event types they don't recognize, so later versions an
 
 - `cursor` and `wait` are query parameters, here and on the `POST` requests in 8.3.
 - Each event's `id` is also a cursor. Without a `cursor`, the read starts at the beginning of the conversation. Cursors are opaque, so the Personal Agent MUST NOT compare or sort them.
-- `wait` is a whole number of seconds, 0 or more. The Company holds the request for up to `wait` seconds until there is an event to return. It MAY return sooner, or cap `wait`: a larger `wait` is held only as long as the cap, not rejected. Without `wait`, it returns right away. A read that times out returns an empty `events` list.
-- Every successful read MUST include `conversation_id`, `events`, `cursor`, `has_more`, `status`, and `responder`, with `events` empty when there are none. `cursor` is the last event returned, or the request's cursor if there were none. When `has_more` is `true`, the Personal Agent reads again right away.
+- `wait` is a whole number of seconds, 0 or more. The Company holds the request for up to `wait` seconds until there is an event to return, or until `working` changes from `true` to `false` (8.7). It MAY return sooner, or cap `wait`: a larger `wait` is held only as long as the cap, not rejected. Without `wait`, it returns right away. A read that times out returns an empty `events` list.
+- Every successful read MUST include `conversation_id`, `events`, `cursor`, `has_more`, and the state fields `working`, `handoff`, `responder`, and `closed` (8.7), with `events` empty when there are none. `cursor` is the last event returned, or the request's cursor if there were none. When `has_more` is `true`, the Personal Agent reads again right away.
+- The state fields are the state when the Company responds, so while `has_more` is `true` they can be newer than the events returned. The Personal Agent applies events in order, and relies on the state fields once `has_more` is `false`.
 - The Personal Agent handles events in order and saves the cursor after them. A read after a reconnect can return events again, so it skips event IDs it has already handled.
 - The Company keeps events for as long as it chooses. A cursor for events it no longer has returns `cursor_expired`. The Personal Agent then reads from the beginning.
 
@@ -1109,7 +1127,16 @@ id: evt_c2
 data: {"id":"evt_c2","type":"message","created_at":"2026-10-08T19:03:00Z","message":{…}}
 ```
 
-Changes to `status` and `responder` arrive as `state` events. The Company MAY close a stream at any time, for example when the access token expires. The Personal Agent reconnects with `Last-Event-ID` set to the last event it handled, in place of `cursor`. If a request has both, `Last-Event-ID` wins, because SSE clients add it to the URL the stream was first opened with.
+Changes to `handoff`, `responder`, and `closed` arrive as `state` events. `working` isn't an event: the Company sends it as a `working` event with no SSE `id`, when the stream opens and each time it changes:
+
+*Stream: Company → Personal Agent*
+
+```
+event: working
+data: {"working":false}
+```
+
+The Company MAY close a stream at any time, for example when the access token expires. The Personal Agent reconnects with `Last-Event-ID` set to the last event it handled, in place of `cursor`. If a request has both, `Last-Event-ID` wins, because SSE clients add it to the URL the stream was first opened with.
 
 While the Company Agent writes a message, the Company MAY send pieces of its text as `text-delta` events, with no SSE `id`:
 
@@ -1122,25 +1149,24 @@ data: {"message_id":"msg_r2Kq","text":"I can do that. "}
 
 The Personal Agent can show the pieces as they arrive, then replaces them with the complete `message` event. After a reconnect, it drops any pieces of a message it didn't receive in full.
 
-### 8.7 Status and responder
+### 8.7 State
 
-| Status | Meaning |
-| --- | --- |
-| `working` | The Company is still working. Read again with the cursor. |
-| `idle` | The Company has no work in progress and is waiting for the User's side. |
-| `queued` | Waiting for a person at the Company to join (8.9). |
-| `closed` | The conversation takes no more messages (8.12). |
+Every read reports the conversation's state in four fields, each independent of the others:
 
-`responder` tells the Personal Agent who is currently handling the Company side of the conversation. It is independent of `status`:
+| Field | Values | Meaning |
+| --- | --- | --- |
+| `working` | `true` or `false` | The Company has work in progress: a request it accepted but hasn't acted on (8.3), a reply being written, or work it started on its own. Read again until it's `false`. |
+| `handoff` | `none` or `pending` | `pending` while the Company is looking for a person to join (8.9). |
+| `responder` | `agent` or `human` | Who is handling the Company side: an automated Company Agent, or a live person at the Company. |
+| `closed` | `true` or `false` | The conversation takes no more messages (8.12). |
 
-| Responder | Meaning |
-| --- | --- |
-| `agent` | An automated Company Agent is handling the conversation. |
-| `human` | A live person at the Company is handling the conversation. |
+For example, a conversation can be `working` with `handoff` `pending`, when the Company Agent keeps answering while the Company looks for a person. A Personal Agent that wants the Company's whole reply reads until `working` is `false`. Because `working` includes requests not yet acted on, it's `true` from the moment the Company accepts a request.
 
-Later versions may add values. A Personal Agent treats a `status` it doesn't recognize as `working`, and a `responder` it doesn't recognize as `human`.
+A new conversation starts with `handoff` `none`, `responder` `agent`, and `closed` `false`.
 
-Every successful response to a `POST` or a read MUST include `status` and `responder`. Every change to either one adds a `state` event with both, even if there is no new text. `human` means a person has joined. While the conversation is `queued`, `responder` stays `agent`. In a closed conversation, `responder` is whoever handled it last.
+Later versions may add values. A Personal Agent treats a `handoff` it doesn't recognize as `pending`, and a `responder` it doesn't recognize as `human`.
+
+Every change to `handoff`, `responder`, or `closed` adds a `state` event with all three, even if there is no new text. Changes to `working` add no event: the Personal Agent sees them in reads, and in streams as `working` events (8.6). `human` means a person has joined. While `handoff` is `pending`, `responder` stays `agent`. In a closed conversation, `working` is `false`, `handoff` is `none`, and `responder` is whoever handled it last.
 
 Each Company message MUST also include `author.type`, with `agent` or `human`, to identify who wrote it. This distinguishes earlier automated replies from human replies when both arrive in one response. The `role` stays `company` in either case.
 
@@ -1154,8 +1180,9 @@ Each Company message MUST also include `author.type`, with `agent` or `human`, t
       "id": "evt_c4",
       "type": "state",
       "created_at": "2026-10-08T19:05:10Z",
-      "status": "idle",
-      "responder": "human"
+      "handoff": "none",
+      "responder": "human",
+      "closed": false
     },
     {
       "id": "evt_c5",
@@ -1171,8 +1198,10 @@ Each Company message MUST also include `author.type`, with `agent` or `human`, t
   ],
   "cursor": "evt_c5",
   "has_more": false,
-  "status": "idle",
-  "responder": "human"
+  "working": false,
+  "handoff": "none",
+  "responder": "human",
+  "closed": false
 }
 ```
 
@@ -1192,13 +1221,14 @@ Authorization: Bearer eyJhbGciOi…Qp4w
 Content-Type: application/json
 
 {
-  "message": { "id": "msg_Fz4kQa9Ue1YoBs6R", "author": { "type": "human" }, "text": "Medium, please." }
+  "id": "msg_Fz4kQa9Ue1YoBs6R",
+  "message": { "author": { "type": "human" }, "text": "Medium, please." }
 }
 ```
 
 ### 8.9 Handoff to a person
 
-The Personal Agent asks for a person at the Company with an empty JSON object:
+The Personal Agent asks for a person at the Company with a request ID:
 
 *Request: Personal Agent → Company*
 
@@ -1209,12 +1239,16 @@ Poppy-Version: 0.4
 Authorization: Bearer eyJhbGciOi…Qp4w
 Content-Type: application/json
 
-{}
+{ "id": "hnd_Rk4wQz8Lm2VbXe7T" }
 ```
 
-The Company returns HTTP 202 with `status` and `responder`, and the status becomes `queued` while it finds someone. It's 202 rather than 200, as for closing (8.12), because the handoff finishes after the response. When a person joins, `responder` becomes `human`. If no one is available, the status goes back to `idle` with `responder` still `agent`, and the Company Agent says why in a message. The Company Agent can also hand off to a person on its own. If the conversation is already `queued`, or a person is already handling it, the Company returns HTTP 202 with the current `status` and `responder` and changes nothing.
+The Company returns HTTP 202 (8.3). When it acts on the request, `handoff` becomes `pending` while it finds someone (8.7). When a person joins, `handoff` becomes `none` and `responder` becomes `human`. If no one is available, `handoff` goes back to `none` with `responder` still `agent`, and the Company Agent says why in a message. The Company Agent can also hand off to a person on its own. If `handoff` is already `pending`, or a person is already handling the conversation, the request changes nothing.
 
-The Personal Agent can keep sending messages while it waits, for example to explain the problem for the person who joins or to update `user_available`. Closing the conversation cancels a pending handoff.
+The Personal Agent can keep sending messages while it waits, for example to explain the problem for the person who joins or to update `user_available`. The Company Agent can keep answering them.
+
+**Withdrawing.** If the Personal Agent no longer needs a person, for example because the Company Agent solved the problem, it sends a request ID to `{endpoint}/{id}/handoff/cancel` the same way. The Company returns HTTP 202. It MAY stop looking for a person, and `handoff` then becomes `none`. It MAY also keep looking, for example when its help desk can't withdraw a request already routed to someone. A person can also join before the Company acts on the cancel. The Personal Agent learns which happened from `handoff` and `responder`, and MUST NOT depend on the cancel taking effect. A cancel when `handoff` isn't `pending` changes nothing.
+
+Closing the conversation also stops a pending handoff (8.12).
 
 ### 8.10 Direct Conversations
 
@@ -1234,8 +1268,9 @@ Authorization: Bearer eyJhbGciOi…Qp4w
 Content-Type: application/json
 
 {
+  "id": "msg_Pe6jWm3Kd0RtXc8V",
   "parent_conversation_id": "cnv_8f3Kd2",
-  "message": { "id": "msg_Pe6jWm3Kd0RtXc8V", "author": { "type": "human" }, "text": "Hi, I have a question about the exchange." }
+  "message": { "author": { "type": "human" }, "text": "Hi, I have a question about the exchange." }
 }
 ```
 
@@ -1254,7 +1289,7 @@ The parent conversation MUST be open, belong to the same owner (8.2), and not be
 }
 ```
 
-The event doesn't change `status` or `responder`.
+The event doesn't change the conversation's state (8.7).
 
 The Personal Agent asks the User. If they agree, it starts a Direct Conversation with the parent ID and `user_requested_event_id`, naming that event. It can omit `message` so the Company speaks first:
 
@@ -1268,18 +1303,19 @@ Authorization: Bearer eyJhbGciOi…Qp4w
 Content-Type: application/json
 
 {
+  "id": "dir_Ua8mXc3Nq6TrZp1K",
   "parent_conversation_id": "cnv_8f3Kd2",
   "user_requested_event_id": "evt_c6"
 }
 ```
 
-The Company MUST reject a `user_requested_event_id` that doesn't name a `user_requested` event in that parent with `invalid_request`. A request without `message` is valid only when starting a Direct Conversation with both IDs. The Company records its first message as a `message` event in the Direct Conversation. While preparing it, the conversation is `working`, or `queued` if waiting for a person (8.7). The Personal Agent reads it with `wait` on the opening request (8.3), or by reading or streaming events (8.5, 8.6). The `reason` in the parent remains an invitation, not the first message.
+The Company MUST reject a `user_requested_event_id` that doesn't name a `user_requested` event in that parent with `invalid_request`. A request without `message` is valid only when starting a Direct Conversation with both IDs. The Company records its first message as a `message` event in the Direct Conversation. While preparing it, the conversation is `working`, with `handoff` `pending` if waiting for a person (8.7). The Personal Agent reads it with `wait` on the opening request (8.3), or by reading or streaming events (8.5, 8.6). The `reason` in the parent remains an invitation, not the first message.
 
 The Company checks the parent's ownership (8.2) before accepting this request, and the Direct Conversation's ownership too before returning it on a retry. Repeating the same parent ID and event ID returns the same Direct Conversation without adding another message, even after it closes. The Company keeps this association for as long as it keeps the Direct Conversation. An acceptance that hasn't already started a Direct Conversation follows the parent rules above.
 
 If the User declines or isn't available, the Personal Agent says so in the parent conversation. Only the Personal Agent starts Direct Conversations, so the User decides when they're brought in.
 
-**The parent conversation meanwhile.** When a Direct Conversation opens, the Company adds a `direct_opened` event to the parent, with the Direct Conversation's ID in `conversation_id`. While it is open, the parent can still be read, but messages and handoff requests to the parent return `direct_conversation_open`, with the Direct Conversation's ID in `conversation_id`. When the Direct Conversation closes, the Company adds a `direct_closed` event to the parent, and the parent takes messages again. Either party can close the Direct Conversation as in 8.12, including the Company after inactivity. Closing the parent also closes its open Direct Conversation.
+**The parent conversation meanwhile.** When a Direct Conversation opens, the Company adds a `direct_opened` event to the parent, with the Direct Conversation's ID in `conversation_id`. While it is open, the parent can still be read, but messages, handoff requests, and handoff cancels to the parent return `direct_conversation_open`, with the Direct Conversation's ID in `conversation_id`. When the Direct Conversation closes, the Company adds a `direct_closed` event to the parent, and the parent takes messages again. Either party can close the Direct Conversation as in 8.12, including the Company after inactivity. Closing the parent also closes its open Direct Conversation.
 
 ### 8.11 Sign-in during a conversation
 
@@ -1309,9 +1345,11 @@ Once a conversation has used the User's account, a request on it for the same Us
 
 ### 8.12 Closing
 
-The Personal Agent closes a conversation it's done with by sending an empty JSON object to its `close` URL. The Company adds a `state` event with `status: "closed"`, cancels any pending handoff, and returns HTTP 200 with `status` and `responder`. Closing a conversation that is already closed returns the same response and adds no event. The Company can also close a conversation, for example after a period of inactivity.
+The Personal Agent closes a conversation it's done with by sending a request ID to its `close` URL, as in 8.9. The Company returns HTTP 202 (8.3). When it acts on the close, it sets `closed` to `true`, stops looking for a person, and adds a `state` event. The Company can also close a conversation, for example after a period of inactivity.
 
-A closed conversation takes no more messages, and its events stay readable for as long as the Company keeps them. Closing a conversation doesn't cancel anything it started, such as an order or a return.
+A close doesn't wait its turn (8.3). The Company MAY act on any request it hasn't acted on yet, or MAY drop it, whether it accepted the request before or after the close. Which one happens can depend on timing, so the Personal Agent MUST NOT depend on either. To make sure the Company has acted on everything it sent, the Personal Agent reads until `working` is `false` before closing.
+
+A closed conversation takes no more messages, handoff requests, or handoff cancels: they return `conversation_closed`. A close sent to a conversation that is already closed returns HTTP 202 and changes nothing. Its events stay readable for as long as the Company keeps them, and the Company adds no more `message` events. Closing a conversation doesn't cancel anything it started, such as an order or a return.
 
 ### 8.13 Errors
 
@@ -1320,12 +1358,12 @@ Token errors, `invalid_session`, `session_ended`, and `version_unsupported` are 
 | Error | Status | Meaning |
 | --- | --- | --- |
 | `conversation_not_found` | 404 | The Conversation ID is unknown or belongs to a different Personal Agent, User, or account (8.2). All return the same error. |
-| `conversation_closed` | 409 | A message or handoff was sent to a closed conversation. |
+| `conversation_closed` | 409 | A message, handoff request, or handoff cancel was sent to a closed conversation (8.12). |
 | `direct_conversation_open` | 409 | The conversation has an open Direct Conversation, named in `conversation_id` (8.10). |
-| `message_id_conflict` | 409 | A message reused an ID that the Company accepted with different content (8.3). |
+| `request_id_conflict` | 409 | A request reused an ID that the Company accepted with a different path or body (8.3). |
 | `invalid_cursor` | 400 | The cursor is unknown or doesn't belong to this conversation. |
 | `cursor_expired` | 410 | The Company no longer has the events at this cursor (8.5). |
-| `invalid_request` | 400 | The request is malformed, such as a message with no content (8.4), an ID with characters not allowed (8.2), or a `wait` that isn't a whole number of seconds. |
+| `invalid_request` | 400 | The request is malformed, such as a missing request `id` (8.3), a message with no content (8.4), an ID with characters not allowed (8.2), or a `wait` that isn't a whole number of seconds. |
 | `extension_required` | 403 | The request needs an extension it doesn't declare, named in `extension` (3.3). |
 | `version_mismatch` | 409 | The conversation started in other versions, and the Company doesn't continue it in these. The protocol version it started in is in `protocol_version` (8.2). |
 

@@ -2,12 +2,13 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "conversation-response.schema.json",
     "title": "Conversation response",
-    "description": "The response to POST {endpoint} (201), POST {endpoint}/{id}/messages (202), POST {endpoint}/{id}/handoff (202), and POST {endpoint}/{id}/close (200). Spec sections 8.3, 8.7, 8.9, and 8.12. Every successful response includes status and responder; starting a conversation also returns conversation_id. With the wait query parameter, a POST responds as a read of events would (events-response.schema.json), which also matches this schema.",
+    "description": "The response to POST {endpoint} (201), and to POST {endpoint}/{id}/messages, /handoff, /handoff/cancel, and /close (202), without the wait query parameter. Spec sections 8.3, 8.9, and 8.12. A successful POST means the Company accepted the request, not that it acted on it, so the response has only conversation_id. With wait, a POST responds as a read of events would (events-response.schema.json), which also matches this schema.",
     "type": "object",
-    "required": ["status", "responder"],
+    "required": ["conversation_id"],
     "properties": {
-        "conversation_id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,256}$" },
-        "status": { "enum": ["working", "idle", "queued", "closed"] },
-        "responder": { "enum": ["agent", "human"] }
+        "conversation_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,256}$"
+        }
     }
 }

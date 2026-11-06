@@ -90,6 +90,64 @@ a promise that Personal Agents won't browse.
 
 </Change>
 
+<Change title="Conversation state in four fields" breaking sections="8.5, 8.6, 8.7, 8.9, 8.10, 8.12, UCP 5, guides#agent-conversations, guides#company-conversations">
+
+`status` is replaced by `working`, `handoff`, and `closed`, next to `responder`, because a
+conversation can be in several of the old states at once: the Company Agent can keep answering
+while the Company looks for a person. `working` is `true` while the Company has work in progress,
+including requests it accepted but hasn't acted on, so a Personal Agent reads until it's `false`.
+`working` isn't recorded as an event. A `wait` read also returns when it becomes `false`, and a
+stream sends it as a `working` event with no SSE `id`. `state` events carry `handoff`, `responder`,
+and `closed`, and section 8.7 is now State, at `#state`. A Company looking for a person has
+`handoff` `pending`, so `queued` no longer names two different queues.
+
+</Change>
+
+<Change title="Requests are accepted, then acted on" breaking sections="8.3, 8.9, 8.12">
+
+A successful `POST` means the Company accepted the request, not that it acted on it, so a
+response without `wait` has only `conversation_id`. The Company acts on a conversation's
+messages, handoff requests, and handoff cancels in the order it accepts them, whatever their URL.
+
+</Change>
+
+<Change title="Request IDs on every conversation request" breaking sections="8.2, 8.3, 8.4, 8.8, 8.9, 8.10, 8.12, 8.13, UCP 5, guides#both-retries, guides#company-session-header">
+
+Every conversation `POST` has a top-level `id` chosen by the Personal Agent, so a retried handoff
+request can't start a handoff again after a cancel. A message's ID is its request's ID, so the
+message has no `id` of its own. A request that reuses an ID with a different path or body returns
+`request_id_conflict`, which replaces `message_id_conflict`.
+
+</Change>
+
+<Change title="Withdrawing a handoff" sections="8.2, 8.9, 8.10, 8.13, guides#agent-conversations, guides#company-conversations">
+
+`POST {endpoint}/{id}/handoff/cancel` withdraws a request for a person. The Company MAY stop
+looking, or keep looking when it can't withdraw the request, and the Personal Agent reads the
+outcome from `handoff` and `responder`.
+
+</Change>
+
+<Change title="What a message took into account" sections="8.3, 8.4, 8.5, guides#agent-conversations, guides#company-conversations">
+
+Messages can cross, so a short reply such as "Done" can be ambiguous. A message from the Company
+Agent MAY include `as_of_request`, the ID of the latest request it took into account, and a message
+the Personal Agent wrote MAY include `as_of_cursor`, the last cursor it had read. Both are hints for
+sequencing and interpreting replies, and the Company and the Personal Agent MUST NOT depend on them.
+Messages written by people MUST NOT include either, because which messages a person had read isn't
+known.
+
+</Change>
+
+<Change title="Closing doesn't wait its turn" breaking sections="8.12, 8.13, guides#agent-conversations">
+
+A close returns HTTP 202 instead of 200. The Company MAY act on any request it hasn't acted on yet
+or drop it, whether it accepted the request before or after the close, and the Personal Agent MUST
+NOT depend on either. To be sure earlier requests are acted on, it reads until `working` is `false`
+before closing. After a close, handoff cancels also return `conversation_closed`.
+
+</Change>
+
 ### Minor changes {#v0-4-minor}
 
 <Change title="`auth.disabled` without other clients" sections="3.2, guides#company-without-oauth, guides#company-agent-issuer" issue="67">

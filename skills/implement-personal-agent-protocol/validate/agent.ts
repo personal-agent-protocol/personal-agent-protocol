@@ -135,7 +135,7 @@ function noteCreated(ctx: Context, ex: Exchange, sub: string | undefined): void 
     const closing = /^\/([A-Za-z0-9_-]+)\/close$/.exec(path.slice(endpoint.length));
     if (closing) {
         const known = ctx.created.find((c) => c.id === closing[1]);
-        if (known && ex.status === 200) known.closed = true;
+        if (known) known.closed = true;
         return;
     }
     if (path !== endpoint) return;
@@ -146,4 +146,9 @@ function noteCreated(ctx: Context, ex: Exchange, sub: string | undefined): void 
 
 export function syntheticMessageId(): string {
     return `msg_${randomId(16)}`;
+}
+
+// The ID of a test request that sends no message, such as a close (spec 8.3).
+export function syntheticRequestId(): string {
+    return `req_${randomId(16)}`;
 }

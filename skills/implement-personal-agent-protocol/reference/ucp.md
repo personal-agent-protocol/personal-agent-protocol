@@ -122,9 +122,9 @@ How the concepts map. The translation is small, and the two caveats below it are
 | Message `text` | `query` |
 | Message `data` | `ids`: the resources the question is about |
 | Message `context` (`locale`, `time_zone`, `user_available`) | `context` (`language`, `address_country`, `currency`, …); `locale` → `language` |
-| Message `id`, as idempotency key | UCP's idempotency key (`Idempotency-Key`, or `meta["idempotency-key"]` over MCP) |
+| Request `id`, as idempotency key | UCP's idempotency key (`Idempotency-Key`, or `meta["idempotency-key"]` over MCP) |
 | The Company's reply, as `message` events with plain `text` | `answer.plain` (`markdown`, `html` optional), plus `links` and `messages` |
-| `status` | `idle` after every turn: Ask is synchronous |
+| `working`, `handoff`, `closed` | `working` is `false` after every turn: Ask is synchronous. No handoff, and no close |
 | `responder`, `author.type` | None. A `query` is the Personal Agent's words, `agent` by [spec 8.8](https://personalagentprotocol.org/docs/0.4/spec#human-or-ai) |
 | `authorization` event (`insufficient_scope`, `scope`) | 401 `identity_required` or 403 `insufficient_scope` on the request itself (4); or an `insufficient_scope` message in `messages` when the Company answered what it could |
 | Handoff to a person, Direct Conversation | None |

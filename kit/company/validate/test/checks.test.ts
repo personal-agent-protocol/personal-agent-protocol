@@ -514,7 +514,7 @@ test("another User reading a conversation fails conversations.other-user", async
 
 test("an error code with the wrong status fails", async () => {
     const { byId } = await run({ conflictStatus400: true }, "interfaces", ["conversations."]);
-    assert.equal(byId("conversations.message-id-conflict").status, "fail");
+    assert.equal(byId("conversations.request-id-conflict").status, "fail");
 });
 
 test("a retried first message that starts a new conversation fails", async () => {

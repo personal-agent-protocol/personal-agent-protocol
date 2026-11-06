@@ -110,19 +110,28 @@ test("events responses accept a null cursor", () => {
         events: [],
         cursor: null,
         has_more: false,
-        status: "idle",
+        working: false,
+        handoff: "none",
         responder: "agent",
+        closed: false,
     };
     assert.deepEqual(check("events-response.schema.json", body), []);
 });
 
 test("a Direct Conversation can accept a user_requested event without a message", () => {
-    const acceptance = { parent_conversation_id: "cnv_1", user_requested_event_id: "evt_1" };
-    const message = { id: "msg_1", author: { type: "human" }, text: "Hello" };
-    for (const request of [acceptance, { ...acceptance, message }, { message }]) {
+    const acceptance = {
+        id: "req_1",
+        parent_conversation_id: "cnv_1",
+        user_requested_event_id: "evt_1",
+    };
+    const message = { author: { type: "human" }, text: "Hello" };
+    for (const request of [acceptance, { ...acceptance, message }, { id: "msg_1", message }]) {
         assert.deepEqual(check("conversation-request.schema.json", request), []);
     }
-    assert.deepEqual(check("conversation-message-request.schema.json", { message }), []);
+    assert.deepEqual(
+        check("conversation-message-request.schema.json", { id: "msg_1", message }),
+        [],
+    );
     assert.ok(
         check("conversation-message-request.schema.json", acceptance).some(
             (e) => e.path === "/message",
@@ -130,16 +139,38 @@ test("a Direct Conversation can accept a user_requested event without a message"
     );
     for (const request of [
         {},
-        { parent_conversation_id: "cnv_1" },
-        { user_requested_event_id: "evt_1" },
-        { user_requested_event_id: "evt_1", message },
+        { message },
+        { id: "req_1", parent_conversation_id: "cnv_1" },
+        { id: "req_1", user_requested_event_id: "evt_1" },
+        { id: "req_1", user_requested_event_id: "evt_1", message },
+        { ...acceptance, id: "not/an/id" },
         { ...acceptance, user_requested_event_id: "not/an/id" },
         { ...acceptance, parent_conversation_id: "" },
-        { ...acceptance, message: { id: "msg_1", author: { type: "human" } } },
+        { ...acceptance, message: { author: { type: "human" } } },
     ]) {
         assert.ok(
             check("conversation-request.schema.json", request).length > 0,
             JSON.stringify(request),
         );
     }
+});
+
+test("only AI-written messages say what they took into account", () => {
+    const company = { role: "company", as_of_request: "msg_Hc72PwZn4eKs1QxB", text: "Yes." };
+    assert.deepEqual(check("message.schema.json", { ...company, author: { type: "agent" } }), []);
+    assert.notDeepEqual(
+        check("message.schema.json", { ...company, author: { type: "human" } }),
+        [],
+    );
+    const user = { role: "user", as_of_cursor: "evt_c2", text: "Done." };
+    assert.deepEqual(check("message.schema.json", { ...user, author: { type: "agent" } }), []);
+    assert.notDeepEqual(check("message.schema.json", { ...user, author: { type: "human" } }), []);
+    assert.notDeepEqual(
+        check("message.schema.json", {
+            ...user,
+            as_of_request: "msg_x",
+            author: { type: "agent" },
+        }),
+        [],
+    );
 });

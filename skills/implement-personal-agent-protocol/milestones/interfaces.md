@@ -79,25 +79,36 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
   each with the Session header, and an access token when signed in. A conversation belongs to the
   `client_id` and User ID that started it, and any of their Sessions can continue it. Reject any
   other with `conversation_not_found`.
-- IDs follow 8.2. Validate the Personal Agent's message IDs.
-- Messages ([8.3](https://personalagentprotocol.org/docs/0.4/spec#sending-messages),
-  [8.4](https://personalagentprotocol.org/docs/0.4/spec#message-fields)): 201 for a new conversation and
-  202 for later messages, each with `status` and `responder`. Retries with the same message ID and
-  content return the original response; different content returns `message_id_conflict`. Message
-  IDs are unique per User, not per conversation, so a retried first message returns the existing
-  conversation. Set `role` yourself and ignore any sent. Pass `context` to the Company Agent.
-- `wait` and `cursor` on both `POST`s and on reads (8.3,
+- IDs follow 8.2. Validate the Personal Agent's request IDs.
+- Requests ([8.3](https://personalagentprotocol.org/docs/0.4/spec#sending-messages),
+  [8.4](https://personalagentprotocol.org/docs/0.4/spec#message-fields)): every `POST` body has a
+  request `id`, and a message's ID is its request's ID. 201 for a new conversation and 202 for every
+  other `POST`, each with only `conversation_id`: a successful `POST` means accepted, not acted on.
+  Retries with the same request ID, path, and body return the original response, whatever the query
+  parameters; a different path or body returns `request_id_conflict`. Request IDs are unique per
+  User, not per conversation, so a retried first message returns the existing conversation. Act on
+  messages, handoff requests, and handoff cancels in the order you accept them. Set a message's `id`
+  and `role` yourself and ignore any sent. Pass `context` to the Company Agent. On Company Agent
+  messages, set `as_of_request` to the latest request the agent took into account, and pass each
+  Personal Agent message's `as_of_cursor` to the agent; never set `as_of_request` on a person's
+  messages.
+- `wait` and `cursor` on every `POST` and on reads (8.3,
   [8.5](https://personalagentprotocol.org/docs/0.4/spec#reading-events)). Every read includes `cursor`,
-  `has_more`, `status`, and `responder`, even when empty. Return `invalid_cursor` and
-  `cursor_expired` as 8.13 defines.
-- Record every accepted message as an event, and add a `state` event on every change to `status` or
-  `responder` ([8.7](https://personalagentprotocol.org/docs/0.4/spec#status)). Every Company message has
-  `author.type`.
+  `has_more`, `working`, `handoff`, `responder`, and `closed`, even when empty. A `wait` read also
+  returns when `working` becomes `false`. Return `invalid_cursor` and `cursor_expired` as 8.13
+  defines.
+- State ([8.7](https://personalagentprotocol.org/docs/0.4/spec#state)): `working` is `true` from the
+  moment you accept a request until you've acted on it and finished replying. Record every accepted
+  message as an event, and add a `state` event on every change to `handoff`, `responder`, or
+  `closed`. Every Company message has `author.type`.
 - Streaming is optional ([8.6](https://personalagentprotocol.org/docs/0.4/spec#streaming)). If you
-  stream, `Last-Event-ID` wins over `cursor`, and `text-delta` events have no SSE `id`.
-- Handoff ([8.9](https://personalagentprotocol.org/docs/0.4/spec#handoff)): 202, `queued` while finding
-  someone, `responder: "human"` when a person joins, back to `idle` with a message if no one is
-  available. A repeated handoff changes nothing.
+  stream, `Last-Event-ID` wins over `cursor`, and `text-delta` and `working` events have no SSE
+  `id`. Send `working` when the stream opens and each time it changes.
+- Handoff ([8.9](https://personalagentprotocol.org/docs/0.4/spec#handoff)): 202, `handoff: "pending"`
+  while finding someone, `handoff: "none"` and `responder: "human"` when a person joins, back to
+  `handoff: "none"` with a message if no one is available. A repeated handoff changes nothing.
+  Accept `handoff/cancel` with 202; stopping the search is your choice, and `handoff` returns to
+  `none` if you do.
 - Direct Conversations ([8.10](https://personalagentprotocol.org/docs/0.4/spec#direct-conversations)):
   `parent_conversation_id`, the parent rules and errors, `direct_opened` and `direct_closed`
   events, `direct_conversation_open` with `conversation_id` on the parent, and closing the parent
@@ -106,9 +117,11 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
   first. Reject an event that isn't a `user_requested` event in that parent. After checking
   ownership, retries of the same parent and event return the same Direct Conversation, even after
   closing. Keep that association as long as the conversation.
-- Closing ([8.12](https://personalagentprotocol.org/docs/0.4/spec#closing)): 200 with `status` and
-  `responder`, a `state` event, cancels any pending handoff. Closing again returns the same response
-  and adds no event.
+- Closing ([8.12](https://personalagentprotocol.org/docs/0.4/spec#closing)): 202, then `closed: true` in
+  a `state` event, and any pending handoff stopped. You may act on or drop any request you haven't
+  acted on yet, accepted before or after the close. Afterwards, `working` is `false` and no more
+  `message` events are added. Closing again returns 202 and adds no event; messages, handoff
+  requests, and cancels return `conversation_closed`.
 - Errors are JSON bodies with the codes in
   [8.13](https://personalagentprotocol.org/docs/0.4/spec#conversation-errors), `invalid_session`, and
   `version_unsupported`. A conversation that started in other versions can be refused with
@@ -192,10 +205,12 @@ Company's interfaces on the User's behalf.
   scopes (section 7).
 - Website chat or other channels that can open Poppy conversations without checking the Session
   header ([8.2](https://personalagentprotocol.org/docs/0.4/spec#conversation-requests)).
-- Message IDs deduplicated per conversation instead of per User, so a retried first message starts
+- Request IDs deduplicated per conversation instead of per User, so a retried first message starts
   a second conversation (8.3).
-- `status` and `responder` missing from an empty read or from a `POST` response (8.5, 8.7).
-- Changing `responder` to `human` while still `queued` (8.7).
+- State fields missing from an empty read (8.5, 8.7).
+- `working` reported as `false` right after accepting a message, before acting on it, so a personal
+  agent stops reading before the reply (8.7).
+- Changing `responder` to `human` while `handoff` is still `pending` (8.7).
 - A different error for "conversation exists but isn't yours" than for "doesn't exist" (8.13).
 - A stream that goes silent long enough for a proxy to close it. Send an SSE comment every 15 to 30
   seconds ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-conversations)).
@@ -213,16 +228,17 @@ node <skill-dir>/validate/index.ts check https://<staging-domain> --milestone in
 
 This version of the validator checks the signed-out parts: MCP metadata, OpenAPI descriptions
 loading, the Session header at resources, the basics of conversations (messages, retries, events,
-cursors, status, and close), feedback reports, and browser sessions. Fix every failure.
+cursors, state, and close), feedback reports, and browser sessions. Fix every failure.
 
 It doesn't yet check signed-in MCP, handoff, Direct Conversations, streaming, or operations. For those, go
 through the interfaces section of `checklist.md` and test by hand on staging. Where a test needs
 signed requests, write a small local script that signs with the test identity in `.poppy/`, without
 printing or copying the private key, and keep the script out of the Company's production code.
 
-- **Handoff:** request a person. See `queued`, then `responder: "human"` when someone joins from the
-  desk, with `state` events for each change. With no one available, see `idle` and a message. Send a
-  second handoff while queued and see nothing change. Close while queued and see the handoff
+- **Handoff:** request a person. See `handoff: "pending"`, then `responder: "human"` when someone
+  joins from the desk, with `state` events for each change. With no one available, see
+  `handoff: "none"` and a message. Send a second handoff while pending and see nothing change. Send a
+  cancel while pending and see the outcome you chose. Close while pending and see the handoff
   cancelled at the desk.
 - **Direct Conversations:** start one with `parent_conversation_id`. See `direct_opened` on the
   parent, `direct_conversation_open` for a message to the parent, a second Direct Conversation

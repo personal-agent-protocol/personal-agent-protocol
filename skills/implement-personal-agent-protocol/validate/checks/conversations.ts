@@ -1,8 +1,14 @@
-// Milestone 2: signed-out conversations (section 8), with the Session header: messages, retries,
-// events, cursors, wait, streaming, status, Direct Conversation errors, and closing. Messages are
-// synthetic and carry no context about anyone. Every conversation the run starts is closed.
+// Milestone 2: signed-out conversations (section 8), with the Session header: messages, request
+// IDs, events, cursors, wait, streaming, state, Direct Conversation errors, and closing. Messages
+// are synthetic and carry no context about anyone. The run never requests a person, since someone
+// at the Company could be assigned. Every conversation the run starts is closed.
 
-import { sessionRequest, syntheticMessageId, type SessionOptions } from "../agent.ts";
+import {
+    sessionRequest,
+    syntheticMessageId,
+    syntheticRequestId,
+    type SessionOptions,
+} from "../agent.ts";
 import { header, jsonError, noResponse, type Exchange } from "../http.ts";
 import { randomId } from "../jose.ts";
 import { formatSchemaErrors } from "../schema.ts";
@@ -13,22 +19,25 @@ export const CONVERSATION_IDS = [
     "conversations.not-found",
     "conversations.start",
     "conversations.retry-same-id",
-    "conversations.message-id-conflict",
+    "conversations.request-id-conflict",
     "conversations.follow-up",
     "conversations.retry-follow-up",
+    "conversations.request-id-other-url",
     "conversations.other-user",
     "conversations.empty-message",
-    "conversations.invalid-message-id",
-    "conversations.message-id-boundaries",
+    "conversations.invalid-request-id",
+    "conversations.request-id-boundaries",
+    "conversations.missing-request-id",
     "conversations.data-only",
     "conversations.context-only",
+    "conversations.cancel-without-handoff",
     "conversations.events-read",
     "conversations.events-schema",
     "conversations.user-message-recorded",
     "conversations.message-preserved",
     "conversations.retry-not-duplicated",
     "conversations.event-order",
-    "conversations.state-events",
+    "conversations.working-settles",
     "conversations.cursor",
     "conversations.wait",
     "conversations.invalid-wait",
@@ -36,18 +45,22 @@ export const CONVERSATION_IDS = [
     "conversations.sse",
     "conversations.sse-last-event-id",
     "conversations.cursor-other-conversation",
-    "conversations.message-id-other-conversation",
+    "conversations.request-id-other-conversation",
     "conversations.close",
     "conversations.close-event",
+    "conversations.closed-not-working",
+    "conversations.state-events",
     "conversations.close-again",
     "conversations.closed-message",
     "conversations.closed-handoff",
+    "conversations.closed-handoff-cancel",
     "conversations.direct-closed-parent",
     "conversations.direct-unknown-parent",
 ];
 
 export const TEST_TEXT = "Validator test message. Please ignore.";
 
+// A message, with the ID of the request that sends it (8.3).
 type Message = {
     id: string;
     author: { type: string };
@@ -59,10 +72,19 @@ type Message = {
 type Event = {
     id?: string;
     type?: string;
-    status?: string;
+    handoff?: string;
     responder?: string;
+    closed?: boolean;
     message?: Message & { role?: string };
 };
+
+type State = { working?: unknown; handoff?: unknown; responder?: unknown; closed?: unknown };
+
+// The body of a request that sends a message: the request ID, and the message without it (8.3).
+function post(m: Message, extra: Record<string, unknown> = {}): Record<string, unknown> {
+    const { id, ...message } = m;
+    return { id, ...extra, message };
+}
 
 type Send = (
     method: string,
@@ -104,16 +126,16 @@ function expectError(
         });
 }
 
-// Why a successful POST's response is wrong (8.3, 8.7), if it is.
+// Why a successful POST's response is wrong (8.3), if it is.
 function responseProblem(ex: Exchange, status: number): string | undefined {
     if (ex.status !== status) return undefined;
     const errors = ex.json === undefined ? [] : check("conversation-response.schema.json", ex.json);
-    if (ex.json === undefined) return `${status} without a JSON body with status and responder`;
+    if (ex.json === undefined) return `${status} without a JSON body with conversation_id`;
     if (errors.length) return `${status}; ${formatSchemaErrors(errors).join("; ")}`;
     return undefined;
 }
 
-// A POST that should succeed with this status and a body with status and responder.
+// A POST that should succeed with this status and a body with conversation_id.
 function expectAccepted(
     r: Recorder,
     id: string,
@@ -130,9 +152,9 @@ function expectAccepted(
     r.fail(id, {
         exchange: ex,
         got: problem ?? extra,
-        expected: `${status} with status and responder`,
+        expected: `${status} with conversation_id`,
         cause: problem
-            ? "Every successful response to a POST or a read includes status and responder (8.7)."
+            ? "A successful POST without wait returns conversation_id: it means the Company accepted the request (8.3)."
             : cause,
     });
     return false;
@@ -202,7 +224,7 @@ export async function checkConversations(ctx: Context, r: Recorder): Promise<voi
     }
 
     const first: Message = { id: syntheticMessageId(), author: { type: "agent" }, text: TEST_TEXT };
-    const start = await send("POST", endpoint, { message: first }, "starting a conversation");
+    const start = await send("POST", endpoint, post(first), "starting a conversation");
     const id = (start.json as { conversation_id?: unknown } | undefined)?.conversation_id;
     const startErrors = start.json ? check("conversation-response.schema.json", start.json) : [];
     if (start.status !== 201 || typeof id !== "string" || startErrors.length) {
@@ -211,7 +233,7 @@ export async function checkConversations(ctx: Context, r: Recorder): Promise<voi
             got: startErrors.length
                 ? `${start.status}; ${formatSchemaErrors(startErrors).join("; ")}`
                 : undefined,
-            expected: "201 with conversation_id, status, and responder",
+            expected: "201 with conversation_id",
             cause:
                 start.status === 200
                     ? "Starting a conversation returns 201 Created."
@@ -264,6 +286,37 @@ async function readAll(
     return { events, cursor, last: exchanges[exchanges.length - 1], exchanges, ok: true };
 }
 
+// Reads from a cursor with wait until done says the read's state is reached, for up to about 30
+// seconds. Returns the events read on the way and the last read.
+async function waitFor(
+    send: Send,
+    conv: string,
+    cursor: string | null | undefined,
+    done: (state: State) => boolean,
+): Promise<{ events: Event[]; cursor?: string | null; last?: Exchange; reached: boolean }> {
+    const events: Event[] = [];
+    const until = Date.now() + 30_000;
+    let last: Exchange | undefined;
+    for (let i = 0; i < 6 && Date.now() < until; i++) {
+        last = await send(
+            "GET",
+            `${conv}/events?${cursor ? `cursor=${encodeURIComponent(cursor)}&` : ""}wait=10`,
+            undefined,
+            "reading with wait=10",
+            { timeoutMs: 20_000 },
+        );
+        const json = last.json as
+            | (State & { events?: Event[]; cursor?: string | null })
+            | undefined;
+        if (last.status !== 200 || !json || !Array.isArray(json.events))
+            return { events, cursor, last, reached: false };
+        events.push(...json.events.filter((e) => e && typeof e === "object"));
+        cursor = json.cursor ?? cursor;
+        if (done(json)) return { events, cursor, last, reached: true };
+    }
+    return { events, cursor, last, reached: false };
+}
+
 // The first complete server-sent event in a body, if any.
 export function firstSseEvent(
     body: string,
@@ -307,7 +360,7 @@ async function conversationChecks(
         const ex = await send(
             "POST",
             endpoint,
-            { message: first },
+            post(first),
             "the first message again, same id and content",
         );
         const again = (ex.json as { conversation_id?: unknown } | undefined)?.conversation_id;
@@ -318,27 +371,27 @@ async function conversationChecks(
                 expected: `201 with the original response, conversation_id "${id}"`,
                 cause:
                     typeof again === "string" && again !== id
-                        ? "The retry started a second conversation. Message IDs are unique per User, so a retried first message returns the conversation it started."
+                        ? "The retry started a second conversation. Request IDs are unique per User, so a retried first message returns the conversation it started."
                         : ex.status === 201 || again === id
-                          ? "A retry of an accepted message returns the original response: the same status and the same body."
-                          : "Retries of an accepted message return the original response.",
+                          ? "A retry of an accepted request returns the original response: the same status and the same body."
+                          : "Retries of an accepted request return the original response.",
             });
     }
 
-    if (r.wants("conversations.message-id-conflict")) {
+    if (r.wants("conversations.request-id-conflict")) {
         const ex = await send(
             "POST",
             endpoint,
-            { message: { ...first, text: "Validator test message, changed. Please ignore." } },
-            "the first message's id with different text",
+            post({ ...first, text: "Validator test message, changed. Please ignore." }),
+            "the first message's request id with different text",
         );
         expectError(
             r,
-            "conversations.message-id-conflict",
+            "conversations.request-id-conflict",
             ex,
             409,
-            "message_id_conflict",
-            "Compare the content of a message whose id was already accepted.",
+            "request_id_conflict",
+            "Compare the body of a request whose id was already accepted.",
         );
     }
 
@@ -349,12 +402,7 @@ async function conversationChecks(
         data: { validator_test: true, items: [1, 2] },
         context: { user_available: false },
     });
-    const follow = await send(
-        "POST",
-        `${conv}/messages`,
-        { message: followUp },
-        "a second message",
-    );
+    const follow = await send("POST", `${conv}/messages`, post(followUp), "a second message");
     const followed = expectAccepted(
         r,
         "conversations.follow-up",
@@ -371,7 +419,7 @@ async function conversationChecks(
             const ex = await send(
                 "POST",
                 `${conv}/messages`,
-                { message: followUp },
+                post(followUp),
                 "the second message again, same id and content",
             );
             if (ex.status === 202 && same(ex.json, follow.json))
@@ -380,8 +428,31 @@ async function conversationChecks(
                 r.fail("conversations.retry-follow-up", {
                     exchange: [follow, ex],
                     expected: "202 with the original response",
-                    cause: "A retry of an accepted message returns the original response, the same status and body, and isn't added again (8.3).",
+                    cause: "A retry of an accepted request returns the original response, the same status and body, and isn't acted on again (8.3).",
                 });
+        }
+    }
+
+    // A cancel with the second message's ID: a different URL and body, so a conflict. If the
+    // Company accepts it anyway, there's no handoff to cancel, so nothing changes.
+    if (r.wants("conversations.request-id-other-url")) {
+        if (!followed)
+            r.skip("conversations.request-id-other-url", "The second message wasn't accepted.");
+        else {
+            const ex = await send(
+                "POST",
+                `${conv}/handoff/cancel`,
+                { id: followUp.id },
+                "a handoff cancel reusing the second message's request id",
+            );
+            expectError(
+                r,
+                "conversations.request-id-other-url",
+                ex,
+                409,
+                "request_id_conflict",
+                "A request ID is unique for the User across all requests, so reusing an accepted ID at another URL is a conflict (8.3).",
+            );
         }
     }
 
@@ -409,7 +480,7 @@ async function conversationChecks(
         const ex = await send(
             "POST",
             `${conv}/messages`,
-            { message: message() },
+            post(message()),
             "a message with no text, data, context, or extensions",
         );
         expectError(
@@ -422,16 +493,16 @@ async function conversationChecks(
         );
     }
 
-    if (r.wants("conversations.invalid-message-id")) {
+    if (r.wants("conversations.invalid-request-id")) {
         const ex = await send(
             "POST",
             `${conv}/messages`,
-            { message: { ...message({ text: TEST_TEXT }), id: "msg validator!" } },
-            'a message with id "msg validator!"',
+            post({ ...message({ text: TEST_TEXT }), id: "msg validator!" }),
+            'a message with request id "msg validator!"',
         );
         expectError(
             r,
-            "conversations.invalid-message-id",
+            "conversations.invalid-request-id",
             ex,
             400,
             "invalid_request",
@@ -439,7 +510,7 @@ async function conversationChecks(
         );
     }
 
-    if (r.wants("conversations.message-id-boundaries")) {
+    if (r.wants("conversations.request-id-boundaries")) {
         const longest = message({ text: TEST_TEXT });
         longest.id = `msg-_${randomId(12)}`.padEnd(256, "A");
         const tooLong = message({ text: TEST_TEXT });
@@ -447,20 +518,20 @@ async function conversationChecks(
         const okEx = await send(
             "POST",
             `${conv}/messages`,
-            { message: longest },
-            "a message whose id is 256 characters, with - and _",
+            post(longest),
+            "a message whose request id is 256 characters, with - and _",
         );
         const badEx = await send(
             "POST",
             `${conv}/messages`,
-            { message: tooLong },
-            "a message whose id is 257 characters",
+            post(tooLong),
+            "a message whose request id is 257 characters",
         );
         if (okEx.status === 202) sent.push(longest);
         if (okEx.status === 202 && badEx.status === 400 && jsonError(badEx) === "invalid_request")
-            r.pass("conversations.message-id-boundaries");
+            r.pass("conversations.request-id-boundaries");
         else
-            r.fail("conversations.message-id-boundaries", {
+            r.fail("conversations.request-id-boundaries", {
                 exchange: okEx.status === 202 ? badEx : okEx,
                 expected:
                     okEx.status === 202
@@ -470,13 +541,30 @@ async function conversationChecks(
             });
     }
 
+    if (r.wants("conversations.missing-request-id")) {
+        const ex = await send(
+            "POST",
+            `${conv}/messages`,
+            { message: { author: { type: "agent" }, text: TEST_TEXT } },
+            "a message with no request id",
+        );
+        expectError(
+            r,
+            "conversations.missing-request-id",
+            ex,
+            400,
+            "invalid_request",
+            "Every POST body has an id, so the Company can recognize a retry (8.3).",
+        );
+    }
+
     let dataOnly: Message | undefined;
     if (r.wants("conversations.data-only")) {
         dataOnly = message({ data: { validator_test: "data only" } });
         const ex = await send(
             "POST",
             `${conv}/messages`,
-            { message: dataOnly },
+            post(dataOnly),
             "a message with only data",
         );
         if (
@@ -493,14 +581,39 @@ async function conversationChecks(
 
     const contextOnly = message({ context: { user_available: false } });
     const contextEx = r.wants("conversations.context-only")
-        ? await send(
-              "POST",
-              `${conv}/messages`,
-              { message: contextOnly },
-              "a message with only context",
-          )
+        ? await send("POST", `${conv}/messages`, post(contextOnly), "a message with only context")
         : undefined;
     if (contextEx?.status === 202) sent.push(contextOnly);
+
+    // No handoff is pending, so the cancel changes nothing, and no one at the Company is involved.
+    if (r.wants("conversations.cancel-without-handoff")) {
+        const ex = await send(
+            "POST",
+            `${conv}/handoff/cancel`,
+            { id: syntheticRequestId() },
+            "a handoff cancel with no handoff pending",
+        );
+        const after = ok(ex)
+            ? await send("GET", `${conv}/events`, undefined, "reading after the cancel")
+            : undefined;
+        const handoff = (after?.json as State | undefined)?.handoff;
+        if (ex.status !== 202 || responseProblem(ex, 202))
+            expectAccepted(
+                r,
+                "conversations.cancel-without-handoff",
+                ex,
+                202,
+                "The Personal Agent withdraws a request for a person at the conversation's handoff/cancel URL, and the Company returns 202 (8.9).",
+            );
+        else if (handoff === "none") r.pass("conversations.cancel-without-handoff");
+        else
+            r.fail("conversations.cancel-without-handoff", {
+                exchange: [ex, after!],
+                got: `handoff ${JSON.stringify(handoff)}`,
+                expected: 'handoff "none"',
+                cause: "With no handoff pending, a cancel changes nothing (8.9).",
+            });
+    }
 
     // Read everything so far.
     const read = await readAll(send, conv);
@@ -510,8 +623,10 @@ async function conversationChecks(
         "events",
         "cursor",
         "has_more",
-        "status",
+        "working",
+        "handoff",
         "responder",
+        "closed",
     ].filter((k) => !lastJson || !(k in lastJson));
     if (read.ok && missing.length === 0) r.pass("conversations.events-read");
     else
@@ -521,7 +636,8 @@ async function conversationChecks(
                 read.last.status === 200 && missing.length
                     ? `missing ${missing.join(", ")}`
                     : undefined,
-            expected: "200 with conversation_id, events, cursor, has_more, status, and responder",
+            expected:
+                "200 with conversation_id, events, cursor, has_more, working, handoff, responder, and closed",
         });
 
     const unreadable = noResponse(read.last)
@@ -538,7 +654,7 @@ async function conversationChecks(
                 "conversations.message-preserved",
                 "conversations.retry-not-duplicated",
                 "conversations.event-order",
-                "conversations.state-events",
+                "conversations.working-settles",
                 "conversations.context-only",
                 "conversations.cursor",
                 "conversations.sse-last-event-id",
@@ -546,10 +662,32 @@ async function conversationChecks(
             unreadable,
         );
     } else {
-        eventChecks(r, read, start, sent, followUp, followed, contextOnly, contextEx);
+        eventChecks(r, read, sent, followUp, followed, contextOnly, contextEx);
     }
 
-    const cursor = read.cursor;
+    let cursor = read.cursor;
+    if (!unreadable && r.wants("conversations.working-settles")) {
+        const working = (read.last.json as State).working;
+        if (working === false)
+            r.pass("conversations.working-settles", { summary: "working was false." });
+        else {
+            const settled = await waitFor(send, conv, cursor, (st) => st.working === false);
+            cursor = settled.cursor;
+            if (settled.reached)
+                r.pass("conversations.working-settles", {
+                    summary: "working became false while reading with wait.",
+                });
+            else
+                r.warn("conversations.working-settles", {
+                    exchange: settled.last ?? read.last,
+                    got: `working ${JSON.stringify((settled.last?.json as State | undefined)?.working)} after about 30 seconds`,
+                    expected:
+                        "working false once the Company has acted on every request and replied",
+                    cause: "A Personal Agent reads until working is false (8.7). If the Company really was still working, run again. If not, it reports working after it has finished, and a Personal Agent never stops reading.",
+                });
+        }
+    }
+
     if (r.wants("conversations.cursor") && !unreadable && typeof cursor === "string") {
         const seen = new Set(read.events.map((e) => e.id));
         const ex = await send(
@@ -647,7 +785,7 @@ async function conversationChecks(
         const ex = await send(
             "POST",
             endpoint,
-            { parent_conversation_id: id, message: message({ text: TEST_TEXT }) },
+            post(message({ text: TEST_TEXT }), { parent_conversation_id: id }),
             "a Direct Conversation whose parent is closed",
         );
         expectError(
@@ -663,10 +801,9 @@ async function conversationChecks(
         const ex = await send(
             "POST",
             endpoint,
-            {
+            post(message({ text: TEST_TEXT }), {
                 parent_conversation_id: `cnv_validator${randomId(9)}`,
-                message: message({ text: TEST_TEXT }),
-            },
+            }),
             "a Direct Conversation whose parent doesn't exist",
         );
         expectError(
@@ -685,7 +822,6 @@ async function conversationChecks(
 function eventChecks(
     r: Recorder,
     read: Awaited<ReturnType<typeof readAll>>,
-    start: Exchange,
     sent: Message[],
     followUp: Message,
     followed: boolean,
@@ -733,7 +869,7 @@ function eventChecks(
                 ? `role ${JSON.stringify(mine[0].message?.role)}`
                 : `no message event with id ${sent[0].id}`,
             expected: `A message event with message.id "${sent[0].id}" and role "user"`,
-            cause: "Record every accepted message as a message event, with role set by the Company.",
+            cause: "Record every accepted message as a message event, with role set by the Company and the request's ID as the message's ID (8.3).",
         });
 
     const recorded = messagesWith(followUp.id)[0]?.message;
@@ -810,23 +946,6 @@ function eventChecks(
             expected:
                 "Each event once, with a unique id, and messages in the order they were accepted",
             cause: "The Company records each conversation as an ordered list of events, each with its own ID (8.5).",
-        });
-
-    // Every change to status or responder adds a state event (8.7). Start from the first response,
-    // follow the state events, and compare with the read's current values.
-    const startJson = start.json as { status?: string; responder?: string } | undefined;
-    let state = { status: startJson?.status, responder: startJson?.responder };
-    for (const e of read.events)
-        if (e.type === "state") state = { status: e.status, responder: e.responder };
-    const now = read.last.json as { status?: string; responder?: string };
-    if (state.status === now.status && state.responder === now.responder)
-        r.pass("conversations.state-events");
-    else
-        r.fail("conversations.state-events", {
-            exchange: [start, read.last],
-            got: `status ${now.status} and responder ${now.responder}, but the last state event (or the first response) says ${state.status} and ${state.responder}`,
-            expected: "A state event for every change to status or responder",
-            cause: "Every change to status or responder adds a state event with both, even with no new text (8.7), so a Personal Agent reading only events sees it.",
         });
 }
 
@@ -941,13 +1060,13 @@ async function secondConversation(
 ): Promise<void> {
     const ids = [
         "conversations.cursor-other-conversation",
-        "conversations.message-id-other-conversation",
+        "conversations.request-id-other-conversation",
     ];
     if (!ids.some((i) => r.wants(i))) return;
     const start = await send(
         "POST",
         endpoint,
-        { message: { id: syntheticMessageId(), author: { type: "agent" }, text: TEST_TEXT } },
+        post({ id: syntheticMessageId(), author: { type: "agent" }, text: TEST_TEXT }),
         "starting a second conversation",
     );
     const second = (start.json as { conversation_id?: unknown } | undefined)?.conversation_id;
@@ -977,35 +1096,35 @@ async function secondConversation(
             );
         }
     }
-    if (r.wants("conversations.message-id-other-conversation")) {
+    if (r.wants("conversations.request-id-other-conversation")) {
         if (!followed)
             r.skip(
-                "conversations.message-id-other-conversation",
+                "conversations.request-id-other-conversation",
                 "The second message wasn't accepted.",
             );
         else {
             const ex = await send(
                 "POST",
                 `${conv}/messages`,
-                {
-                    message: {
-                        ...followUp,
-                        text: "Validator test message, changed. Please ignore.",
-                    },
-                },
-                "a message to the second conversation, reusing an ID from the first with different text",
+                post({ ...followUp, text: "Validator test message, changed. Please ignore." }),
+                "a message to the second conversation, reusing a request ID from the first with different text",
             );
             expectError(
                 r,
-                "conversations.message-id-other-conversation",
+                "conversations.request-id-other-conversation",
                 ex,
                 409,
-                "message_id_conflict",
-                "Message IDs are unique for the User, not for one conversation (8.3), so an ID the Company accepted in another conversation, with different content, is a conflict.",
+                "request_id_conflict",
+                "Request IDs are unique for the User, not for one conversation (8.3), so an ID the Company accepted in another conversation, with a different body, is a conflict.",
             );
         }
     }
-    await send("POST", `${conv}/close`, {}, "closing the second conversation");
+    await send(
+        "POST",
+        `${conv}/close`,
+        { id: syntheticRequestId() },
+        "closing the second conversation",
+    );
 }
 
 async function closeChecks(
@@ -1015,36 +1134,88 @@ async function closeChecks(
     cursor: string | null | undefined,
     send: Send,
 ): Promise<void> {
-    const close = await send("POST", `${conv}/close`, {}, "closing the conversation");
-    const closeJson = close.json as { status?: string; responder?: string } | undefined;
-    const closeProblem = responseProblem(close, 200);
-    if (close.status === 200 && closeJson?.status === "closed" && !closeProblem)
-        r.pass("conversations.close");
-    else
-        r.fail("conversations.close", {
-            exchange: close,
-            got: closeProblem,
-            expected: '200 with status "closed" and responder',
-        });
+    const close = await send(
+        "POST",
+        `${conv}/close`,
+        { id: syntheticRequestId() },
+        "closing the conversation",
+    );
+    expectAccepted(
+        r,
+        "conversations.close",
+        close,
+        202,
+        "The Company may act on a close after responding, so it returns 202 (8.12).",
+    );
 
-    const afterClose = await readAll(send, conv, cursor);
-    if (afterClose.events.some((e) => e.type === "state" && e.status === "closed"))
+    // The close takes effect when the Company acts on it, which can be after the response.
+    const closing = await waitFor(send, conv, cursor, (st) => st.closed === true);
+    const now = closing.last?.json as State | undefined;
+    if (closing.events.some((e) => e.type === "state" && e.closed === true))
         r.pass("conversations.close-event");
     else
         r.fail("conversations.close-event", {
-            exchange: afterClose.last,
-            got: afterClose.ok ? "no state event with status closed" : undefined,
-            expected: 'A state event with status "closed"',
+            exchange: closing.last ?? close,
+            got: closing.reached
+                ? "closed is true, but there's no state event with closed true"
+                : `closed ${JSON.stringify(now?.closed)} after about 30 seconds`,
+            expected: "A state event with closed true",
+            cause: "When the Company acts on a close, it sets closed to true and adds a state event (8.12).",
         });
 
+    if (r.wants("conversations.closed-not-working")) {
+        if (!closing.reached)
+            r.fail("conversations.closed-not-working", {
+                exchange: closing.last ?? close,
+                got: `closed ${JSON.stringify(now?.closed)} after about 30 seconds`,
+                expected: "closed true and working false",
+                cause: "The close was accepted but never took effect (8.12).",
+            });
+        else if (now?.working === false) r.pass("conversations.closed-not-working");
+        else
+            r.fail("conversations.closed-not-working", {
+                exchange: closing.last!,
+                got: `working ${JSON.stringify(now?.working)}`,
+                expected: "working false",
+                cause: "In a closed conversation, working is false (8.7), so a Personal Agent reading until it's false stops.",
+            });
+    }
+
+    // Every change to handoff, responder, or closed adds a state event (8.7). Follow the state
+    // events from the start, which this run never changed, and compare with the current values.
+    if (r.wants("conversations.state-events")) {
+        const all = await readAll(send, conv);
+        const current = all.last.json as State | undefined;
+        let state: State = { handoff: "none", responder: "agent", closed: false };
+        for (const e of all.events)
+            if (e.type === "state")
+                state = { handoff: e.handoff, responder: e.responder, closed: e.closed };
+        const fields = ["handoff", "responder", "closed"] as const;
+        if (!all.ok) r.fail("conversations.state-events", { exchange: all.last, expected: "200" });
+        else if (fields.every((f) => state[f] === current?.[f]))
+            r.pass("conversations.state-events");
+        else
+            r.fail("conversations.state-events", {
+                exchange: all.last,
+                got: `${fields.map((f) => `${f} ${JSON.stringify(current?.[f])}`).join(", ")}, but the last state event (or the start) says ${fields.map((f) => `${f} ${JSON.stringify(state[f])}`).join(", ")}`,
+                expected: "A state event for every change to handoff, responder, or closed",
+                cause: "Every change to handoff, responder, or closed adds a state event with all three, even with no new text (8.7), so a Personal Agent reading only events sees it.",
+            });
+    }
+
     if (r.wants("conversations.close-again")) {
-        const again = await send("POST", `${conv}/close`, {}, "closing it again");
-        const later = await readAll(send, conv, afterClose.cursor);
-        if (again.status !== 200 || !same(again.json, close.json)) {
+        const again = await send(
+            "POST",
+            `${conv}/close`,
+            { id: syntheticRequestId() },
+            "closing it again, with a new request id",
+        );
+        const later = await readAll(send, conv, closing.cursor);
+        if (again.status !== 202 || !same(again.json, close.json)) {
             r.fail("conversations.close-again", {
                 exchange: [close, again],
-                expected: "200 with the same response as the first close",
-                cause: "Closing a closed conversation returns the same response, not an error.",
+                expected: "202 with the same body as the first close",
+                cause: "A close sent to a closed conversation returns 202 and changes nothing, not an error (8.12).",
             });
         } else if (!later.ok) {
             r.fail("conversations.close-again", {
@@ -1064,13 +1235,7 @@ async function closeChecks(
         const ex = await send(
             "POST",
             `${conv}/messages`,
-            {
-                message: {
-                    id: syntheticMessageId(),
-                    author: { type: "agent" },
-                    text: TEST_TEXT,
-                },
-            },
+            post({ id: syntheticMessageId(), author: { type: "agent" }, text: TEST_TEXT }),
             "a message after closing",
         );
         expectError(
@@ -1083,7 +1248,12 @@ async function closeChecks(
         );
     }
     if (r.wants("conversations.closed-handoff")) {
-        const ex = await send("POST", `${conv}/handoff`, {}, "a handoff request after closing");
+        const ex = await send(
+            "POST",
+            `${conv}/handoff`,
+            { id: syntheticRequestId() },
+            "a handoff request after closing",
+        );
         expectError(
             r,
             "conversations.closed-handoff",
@@ -1091,6 +1261,22 @@ async function closeChecks(
             409,
             "conversation_closed",
             "A closed conversation can't be handed off.",
+        );
+    }
+    if (r.wants("conversations.closed-handoff-cancel")) {
+        const ex = await send(
+            "POST",
+            `${conv}/handoff/cancel`,
+            { id: syntheticRequestId() },
+            "a handoff cancel after closing",
+        );
+        expectError(
+            r,
+            "conversations.closed-handoff-cancel",
+            ex,
+            409,
+            "conversation_closed",
+            "A closed conversation takes no more handoff cancels (8.12).",
         );
     }
     void id;
@@ -1106,11 +1292,11 @@ export async function closeCreated(ctx: Context): Promise<void> {
         const ex = await sessionRequest(ctx, {
             method: "POST",
             url: `${c.endpoint}/${c.id}/close`,
-            body: {},
+            body: { id: syntheticRequestId() },
             session: { sid: randomId(16), sub: c.sub },
             note: "closing a test conversation the run started",
         });
-        if (ex.status === 200) c.closed = true;
+        if (ex.status === 202) c.closed = true;
         else failed.push(`${c.id} (${ex.error ? `no response: ${ex.error}` : ex.status})`);
     }
     if (ctx.created.length === 0) return;

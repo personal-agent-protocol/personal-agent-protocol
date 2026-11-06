@@ -184,15 +184,26 @@ export type Flaws = {
     noAgent?: boolean;
     startReturns200?: boolean;
     retryCreatesNewConversation?: boolean;
-    // Returns message_id_conflict with 400 instead of 409.
+    // Returns request_id_conflict with 400 instead of 409.
     conflictStatus400?: boolean;
-    followUpWithoutStatus?: boolean;
+    // A later message's response has no conversation_id.
+    followUpEmptyBody?: boolean;
     followUpRetry200?: boolean;
     // Lets any User read any conversation.
     ignoreConversationOwner?: boolean;
     acceptEmptyMessage?: boolean;
-    acceptAnyMessageId?: boolean;
-    maxMessageId128?: boolean;
+    acceptAnyRequestId?: boolean;
+    maxRequestId128?: boolean;
+    // Accepts a request without an id, as if it had a new one.
+    acceptMissingRequestId?: boolean;
+    // Keeps request IDs per URL, so an ID reused at another URL is a new request.
+    requestIdsPerUrl?: boolean;
+    // No handoff/cancel URL.
+    noHandoffCancel?: boolean;
+    // working never becomes false while the conversation is open.
+    workingStuck?: boolean;
+    // working stays true after closing.
+    workingAfterClose?: boolean;
     requireText?: boolean;
     contextNotRecorded?: boolean;
     eventsWithoutHasMore?: boolean;
@@ -208,17 +219,18 @@ export type Flaws = {
     acceptAnyWait?: boolean;
     unknownCursorEmpty?: boolean;
     cursorAnyConversation?: boolean;
-    messageIdsPerConversation?: boolean;
+    requestIdsPerConversation?: boolean;
     noSse?: boolean;
     sseWrongId?: boolean;
     sseIgnoresLastEventId?: boolean;
     // Unknown conversations get {"error": "not_found"}.
     notFoundError?: boolean;
-    closeWithoutResponder?: boolean;
-    noCloseEvent?: boolean;
+    // Closing returns 200 instead of 202.
+    close200?: boolean;
     closeAgainAddsEvent?: boolean;
     closedAcceptsMessages?: boolean;
     closedAcceptsHandoff?: boolean;
+    closedAcceptsCancel?: boolean;
     // Starts Direct Conversations whatever the parent.
     directIgnoresParent?: boolean;
     // The Company's reply carries an operation.
@@ -267,11 +279,13 @@ type Conversation = {
     id: string;
     sub: string;
     events: Event[];
-    status: string;
+    handoff: string;
     responder: string;
+    closed: boolean;
     direct: boolean;
 };
 
+// An accepted request: its conversation, URL and body, and the response (spec 8.3).
 type Stored = { conv: string; content: string; status: number; body: string };
 
 function json(status: number, body: unknown, headers: Record<string, string> = {}): Response {
@@ -324,8 +338,8 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
     // Each Session's User ID, Agent ID, and delegated key thumbprint, by sid.
     const sessions = new Map<string, { sub: string; agentId?: unknown; kid: string }>();
     const convs = new Map<string, Conversation>();
-    // Accepted messages, by User and message ID (spec 8.3).
-    const messageIds = new Map<string, Stored>();
+    // Accepted requests, by User and request ID (spec 8.3).
+    const requestIds = new Map<string, Stored>();
     // Browser-session codes, their join cookies, and whether each has been authorized or used.
     const codes = new Map<
         string,
@@ -589,13 +603,30 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
         });
     }
 
-    function setState(conv: Conversation, status: string, responder = conv.responder): void {
-        conv.status = status;
-        conv.responder = responder;
-        if (!flaws.noStateEvents) addEvent(conv, { type: "state", status, responder });
+    function setState(
+        conv: Conversation,
+        change: Partial<Pick<Conversation, "handoff" | "responder" | "closed">>,
+    ): void {
+        Object.assign(conv, change);
+        if (!flaws.noStateEvents)
+            addEvent(conv, {
+                type: "state",
+                handoff: conv.handoff,
+                responder: conv.responder,
+                closed: conv.closed,
+            });
     }
 
-    function recordUserMessage(conv: Conversation, message: Record<string, unknown>): void {
+    // The Company acts on every request at once, so working is false unless a flaw says otherwise.
+    function working(conv: Conversation): boolean {
+        return conv.closed ? !!flaws.workingAfterClose : !!flaws.workingStuck;
+    }
+
+    function recordUserMessage(
+        conv: Conversation,
+        id: string,
+        message: Record<string, unknown>,
+    ): void {
         const onlyContext =
             message.context !== undefined &&
             message.text === undefined &&
@@ -603,13 +634,14 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
         if (onlyContext && flaws.contextNotRecorded) return;
         const recorded: Record<string, unknown> = {
             ...message,
+            id,
             role: flaws.wrongRole ? "agent" : "user",
         };
         if (flaws.dropMessageData) delete recorded.data;
         addEvent(conv, { type: "message", message: recorded });
     }
 
-    // The Company Agent answers at once, and the conversation goes idle.
+    // The Company Agent answers at once.
     function reply(conv: Conversation): void {
         addEvent(conv, {
             type: "message",
@@ -634,20 +666,21 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                     : {}),
             },
         });
-        setState(conv, "idle");
+    }
+
+    function requestIdProblem(id: unknown): boolean {
+        return !(
+            typeof id === "string" &&
+            (flaws.acceptAnyRequestId
+                ? id.length > 0
+                : flaws.maxRequestId128
+                  ? /^[A-Za-z0-9_-]{1,128}$/.test(id)
+                  : /^[A-Za-z0-9_-]{1,256}$/.test(id))
+        );
     }
 
     function messageProblem(message: unknown): boolean {
         if (!isObject(message)) return true;
-        const id = message.id;
-        const idOk =
-            typeof id === "string" &&
-            (flaws.acceptAnyMessageId
-                ? id.length > 0
-                : flaws.maxMessageId128
-                  ? /^[A-Za-z0-9_-]{1,128}$/.test(id)
-                  : /^[A-Za-z0-9_-]{1,256}$/.test(id));
-        if (!idOk) return true;
         if (!isObject(message.author) || !["agent", "human"].includes(String(message.author.type)))
             return true;
         if (message.text !== undefined && typeof message.text !== "string") return true;
@@ -697,7 +730,8 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                         `id: ${flaws.sseWrongId ? `x${e.id}` : e.id}\ndata: ${JSON.stringify(e)}\n\n`,
                 )
                 .join("");
-            return new Response(`: stream\n\n${text}`, {
+            const state = `event: working\ndata: ${JSON.stringify({ working: working(conv) })}\n\n`;
+            return new Response(`: stream\n\n${state}${text}`, {
                 status: 200,
                 headers: { "content-type": "text/event-stream" },
             });
@@ -707,8 +741,10 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
             events,
             cursor: events.length ? events[events.length - 1].id : (cursor ?? null),
             ...(flaws.eventsWithoutHasMore ? {} : { has_more: false }),
-            status: conv.status,
+            working: working(conv),
+            handoff: conv.handoff,
             responder: conv.responder,
+            closed: conv.closed,
         });
     }
 
@@ -727,17 +763,26 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
             return json(400, { error: "invalid_request" });
         }
         const message = payload.message as Record<string, unknown> | undefined;
+        const action = rest.slice(1).join("/");
+        if (method === "POST" && action === "handoff/cancel" && flaws.noHandoffCancel)
+            return json(404, { error: "not_found" });
+        let requestId = payload.id;
+        if (requestId === undefined && flaws.acceptMissingRequestId) requestId = randomId(16);
+        if (method === "POST" && requestIdProblem(requestId))
+            return json(400, { error: "invalid_request" });
+        const rid = String(requestId);
+        const content = `${action}\n${JSON.stringify(payload)}`;
+        const conflict = () =>
+            json(flaws.conflictStatus400 ? 400 : 409, { error: "request_id_conflict" });
+
         if (rest.length === 0 && method === "POST") {
             if (messageProblem(message)) return json(400, { error: "invalid_request" });
-            const key = `${sub}\n${message!.id}`;
-            const content = JSON.stringify(message);
-            const prior = messageIds.get(key);
+            const key = `${sub}\n\n${rid}`;
+            const prior = requestIds.get(key);
             if (prior && !flaws.retryCreatesNewConversation) {
-                if (prior.content !== content)
-                    return json(flaws.conflictStatus400 ? 400 : 409, {
-                        error: "message_id_conflict",
-                    });
-                if (flaws.retryRecordedTwice) recordUserMessage(convs.get(prior.conv)!, message!);
+                if (prior.content !== content) return conflict();
+                if (flaws.retryRecordedTwice)
+                    recordUserMessage(convs.get(prior.conv)!, rid, message!);
                 return stored(prior);
             }
             const parentId = payload.parent_conversation_id;
@@ -745,26 +790,23 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                 const parent = convs.get(String(parentId));
                 if (!parent || parent.sub !== sub)
                     return json(404, { error: "conversation_not_found" });
-                if (parent.status === "closed") return json(409, { error: "conversation_closed" });
+                if (parent.closed) return json(409, { error: "conversation_closed" });
                 if (parent.direct) return json(400, { error: "invalid_request" });
             }
             const conv: Conversation = {
                 id: "cnv_" + randomId(6),
                 sub,
                 events: [],
-                status: "working",
+                handoff: "none",
                 responder: "agent",
+                closed: false,
                 direct: parentId !== undefined,
             };
             convs.set(conv.id, conv);
             const status = flaws.startReturns200 ? 200 : 201;
-            const response = JSON.stringify({
-                conversation_id: conv.id,
-                status: "working",
-                responder: "agent",
-            });
-            messageIds.set(key, { conv: conv.id, content, status, body: response });
-            recordUserMessage(conv, message!);
+            const response = JSON.stringify({ conversation_id: conv.id });
+            requestIds.set(key, { conv: conv.id, content, status, body: response });
+            recordUserMessage(conv, rid, message!);
             reply(conv);
             return stored({ conv: conv.id, content, status, body: response });
         }
@@ -773,54 +815,54 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
             return json(404, {
                 error: flaws.notFoundError ? "not_found" : "conversation_not_found",
             });
-        const action = rest[1];
         if (action === "events" && method === "GET") return readEvents(conv, url, headers);
-        if (action === "close" && method === "POST") {
-            if (conv.status !== "closed") {
-                conv.status = "closed";
-                if (!flaws.noCloseEvent)
-                    addEvent(conv, { type: "state", status: "closed", responder: conv.responder });
-            } else if (flaws.closeAgainAddsEvent)
-                addEvent(conv, { type: "state", status: "closed", responder: conv.responder });
-            return json(
-                200,
-                flaws.closeWithoutResponder
-                    ? { status: "closed" }
-                    : { status: "closed", responder: conv.responder },
-            );
+        if (
+            method !== "POST" ||
+            !["messages", "handoff", "handoff/cancel", "close"].includes(action)
+        )
+            return json(404, { error: "not_found" });
+
+        // A retry returns the original response, even after the conversation closes.
+        const key = `${flaws.requestIdsPerConversation ? conv.id : sub}\n${flaws.requestIdsPerUrl ? action : ""}\n${rid}`;
+        const prior = requestIds.get(key);
+        if (prior) {
+            if (prior.content !== content) return conflict();
+            if (flaws.followUpRetry200 && action === "messages")
+                return new Response(prior.body, { status: 200 });
+            return stored(prior);
         }
-        if (action === "handoff" && method === "POST") {
-            if (conv.status === "closed" && !flaws.closedAcceptsHandoff)
-                return json(409, { error: "conversation_closed" });
-            return json(202, { conversation_id: conv.id, status: "queued", responder: "human" });
-        }
-        if (action === "messages" && method === "POST") {
-            if (conv.status === "closed" && !flaws.closedAcceptsMessages)
-                return json(409, { error: "conversation_closed" });
-            if (messageProblem(message)) return json(400, { error: "invalid_request" });
-            const key = flaws.messageIdsPerConversation
-                ? `${conv.id}\n${message!.id}`
-                : `${sub}\n${message!.id}`;
-            const content = JSON.stringify(message);
-            const prior = messageIds.get(key);
-            if (prior) {
-                if (prior.content !== content)
-                    return json(flaws.conflictStatus400 ? 400 : 409, {
-                        error: "message_id_conflict",
-                    });
-                if (flaws.followUpRetry200) return new Response(prior.body, { status: 200 });
-                return stored(prior);
-            }
-            recordUserMessage(conv, message!);
-            const response = JSON.stringify(
-                flaws.followUpWithoutStatus
-                    ? { conversation_id: conv.id }
-                    : { conversation_id: conv.id, status: conv.status, responder: conv.responder },
-            );
-            messageIds.set(key, { conv: conv.id, content, status: 202, body: response });
-            return stored({ conv: conv.id, content, status: 202, body: response });
-        }
-        return json(404, { error: "not_found" });
+        const closedFlaw: Record<string, boolean | undefined> = {
+            messages: flaws.closedAcceptsMessages,
+            handoff: flaws.closedAcceptsHandoff,
+            "handoff/cancel": flaws.closedAcceptsCancel,
+        };
+        if (conv.closed && action !== "close" && !closedFlaw[action])
+            return json(409, { error: "conversation_closed" });
+        if (action === "messages" && messageProblem(message))
+            return json(400, { error: "invalid_request" });
+
+        if (action === "close") {
+            if (!conv.closed) setState(conv, { closed: true, handoff: "none" });
+            else if (flaws.closeAgainAddsEvent)
+                addEvent(conv, {
+                    type: "state",
+                    handoff: conv.handoff,
+                    responder: conv.responder,
+                    closed: true,
+                });
+        } else if (action === "handoff") {
+            if (conv.handoff === "none" && conv.responder === "agent")
+                setState(conv, { handoff: "pending" });
+        } else if (action === "handoff/cancel") {
+            if (conv.handoff === "pending") setState(conv, { handoff: "none" });
+        } else recordUserMessage(conv, rid, message!);
+
+        const status = action === "close" && flaws.close200 ? 200 : 202;
+        const response = JSON.stringify(
+            action === "messages" && flaws.followUpEmptyBody ? {} : { conversation_id: conv.id },
+        );
+        requestIds.set(key, { conv: conv.id, content, status, body: response });
+        return stored({ conv: conv.id, content, status, body: response });
     }
 
     const auth = (domain: "main" | "other") => ({

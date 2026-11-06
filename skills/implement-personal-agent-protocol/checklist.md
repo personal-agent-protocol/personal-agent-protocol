@@ -193,7 +193,7 @@ Verify Session headers generally (SHOULD, 5.3). Complete all checks before trust
 - [ ] Cache verified delegations until they expire (5.2). Key the cache by a hash of the whole delegation, such as its SHA-256, not by its `jti`, which a forged delegation could copy. Most requests then need one signature check.
 - [ ] Behind proxies and load balancers, compare `htu` with the public URL the personal agent used. Build it from your configured public origin, not from the `Host` header your server receives.
 - [ ] Use an acceptance window of about one minute for `iat`, plus a small clock skew.
-- [ ] Rejecting a reused `jti` is optional, as it is for DPoP proofs, because servers behind one endpoint don't always share state. Without it, a copied Session JWT still works only for the same method and URL, with the same access token, and within the acceptance window. A request that changes something then relies on being idempotent, so a replay doesn't repeat it. Conversation messages already are, through their IDs (8.3).
+- [ ] Rejecting a reused `jti` is optional, as it is for DPoP proofs, because servers behind one endpoint don't always share state. Without it, a copied Session JWT still works only for the same method and URL, with the same access token, and within the acceptance window. A request that changes something then relies on being idempotent, so a replay doesn't repeat it. Conversation requests already are, through their IDs (8.3).
 - [ ] If you keep a replay cache keyed by `jti`, hold entries for the acceptance window and share it across every server. Otherwise a JWT accepted by one server can be replayed at another (5.3).
 - [ ] Check `ath` against the access token, and that the token was issued to the JWT's `iss`. Reject an absent header when the request depends on Session claims (MUST, 5.3). Don't use an unverified `iss`, `sub`, or `sid` for attribution, rate limits by identity, cache keys, or state lookup.
 - [ ] Return `invalid_session` for a failed check, and keep access token errors in `WWW-Authenticate`, as OAuth does (section 7).
@@ -276,15 +276,16 @@ A company can offer personal agents less than its other OAuth clients get withou
 ### Specification: [8.4 Message fields](https://personalagentprotocol.org/docs/0.4/spec#message-fields)
 
 - [ ] **MUST**: A message MUST have at least one of `text`, `data`, `context`, or `extensions`.
+- [ ] **MUST NOT**: A message from a person at the Company, or written by the User, with `author.type` `human`, MUST NOT include either field.
+- [ ] **MUST NOT**: The Company and the Personal Agent MUST NOT depend on either field being present, and treat each only as a hint for interpreting the message.
 - [ ] **MUST NOT**: A side MUST NOT send an extension's content unless the other side uses that extension with the same version: the Company checks the request's `Poppy-Extensions` (3.4), and the Personal Agent checks the Company's document for the version it chose (3.1).
 
 ### Specification: [8.5 Reading events](https://personalagentprotocol.org/docs/0.4/spec#reading-events)
 
-- [ ] **MUST**: Every successful read MUST include `conversation_id`, `events`, `cursor`, `has_more`, `status`, and `responder`, with `events` empty when there are none.
+- [ ] **MUST**: Every successful read MUST include `conversation_id`, `events`, `cursor`, `has_more`, and the state fields `working`, `handoff`, `responder`, and `closed` (8.7), with `events` empty when there are none.
 
-### Specification: [8.7 Status and responder](https://personalagentprotocol.org/docs/0.4/spec#status)
+### Specification: [8.7 State](https://personalagentprotocol.org/docs/0.4/spec#state)
 
-- [ ] **MUST**: Every successful response to a `POST` or a read MUST include `status` and `responder`.
 - [ ] **MUST**: Each Company message MUST also include `author.type`, with `agent` or `human`, to identify who wrote it.
 
 ### Specification: [8.10 Direct Conversations](https://personalagentprotocol.org/docs/0.4/spec#direct-conversations)
@@ -316,7 +317,7 @@ A company can offer personal agents less than its other OAuth clients get withou
 ### Recommended: [Retries](https://personalagentprotocol.org/docs/0.4/guides#both-retries)
 
 - [ ] Send an `Idempotency-Key` (draft-ietf-httpapi-idempotency-key-header) on API writes that accept one. Use a random UUID (version 4), and reuse the same key when you retry the same request.
-- [ ] Give each conversation message an `id` with at least 128 random bits, and reuse it when you retry the message (8.3).
+- [ ] Give each conversation request, such as a message or a handoff request, an `id` with at least 128 random bits, and reuse it when you retry the request (8.3).
 - [ ] Each retry needs a new Session JWT, and a new DPoP proof if the access token is DPoP-bound. A retried token request needs a new assertion. The company may reject a `jti` it has already seen.
 - [ ] Wait at least as long as `Retry-After` says on a 429 (MUST, 5.6) or a 503.
 - [ ] Otherwise, back off exponentially with jitter, cap the delay, and limit the number of attempts.
@@ -363,6 +364,9 @@ Personal agents work faster and more reliably through a company agent or APIs th
 - [ ] To a personal agent that declares the Disclosures extension, send notices users need to see, such as allergen or regulatory warnings, as disclosures, and keep them to those. Personal agents decide which to show, and skip ones that read like promotion. Without the extension, put the notice in `text`.
 - [ ] Keep what a message says in `text` and `data`, and use extension content to add to it, so a personal agent that ignores an extension still gets the message (8.4).
 - [ ] Write for whoever is on the other side (8.8). With a personal agent, skip greetings and small talk and keep text short. With the user, use plain sentences, a pace they can follow, and details in `text` rather than only in `data`. In a direct conversation, reply as you would to the customer on your own channels.
+- [ ] Report `working` as `true` from the moment you accept a request until you've acted on it and finished replying, so a personal agent that reads until `working` is `false` gets the whole reply (8.7).
+- [ ] Set `as_of_request` on each company agent message to the latest request the agent saw when it started the turn, and give the agent the `as_of_cursor` of each personal agent message, so it knows which of its messages a reply answers (8.4). Leave `as_of_request` off messages from people.
+- [ ] If your help desk can withdraw a request for a person, do so on a handoff cancel, so no one is assigned to a conversation that no longer needs them (8.9).
 - [ ] Keep a conversation's events for at least 30 days, so a personal agent that reconnects rarely hits `cursor_expired` (8.5).
 - [ ] On a stream with nothing to send, send an SSE comment every 15 to 30 seconds, so proxies don't close it (8.6).
 - [ ] When a session signs out, answer requests without an access token on its conversations that used the account with a 401 challenge, including reads of their events, so their account details can't be read signed out (5.5, 8.11). Leave them open, so the user can sign in again and continue, or close them if your policy is to clear everything at sign-out.

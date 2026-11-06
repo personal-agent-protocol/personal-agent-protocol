@@ -244,7 +244,6 @@ The Personal Agent sends a message with the approval as a JSON object in `extens
 
 ```
 {
-  "id": "msg_Qd4hVn2Rx8TfLe1M",
   "author": { "type": "agent" },
   "text": "The user approved the exchange.",
   "extensions": {

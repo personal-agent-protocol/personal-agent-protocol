@@ -43,10 +43,9 @@ const EXAMPLES: Record<string, Target> = {
     "message-fields:2": "message.schema.json",
     "message-fields:3": "message.schema.json",
     "reading-events:1": "events-response.schema.json",
-    "status:1": "events-response.schema.json",
+    "state:1": "events-response.schema.json",
     "human-or-ai:1": "conversation-message-request.schema.json",
-    // The handoff request is an empty object.
-    "handoff:1": null,
+    "handoff:1": "conversation-action-request.schema.json",
     "direct-conversations:1": "conversation-request.schema.json",
     "direct-conversations:2": "event.schema.json",
     "direct-conversations:3": "conversation-request.schema.json",

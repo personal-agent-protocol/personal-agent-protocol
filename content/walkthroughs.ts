@@ -211,8 +211,8 @@ DPoP: ${DPOP}
 Content-Type: application/json
 
 {
+  "id": "msg_Jk4tR8wQ2nVb6YpL",
   "message": {
-    "id": "msg_Jk4tR8wQ2nVb6YpL",
     "author": { "type": "agent" },
     "text": "The user's jacket keeps the rain out but isn't warm enough. They'd like to return it.",
     "context": { "locale": "en-US", "time_zone": "America/Los_Angeles", "user_available": true }
@@ -258,8 +258,10 @@ Content-Type: application/json
   ],
   "cursor": "evt_m3",
   "has_more": false,
-  "status": "idle",
-  "responder": "agent"
+  "working": false,
+  "handoff": "none",
+  "responder": "agent",
+  "closed": false
 }`,
                     },
                 ],
@@ -382,8 +384,8 @@ DPoP: ${DPOP}
 Content-Type: application/json
 
 {
+  "id": "msg_Wd8nC3kP5tGx1RqZ",
   "message": {
-    "id": "msg_Wd8nC3kP5tGx1RqZ",
     "author": { "type": "agent" },
     "text": "The user has signed in. The order is SW-48213."
   }
@@ -421,8 +423,10 @@ Content-Type: application/json
   ],
   "cursor": "evt_m5",
   "has_more": false,
-  "status": "idle",
-  "responder": "agent"
+  "working": false,
+  "handoff": "none",
+  "responder": "agent",
+  "closed": false
 }`,
                     },
                 ],
@@ -465,8 +469,8 @@ DPoP: ${DPOP}
 Content-Type: application/json
 
 {
+  "id": "msg_Ue2hV9mJ4sKb7TfA",
   "message": {
-    "id": "msg_Ue2hV9mJ4sKb7TfA",
     "author": { "type": "agent" },
     "text": "The user would like the exchange."
   }
@@ -507,8 +511,10 @@ Content-Type: application/json
   ],
   "cursor": "evt_m7",
   "has_more": false,
-  "status": "idle",
-  "responder": "agent"
+  "working": false,
+  "handoff": "none",
+  "responder": "agent",
+  "closed": false
 }`,
                     },
                     {
@@ -519,12 +525,12 @@ Authorization: DPoP ${TOKENS.manzanita}
 DPoP: ${DPOP}
 Content-Type: application/json
 
-{}
+{ "id": "cls_Fh6tYc1Wz8Lp3DsN" }
 
-HTTP/1.1 200 OK
+HTTP/1.1 202 Accepted
 Content-Type: application/json
 
-{ "status": "closed", "responder": "agent" }`,
+{ "conversation_id": "cnv_J6wP3d" }`,
                     },
                 ],
             },
@@ -759,8 +765,8 @@ DPoP: ${DPOP}
 Content-Type: application/json
 
 {
+  "id": "msg_Rb5yN2qH8vLc4ZsE",
   "message": {
-    "id": "msg_Rb5yN2qH8vLc4ZsE",
     "author": { "type": "agent" },
     "text": "The user's connection keeps dropping, 14 times today, and they have a call at 2. Please fix it from your end.",
     "data": { "modem_id": "mdm_92K", "dropouts_today": 14 },
@@ -771,7 +777,7 @@ Content-Type: application/json
 HTTP/1.1 201 Created
 Content-Type: application/json
 
-{ "conversation_id": "cnv_2Lm0", "status": "working", "responder": "agent" }`,
+{ "conversation_id": "cnv_2Lm0" }`,
                     },
                     {
                         dir: "Atlas ↔ api.laurelfiber.example",
@@ -781,12 +787,12 @@ Authorization: DPoP ${TOKENS.laurel}
 DPoP: ${DPOP}
 Content-Type: application/json
 
-{}
+{ "id": "hnd_Vb3nQ8rT1kLm6XcP" }
 
 HTTP/1.1 202 Accepted
 Content-Type: application/json
 
-{ "status": "queued", "responder": "agent" }`,
+{ "conversation_id": "cnv_2Lm0" }`,
                     },
                     {
                         dir: "Atlas ↔ api.laurelfiber.example",
@@ -818,15 +824,17 @@ Content-Type: application/json
       "id": "evt_l2",
       "type": "state",
       "created_at": "2026-10-06T13:24:02-05:00",
-      "status": "queued",
-      "responder": "agent"
+      "handoff": "pending",
+      "responder": "agent",
+      "closed": false
     },
     {
       "id": "evt_l3",
       "type": "state",
       "created_at": "2026-10-06T13:24:51-05:00",
-      "status": "idle",
-      "responder": "human"
+      "handoff": "none",
+      "responder": "human",
+      "closed": false
     },
     {
       "id": "evt_l4",
@@ -848,8 +856,10 @@ Content-Type: application/json
   ],
   "cursor": "evt_l5",
   "has_more": false,
-  "status": "idle",
-  "responder": "human"
+  "working": false,
+  "handoff": "none",
+  "responder": "human",
+  "closed": false
 }
 
 // Without a cursor, the read starts at the beginning, so it
@@ -905,9 +915,9 @@ DPoP: ${DPOP}
 Content-Type: application/json
 
 {
+  "id": "msg_Pe6jWm3Kd0RtXc8V",
   "parent_conversation_id": "cnv_2Lm0",
   "message": {
-    "id": "msg_Pe6jWm3Kd0RtXc8V",
     "author": { "type": "human" },
     "text": "Hi, I'm here. What should I check?"
   }
@@ -916,7 +926,7 @@ Content-Type: application/json
 HTTP/1.1 201 Created
 Content-Type: application/json
 
-{ "conversation_id": "cnv_9Dq4", "status": "idle", "responder": "human" }
+{ "conversation_id": "cnv_9Dq4" }
 
 // author type "human" tells Laurel these are the user's own words.
 // The user's later messages go to cnv_9Dq4/messages the same way.`,
@@ -930,14 +940,14 @@ Authorization: DPoP ${TOKENS.laurel}
 DPoP: ${DPOP}
 Content-Type: application/json
 
-{}
+{ "id": "cls_Np2wKd7Rx4Tq9MbH" }
 
-HTTP/1.1 200 OK
+HTTP/1.1 202 Accepted
 Content-Type: application/json
 
-{ "status": "closed", "responder": "human" }
+{ "conversation_id": "cnv_2Lm0" }
 
-GET https://api.laurelfiber.example/poppy/conversations/cnv_2Lm0/events?cursor=evt_l5
+GET https://api.laurelfiber.example/poppy/conversations/cnv_2Lm0/events?cursor=evt_l5&wait=10
 Authorization: DPoP ${TOKENS.laurel}
 DPoP: ${DPOP}
 
@@ -963,14 +973,17 @@ Content-Type: application/json
       "id": "evt_l8",
       "type": "state",
       "created_at": "2026-10-06T13:27:58-05:00",
-      "status": "closed",
-      "responder": "human"
+      "handoff": "none",
+      "responder": "human",
+      "closed": true
     }
   ],
   "cursor": "evt_l8",
   "has_more": false,
-  "status": "closed",
-  "responder": "human"
+  "working": false,
+  "handoff": "none",
+  "responder": "human",
+  "closed": true
 }`,
                     },
                 ],
@@ -1139,8 +1152,8 @@ DPoP: ${DPOP}
 Content-Type: application/json
 
 {
+  "id": "msg_Gt7rE1xM6kQa9WnD",
   "message": {
-    "id": "msg_Gt7rE1xM6kQa9WnD",
     "author": { "type": "agent" },
     "text": "The guest's flight moved to tomorrow morning. Could you move their stay by a day and waive tonight's charge?",
     "data": { "flight": "PA 518", "reason": "crew", "new_start": "2026-10-14" }
@@ -1180,8 +1193,10 @@ Content-Type: application/json
   ],
   "cursor": "evt_h2",
   "has_more": false,
-  "status": "idle",
-  "responder": "agent"
+  "working": false,
+  "handoff": "none",
+  "responder": "agent",
+  "closed": false
 }`,
                     },
                 ],

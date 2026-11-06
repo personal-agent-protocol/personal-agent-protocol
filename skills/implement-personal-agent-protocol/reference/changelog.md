@@ -52,6 +52,42 @@ A Company whose website treats `poppy:browser-sign-in` as the account's full acc
 
 A Company sets `web.disabled` to ask Personal Agents to use only its Company Agent and APIs. A Personal Agent should not browse its website. A Company that sets it lists no `browser_session_endpoint`, and lists `agent` or `apis`. The protocol can't enforce it, so it isn't a promise that Personal Agents won't browse.
 
+#### Conversation state in four fields
+
+Breaking · [Spec 8.5](https://personalagentprotocol.org/docs/0.4/spec#reading-events) · [Spec 8.6](https://personalagentprotocol.org/docs/0.4/spec#streaming) · [Spec 8.7](https://personalagentprotocol.org/docs/0.4/spec#state) · [Spec 8.9](https://personalagentprotocol.org/docs/0.4/spec#handoff) · [Spec 8.10](https://personalagentprotocol.org/docs/0.4/spec#direct-conversations) · [Spec 8.12](https://personalagentprotocol.org/docs/0.4/spec#closing) · [UCP 5](https://personalagentprotocol.org/docs/0.4/extensions/ucp#conversations) · [Guides: Conversations](https://personalagentprotocol.org/docs/0.4/guides#agent-conversations) · [Guides: Conversations](https://personalagentprotocol.org/docs/0.4/guides#company-conversations)
+
+`status` is replaced by `working`, `handoff`, and `closed`, next to `responder`, because a conversation can be in several of the old states at once: the Company Agent can keep answering while the Company looks for a person. `working` is `true` while the Company has work in progress, including requests it accepted but hasn't acted on, so a Personal Agent reads until it's `false`. `working` isn't recorded as an event. A `wait` read also returns when it becomes `false`, and a stream sends it as a `working` event with no SSE `id`. `state` events carry `handoff`, `responder`, and `closed`, and section 8.7 is now State, at `#state`. A Company looking for a person has `handoff` `pending`, so `queued` no longer names two different queues.
+
+#### Requests are accepted, then acted on
+
+Breaking · [Spec 8.3](https://personalagentprotocol.org/docs/0.4/spec#sending-messages) · [Spec 8.9](https://personalagentprotocol.org/docs/0.4/spec#handoff) · [Spec 8.12](https://personalagentprotocol.org/docs/0.4/spec#closing)
+
+A successful `POST` means the Company accepted the request, not that it acted on it, so a response without `wait` has only `conversation_id`. The Company acts on a conversation's messages, handoff requests, and handoff cancels in the order it accepts them, whatever their URL.
+
+#### Request IDs on every conversation request
+
+Breaking · [Spec 8.2](https://personalagentprotocol.org/docs/0.4/spec#conversation-requests) · [Spec 8.3](https://personalagentprotocol.org/docs/0.4/spec#sending-messages) · [Spec 8.4](https://personalagentprotocol.org/docs/0.4/spec#message-fields) · [Spec 8.8](https://personalagentprotocol.org/docs/0.4/spec#human-or-ai) · [Spec 8.9](https://personalagentprotocol.org/docs/0.4/spec#handoff) · [Spec 8.10](https://personalagentprotocol.org/docs/0.4/spec#direct-conversations) · [Spec 8.12](https://personalagentprotocol.org/docs/0.4/spec#closing) · [Spec 8.13](https://personalagentprotocol.org/docs/0.4/spec#conversation-errors) · [UCP 5](https://personalagentprotocol.org/docs/0.4/extensions/ucp#conversations) · [Guides: Retries](https://personalagentprotocol.org/docs/0.4/guides#both-retries) · [Guides: Verifying the Session header](https://personalagentprotocol.org/docs/0.4/guides#company-session-header)
+
+Every conversation `POST` has a top-level `id` chosen by the Personal Agent, so a retried handoff request can't start a handoff again after a cancel. A message's ID is its request's ID, so the message has no `id` of its own. A request that reuses an ID with a different path or body returns `request_id_conflict`, which replaces `message_id_conflict`.
+
+#### Withdrawing a handoff
+
+[Spec 8.2](https://personalagentprotocol.org/docs/0.4/spec#conversation-requests) · [Spec 8.9](https://personalagentprotocol.org/docs/0.4/spec#handoff) · [Spec 8.10](https://personalagentprotocol.org/docs/0.4/spec#direct-conversations) · [Spec 8.13](https://personalagentprotocol.org/docs/0.4/spec#conversation-errors) · [Guides: Conversations](https://personalagentprotocol.org/docs/0.4/guides#agent-conversations) · [Guides: Conversations](https://personalagentprotocol.org/docs/0.4/guides#company-conversations)
+
+`POST {endpoint}/{id}/handoff/cancel` withdraws a request for a person. The Company MAY stop looking, or keep looking when it can't withdraw the request, and the Personal Agent reads the outcome from `handoff` and `responder`.
+
+#### What a message took into account
+
+[Spec 8.3](https://personalagentprotocol.org/docs/0.4/spec#sending-messages) · [Spec 8.4](https://personalagentprotocol.org/docs/0.4/spec#message-fields) · [Spec 8.5](https://personalagentprotocol.org/docs/0.4/spec#reading-events) · [Guides: Conversations](https://personalagentprotocol.org/docs/0.4/guides#agent-conversations) · [Guides: Conversations](https://personalagentprotocol.org/docs/0.4/guides#company-conversations)
+
+Messages can cross, so a short reply such as "Done" can be ambiguous. A message from the Company Agent MAY include `as_of_request`, the ID of the latest request it took into account, and a message the Personal Agent wrote MAY include `as_of_cursor`, the last cursor it had read. Both are hints for sequencing and interpreting replies, and the Company and the Personal Agent MUST NOT depend on them. Messages written by people MUST NOT include either, because which messages a person had read isn't known.
+
+#### Closing doesn't wait its turn
+
+Breaking · [Spec 8.12](https://personalagentprotocol.org/docs/0.4/spec#closing) · [Spec 8.13](https://personalagentprotocol.org/docs/0.4/spec#conversation-errors) · [Guides: Conversations](https://personalagentprotocol.org/docs/0.4/guides#agent-conversations)
+
+A close returns HTTP 202 instead of 200. The Company MAY act on any request it hasn't acted on yet or drop it, whether it accepted the request before or after the close, and the Personal Agent MUST NOT depend on either. To be sure earlier requests are acted on, it reads until `working` is `false` before closing. After a close, handoff cancels also return `conversation_closed`.
+
 ### Minor changes
 
 #### `auth.disabled` without other clients

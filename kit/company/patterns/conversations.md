@@ -7,7 +7,7 @@ adapter in front of them.
 
 ## A. An adapter in front of the existing support stack
 
-A conversation service implements the five Poppy requests
+A conversation service implements the six Poppy requests
 ([8.2](https://personalagentprotocol.org/docs/spec#conversation-requests)) and translates them to
 and from the existing platform.
 
@@ -16,13 +16,13 @@ and from the existing platform.
   state changes (by webhook, stream, or polling); a way to pass the verified Session (`client_id`,
   User ID, account, scopes) to the agent's tools; and a way to hand off to the live-agent desk.
 - Trade-offs: reuses the agent and the desk. The adapter owns what the platform doesn't have: the
-  event log, cursors, message ID deduplication, and `status` and `responder`.
+  event log, cursors, request ID deduplication, and the state fields.
 
 **The event log.** Keep Poppy's own ordered event list per conversation
 ([8.5](https://personalagentprotocol.org/docs/spec#reading-events)), rather than reading the
 platform's history on each request. Each event needs a stable, unique ID that works as a cursor.
 Record every accepted message, with `role` set by the Company, and a `state` event on every change
-to `status` or `responder` ([8.7](https://personalagentprotocol.org/docs/spec#status)).
+to `handoff`, `responder`, or `closed` ([8.7](https://personalagentprotocol.org/docs/spec#state)).
 
 **Mapping messages.** Personal Agent messages carry `author`, `text`, `data`, and `context`
 ([8.4](https://personalagentprotocol.org/docs/spec#message-fields)). Pass `context` and `data` to
@@ -41,18 +41,28 @@ Session can use other versions. Continue the conversation when the platform can,
 on it, all of them or only some, with `version_mismatch` (HTTP 409) and the conversation's
 `protocol_version` ([8.2](https://personalagentprotocol.org/docs/spec#conversation-requests)).
 
-**Status and responder.** Map the platform's states: the agent working is `working`, waiting for
-the Personal Agent is `idle`, waiting for a live agent is `queued`, and closed is `closed`.
-`responder` is `human` only once a person has joined (8.7).
+**State.** Map the platform's state to four independent fields (8.7). `working` is the platform's
+busy flag, plus any request you accepted but haven't passed on yet. It isn't an event, so you don't
+need to find where a turn ends. Waiting for a live agent is `handoff: "pending"`, `responder` is
+`human` only once a person has joined, and `closed` is the platform's closed state.
 
-**Message IDs.** Store each accepted message ID per User, with a hash of its content, for as long as
-you keep the conversation ([8.3](https://personalagentprotocol.org/docs/spec#sending-messages)). A
-retried first message returns the conversation it already started.
+**Requests.** Every `POST` is accepted, then acted on: answer 201 or 202 with `conversation_id` as
+soon as the request is safely stored, and act on a conversation's messages, handoff requests, and
+cancels in that order ([8.3](https://personalagentprotocol.org/docs/spec#sending-messages)). Store
+each accepted request ID per User, with its path (without the query) and a hash of its body, for as
+long as you keep the conversation. A retried first message returns the conversation it already
+started. When a Company Agent turn starts, note the latest request ID it sees, and put it in
+`as_of_request` on that turn's messages
+([8.4](https://personalagentprotocol.org/docs/spec#message-fields)). Show the agent which of its
+messages each Personal Agent message's `as_of_cursor` covers. Leave `as_of_request` off messages
+from live agents.
 
 **Handoff** ([8.9](https://personalagentprotocol.org/docs/spec#handoff)). Route a handoff request
-to the live-agent desk's queue. Set `queued`, then `responder: "human"` when the desk reports a
-person joined. If no one is available, return to `idle` and have the Company Agent say why. Closing
-cancels the desk request. Live agents' tools need the same scope checks as the Company Agent's.
+to the live-agent desk's queue. Set `handoff: "pending"`, then `handoff: "none"` and
+`responder: "human"` when the desk reports a person joined. If no one is available, return
+`handoff` to `none` and have the Company Agent say why. On a cancel, withdraw the desk request if
+the desk lets you; if it doesn't, accept the cancel and leave `handoff` as it is. Closing cancels
+the desk request. Live agents' tools need the same scope checks as the Company Agent's.
 
 **Direct Conversations** ([8.10](https://personalagentprotocol.org/docs/spec#direct-conversations)).
 Create a new platform conversation linked to the parent, with the parent's history available to the
@@ -64,7 +74,7 @@ information there that it cannot share with the Personal Agent (8.10).
 When accepting a `user_requested` event, the Personal Agent sends its ID in
 `user_requested_event_id` alongside `parent_conversation_id`, and can omit `message`. Validate that
 the event is a `user_requested` event in that parent. Prepare the Company's opening message in the
-new Direct Conversation, using `working` or `queued` meanwhile. Deliver it as a normal `message`
+new Direct Conversation, with `working` true, and `handoff` `pending` if waiting for a person. Deliver it as a normal `message`
 event, including through `wait` on the opening request. After checking ownership, deduplicate
 acceptances by parent ID and event ID for as long as you keep the Direct Conversation, even after
 it closes.

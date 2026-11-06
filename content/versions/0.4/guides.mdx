@@ -147,8 +147,8 @@ to a URL the other party controls, so:
 
 - Send an `Idempotency-Key` ([draft-ietf-httpapi-idempotency-key-header](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/)) on API writes that accept one. Use a random UUID (version 4), and reuse
   the same key when you retry the same request.
-- Give each conversation message an `id` with at least 128 random bits, and reuse it when you retry
-  the message ([8.3](/docs/spec#sending-messages)).
+- Give each conversation request, such as a message or a handoff request, an `id` with at least 128
+  random bits, and reuse it when you retry the request ([8.3](/docs/spec#sending-messages)).
 - Each retry needs a new Session JWT, and a new DPoP proof if the access token is DPoP-bound. A
   retried token request needs a new assertion. The company may reject a `jti` it has already seen.
 - Wait at least as long as `Retry-After` says on a 429 (MUST, [5.6](/docs/spec#sending-requests)) or a 503.
@@ -479,6 +479,12 @@ When a company offers the [Mediated Sign-In extension](/docs/extensions/mediated
 
 - Read events with a long `wait`, such as 30 seconds, or a stream, rather than many short polls
   ([8.5](/docs/spec#reading-events)).
+- Read until `working` is `false` before treating the company's reply as complete
+  ([8.7](/docs/spec#state)). A successful `POST` only means the company accepted the request.
+- To tell whether a company agent's reply covers your latest message, compare its `as_of_request`
+  with that message's request ID. Send `as_of_cursor` on messages you write, so the company can tell
+  whether a short answer like "Done" answers its latest message or an earlier one
+  ([8.4](/docs/spec#message-fields)). Messages from people carry neither.
 - On `cursor_expired`, tell the user that part of the conversation is missing
   ([8.5](/docs/spec#reading-events)).
 - Show `text-delta` pieces only as a preview. Act only on the complete `message` event
@@ -494,9 +500,14 @@ When a company offers the [Mediated Sign-In extension](/docs/extensions/mediated
   ([8.8](/docs/spec#human-or-ai)).
 - Before asking for a person, send a short message that sums up the problem, so they don't have to
   read the whole conversation ([8.9](/docs/spec#handoff)).
+- If the company agent solves the problem while you wait for a person, withdraw the request with
+  `handoff/cancel`. Then follow `handoff` and `responder`: the company may still assign someone
+  ([8.9](/docs/spec#handoff)).
 - When a person takes over, write for them: concise, plain sentences, details in `text` rather than
   only in `data`, and time to reply.
-- Close a conversation when the task is done ([8.12](/docs/spec#closing)).
+- Close a conversation when the task is done, after reading until `working` is `false`. The
+  company may drop requests it hasn't acted on when the close arrives
+  ([8.12](/docs/spec#closing)).
 - When the user accepts a `user_requested` invitation, start the direct conversation with
   `parent_conversation_id` and `user_requested_event_id`. Omit `message` to let the company speak
   first ([8.10](/docs/spec#direct-conversations)). Keep reading or streaming its events while the
@@ -684,7 +695,7 @@ DPoP proof. To verify reliably:
   endpoint don't always share state. Without it, a copied Session JWT still works only for the same
   method and URL, with the same access token, and within the acceptance window. A request that
   changes something then relies on being idempotent, so a replay doesn't repeat it. Conversation
-  messages already are, through their IDs ([8.3](/docs/spec#sending-messages)).
+  requests already are, through their IDs ([8.3](/docs/spec#sending-messages)).
 - If you keep a replay cache keyed by `jti`, hold entries for the acceptance window and share it
   across every server. Otherwise a JWT accepted by one server can be replayed at another
   ([5.3](/docs/spec#session-verification)).
@@ -1062,6 +1073,15 @@ rate limits by `client_id`, not by turning personal agents away.
   skip greetings and small talk and keep text short. With the user, use plain sentences, a pace they
   can follow, and details in `text` rather than only in `data`. In a direct conversation, reply as
   you would to the customer on your own channels.
+- Report `working` as `true` from the moment you accept a request until you've acted on it and
+  finished replying, so a personal agent that reads until `working` is `false` gets the whole reply
+  ([8.7](/docs/spec#state)).
+- Set `as_of_request` on each company agent message to the latest request the agent saw when it
+  started the turn, and give the agent the `as_of_cursor` of each personal agent message, so it
+  knows which of its messages a reply answers ([8.4](/docs/spec#message-fields)). Leave
+  `as_of_request` off messages from people.
+- If your help desk can withdraw a request for a person, do so on a handoff cancel, so no one is
+  assigned to a conversation that no longer needs them ([8.9](/docs/spec#handoff)).
 - Keep a conversation's events for at least 30 days, so a personal agent that reconnects rarely hits
   `cursor_expired` ([8.5](/docs/spec#reading-events)).
 - On a stream with nothing to send, send an SSE comment every 15 to 30 seconds, so proxies don't
