@@ -312,7 +312,7 @@ You can offer signed-out Sessions, conversations, APIs, feedback, and browser jo
 
 When you add OAuth, publish protected resource and authorization server metadata together, and start using the issuer as the Company's identifier. If that identifier changes, Users get new IDs and Sessions. Plan an explicit migration if you need to retain their earlier state; the protocol does not link those identities automatically. Different issuerless domains are separate Companies.
 
-If your issuer already serves other clients and you aren't ready to let personal agents sign in, keep it and set `auth.disabled` instead ([Offering personal agents less](#company-agent-issuer)). Your identifier stays the issuer, so nothing changes for users when you turn sign-in on.
+If you have an issuer and you aren't ready to let personal agents sign in, keep it and set `auth.disabled` instead ([Offering personal agents less](#company-agent-issuer)). Your identifier stays the issuer, so nothing changes for users when you turn sign-in on.
 
 ### Verifying personal agents
 
@@ -507,7 +507,7 @@ A company can offer personal agents less than its other OAuth clients get withou
 
 - Limit the scopes it grants by client, as OAuth allows ([4.7](https://personalagentprotocol.org/docs/0.4/spec#scopes)). It can also leave scopes it doesn't offer personal agents out of `scopes_supported`, as RFC 8414 allows ([3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server)). That list is discovery, not enforcement: agents can request scopes documented by an API or sign-in extension too.
 - Refuse sign-in, or one sign-in type, to a personal agent with `unauthorized_client` from the grant's endpoint, and keep accepting it for signed-out sessions ([4.1](https://personalagentprotocol.org/docs/0.4/spec#agent-identity)). `grant_types_supported` lists the grants every client can see, so a refusal by `client_id` is how you keep direct or device sign-in from some personal agents.
-- Turn off sign-in for every personal agent with `auth.disabled`, for example while your issuer already serves other clients and you aren't ready for personal agents ([3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server)). Personal agents don't try to sign in, and still use signed-out sessions. Remove it when you're ready.
+- Turn off sign-in for every personal agent with `auth.disabled`, for example while your issuer serves only other clients, or to keep one identifier across hostname changes before you offer sign-in ([3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server)). Personal agents don't try to sign in, and still use signed-out sessions. Remove it when you're ready.
 
 If your authorization server can't refuse by client, an issuer only for personal agents, such as `https://auth.example.com/agents`, keeps a sign-in type from them. It can share servers, signing keys, and user accounts with the main issuer. Choose the issuer before launch. User IDs and refresh tokens belong to the issuer ([3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server)), so changing it later makes the company a new company to every personal agent: existing sessions and refresh tokens stop working, and users sign in again.
 

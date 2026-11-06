@@ -644,8 +644,8 @@ start using the issuer as the Company's identifier. If that identifier changes, 
 and Sessions. Plan an explicit migration if you need to retain their earlier state; the protocol
 does not link those identities automatically. Different issuerless domains are separate Companies.
 
-If your issuer already serves other clients and you aren't ready to let personal agents sign in,
-keep it and set `auth.disabled` instead ([Offering personal agents less](#company-agent-issuer)).
+If you have an issuer and you aren't ready to let personal agents sign in, keep it and set
+`auth.disabled` instead ([Offering personal agents less](#company-agent-issuer)).
 Your identifier stays the issuer, so nothing changes for users when you turn sign-in on.
 
 ### Verifying personal agents {#company-agents}
@@ -1027,8 +1027,8 @@ A company can offer personal agents less than its other OAuth clients get withou
   `grant_types_supported` lists the grants every client can see, so a refusal by `client_id` is how
   you keep direct or device sign-in from some personal agents.
 - Turn off sign-in for every personal agent with `auth.disabled`, for example while your issuer
-  already serves other clients and you aren't ready for personal agents
-  ([3.2](/docs/spec#oauth-server)). Personal agents don't try to sign in, and still use signed-out
+  serves only other clients, or to keep one identifier across hostname changes before you offer
+  sign-in ([3.2](/docs/spec#oauth-server)). Personal agents don't try to sign in, and still use signed-out
   sessions. Remove it when you're ready.
 
 If your authorization server can't refuse by client, an issuer only for personal agents, such as

@@ -234,7 +234,7 @@ A company can offer personal agents less than its other OAuth clients get withou
 
 - [ ] Limit the scopes it grants by client, as OAuth allows (4.7). It can also leave scopes it doesn't offer personal agents out of `scopes_supported`, as RFC 8414 allows (3.2). That list is discovery, not enforcement: agents can request scopes documented by an API or sign-in extension too.
 - [ ] Refuse sign-in, or one sign-in type, to a personal agent with `unauthorized_client` from the grant's endpoint, and keep accepting it for signed-out sessions (4.1). `grant_types_supported` lists the grants every client can see, so a refusal by `client_id` is how you keep direct or device sign-in from some personal agents.
-- [ ] Turn off sign-in for every personal agent with `auth.disabled`, for example while your issuer already serves other clients and you aren't ready for personal agents (3.2). Personal agents don't try to sign in, and still use signed-out sessions. Remove it when you're ready.
+- [ ] Turn off sign-in for every personal agent with `auth.disabled`, for example while your issuer serves only other clients, or to keep one identifier across hostname changes before you offer sign-in (3.2). Personal agents don't try to sign in, and still use signed-out sessions. Remove it when you're ready.
 
 ## Interfaces
 

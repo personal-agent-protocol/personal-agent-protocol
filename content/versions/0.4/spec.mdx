@@ -225,12 +225,20 @@ issuer. If the Company publishes this metadata, its `resource` MUST be exactly `
   User IDs and refresh tokens belong to one issuer (5.1), so every Personal Agent has to choose the
   same one.
 
-**Turning off sign-in.** A Company whose issuer serves other clients, but that doesn't yet offer
-sign-in to Personal Agents, sets `auth.disabled` to `true` in `poppy.json`. Its identifier is still
-its issuer. A Personal Agent MUST NOT start Direct, Device, or Mediated Sign-In with a Company that
+**Turning off sign-in.** A Company that has an issuer but offers Personal Agents no sign-in sets
+`auth.disabled` to `true` in `poppy.json`, such as while its issuer serves only other clients, or to
+keep one identifier across hostname changes before it offers sign-in. Its identifier is still its
+issuer. A Personal Agent MUST NOT start Direct, Device, or Mediated Sign-In with a Company that
 sets it. Refresh tokens the Company issued earlier keep working until it revokes them (4.4). A
 Company that sets `auth.disabled` MUST NOT list the [Mediated Sign-In
 extension](/docs/extensions/mediated-sign-in) or `signed_in` access (below).
+
+A Company that sets `auth.disabled` and has never issued a refresh token to a Personal Agent has no
+tokens to protect: it answers every refresh with `invalid_grant` ([RFC 6749
+§5.2](https://www.rfc-editor.org/rfc/rfc6749#section-5.2)) and every revocation with success ([RFC
+7009 §2.2](https://www.rfc-editor.org/rfc/rfc7009#section-2.2)). It MAY do so without verifying the
+client assertion (4.1). Once it has issued one, or turns sign-in on, it verifies client assertions
+as usual.
 
 ```json label="GET https://example.com/.well-known/oauth-protected-resource"
 {

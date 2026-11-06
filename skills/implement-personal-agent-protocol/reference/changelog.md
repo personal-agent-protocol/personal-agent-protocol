@@ -54,6 +54,18 @@ A Company sets `web.disabled` to ask Personal Agents to use only its Company Age
 
 ### Minor changes
 
+#### `auth.disabled` without other clients
+
+[Spec 3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server) · [Guides: Signed-out support without OAuth](https://personalagentprotocol.org/docs/0.4/guides#company-without-oauth) · [Guides: Offering personal agents less](https://personalagentprotocol.org/docs/0.4/guides#company-agent-issuer) · [Issue #67](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/67)
+
+Any Company with an issuer that offers Personal Agents no sign-in can set `auth.disabled`, not only one whose issuer serves other clients, such as one that wants a stable identifier before it offers sign-in.
+
+#### Client assertions when no tokens exist
+
+[Spec 3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server) · [Issue #67](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/67)
+
+A Company that sets `auth.disabled` and has never issued a refresh token to a Personal Agent may answer refresh and revocation requests without verifying the client assertion, because it has no tokens to protect. Once it has issued one, or turns sign-in on, it verifies them as usual.
+
 #### A DPoP key per User ID
 
 [Spec 4.5](https://personalagentprotocol.org/docs/0.4/spec#access-tokens)

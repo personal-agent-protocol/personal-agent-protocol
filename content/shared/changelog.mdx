@@ -92,6 +92,22 @@ a promise that Personal Agents won't browse.
 
 ### Minor changes {#v0-4-minor}
 
+<Change title="`auth.disabled` without other clients" sections="3.2, guides#company-without-oauth, guides#company-agent-issuer" issue="67">
+
+Any Company with an issuer that offers Personal Agents no sign-in can set `auth.disabled`, not only
+one whose issuer serves other clients, such as one that wants a stable identifier before it offers
+sign-in.
+
+</Change>
+
+<Change title="Client assertions when no tokens exist" sections="3.2" issue="67">
+
+A Company that sets `auth.disabled` and has never issued a refresh token to a Personal Agent may
+answer refresh and revocation requests without verifying the client assertion, because it has no
+tokens to protect. Once it has issued one, or turns sign-in on, it verifies them as usual.
+
+</Change>
+
 <Change title="A DPoP key per User ID" sections="4.5">
 
 A Personal Agent uses each DPoP key for one User ID only, as it does each delegated key (5.2), so
