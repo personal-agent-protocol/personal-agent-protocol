@@ -543,6 +543,8 @@ When a company offers the [Mediated Sign-In extension](/docs/extensions/mediated
 - A web alternative can lead to another company's website or app. Show the link's destination
   domain. To act there, use that company's discovery and its own session and account access,
   rather than carrying the referring company's Session JWT or access token along.
+- Send feedback to `feedback.endpoint` ([9.3](/docs/spec#feedback)). A company's APIs may also
+  have feedback operations meant for other clients.
 - When a company answers your feedback report with an alternative, try it before you tell the user
   the task can't be done ([9.3](/docs/spec#feedback)).
 - When you skip a company's skill index, or a skill in it, because you don't recognize its
@@ -744,7 +746,9 @@ When keeping session state:
 - Use separate sessions for separate accounts. If your policy refuses a second account in a
   session, answer with `session_ended` ([5.4](/docs/spec#sign-in)).
 - Don't expect a user's delegated key to stay the same (MUST NOT,
-  [5.2](/docs/spec#delegated-keys)), and don't store anything by it.
+  [5.2](/docs/spec#delegated-keys)). You can reject a delegated key that signs for a second user ID
+  while a delegation for it lasts, which limits a leaked key to one user
+  ([10.7](/docs/spec#delegated-key-security)).
 
 ### Token lifetimes and sign-out {#company-lifetimes}
 
@@ -1120,8 +1124,10 @@ accepting the message, or depend on OAuth libraries reading a challenge from a s
 - Set caching headers on the document, and update it when you add or remove a task.
 - When a feedback report asks for a task you do offer, answer with an alternative that says how, so
   the personal agent can finish the task ([9.3](/docs/spec#feedback)).
-- Take feedback only at `feedback.endpoint` ([9.3](/docs/spec#feedback)). Don't offer a second
-  feedback operation in your APIs, so personal agents don't have to choose between them.
+- Take feedback from personal agents at `feedback.endpoint` ([9.3](/docs/spec#feedback)). If your
+  APIs also serve clients that don't read `poppy.json` and you keep a feedback operation for them,
+  say in its description that personal agents use `feedback.endpoint`. Ideally both feed the same
+  place.
 
 ### Operations {#company-operations}
 

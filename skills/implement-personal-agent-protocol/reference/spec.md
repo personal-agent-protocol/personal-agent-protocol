@@ -142,7 +142,7 @@ An example document:
 | `auth` | No | The Company's sign-in details: `issuer`, `disabled`, `scopes`, and `scope_hints`, below. |
 | `auth.issuer` | If the domain's protected resource metadata lists more than one authorization server | The Company's OAuth issuer identifier, naming the one Personal Agents use (3.2). It MUST be in that list. With one authorization server, the Company MAY leave it out, and if it includes it, it MUST name that server. |
 | `auth.disabled` | No | `true` if the Company offers Personal Agents no sign-in, even though it has an issuer (3.2). Defaults to `false`. |
-| `auth.scopes` | No | Scope descriptions, keyed by scope name, in the same form as the `scopes` of an OAuth 2.0 security scheme in OpenAPI. Recommended for scopes no OpenAPI description the Company lists describes (4.7). |
+| `auth.scopes` | No | Scope descriptions, keyed by scope name, in the same form as the `scopes` of an OAuth 2.0 security scheme in OpenAPI. Recommended for scopes no OpenAPI description the Company lists describes, and used over an OpenAPI description of the same scope (4.7). |
 | `auth.scope_hints` | No | Hints about what each scope allows, keyed by scope name: `changes` and `personal_data` (4.7). They apply wherever the scope is described. |
 | `agent` | At least one of `agent`, `apis`, or `web` | The Company Agent. `protocols` lists its supported conversation protocols, each with a `type` and HTTPS `endpoint` (section 8). A `poppy` entry may include an `access` hint (3.2). |
 | `apis` | At least one of `agent`, `apis`, or `web` | A list of APIs. Each has a `type`, such as those in section 7, a `url`, and a short `description` that helps the Personal Agent pick the right one. |
@@ -394,7 +394,7 @@ A signed-in request carries an access token in the `Authorization` header, with 
 
 **Tokens for one service.** By default, one access token works at all of a Company's services. A service that accepts only tokens issued for it says so in its protected resource metadata ([RFC 9728](https://www.rfc-editor.org/rfc/rfc9728)), with a `resource` other than `https://{organization.domain}`, as MCP servers do (section 7). The domain's own metadata (3.2) is for finding the issuer, and doesn't make any service need its own tokens.
 
-- Before its first signed-in call to an API or a conversation `endpoint`, the Personal Agent fetches the metadata at the URL RFC 9728 §3.1 defines from the service's URL (an MCP server's `url`, the URL in an OpenAPI description's `servers`, or the `endpoint`). If the metadata exists and its `resource` isn't `https://{organization.domain}`, the Personal Agent requests a token with `resource` set to it ([RFC 8707](https://www.rfc-editor.org/rfc/rfc8707)), at sign-in or refresh, and uses that token only there. Otherwise the default token works there, as it does at the other endpoints this protocol defines.
+- Before its first signed-in call to an API or a conversation `endpoint`, the Personal Agent fetches the metadata at the URL RFC 9728 §3.1 defines from the service's URL (an MCP server's `url`, the URL in an OpenAPI description's `servers`, or the `endpoint`). It uses the metadata only if its `resource` is the URL it derived the metadata URL from, as RFC 9728 §3.3 requires, and otherwise treats it as absent. If the metadata exists and its `resource` isn't `https://{organization.domain}`, the Personal Agent requests a token with `resource` set to it ([RFC 8707](https://www.rfc-editor.org/rfc/rfc8707)), at sign-in or refresh, and uses that token only there. Otherwise the default token works there, as it does at the other endpoints this protocol defines.
 - The Company accepts a token issued for a `resource` only at that service, and returns `invalid_target` for a `resource` it doesn't serve.
 - A service that gets a token not issued for it returns `invalid_token` with `resource_metadata` in its challenge (RFC 9728 §5.1), so a Personal Agent with stale metadata learns about it.
 
@@ -412,7 +412,7 @@ Scopes say what account access a sign-in grants. Each Company defines its own sc
 
 - `scopes_supported` in the OAuth server metadata lists the scopes the Company supports (3.2). A Personal Agent MAY also request scopes documented by the Company's APIs or sign-in extensions, even when absent from that list. The list MAY leave out scopes the Company offers only to its other clients, and the Company MAY limit the scopes it grants by client, as [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749#section-3.3) §3.3 allows.
 
-- The Company SHOULD describe each scope it offers Personal Agents, so the Personal Agent can choose the ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it lists (section 7), or otherwise in `auth.scopes`.
+- The Company SHOULD describe each scope it offers Personal Agents, so the Personal Agent can choose the ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it lists (section 7), or otherwise in `auth.scopes`. When both describe a scope, the Personal Agent uses the description in `auth.scopes`.
 
 - A Company MAY give hints about any scope in `auth.scope_hints`, so a Personal Agent can tell how consequential a scope is before requesting it. Each entry is keyed by scope name and describes the most consequential of the actions that require the scope, in two fields:
 
@@ -597,9 +597,11 @@ The resource verifies a Session JWT's delegation and signature in this order:
 
 When verifying a Session header (5.3), the Company MUST reject, with `invalid_session`, a Session JWT without a delegation, including one signed directly with a key from `jwks_uri`, and a Session JWT whose delegation fails any of these checks. A resource sees many Session JWTs with the same delegation, so it MAY cache a verified delegation until it expires.
 
-The Personal Agent decides when to create a new delegated key and get a new delegation for it, as long as each Session JWT carries a delegation that is valid when the Company checks it. Nothing the Company stores depends on a delegated key: Sessions are named by `sid` (5.2), and refresh tokens are tied to the `client_id`, not a key (4.4). So a Company MUST NOT expect a User's delegated key to stay the same between requests or Sessions, or treat a new one as a reason to reject a request.
+The Personal Agent decides when to create a new delegated key and get a new delegation for it, as long as each Session JWT carries a delegation that is valid when the Company checks it. Nothing the Company needs to store depends on a delegated key: Sessions are named by `sid` (5.2), and refresh tokens are tied to the `client_id`, not a key (4.4). So a Company MUST NOT expect a User's delegated key to stay the same between requests or Sessions, or treat a new one as a reason to reject a request.
 
 The Personal Agent MUST use each delegated key, and its delegation, for one User ID only: it signs with it only that User ID's Session JWTs. Each User ID is for one Company (5.1), so this gives every Company its own delegated keys. Otherwise Companies could match a User across Companies by the key's thumbprint or the delegation's `jti`, and a Company could match a User's anonymous User IDs with their regular one. User IDs stay the same while delegated keys change (5.1).
+
+A Company MAY reject, with `invalid_session`, a Session JWT whose delegated key has already signed for a different User ID while a delegation for the key lasts. This limits a leaked delegated key to one User (10.7).
 
 ### 5.3 Verifying the Session header
 

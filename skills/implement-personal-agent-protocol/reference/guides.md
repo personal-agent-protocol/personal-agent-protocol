@@ -256,6 +256,7 @@ When a company offers the [Mediated Sign-In extension](https://personalagentprot
 - Read the company's excluded tasks before you try a task there. When the user's task is one of them, tell the user right away instead of trying each interface ([9.1](https://personalagentprotocol.org/docs/0.4/spec#excluded-tasks)).
 - Offer the alternative when there is one. When it's something the user does themselves, such as a page that opens the company's app, give the user the link instead of browsing it yourself ([9.2](https://personalagentprotocol.org/docs/0.4/spec#alternatives)).
 - A web alternative can lead to another company's website or app. Show the link's destination domain. To act there, use that company's discovery and its own session and account access, rather than carrying the referring company's Session JWT or access token along.
+- Send feedback to `feedback.endpoint` ([9.3](https://personalagentprotocol.org/docs/0.4/spec#feedback)). A company's APIs may also have feedback operations meant for other clients.
 - When a company answers your feedback report with an alternative, try it before you tell the user the task can't be done ([9.3](https://personalagentprotocol.org/docs/0.4/spec#feedback)).
 - When you skip a company's skill index, or a skill in it, because you don't recognize its `$schema` or `type`, say so to the user if it matters for the task, so they know the company's guidance wasn't used ([9.4](https://personalagentprotocol.org/docs/0.4/spec#agent-context)).
 
@@ -352,7 +353,7 @@ When keeping session state:
 - Your authorization server doesn't see the Session header. Sign-in and refresh are plain OAuth, and a session is signed in on each request that carries an access token ([5.4](https://personalagentprotocol.org/docs/0.4/spec#sign-in)).
 - Remember the `sid`s of sessions you end, and answer them with `session_ended` ([5.5](https://personalagentprotocol.org/docs/0.4/spec#ending-sessions)). Choose a retention period that fits your session lifetimes.
 - Use separate sessions for separate accounts. If your policy refuses a second account in a session, answer with `session_ended` ([5.4](https://personalagentprotocol.org/docs/0.4/spec#sign-in)).
-- Don't expect a user's delegated key to stay the same (MUST NOT, [5.2](https://personalagentprotocol.org/docs/0.4/spec#delegated-keys)), and don't store anything by it.
+- Don't expect a user's delegated key to stay the same (MUST NOT, [5.2](https://personalagentprotocol.org/docs/0.4/spec#delegated-keys)). You can reject a delegated key that signs for a second user ID while a delegation for it lasts, which limits a leaked key to one user ([10.7](https://personalagentprotocol.org/docs/0.4/spec#delegated-key-security)).
 
 ### Token lifetimes and sign-out
 
@@ -546,7 +547,7 @@ For a conversation endpoint that requires account access before useful work, lis
 - Give an alternative whenever there is one. Link to the page, or the screen in your app, where the user can do the task ([9.2](https://personalagentprotocol.org/docs/0.4/spec#alternatives)).
 - Set caching headers on the document, and update it when you add or remove a task.
 - When a feedback report asks for a task you do offer, answer with an alternative that says how, so the personal agent can finish the task ([9.3](https://personalagentprotocol.org/docs/0.4/spec#feedback)).
-- Take feedback only at `feedback.endpoint` ([9.3](https://personalagentprotocol.org/docs/0.4/spec#feedback)). Don't offer a second feedback operation in your APIs, so personal agents don't have to choose between them.
+- Take feedback from personal agents at `feedback.endpoint` ([9.3](https://personalagentprotocol.org/docs/0.4/spec#feedback)). If your APIs also serve clients that don't read `poppy.json` and you keep a feedback operation for them, say in its description that personal agents use `feedback.endpoint`. Ideally both feed the same place.
 
 ### Operations
 

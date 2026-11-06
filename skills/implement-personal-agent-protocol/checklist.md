@@ -211,7 +211,7 @@ When keeping session state:
 - [ ] Your authorization server doesn't see the Session header. Sign-in and refresh are plain OAuth, and a session is signed in on each request that carries an access token (5.4).
 - [ ] Remember the `sid`s of sessions you end, and answer them with `session_ended` (5.5). Choose a retention period that fits your session lifetimes.
 - [ ] Use separate sessions for separate accounts. If your policy refuses a second account in a session, answer with `session_ended` (5.4).
-- [ ] Don't expect a user's delegated key to stay the same (MUST NOT, 5.2), and don't store anything by it.
+- [ ] Don't expect a user's delegated key to stay the same (MUST NOT, 5.2). You can reject a delegated key that signs for a second user ID while a delegation for it lasts, which limits a leaked key to one user (10.7).
 
 ### Recommended: [Internal services](https://personalagentprotocol.org/docs/0.4/guides#company-internal)
 
@@ -382,7 +382,7 @@ Personal agents work faster and more reliably through a company agent or APIs th
 - [ ] Give an alternative whenever there is one. Link to the page, or the screen in your app, where the user can do the task (9.2).
 - [ ] Set caching headers on the document, and update it when you add or remove a task.
 - [ ] When a feedback report asks for a task you do offer, answer with an alternative that says how, so the personal agent can finish the task (9.3).
-- [ ] Take feedback only at `feedback.endpoint` (9.3). Don't offer a second feedback operation in your APIs, so personal agents don't have to choose between them.
+- [ ] Take feedback from personal agents at `feedback.endpoint` (9.3). If your APIs also serve clients that don't read `poppy.json` and you keep a feedback operation for them, say in its description that personal agents use `feedback.endpoint`. Ideally both feed the same place.
 
 ### Recommended: [Error messages](https://personalagentprotocol.org/docs/0.4/guides#company-errors)
 

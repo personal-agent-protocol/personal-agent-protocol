@@ -108,6 +108,24 @@ A Company that sets `auth.disabled` and has never issued a refresh token to a Pe
 
 A Personal Agent uses each DPoP key for one User ID only, as it does each delegated key (5.2), so Companies can't link a User by the key's thumbprint. Version 0.2 had this rule, and 0.3 removed it with the other rules Poppy added to RFC 9449.
 
+#### Checking protected resource metadata
+
+[Spec 4.5](https://personalagentprotocol.org/docs/0.4/spec#access-tokens) · [Issue #75](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/75)
+
+A Personal Agent uses a service's protected resource metadata only if its `resource` is the URL it derived the metadata URL from, as RFC 9728 §3.3 requires, and otherwise treats it as absent.
+
+#### Scopes described twice
+
+[Spec 3.1](https://personalagentprotocol.org/docs/0.4/spec#fields) · [Spec 4.7](https://personalagentprotocol.org/docs/0.4/spec#scopes) · [Issue #75](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/75)
+
+When an OpenAPI security scheme and `auth.scopes` both describe a scope, the Personal Agent uses the description in `auth.scopes`.
+
+#### One User ID per delegated key at the Company
+
+[Spec 5.2](https://personalagentprotocol.org/docs/0.4/spec#session-header) · [Guides: Sessions](https://personalagentprotocol.org/docs/0.4/guides#company-sessions) · [Issue #75](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/75)
+
+A Company may reject, with `invalid_session`, a Session JWT whose delegated key has already signed for a different User ID while a delegation for the key lasts. The guides no longer say not to store anything by a delegated key.
+
 #### Operations: what a revision covers
 
 [Operations 3](https://personalagentprotocol.org/docs/0.4/extensions/operations#operation-object)
@@ -153,6 +171,12 @@ A refresh token is tied to the Personal Agent's `client_id`, not to a DPoP key, 
 [Guides: Operations](https://personalagentprotocol.org/docs/0.4/guides#agent-operations) · [Guides: Operations](https://personalagentprotocol.org/docs/0.4/guides#company-operations)
 
 The Company guide gives each new request a random `operation_id`, so a User can repeat an action, and the example ID no longer has characters IDs can't have. The `revision`'s HMAC covers the terms, the `client_id`, the User ID, and the account, and no longer the `summary`. A Company that doesn't store operations can't hold a price: it computes the terms again from current data and returns a new revision when they changed. The Personal Agent guide says it can send an approval of earlier terms the User prefers.
+
+#### Feedback operations for other clients
+
+[Guides: Task coverage](https://personalagentprotocol.org/docs/0.4/guides#agent-excluded-tasks) · [Guides: Excluded tasks and feedback](https://personalagentprotocol.org/docs/0.4/guides#company-excluded-tasks) · [Issue #75](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/75)
+
+A Company whose APIs also serve clients that don't read `poppy.json` can keep a feedback operation for them, with a description that sends Personal Agents to `feedback.endpoint`. The Personal Agent guide says to send feedback to `feedback.endpoint`.
 
 ## Version 0.3
 
