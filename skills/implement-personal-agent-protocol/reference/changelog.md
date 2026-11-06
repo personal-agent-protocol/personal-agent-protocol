@@ -54,17 +54,41 @@ A Company sets `web.disabled` to ask Personal Agents to use only its Company Age
 
 ### Minor changes
 
+#### A DPoP key per User ID
+
+[Spec 4.5](https://personalagentprotocol.org/docs/0.4/spec#access-tokens)
+
+A Personal Agent uses each DPoP key for one User ID only, as it does each delegated key (5.2), so Companies can't link a User by the key's thumbprint. Version 0.2 had this rule, and 0.3 removed it with the other rules Poppy added to RFC 9449.
+
+#### Operations: what a revision covers
+
+[Operations 3](https://personalagentprotocol.org/docs/0.4/extensions/operations#operation-object)
+
+A revision changes when the terms or `expires_at` change. A `summary` reworded without changing the terms can keep its revision.
+
+#### Operations: new terms for the same action
+
+[Operations 3](https://personalagentprotocol.org/docs/0.4/extensions/operations#operation-object)
+
+"New terms" names both ways an operation gets a new revision with the same `operation_id`: the User asks for different terms, or the Company's terms change, such as a price, so that an approval no longer matches.
+
+#### Operations: approval in another Session
+
+[Operations 3](https://personalagentprotocol.org/docs/0.4/extensions/operations#operation-object)
+
+Any Session of the same Personal Agent and User can approve an operation, including one that starts after the Session that returned it ends. An operation returned signed out still needs a signed-out Session, and one returned signed in still needs the same account.
+
 #### When and how the User approved
 
 [Operations 6](https://personalagentprotocol.org/docs/0.4/extensions/operations#sending-approval) · [Operations 8.1](https://personalagentprotocol.org/docs/0.4/extensions/operations#approval-proof)
 
 An approval can say when the User approved, in `approved_at`, and how they gave their answer, in `input_type`, such as `tap`, `typed`, or `voice`. The Personal Agent SHOULD include both. They are its statements, like the approval itself, and a Company doesn't reject an approval without them. Section 8.1 says a later version or extension can add a signature over the terms from the User's device.
 
-#### A DPoP key per User ID
+#### Operations: what counts as the same request
 
-[Spec 4.5](https://personalagentprotocol.org/docs/0.4/spec#access-tokens)
+[Operations 5](https://personalagentprotocol.org/docs/0.4/extensions/operations#approval) · [Operations 6](https://personalagentprotocol.org/docs/0.4/extensions/operations#sending-approval) · [Operations 9](https://personalagentprotocol.org/docs/0.4/extensions/operations#references)
 
-A Personal Agent uses each DPoP key for one User ID only, as it does each delegated key (5.2), so Companies can't link a User by the key's thumbprint. Version 0.2 had this rule, and 0.3 removed it with the other rules Poppy added to RFC 9449.
+The request with an approval has the same method, target URI, and content as the one that returned the operation. Other header fields can differ. The Company compares what the requests mean, not their bytes, and may ignore differences it considers inconsequential. It may also refuse a revision it has replaced with a later one, and the Personal Agent can still send an approval of an earlier revision the User prefers.
 
 ### Guides
 
@@ -75,6 +99,12 @@ Advice that goes with the spec. Guides aren't requirements.
 [Guides: Rotating keys](https://personalagentprotocol.org/docs/0.4/guides#both-key-rotation) · [Guides: Storing tokens](https://personalagentprotocol.org/docs/0.4/guides#agent-tokens) · [Guides: Token lifetimes and sign-out](https://personalagentprotocol.org/docs/0.4/guides#company-lifetimes)
 
 A refresh token is tied to the Personal Agent's `client_id`, not to a DPoP key, as RFC 9449 §5 says, so the guides advise Personal Agents to keep the client private key in a key service or hardware security module, apart from refresh tokens. Companies can rotate refresh tokens and detect reuse, as RFC 9700 §4.14.2 describes, and revoke every refresh token for a `client_id` whose key may have leaked. Personal Agents can rotate DPoP keys at refresh, using each for one User ID.
+
+#### Operations without storage
+
+[Guides: Operations](https://personalagentprotocol.org/docs/0.4/guides#agent-operations) · [Guides: Operations](https://personalagentprotocol.org/docs/0.4/guides#company-operations)
+
+The Company guide gives each new request a random `operation_id`, so a User can repeat an action, and the example ID no longer has characters IDs can't have. The `revision`'s HMAC covers the terms, the `client_id`, the User ID, and the account, and no longer the `summary`. A Company that doesn't store operations can't hold a price: it computes the terms again from current data and returns a new revision when they changed. The Personal Agent guide says it can send an approval of earlier terms the User prefers.
 
 ## Version 0.3
 

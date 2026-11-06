@@ -44,8 +44,10 @@ the request declares that version in `Poppy-Extensions`. Otherwise handle approv
   an `operation_id` for the action, a `revision` for its terms, a `summary` that holds everything that
   affects the action, `terms` if you want, and `expires_at`. When the terms change, keep the
   `operation_id` and return a new `revision`. Compute both from the request, so only performed
-  operations need storing. The `summary` can use bold, italics, and lists, but no links. An operation
-  from a signed-in Session belongs to the account.
+  operations need storing: a random `operation_id` for each new request, and a `revision` that
+  changes with the terms, not with rewording of the `summary`. The `summary` can use bold, italics,
+  and lists, but no links. Any Session of the same Personal Agent and User can approve an operation;
+  one from a signed-in Session belongs to the account.
   Set `expires_at` late enough for the User to read the terms and decide, unless you can't hold the
   terms that long.
 - **Asking**
@@ -57,9 +59,9 @@ the request declares that version in `Poppy-Extensions`. Otherwise handle approv
   ([Operations 6](https://personalagentprotocol.org/docs/0.4/extensions/operations#sending-approval)):
   read the `Poppy-Approval` header at APIs, `personalagentprotocol.org/approval` in an MCP tool call's
   `_meta`, and `extensions.operations.approval` on a Personal Agent's message. Make all three checks before acting; their
-  order is recommended. Preserve authorization, response semantics, and at-most-once behavior. When the
-  revision isn't one you returned, has expired, or the request doesn't match it, return a new
-  revision instead. Never answer an approval with the revision it names.
+  order is recommended. Preserve authorization, response semantics, and at-most-once behavior. Compare
+  what the request means, not its bytes. When the revision isn't one you returned, has expired, or the
+  request doesn't match it, return a new revision instead. Never answer an approval with the revision it names.
 - **At most once**
   ([Operations 7](https://personalagentprotocol.org/docs/0.4/extensions/operations#at-most-once)):
   perform each operation once, however often its approval comes. Remember a performed operation until its

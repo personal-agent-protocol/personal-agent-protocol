@@ -83,13 +83,13 @@ An operation is one action the Company will perform once the User approves it:
 }
 ```
 
-| Field          | Req. | Description                                                                                                                                                                                                                                        |
-| -------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `operation_id` | Yes  | Identifies the action, not a kind of action. It stays the same when the terms change (see "New terms"), and the Company MUST NOT use it for another action. It has the same characters as the IDs in [spec 8.2](/docs/spec#conversation-requests). |
-| `revision`     | Yes  | Identifies these terms. An opaque string with the same characters as the IDs in [spec 8.2](/docs/spec#conversation-requests), which the Company changes whenever the `summary`, `terms`, or `expires_at` change.                                   |
-| `summary`      | Yes  | The terms in plain language, written so the User can decide from it alone: what will happen, to what, and any cost, date, or condition. It MAY use basic Markdown (see "Formatting").                                                              |
-| `terms`        | No   | The same terms as a JSON object, for the Personal Agent to check. The Company defines its keys, as with `message.data` ([spec 8.4](/docs/spec#message-fields)).                                                                                    |
-| `expires_at`   | Yes  | The last time an approval of this revision is accepted ([RFC 3339](https://www.rfc-editor.org/rfc/rfc3339)).                                                                                                                                       |
+| Field          | Req. | Description                                                                                                                                                                                                                                                     |
+| -------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `operation_id` | Yes  | Identifies the action, not a kind of action. It stays the same when the terms change (see "New terms"), and the Company MUST NOT use it for another action. It has the same characters as the IDs in [spec 8.2](/docs/spec#conversation-requests).              |
+| `revision`     | Yes  | Identifies these terms. An opaque string with the same characters as the IDs in [spec 8.2](/docs/spec#conversation-requests), which the Company changes whenever the terms or `expires_at` change. A `summary` reworded without changing the terms can keep it. |
+| `summary`      | Yes  | The terms in plain language, written so the User can decide from it alone: what will happen, to what, and any cost, date, or condition. It MAY use basic Markdown (see "Formatting").                                                                           |
+| `terms`        | No   | The same terms as a JSON object, for the Personal Agent to check. The Company defines its keys, as with `message.data` ([spec 8.4](/docs/spec#message-fields)).                                                                                                 |
+| `expires_at`   | Yes  | The last time an approval of this revision is accepted ([RFC 3339](https://www.rfc-editor.org/rfc/rfc3339)).                                                                                                                                                    |
 
 Everything that affects the action, such as what it changes, any amount, date, or recipient, or a
 condition for cancelling, MUST be in the revision's `summary`, and in `terms` if present. The
@@ -105,12 +105,14 @@ The Personal Agent shows the User the `summary`, and MAY also show values from `
 Personal Agent MUST NOT render links, images, or HTML in a `summary`, and shows them as text, so a
 `summary` can't send the User elsewhere or load content while they decide.
 
-**New terms.** Terms can change before the User approves them, for example when the User asks for a
-different size in a conversation. The Company then returns the same `operation_id` with a new
-`revision`. The Company decides which requests are for the same action, from its own records, such
-as the order and item being exchanged. It MUST NOT give two different sets of terms the same
-`revision`, so an approval of one revision never applies to other terms. Whichever revision is
-approved, the Company MUST perform each operation at most once (7).
+**New terms.** The terms of an action can change before it's performed, in two ways. The User can
+ask for different terms, for example a different size in a conversation. Or the Company's terms can
+change, for example a price, so that an approval no longer matches them (6). The Company then
+returns the same `operation_id` with a new `revision`, and the User needs to approve the new terms.
+The Company decides which requests are for the same action, from its own records or from the
+approval a request carries. It MUST NOT give two different sets of terms the same `revision`, so an
+approval of one revision never applies to other terms. Whichever revision is approved, the Company
+MUST perform each operation at most once (7).
 
 A Company doesn't have to store operations that haven't been performed. The
 [guides](/docs/guides#company-operations) describe computing them from the request. In a
@@ -121,9 +123,10 @@ Company can't hold the terms that long, such as a price or a seat that can sell 
 how long the Company has to remember an approval (7), so a revision that can be approved for days is
 remembered for days.
 
-**Who can approve it.** An operation returned in a signed-out Session can be approved only in that
-Session. One returned in a signed-in Session belongs to the account: any Session of the same
-Personal Agent and User can approve it while signed in to the same account. A signed-out Session of
+**Who can approve it.** An operation can be approved in any Session of the same Personal Agent and
+User, including one that starts after the Session that returned it ends. An operation returned in a
+signed-out Session can be approved only while signed out. One returned in a signed-in Session belongs
+to the account: it can be approved only while signed in to the same account. A signed-out Session of
 the same Personal Agent and User gets a challenge for the account ([spec 7](/docs/spec#apis)), for example
 after the User signs out ([spec 5.5](/docs/spec#ending-sessions)).
 
@@ -226,7 +229,8 @@ approval states that the User approved this revision of the operation.
   and with what it asked for before asking for approval, and point out any difference to the User.
   The Company writes both, so the `summary` alone could describe something other than the `terms`.
 - An approval covers one revision. When a new revision arrives, the Personal Agent needs a new
-  approval for it.
+  approval for it. If the User prefers an earlier revision, the Personal Agent can send its
+  approval, but the Company may have replaced it (6).
 - If the User withdraws their approval before the Personal Agent has sent it, the Personal Agent
   doesn't send it.
 
@@ -249,10 +253,12 @@ Personal Agent's statements (8.1).
 
 ### APIs
 
-The Personal Agent sends the same request again, with the same method, URL, and body, and the
-approval in the `Poppy-Approval` header. The header is a Dictionary Structured Field ([RFC
-9651](https://www.rfc-editor.org/rfc/rfc9651)) with `operation_id`, `revision`, and `input_type` as
-Strings, and `approved_at` as an Integer:
+The Personal Agent sends the same request again, with the same method, target URI ([RFC 9110,
+section 7.1](https://www.rfc-editor.org/rfc/rfc9110#section-7.1)), and content, and the approval in
+the `Poppy-Approval` header. Other header fields can differ, such as a renewed access token or the
+Session header of another Session that can approve the operation (3). The header is a Dictionary
+Structured Field ([RFC 9651](https://www.rfc-editor.org/rfc/rfc9651)) with `operation_id`,
+`revision`, and `input_type` as Strings, and `approved_at` as an Integer:
 
 ```http label="Request: Personal Agent → Company"
 POST https://api.example.com/orders/ord_7Hk2/exchanges
@@ -332,8 +338,11 @@ action, and respond as the first one that fails says, whatever order it makes th
 2. The operation hasn't been performed already. If it has, or is being performed, the Company
    responds as section 7 describes.
 3. The `revision` is one the Company returned for this operation, it hasn't expired, and the request
-   asks for exactly what it describes. The API request or tool call is the one that returned the
-   operation, and in a conversation, the operation is the conversation's.
+   asks for exactly what it describes. The API request or tool call asks for the same action as the
+   one that returned the operation, and in a conversation, the operation is the conversation's. The
+   Company compares what the requests mean, not their bytes, and MAY ignore differences it considers
+   inconsequential, such as the order of JSON members. It MAY treat a revision it has replaced with
+   a later one as failing this check.
 
 If every check passes, the Company performs the action and responds as it would have without
 operations. If check 3 fails, it performs nothing and returns the operation with a revision for what
@@ -388,5 +397,5 @@ another member of the approval, which Companies that don't support it ignore.
 ## 9. References {#references}
 
 This extension uses [RFC 9651](https://www.rfc-editor.org/rfc/rfc9651) for the `Poppy-Approval`
-header, [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/) for `summary` formatting, and
+header, [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110) for the target URI, [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/) for `summary` formatting, and
 [draft-ietf-httpapi-idempotency-key-header](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/) for the `Idempotency-Key` header.
