@@ -1,0 +1,9 @@
+name: Something else
+description: Anything that doesn't fit the options above.
+body:
+    - type: textarea
+      id: description
+      attributes:
+          label: Details
+      validations:
+          required: true

@@ -1,5 +1,1 @@
-blank_issues_enabled: true
-contact_links:
-    - name: Report a security vulnerability
-      url: https://github.com/personal-agent-protocol/personal-agent-protocol/security/advisories/new
-      about: Report vulnerabilities in the protocol, the agent kit, or this site privately, not in a public issue.
+blank_issues_enabled: false
