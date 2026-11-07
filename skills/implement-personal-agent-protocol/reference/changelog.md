@@ -578,7 +578,7 @@ Web alternatives can point to any HTTPS website or app. API alternatives still n
 
 [Spec 6](https://personalagentprotocol.org/docs/0.3/spec#web-browsing) · [Issue #53](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/53)
 
-Section 6 restores the rule from 0.2 that a Personal Agent joins only a browser it controls to a Session, never the User's own browser. The browser-join redesign left it out. Otherwise, the Company would treat the User's own visits as the Personal Agent's. Acting in the User's own browser remains an [open topic](https://personalagentprotocol.org/docs/path-to-1#open-topics) for self-hosted personal agents.
+Section 6 restores the rule from 0.2 that a Personal Agent joins only a browser it controls to a Session, never the User's own browser. The browser-join redesign left it out. Otherwise, the Company would treat the User's own visits as the Personal Agent's. Acting in the User's own browser remains on the [roadmap](https://personalagentprotocol.org/docs/roadmap#self-hosted) for self-hosted personal agents.
 
 #### Browser join and an existing login
 

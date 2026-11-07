@@ -13,34 +13,21 @@ The [specification](https://personalagentprotocol.org/docs/0.4/spec) is a draft.
 - **We're implementing it with design partners.** The spec's authors are working through implementations with several of the [design partners](#partners).
 - **The spec changes based on what we learn.** Until 1.0, a revision can break compatibility with earlier drafts.
 
-## Feedback requested
+## Providing feedback
 
-Feedback is welcome from anyone, whether or not you're a partner. We're most interested in:
+Feedback is welcome from anyone, whether or not you're a partner.
 
-- **Privacy and security.** Weaknesses in sign-in, sessions, tokens, permissions, or how user data is handled.
-- **Gaps in the spec.** Something you needed that the draft doesn't cover, or something that doesn't work as written.
-- **Simplification.** Parts that could be simpler without losing what they make possible.
-- **Broadly useful extensions.** Things many implementations need, such as payments, that could be built as extensions. See [open topics](#open-topics).
-
-### How to give feedback
-
-Give feedback by [opening an issue](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/new) on GitHub. Feedback you send is licensed under the [contribution terms](https://personalagentprotocol.org/license/contributions).
+Give feedback by [opening an issue](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/new) on GitHub, or by commenting on an existing issue for a [roadmap](https://personalagentprotocol.org/docs/roadmap) topic. Feedback you send is licensed under the [contribution terms](https://personalagentprotocol.org/license/contributions).
 
 Two tools can help you write it:
 
-**Use the site's inline comments.** You can comment on any text on this site, then export your comments to share them. Enable site commenting, then select text to comment on it. To export, use the … button next to Comments, and paste or attach the export in your issue.
-
 **Review with an agent.** If you'd like an agent to review the docs, give it the [implementation kit](https://personalagentprotocol.org/kit/company), which includes all the docs. Paste the agent's review into your issue.
 
-## Open topics
+**Use the site's inline comments.** You can comment on any text on this site, then export your comments to share them. Enable site commenting, then select text to comment on it. To export, use the … button next to Comments, and paste or attach the export in your issue.
 
-These are larger areas the draft doesn't cover yet, listed so it's clear they are left out on purpose and not overlooked. The list isn't complete, and other gaps will come up as people implement the protocol.
+## Roadmap
 
-- **Payments.** How a personal agent makes payments in a way that fits the protocol, including how that works with existing payment protocols.
-- **Push notifications.** How a company reaches the personal agent when no request is open, for example when an order ships or a person replies hours later.
-- **Signed approvals.** How the user approves an operation with a key on their own device, such as a passkey, so the company can verify the approval instead of trusting the personal agent. That proves more only if the company knows the key is the user's, for example because the user registered it on the company's website, and the device shows the user the terms it signs.
-- **Attachments.** How company messages carry more than text and data, such as receipts, return labels, product images, or forms for the user to fill in.
-- **Self-hosted personal agents.** How a personal agent that runs on the user's own devices, such as a desktop app, a phone app, or a browser extension, identifies itself and signs in without a server that learns which companies each user works with, and how it can act in the browser where the user is already signed in.
+The [roadmap](https://personalagentprotocol.org/docs/roadmap) lists the areas we expect to work on before 1.0, including the ones the draft doesn't cover yet, such as payments, push notifications, and attachments.
 
 ## Design partners
 

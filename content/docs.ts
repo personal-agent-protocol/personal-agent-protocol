@@ -72,7 +72,15 @@ const TABS: TabInfo[] = [
                 navTitle: "Path to 1.0",
                 title: "Personal Agent Protocol: Path to 1.0",
                 description:
-                    "Where Personal Agent Protocol stands, how it gets to 1.0, the feedback we want, areas the draft doesn't cover yet, and the design partners implementing it.",
+                    "Where Personal Agent Protocol stands, how it gets to 1.0, how to give feedback, and the design partners implementing it.",
+                outlineDepth: 2,
+            },
+            {
+                slug: "roadmap",
+                navTitle: "Roadmap",
+                title: "Personal Agent Protocol: Roadmap",
+                description:
+                    "The areas Personal Agent Protocol expects to work on before 1.0, what each should achieve, and where each stands.",
                 outlineDepth: 2,
             },
             {

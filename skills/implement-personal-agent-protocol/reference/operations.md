@@ -291,7 +291,7 @@ It doesn't prove that the User saw the terms or approved them. The Company can't
 
 `approved_at` and `input_type` (6) are the Personal Agent's statements too. They help a Company keep a record and judge risk, but don't show how the User approved.
 
-Approvals the User signs are an [open topic](https://personalagentprotocol.org/docs/path-to-1#open-topics). A later version or extension can add a signature over the operation's terms, made on the User's device with a key the User registered with the Company, so the Company can verify the User's approval itself. It would be another member of the approval, which Companies that don't support it ignore.
+Approvals the User signs are on the [roadmap](https://personalagentprotocol.org/docs/roadmap#signed-approvals). A later version or extension can add a signature over the operation's terms, made on the User's device with a key the User registered with the Company, so the Company can verify the User's approval itself. It would be another member of the approval, which Companies that don't support it ignore.
 
 ## 9. References
 
