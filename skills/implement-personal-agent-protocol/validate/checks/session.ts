@@ -4,7 +4,7 @@
 import { sessionRequest } from "../agent.ts";
 import { isInvalidSession, noResponse } from "../http.ts";
 import { generateKey, randomId, signDelegation, thumbprint } from "../jose.ts";
-import { accepted, expectInvalidSession, findProbe } from "./resource.ts";
+import { accepted, findProbe } from "./resource.ts";
 import { skipRest, type Context, type Recorder } from "./types.ts";
 
 export const SESSION_IDS = [
@@ -13,8 +13,6 @@ export const SESSION_IDS = [
     "session.new-key",
     "session.new-session",
     "session.delegation-ps384",
-    "session.other-user",
-    "session.other-agent",
 ];
 
 // Why a Company might refuse the validator itself, for inconclusive results.
@@ -94,7 +92,7 @@ export async function checkSessions(ctx: Context, r: Recorder): Promise<void> {
             "session.continue",
             ex,
             "The same Session accepts a fresh Session JWT with its sid",
-            "A known sid continues its Session when the JWT has the same User ID and Agent ID (5.3).",
+            "The Company looks up the Session by client_id, sid, and User ID, so a fresh Session JWT with the same sid and User ID continues it (5.3).",
         );
     }
 
@@ -154,51 +152,6 @@ export async function checkSessions(ctx: Context, r: Recorder): Promise<void> {
                 ex,
                 "The resource accepts a delegation signed with PS384",
                 "Companies SHOULD accept delegations signed with PS384, which Personal Agents use to sign them blindly (5.2, 10.7). ES256 remains required. To support PS384, check the delegation with the RSA key its kid names.",
-            );
-        }
-    }
-
-    if (r.wants("session.other-user")) {
-        const ex = await sessionRequest(ctx, {
-            url: probe.url,
-            session: { sub: `usr_validator${randomId(12)}` },
-            note: "for the same Session, with a different User ID",
-        });
-        expectInvalidSession(
-            r,
-            "session.other-user",
-            ex,
-            accepted(probe, ex),
-            "The resource accepted a known sid with a different User ID. Look up the Session by client_id and sid, and reject a JWT whose sub or agent_id differs from the Session's (5.3).",
-        );
-    }
-
-    if (r.wants("session.other-agent")) {
-        // A new Session with an Agent ID, then the same sid with another.
-        const sid = randomId(16);
-        const first = await sessionRequest(ctx, {
-            url: probe.url,
-            session: { sid, agentId: `agt_validator${randomId(9)}` },
-            note: "starting a Session with an Agent ID",
-        });
-        if (!accepted(probe, first)) {
-            r.fail("session.other-agent", {
-                exchange: first,
-                expected: `${probe.kind === "conversation" ? "404 conversation_not_found" : "2xx"}: a Session started with an Agent ID`,
-                cause: "An unknown sid starts a Session with the verified client_id, User ID, and optional Agent ID (5.3), so a Session JWT with agent_id is accepted.",
-            });
-        } else {
-            const ex = await sessionRequest(ctx, {
-                url: probe.url,
-                session: { sid, agentId: `agt_validator${randomId(9)}` },
-                note: "for the same Session, with a different Agent ID",
-            });
-            expectInvalidSession(
-                r,
-                "session.other-agent",
-                ex,
-                accepted(probe, ex),
-                "The resource accepted a known sid with a different Agent ID. A Session JWT must have its Session's User ID and Agent ID (5.3).",
             );
         }
     }

@@ -981,10 +981,9 @@ ownership, continuity, or access to state, including creating or continuing a Se
    account access, whatever else it contains.
 3. If the request carries an access token, checks that `ath` matches it, and that the token was
    issued to the same `client_id` as `iss`. Without an access token, `ath` MUST be absent.
-4. Looks up the Session by `client_id` and `sid`. An unknown `sid` starts a signed-out Session with
-   the verified `client_id`, User ID, and optional Agent ID. A known `sid` continues its Session,
-   and the JWT MUST have that Session's User ID and Agent ID. It checks ended Sessions at this point
-   too (5.5).
+4. Looks up the Session by `client_id`, `sid`, and User ID. An unknown combination starts a
+   signed-out Session with the verified `client_id`, User ID, and optional Agent ID, and a known one
+   continues its Session. It checks ended Sessions at this point too (5.5).
 
 An endpoint that uses no Session claims MAY handle a request without verifying the header or
 requiring one. The Company MUST NOT use unverified Session claims to attribute a request to a
@@ -1050,8 +1049,8 @@ challenge, and an access token without the needed scopes gets `insufficient_scop
 
 ### 5.5 Ending Sessions and signing out {#ending-sessions}
 
-The Company decides how long a Session lasts, and keeps its record, with the User ID and Agent ID
-that 5.3 checks, only that long. To end a Session without signing out, the Personal
+The Company decides how long a Session lasts, and keeps its record, which 5.3 finds by `client_id`, `sid`,
+and User ID, only that long. To end a Session without signing out, the Personal
 Agent stops using its `sid`. Its refresh tokens are unaffected.
 
 An endpoint that uses Session claims checks whether the Session has ended. A Company MAY remember

@@ -273,12 +273,6 @@ test("a resource that rejects a known sid fails session.continue", async () => {
     assert.equal(byId("session.continue").status, "fail");
 });
 
-test("a Session continued with another User ID fails session.other-user", async () => {
-    const { byId } = await run({ ignoreSessionUser: true }, "foundation", ["session."]);
-    assert.equal(byId("session.continue").status, "pass");
-    assert.equal(byId("session.other-user").status, "fail");
-});
-
 for (const [flaw, id] of [
     ["acceptMissingSession", "session.missing"],
     ["acceptOtherTyp", "session.typ"],
@@ -346,12 +340,7 @@ test("a stateless API probe warns on Session verification while token validation
         ["session.", "token.invented"],
         { probe: `${ORIGIN}/api/orders` },
     );
-    for (const id of [
-        "session.unknown-key",
-        "session.aud",
-        "session.other-user",
-        "session.other-agent",
-    ]) {
+    for (const id of ["session.unknown-key", "session.aud"]) {
         assert.equal(byId(id).status, "warn");
         assert.equal(byId(id).level, "SHOULD");
         assert.ok(!byId(id).inconclusive);
@@ -363,18 +352,16 @@ test("a stateless API probe warns on Session verification while token validation
     assert.equal(byId("token.invented").level, "MUST");
 });
 
-test("a Session-dependent API probe still fails forged Session signatures and changed ownership", async () => {
+test("a Session-dependent API probe still fails forged Session signatures", async () => {
     const { byId } = await run(
-        { apiRequiresSession: true, acceptUnknownKey: true, ignoreSessionUser: true },
+        { apiRequiresSession: true, acceptUnknownKey: true },
         "foundation",
         ["session."],
         { probe: `${ORIGIN}/api/orders`, probeSession: true },
     );
     assert.equal(byId("session.missing").status, "pass");
-    for (const id of ["session.unknown-key", "session.other-user"]) {
-        assert.equal(byId(id).status, "fail");
-        assert.equal(byId(id).level, "MUST");
-    }
+    assert.equal(byId("session.unknown-key").status, "fail");
+    assert.equal(byId("session.unknown-key").level, "MUST");
 });
 
 test("an MCP server that answers without a token passes mcp.no-token", async () => {

@@ -121,9 +121,8 @@ verification. When verifying:
 - Without an access token, `ath` must be absent. With one, `ath` must match it, and the token must
   have been issued to the same `client_id` as `iss`. The access token side comes in the sign-in
   milestone, but build the check now.
-- Look up the Session by `client_id` and `sid`. An unknown `sid` starts a signed-out Session with
-  the User ID and optional Agent ID. A known `sid` must have the same User ID and Agent ID, and must
-  not have ended.
+- Look up the Session by `client_id`, `sid`, and User ID. An unknown combination starts a
+  signed-out Session with the optional Agent ID. A known one must not have ended.
 - Any failure returns HTTP 400 with `{"error": "invalid_session"}`, except an ended Session, which
   gets `{"error": "session_ended"}`.
 - Check `Poppy-Version` too. A missing one, or one you don't serve, returns HTTP 400 with
@@ -146,7 +145,7 @@ Keep error text free of account details
 ([guides](https://personalagentprotocol.org/docs/guides#company-errors)).
 
 **8. Records.** If the implementation uses Session identity or state, create the Session record,
-keyed by `client_id` and `sid`: User ID, optional
+keyed by `client_id`, `sid`, and User ID: optional
 Agent ID, whether it has ended, and later the account it used
 ([5.4](https://personalagentprotocol.org/docs/spec#sign-in)). See `patterns/session-records.md`.
 
@@ -190,7 +189,8 @@ Agent ID, whether it has ended, and later the account it used
   header, so the check can be bypassed.
 - Returning 401 or `invalid_token` for a bad Session header. It's 400 `invalid_session`; 401 is for
   access tokens.
-- Accepting a request whose `sid` is known but whose `sub` or `agent_id` differs.
+- Looking up the Session by `sid` alone, so a request with another `sub` continues another User's
+  Session.
 - Requiring a cookie, or accepting a token or Session JWT from a query parameter
   ([5.6](https://personalagentprotocol.org/docs/spec#sending-requests)).
 - Logging `Authorization`, `Poppy-Session`, `DPoP`, assertions, or request bodies at the token

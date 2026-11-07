@@ -204,6 +204,16 @@ anything by a delegated key.
 
 </Change>
 
+<Change title="Sessions found by User ID too" breaking sections="5.3, 5.5, guides#company-sessions">
+
+The Company looks up a Session by `client_id`, `sid`, and User ID. A request with a known `sid` and
+another User ID names a different Session instead of getting `invalid_session`, and the Company no
+longer checks the Agent ID, which is fixed when the Session starts. The Personal Agent rules don't
+change: it still never reuses a `sid` and sends the same `sub` and `agent_id` throughout a Session,
+so nothing changes on the wire.
+
+</Change>
+
 <Change title="Operations: what a revision covers" sections="Operations 3">
 
 A revision changes when the terms or `expires_at` change. A `summary` reworded without changing the

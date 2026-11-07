@@ -343,7 +343,7 @@ Verify Session headers generally (SHOULD, [5.3](https://personalagentprotocol.or
 
 ### Sessions
 
-A session is named by the `client_id` and `sid` of its Session JWTs ([5.3](https://personalagentprotocol.org/docs/0.4/spec#session-verification)). Keep the Poppy session record at your resources, alongside your existing OAuth integration. Session records don't need durable storage, and you keep each one only as long as the session lasts. Conversations are separate records that can outlast the session that started them ([8.2](https://personalagentprotocol.org/docs/0.4/spec#conversation-requests)).
+A session is named by the `client_id`, `sid`, and user ID of its Session JWTs ([5.3](https://personalagentprotocol.org/docs/0.4/spec#session-verification)). Keep the Poppy session record at your resources, alongside your existing OAuth integration. Session records don't need durable storage, and you keep each one only as long as the session lasts. Conversations are separate records that can outlast the session that started them ([8.2](https://personalagentprotocol.org/docs/0.4/spec#conversation-requests)).
 
 When keeping session state:
 

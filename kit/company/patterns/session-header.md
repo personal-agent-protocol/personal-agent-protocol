@@ -56,8 +56,8 @@ Each service verifies the header itself, with a shared library.
    acceptance window.
 5. With an access token, check `ath` is its SHA-256 hash and the token was issued to the same
    `client_id` as `iss`. Without one, `ath` must be absent.
-6. Look up the Session by `client_id` and `sid`. Create a signed-out Session for an unknown `sid`.
-   For a known one, check the same `sub` and `agent_id`, and that it hasn't ended.
+6. Look up the Session by `client_id`, `sid`, and `sub`. Create a signed-out Session for an unknown
+   one. For a known one, check that it hasn't ended.
 
 7. Check `Poppy-Version` is a version you serve
    ([3.4](https://personalagentprotocol.org/docs/spec#versions)). A missing or unsupported one
@@ -112,7 +112,7 @@ your server receives. Watch for path rewrites, such as a gateway that strips a p
   include every path on its host. Discovery and description documents, OAuth endpoints, and
   website pages don't carry the header. Browser join uses it only on the `/authorize` request.
 - Use an acceptance window of about a minute, plus a small clock skew.
-- Sessions are keyed by `client_id` and `sid`, never by a key. Refresh tokens are tied to the
+- Sessions are keyed by `client_id`, `sid`, and User ID, never by a key. Refresh tokens are tied to the
   `client_id` (4.4).
 - DPoP for access tokens is a separate, optional choice
   ([4.5](https://personalagentprotocol.org/docs/spec#access-tokens)). If your access tokens are

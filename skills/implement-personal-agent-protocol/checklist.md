@@ -74,9 +74,8 @@ are left out.
     - [ ] Fetches the client metadata from `iss` without following redirects, as the CIMD draft (§5) requires, and the public keys from its `jwks_uri` (4.1), following the address checks in section 3.
     - [ ] Verifies the JWT's delegation and signature, as Delegated keys (5.2) describes, then `typ` and the claims above: `aud` is its Company's identifier, compared character for character; `htm` and `htu` match the request as RFC 9449 §4.3 describes for DPoP proofs; and `iat` is within an acceptance window it chooses, such as one minute. The JWT never grants account access, whatever else it contains.
     - [ ] If the request carries an access token, checks that `ath` matches it, and that the token was issued to the same `client_id` as `iss`. Without an access token, `ath` MUST be absent.
-    - [ ] Looks up the Session by `client_id` and `sid`. An unknown `sid` starts a signed-out Session with the verified `client_id`, User ID, and optional Agent ID. A known `sid` continues its Session, and the JWT MUST have that Session's User ID and Agent ID. It checks ended Sessions at this point too (5.5).
+    - [ ] Looks up the Session by `client_id`, `sid`, and User ID. An unknown combination starts a signed-out Session with the verified `client_id`, User ID, and optional Agent ID, and a known one continues its Session. It checks ended Sessions at this point too (5.5).
 - [ ] **MUST**: Without an access token, `ath` MUST be absent.
-- [ ] **MUST**: A known `sid` continues its Session, and the JWT MUST have that Session's User ID and Agent ID.
 - [ ] **MUST NOT**: The Company MUST NOT use unverified Session claims to attribute a request to a Personal Agent, User, or Session, or to look up their state.
 - [ ] **MUST**: The Company MUST reject a request without the Session header when handling it depends on Session claims.
 

@@ -723,7 +723,7 @@ DPoP proof. To verify reliably:
 
 ### Sessions {#company-sessions}
 
-A session is named by the `client_id` and `sid` of its Session JWTs
+A session is named by the `client_id`, `sid`, and user ID of its Session JWTs
 ([5.3](/docs/spec#session-verification)). Keep the Poppy session record at your resources, alongside
 your existing OAuth integration. Session records don't need durable storage, and you keep each one only as long as the session
 lasts. Conversations are

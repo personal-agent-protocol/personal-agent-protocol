@@ -156,7 +156,7 @@ flowchart LR
 
 | Record        | Fields                                                                                        | Stored in | Maps to existing |
 | ------------- | --------------------------------------------------------------------------------------------- | --------- | ---------------- |
-| Session       | `client_id` and `sid` (the key), User ID, Agent ID, account it has used, ended or not         |           |                  |
+| Session       | `client_id`, `sid`, and User ID (the key), Agent ID, account it has used, ended or not        |           |                  |
 | Refresh token | `client_id`, account, scopes, expiry                                                          |           |                  |
 | Access token  | `client_id`, account, scopes, `resource` (if any), DPoP key (if bound), refresh token, expiry |           |                  |
 

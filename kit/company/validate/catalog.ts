@@ -379,13 +379,13 @@ export const CATALOG: CheckInfo[] = [
         "session.start",
         "A resource accepts a signed-out request with a valid Session header",
         "spec#session-verification",
-        "An unknown sid starts a signed-out Session with the verified client_id, User ID, and optional Agent ID.",
+        "An unknown combination starts a signed-out Session with the verified client_id, User ID, and optional Agent ID",
     ),
     foundation(
         "session.continue",
         "A fresh Session JWT with the same sid continues the Session",
         "spec#session-verification",
-        "A known sid continues its Session, and the JWT MUST have that Session's User ID and Agent ID.",
+        "Looks up the Session by client_id, sid, and User ID.",
     ),
     foundation(
         "session.new-key",
@@ -397,7 +397,7 @@ export const CATALOG: CheckInfo[] = [
         "session.new-session",
         "A new sid for the same User starts another Session",
         "spec#session-verification",
-        "An unknown sid starts a signed-out Session with the verified client_id, User ID, and optional Agent ID.",
+        "An unknown combination starts a signed-out Session with the verified client_id, User ID, and optional Agent ID",
     ),
     foundation(
         "session.delegation-ps384",
@@ -405,18 +405,6 @@ export const CATALOG: CheckInfo[] = [
         "spec#delegated-keys",
         "SHOULD accept delegations signed with PS384.",
         "SHOULD",
-    ),
-    foundation(
-        "session.other-user",
-        "A resource rejects a Session JWT that changes its Session's User ID",
-        "spec#session-verification",
-        "A known sid continues its Session, and the JWT MUST have that Session's User ID and Agent ID.",
-    ),
-    foundation(
-        "session.other-agent",
-        "A resource rejects a Session JWT that changes its Session's Agent ID",
-        "spec#session-verification",
-        "A known sid continues its Session, and the JWT MUST have that Session's User ID and Agent ID.",
     ),
 
     // Milestone 1: client assertions at the token endpoint (4.1).

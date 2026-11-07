@@ -99,9 +99,6 @@ export type Flaws = {
     rejectKnownSid?: boolean;
     // Allows one Session per User, so a new sid for a known User is rejected.
     oneSessionPerUser?: boolean;
-    // Doesn't check which User ID or Agent ID a Session belongs to.
-    ignoreSessionUser?: boolean;
-    ignoreAgentId?: boolean;
     // Refuses the test Personal Agent by policy: invalid_session at resources, invalid_client at
     // the token endpoint.
     refuseClient?: boolean;
@@ -335,7 +332,7 @@ paths: {}
 `;
 
 export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
-    // Each Session's User ID, Agent ID, and delegated key thumbprint, by sid.
+    // Each Session's User ID, Agent ID, and delegated key thumbprint, by sid and User ID.
     const sessions = new Map<string, { sub: string; agentId?: unknown; kid: string }>();
     const convs = new Map<string, Conversation>();
     // Accepted requests, by User and request ID (spec 8.3).
@@ -456,16 +453,14 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
         const sid = String(payload.sid);
         const sub = String(payload.sub);
         const kid = String(header.kid);
-        const session = sessions.get(sid);
+        const session = sessions.get(`${sid} ${sub}`);
         if (session) {
             if (flaws.rejectKnownSid) return bad();
-            if (session.sub !== sub && !flaws.ignoreSessionUser) return bad();
-            if (session.agentId !== payload.agent_id && !flaws.ignoreAgentId) return bad();
             if (session.kid !== kid && flaws.pinSessionKey) return bad();
         } else {
             if (flaws.oneSessionPerUser && [...sessions.values()].some((s) => s.sub === sub))
                 return bad();
-            sessions.set(sid, { sub, agentId: payload.agent_id, kid });
+            sessions.set(`${sid} ${sub}`, { sub, agentId: payload.agent_id, kid });
         }
         // The Company issued no access tokens, so any is invalid.
         if (auth && !flaws.ignoreAccessToken) return { error: invalidToken(), sub, sid };

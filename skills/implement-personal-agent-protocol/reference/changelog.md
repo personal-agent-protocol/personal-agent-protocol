@@ -132,6 +132,12 @@ When an OpenAPI security scheme and `auth.scopes` both describe a scope, the Per
 
 A Company may reject, with `invalid_session`, a Session JWT whose delegated key has already signed for a different User ID while a delegation for the key lasts. The guides no longer say not to store anything by a delegated key.
 
+#### Sessions found by User ID too
+
+Breaking · [Spec 5.3](https://personalagentprotocol.org/docs/0.4/spec#session-verification) · [Spec 5.5](https://personalagentprotocol.org/docs/0.4/spec#ending-sessions) · [Guides: Sessions](https://personalagentprotocol.org/docs/0.4/guides#company-sessions)
+
+The Company looks up a Session by `client_id`, `sid`, and User ID. A request with a known `sid` and another User ID names a different Session instead of getting `invalid_session`, and the Company no longer checks the Agent ID, which is fixed when the Session starts. The Personal Agent rules don't change: it still never reuses a `sid` and sends the same `sub` and `agent_id` throughout a Session, so nothing changes on the wire.
+
 #### Operations: what a revision covers
 
 [Operations 3](https://personalagentprotocol.org/docs/0.4/extensions/operations#operation-object)

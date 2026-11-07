@@ -5,13 +5,13 @@ use no Session claims need no Session record. Its OAuth server keeps its usual t
 ([5.3](https://personalagentprotocol.org/docs/0.4/spec#session-verification),
 [5.4](https://personalagentprotocol.org/docs/0.4/spec#sign-in)):
 
-| Record        | Holds                                                                                      |
-| ------------- | ------------------------------------------------------------------------------------------ |
-| Session       | `client_id` and `sid` (its key), User ID, optional Agent ID, account it used, ended or not |
-| Refresh token | `client_id`, account, granted scopes, and expiry                                           |
-| Access token  | `client_id`, account, scopes, `resource` if any, the refresh token it came from, expiry    |
+| Record        | Holds                                                                                       |
+| ------------- | ------------------------------------------------------------------------------------------- |
+| Session       | `client_id`, `sid`, and User ID (its key), optional Agent ID, account it used, ended or not |
+| Refresh token | `client_id`, account, granted scopes, and expiry                                            |
+| Access token  | `client_id`, account, scopes, `resource` if any, the refresh token it came from, expiry     |
 
-Find each Session by `client_id` and `sid` from the verified Session header. Sign-in doesn't touch
+Find each Session by `client_id`, `sid`, and User ID from the verified Session header. Sign-in doesn't touch
 Session records: a Session is signed in on each request that carries an access token, with that
 token's account and scopes. Record on the Session the account it has used, if the Company refuses
 account changes, and on conversations and operations whether they used the account.

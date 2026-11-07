@@ -139,8 +139,6 @@ const SCENARIOS: Scenario[] = [
     { flaws: { pinSessionKey: true }, fails: ["session.new-key"] },
     { flaws: { oneSessionPerUser: true }, fails: ["session.new-session"] },
     { flaws: { rejectPs384Delegation: true }, fails: ["session.delegation-ps384"] },
-    { flaws: { ignoreSessionUser: true }, fails: ["session.other-user"] },
-    { flaws: { ignoreAgentId: true }, fails: ["session.other-agent"] },
     { flaws: { acceptMissingSession: true }, fails: ["session.missing", "feedback.no-session"] },
     { flaws: { acceptOtherTyp: true }, fails: ["session.typ"] },
     {
