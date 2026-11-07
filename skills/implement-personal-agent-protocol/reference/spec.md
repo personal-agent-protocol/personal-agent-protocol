@@ -528,7 +528,7 @@ Authorization: Bearer eyJhbGciOi…Qp4w
 
 The Personal Agent MUST include every claim except `agent_id`, and `ath` when there's no access token. It MUST send the same `sub` and `agent_id`, or no `agent_id`, in every Session JWT for a Session.
 
-A Session JWT is fresh for each request, so a copied one works only for the same method and URL, and only briefly. Its `ath` ties it to the access token, and the access token was issued to the same `client_id`, so a copied access token is useless without the Personal Agent's key (5.3). If the access token is also DPoP-bound (4.5), the request carries both the Session JWT and a DPoP proof, each signed with its own key. The Session JWT doesn't replace DPoP: it names the Session and User, which a DPoP proof doesn't, and it covers signed-out requests, which have no token for a DPoP proof to bind to.
+A Session JWT is fresh for each request, so a copied one works only for the same method and URL, and only briefly. Its `ath` ties it to the access token, and the access token was issued to the same `client_id`, so a copied access token is useless without the Personal Agent's key (5.3). If the access token is also DPoP-bound (4.5), the request carries both the Session JWT and a DPoP proof, each signed with its own key. Both carry `ath`, so a Session header can be verified without DPoP, for example at a gateway. The Session JWT doesn't replace DPoP: it names the Session and User, which a DPoP proof doesn't, and it covers signed-out requests, which have no token for a DPoP proof to bind to.
 
 #### Delegated keys
 
