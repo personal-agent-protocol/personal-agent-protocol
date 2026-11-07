@@ -37,8 +37,8 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
   the URL ([5.6](https://personalagentprotocol.org/docs/spec#sending-requests)).
 - Return access token errors in the `WWW-Authenticate` header: a challenge with `scope` and no
   error code (401) for a signed-out request that needs the account, `invalid_token` (401),
-  `insufficient_scope` (403, with `scope`) for an access token without the scopes, and
-  `extension_required` (403). `invalid_session` and `version_unsupported` (400) are JSON bodies
+  and `insufficient_scope` (403, with `scope`) for an access token without the scopes.
+  `invalid_session` and `version_unsupported` (400) and `extension_required` (403) are JSON bodies
   (section 7).
 - Signed out, allow what a signed-out website visitor can do
   ([guides](https://personalagentprotocol.org/docs/guides#company-guest)). Endpoints that need an

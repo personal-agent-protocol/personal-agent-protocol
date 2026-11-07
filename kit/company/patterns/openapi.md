@@ -29,8 +29,8 @@ A new API, or a subset of existing endpoints, designed for Personal Agents.
 - A request that depends on Session claims without a verified Session header refused
   ([5.3](https://personalagentprotocol.org/docs/spec#session-verification)).
 - Access token errors in `WWW-Authenticate`: a 401 challenge with `scope` and no error code for a
-  signed-out request that needs the account, `invalid_token`, `insufficient_scope` with `scope`,
-  and `extension_required`. `invalid_session` and `version_unsupported` are 400 JSON bodies
+  signed-out request that needs the account, `invalid_token`, and `insufficient_scope` with
+  `scope`. `invalid_session` and `version_unsupported` (400) and `extension_required` (403) are JSON bodies
   (section 7).
 - A gateway in front of the API passes `Poppy-Version` and `Poppy-Extensions` through, or checks
   them itself where it verifies the Session header

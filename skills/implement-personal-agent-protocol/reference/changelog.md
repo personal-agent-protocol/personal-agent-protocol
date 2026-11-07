@@ -102,6 +102,12 @@ Any Company with an issuer that offers Personal Agents no sign-in can set `auth.
 
 A Company that sets `auth.disabled` and has never issued a refresh token to a Personal Agent may answer refresh and revocation requests without verifying the client assertion, because it has no tokens to protect. Once it has issued one, or turns sign-in on, it verifies them as usual.
 
+#### `extension_required` in a JSON body at APIs
+
+Breaking · [Spec 3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions) · [Spec 7](https://personalagentprotocol.org/docs/0.4/spec#apis)
+
+At APIs, `extension_required` is a JSON body, as it already was at the protocol's own endpoints, instead of a `WWW-Authenticate` challenge. It isn't an access token error or an RFC 6750 error code, and OAuth and MCP clients that read the challenge could treat it as a problem with the token.
+
 #### A DPoP key per User ID
 
 [Spec 4.5](https://personalagentprotocol.org/docs/0.4/spec#access-tokens)

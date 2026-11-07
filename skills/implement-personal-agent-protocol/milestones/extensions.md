@@ -24,8 +24,8 @@ Local copies: `reference/extensions.md` and `reference/operations.md`.
   doesn't declare the extension, unless the request itself uses it, such as Mediated Sign-In's
   grant type.
 - If you refuse a request that needs the extension, return `extension_required` (HTTP 403) with the
-  name in `extension`: a JSON body at endpoints the protocol or an extension defines, and in
-  `WWW-Authenticate` at APIs (3.3, section 7). An MCP server returns it only
+  name in `extension`, in a JSON body, at APIs as at the endpoints the protocol or an extension
+  defines (3.3, section 7). An MCP server returns it only
   to refuse the Personal Agent entirely, not for one tool.
 - The Company's own extensions are named with a domain it controls, such as `example.com/gift-wrap`.
   Plain names are reserved for the protocol.

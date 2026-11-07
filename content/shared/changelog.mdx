@@ -166,6 +166,14 @@ tokens to protect. Once it has issued one, or turns sign-in on, it verifies them
 
 </Change>
 
+<Change title="`extension_required` in a JSON body at APIs" breaking sections="3.3, 7">
+
+At APIs, `extension_required` is a JSON body, as it already was at the protocol's own endpoints,
+instead of a `WWW-Authenticate` challenge. It isn't an access token error or an RFC 6750 error code,
+and OAuth and MCP clients that read the challenge could treat it as a problem with the token.
+
+</Change>
+
 <Change title="A DPoP key per User ID" sections="4.5">
 
 A Personal Agent uses each DPoP key for one User ID only, as it does each delegated key (5.2), so

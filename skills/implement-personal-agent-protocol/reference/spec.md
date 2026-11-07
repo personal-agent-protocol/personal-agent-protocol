@@ -246,7 +246,7 @@ Extensions add optional features on top of this protocol. A Company lists the on
 - A Personal Agent declares the extensions it uses with a Company, one version of each, in the `Poppy-Extensions` header (3.4). It doesn't need to declare an extension that the Company recognizes from the request itself, such as one that defines its own grant type.
 - Personal Agents and Companies MUST ignore extensions and versions they don't support and fields they don't recognize, so either side can work with the other under this specification alone.
 - An extension can define content for conversation messages, which they carry in `extensions` (8.4). The extension MUST publish a [JSON Schema](https://json-schema.org/draft/2020-12) for that content.
-- A Company MAY refuse a request it handles only with an extension that the request doesn't declare, in a version the Company lists, unless the request itself uses the extension. It returns `extension_required` (HTTP 403) with the extension's name in `extension`. At endpoints this protocol or an extension defines, such as conversations, the error is a JSON body, like other errors there. At APIs, it goes in the `WWW-Authenticate` header, like the errors in section 7.
+- A Company MAY refuse a request it handles only with an extension that the request doesn't declare, in a version the Company lists, unless the request itself uses the extension. It returns `extension_required` (HTTP 403) with the extension's name in `extension`, in a JSON body, both at APIs and at endpoints this protocol or an extension defines. It isn't an access token error, so it doesn't go in `WWW-Authenticate` (section 7).
 
 *Response body: Company → Personal Agent*
 
@@ -822,7 +822,7 @@ Access token errors follow OAuth: they are in the `WWW-Authenticate` header ([RF
 | `invalid_session` | 400 | In a JSON body. A required Session header is missing or Session verification fails (5.3), or the Company refuses the `client_id` (4.1). A new Session doesn't fix it: the Personal Agent stops sending the request until it fixes the cause, such as an expired delegation or a wrong `htu`. |
 | `session_ended` | 400 | In a JSON body. The Session has ended, or the Company refuses an account change in it (5.4, 5.5). The Personal Agent starts a new Session and sends the request again, once. |
 | `version_unsupported` | 400 | In a JSON body. `Poppy-Version` is missing, or the Company doesn't serve a compatible version (3.4). The Personal Agent fetches `poppy.json` again, and if it chooses another version, starts a new Session and sends the request again, once. |
-| `extension_required` | 403 | In the `WWW-Authenticate` header. The request needs an extension it doesn't declare, named in the `extension` attribute (3.3). An MCP server returns it only to refuse the Personal Agent entirely, not for one tool. |
+| `extension_required` | 403 | In a JSON body. The request needs an extension it doesn't declare, named in `extension` (3.3). An MCP server returns it only to refuse the Personal Agent entirely, not for one tool. |
 
 Verifying a Session header identifies the Personal Agent and User. An unverified header does not establish either identity.
 
