@@ -586,8 +586,8 @@ It MAY send `scope` to ask for fewer scopes than the refresh token has, for exam
 for a task that only looks things up, and `resource` for a token for one service (4.5). The response
 has the token fields in 4.7.
 
-- Using a refresh token doesn't extend its lifetime. Refresh token rotation follows RFC 6749 §6: the
-  Personal Agent uses a new refresh token if the response has one, and keeps the old one otherwise.
+- Refresh token rotation follows RFC 6749 §6: the Personal Agent uses a new refresh token if the
+  response has one, and keeps the old one otherwise.
 - A refresh token isn't tied to a Session. Any of the User's Sessions can use access tokens from it
   (5.4).
 - A copied refresh token is useless without a client assertion from the Personal Agent. If the
@@ -726,8 +726,8 @@ Poppy's rate limits, and section 3.3 describes `extension_required`.
   `grant_types_supported`, including `refresh_token`, in the issuer's metadata (3.2); `iss` in every
   authorization response, and exact matching of `redirect_uri` as RFC 9700 requires (4.2); RFC
   10027's best practices for Device Sign-In, and a check of the sign-in link's host (4.3); a
-  refresh token from every sign-in, whose use doesn't extend its lifetime (4.4); and `scope` on
-  every sign-in request, with at least one scope granted and none beyond those requested (4.7).
+  refresh token from every sign-in (4.4); and `scope` on every sign-in request, with at least one
+  scope granted and none beyond those requested (4.7).
 - **Discovery and descriptions:** `poppy.json`, including `auth.disabled` to offer no sign-in and
   `web.disabled` to ask Personal Agents not to browse, supported versions, described scopes, and
   scope hints (section 3, 4.7).

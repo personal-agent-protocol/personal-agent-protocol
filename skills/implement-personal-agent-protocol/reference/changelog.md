@@ -108,6 +108,12 @@ Breaking · [Spec 3.3](https://personalagentprotocol.org/docs/0.4/spec#extension
 
 At APIs, `extension_required` is a JSON body, as it already was at the protocol's own endpoints, instead of a `WWW-Authenticate` challenge. It isn't an access token error or an RFC 6750 error code, and OAuth and MCP clients that read the challenge could treat it as a problem with the token.
 
+#### Refresh token lifetimes left to the Company
+
+[Spec 4.4](https://personalagentprotocol.org/docs/0.4/spec#refresh-tokens) · [Spec 4.8](https://personalagentprotocol.org/docs/0.4/spec#oauth-additions) · [Guides: Token lifetimes and sign-out](https://personalagentprotocol.org/docs/0.4/guides#company-lifetimes)
+
+Using a refresh token may extend its lifetime. Poppy no longer requires a fixed one, which neither OAuth nor the Personal Agent relies on, and the guides suggest a lifetime long enough that Users don't have to sign in again often.
+
 #### A DPoP key per User ID
 
 [Spec 4.5](https://personalagentprotocol.org/docs/0.4/spec#access-tokens)

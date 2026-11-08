@@ -117,8 +117,8 @@ second account.
   `token_endpoint` and `revocation_endpoint`, and only from the `client_id` it was issued to.
 - A refresh token isn't tied to a Session or a key. Any of the User's Sessions can use access tokens
   from it.
-- `scope` can narrow, never widen. `resource` asks for a token for one service. Using the token
-  doesn't extend its lifetime. Rotation is optional.
+- `scope` can narrow, never widen. `resource` asks for a token for one service. Rotation is
+  optional.
 - Expired or revoked: `invalid_grant`, and the Personal Agent continues signed out.
 
 **Signing out** ([4.6](https://personalagentprotocol.org/docs/0.4/spec#revocation)). RFC 7009 revocation

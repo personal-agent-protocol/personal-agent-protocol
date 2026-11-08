@@ -768,7 +768,7 @@ When keeping session state:
   changes that are hard to undo, tie it to the refresh token, so revoking access stops it right
   away.
 - Give refresh tokens a lifetime that fits the account, such as 90 days, and expire ones that go
-  unused sooner.
+  unused sooner. Keep it long enough that users don't have to sign in again often.
 - Revoke a user's refresh tokens when they reset their password or you suspect the account is
   compromised.
 - Consider issuing a new refresh token on each refresh and revoking the grant when an old one is

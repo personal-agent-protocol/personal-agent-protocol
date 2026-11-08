@@ -422,7 +422,7 @@ Personal agents work faster and more reliably through a company agent or APIs th
 - [ ] At sign-out, invalidate the access tokens issued under the revoked refresh token, as RFC 7009 §2.1 describes, or check on each request whether the authorization is still active, so sign-out takes effect right away. If you can do neither, keep access tokens to a few minutes (5.5).
 - [ ] Don't stop accepted work because the access token that started it expired. A job can outlast the token.
 - [ ] Where work in progress can take consequential actions on the user's account, such as payments or changes that are hard to undo, tie it to the refresh token, so revoking access stops it right away.
-- [ ] Give refresh tokens a lifetime that fits the account, such as 90 days, and expire ones that go unused sooner.
+- [ ] Give refresh tokens a lifetime that fits the account, such as 90 days, and expire ones that go unused sooner. Keep it long enough that users don't have to sign in again often.
 - [ ] Revoke a user's refresh tokens when they reset their password or you suspect the account is compromised.
 - [ ] Consider issuing a new refresh token on each refresh and revoking the grant when an old one is used again, as RFC 9700 §4.14.2 describes. If a refresh token is copied, the grant ends as soon as both copies have been used.
 - [ ] If a personal agent's signing key may have leaked, revoke every refresh token issued to its `client_id`. Its refresh tokens are tied to the `client_id`, not to a DPoP key (RFC 9449 §5).
