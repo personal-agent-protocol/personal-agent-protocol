@@ -89,6 +89,7 @@ const SECTIONS: Record<string, Record<string, Milestone>> = {
         "sending-approval": "extensions",
         "at-most-once": "extensions",
         "approval-proof": "extensions",
+        "website-security": "extensions",
     },
     guides: {
         "both-secrets": "foundation",

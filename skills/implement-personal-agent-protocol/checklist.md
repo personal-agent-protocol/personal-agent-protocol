@@ -508,14 +508,22 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
 - [ ] **MUST**: Whichever revision is approved, the Company MUST perform each operation at most once (7).
 - [ ] **SHOULD**: `expires_at` SHOULD leave the User long enough to read the terms and decide, unless the Company can't hold the terms that long, such as a price or a seat that can sell out.
 
+### Operations: [4. Asking for approval](https://personalagentprotocol.org/docs/0.4/extensions/operations#approval-required)
+
+- [ ] **SHOULD**: The Company's website SHOULD offer a way to make the original request again, such as a Continue button on the page that's waiting, so the Personal Agent can repeat the action once it's approved (6).
+- [ ] **SHOULD**: The Company's website SHOULD answer a page load or form submission with a page that says the action is waiting for the User's approval in their personal agent.
+- [ ] **SHOULD**: The Company's website SHOULD answer a request from its own scripts that accepts JSON, such as a `fetch`, with a JSON object with `error` set to `approval_required`, like an API's but without the operation.
+
 ### Operations: [6. Sending the approval](https://personalagentprotocol.org/docs/0.4/extensions/operations#sending-approval)
 
 - [ ] **MUST NOT**: A Company MAY record `approved_at` and `input_type`, and MUST NOT reject an approval because either is missing or because it doesn't recognize the `input_type`.
 - [ ] **MUST**: Companies MUST ignore members of `Poppy-Approval` they don't recognize, so later versions can add members.
+- [ ] **MUST NOT**: The Company MUST NOT accept an approval of a website's operation at an API, MCP server, or conversation, or an approval of another interface's operation at `endpoint`.
+- [ ] **MUST**: The Company MUST keep a recorded approval that isn't used up until the approved revision's `expires_at`, and MUST NOT apply it to requests from a Session that can't approve the operation.
 - [ ] **MUST**: After the Session header checks in spec 5.3 and the token checks in spec 7, the Company MUST make the following checks before performing the action, and respond as the first one that fails says, whatever order it makes them in internally:
     - [ ] The Session can approve the operation (3). If it can't, the Company handles the request as if it had no approval.
     - [ ] The operation hasn't been performed already. If it has, or is being performed, the Company responds as section 7 describes.
-    - [ ] The `revision` is one the Company returned for this operation, it hasn't expired, and the request asks for exactly what it describes. The API request or tool call asks for the same action as the one that returned the operation, and in a conversation, the operation is the conversation's. The Company compares what the requests mean, not their bytes, and MAY ignore differences it considers inconsequential, such as the order of JSON members. It MAY treat a revision it has replaced with a later one as failing this check.
+    - [ ] The `revision` is one the Company returned for this operation, it hasn't expired, and the request asks for exactly what it describes. The API request or tool call asks for the same action as the one that returned the operation, in a conversation, the operation is the conversation's, and at `endpoint`, the reference is the operation's. The Company compares what the requests mean, not their bytes, and MAY ignore differences it considers inconsequential, such as the order of JSON members. It MAY treat a revision it has replaced with a later one as failing this check.
 - [ ] **MUST NOT**: A Company MUST NOT answer an approval with the revision it names, so a Personal Agent never retries the same approval in a loop.
 
 ### Operations: [7. Retries and at most once](https://personalagentprotocol.org/docs/0.4/extensions/operations#at-most-once)
@@ -541,3 +549,8 @@ When you offer the Operations extension:
 - [ ] When you call another system to perform the action, such as a payment processor or a warehouse, derive its idempotency key from the operation ID. A retry then can't perform the action twice downstream either.
 - [ ] If a downstream call times out, ask that system whether the action happened, using your business reference, before trying again. Until you know, answer retries with 503 and `Retry-After` (Operations 7).
 - [ ] Keep a record of each approval: the operation, revision, `client_id`, account, and time. It shows what the personal agent stated the user approved (Operations 8.1).
+- [ ] To ask for approval on your website, make the reference in `Poppy-Operation` a sealed copy of the operation and the request's fingerprint, such as a JWS or an HMAC over who can approve it as for the `revision`, so you don't store operations nobody approved (Operations 4).
+- [ ] Keep recorded approvals in the store you use for performed operations, by the account, or by the personal agent's `client_id` and User ID when signed out, with a time to live set from `expires_at`. One record can go from approved to performing to performed (Operations 6).
+- [ ] When the browser repeats the request, check it against each unused approval recorded for that account or user as you would check a request that carries the approval: compute the terms and the HMAC again with the approved revision's `operation_id` and expiry. Mark the approval used when you perform the action, so a later request gets a new operation.
+- [ ] On the page that's waiting, tell the user the action needs their approval in their personal agent, and offer a Continue button that makes the original request again. A page that polls your own status endpoint can repeat the request itself once the approval is recorded. Don't use operations on the website for an action you can't repeat, such as one behind a single-use form token. Handle its approval yourself instead. Send `Poppy-Operation` on the response to the request itself, including a script's `fetch`, so it works for buttons as well as forms.
+- [ ] Make sure your CDN or web application firewall passes a 403 with `Poppy-Operation` through unchanged. Some replace the body of error responses with their own page or drop headers, and the personal agent then can't find the operation (Operations 4).

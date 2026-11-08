@@ -13,7 +13,7 @@ This guarantees two things:
 - **Approval covers the exact terms.** The User approves one revision of the terms, and the Company performs only what that revision describes.
 - **At most once.** A retry with the same approval never performs the action twice (7).
 
-This page defines version 2 of the `operations` extension. It uses the terms, Sessions, and tokens in the [specification](https://personalagentprotocol.org/docs/0.4/spec), and its examples continue the specification's jacket exchange. Operations add no endpoints. A Company chooses which actions need approval.
+This page defines version 2 of the `operations` extension. It uses the terms, Sessions, and tokens in the [specification](https://personalagentprotocol.org/docs/0.4/spec), and its examples continue the specification's jacket exchange. A Company chooses which actions need approval. Operations at APIs, MCP servers, and conversations add no endpoints. On a website, the Personal Agent's browser makes the request, and the Personal Agent gets the operation and sends the approval at an endpoint the extension adds (4, 6).
 
 ## 2. Advertising support
 
@@ -23,9 +23,11 @@ A Company that supports this extension lists it in `extensions` in its `poppy.js
 
 ```
 "extensions": {
-  "operations": [{ "version": "2" }]
+  "operations": [{ "version": "2", "endpoint": "https://example.com/poppy/operations" }]
 }
 ```
+
+A Company that asks for approval on its website lists `endpoint`, the HTTPS URL where the Personal Agent gets operations its website returned and sends their approvals (4, 6). It MUST list `web.browser_session_endpoint` with it ([spec 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)), because only a browser joined to a Session gets operations. A Company that returns no operations on its website doesn't list `endpoint` and doesn't serve it, and its website handles approval itself.
 
 Support means that the Company can return operations and accept approvals through the interfaces where it offers actions that need approval, and checks approvals and prevents duplicate execution as this extension defines.
 
@@ -39,7 +41,7 @@ Poppy-Extensions: "operations";v="2"
 
 Support means that the Personal Agent can receive operations, get the User's approval, send it through the interface that returned the operation, and handle retries as this extension defines, on each interface it uses.
 
-The extension is used only when the Company lists `operations` with `version` `"2"` and the request declares that version. A Company MUST NOT return operations in response to a request that doesn't declare it. It handles approval itself, such as on its website or in a Direct Conversation, or refuses the request with `extension_required` and `extension` set to `operations` ([spec 3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)). An MCP server returns that error only to refuse the Personal Agent entirely. A tool that needs the extension returns an ordinary tool error instead ([spec 7](https://personalagentprotocol.org/docs/0.4/spec#apis)).
+The extension is used only when the Company lists `operations` with `version` `"2"` and the request declares that version. A browser's requests declare the extensions that step 2 of its browser join declared ([spec 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)). A Company MUST NOT return operations in response to a request that doesn't declare it. It handles approval itself, such as on its website or in a Direct Conversation, or refuses the request with `extension_required` and `extension` set to `operations` ([spec 3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)). An MCP server returns that error only to refuse the Personal Agent entirely. A tool that needs the extension returns an ordinary tool error instead ([spec 7](https://personalagentprotocol.org/docs/0.4/spec#apis)).
 
 When only the Personal Agent supports this version, it uses the Company's interfaces without the extension and leaves approval to the Company. A different major version doesn't count as support for this version.
 
@@ -86,7 +88,7 @@ A Company doesn't have to store operations that haven't been performed. The [gui
 
 **Expiry.** `expires_at` SHOULD leave the User long enough to read the terms and decide, unless the Company can't hold the terms that long, such as a price or a seat that can sell out. It also sets how long the Company has to remember an approval (7), so a revision that can be approved for days is remembered for days.
 
-**Who can approve it.** An operation can be approved in any Session of the same Personal Agent and User, including one that starts after the Session that returned it ends. An operation returned in a signed-out Session can be approved only while signed out. One returned in a signed-in Session belongs to the account: it can be approved only while signed in to the same account. A signed-out Session of the same Personal Agent and User gets a challenge for the account ([spec 7](https://personalagentprotocol.org/docs/0.4/spec#apis)), for example after the User signs out ([spec 5.5](https://personalagentprotocol.org/docs/0.4/spec#ending-sessions)).
+**Who can approve it.** An operation can be approved in any Session of the same Personal Agent and User, including one that starts after the Session that returned it ends. An operation returned in a signed-out Session can be approved only while signed out. One returned in a signed-in Session belongs to the account: it can be approved only while signed in to the same account. A signed-out Session of the same Personal Agent and User gets a challenge for the account ([spec 7](https://personalagentprotocol.org/docs/0.4/spec#apis)), for example after the User signs out ([spec 5.5](https://personalagentprotocol.org/docs/0.4/spec#ending-sessions)). The same holds for an operation returned on a website, whose approval applies to a browser joined to any Session that can approve it (6).
 
 ## 4. Asking for approval
 
@@ -171,13 +173,88 @@ A Company message carries the operation in `extensions.operations.operation` ([s
 
 If the terms change during the conversation, the Company sends the new revision in a later message.
 
+### Websites
+
+When the request comes from a browser joined to a Session ([spec 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)), and the website handles it as that Session, the website performs nothing and responds with HTTP 403 and a reference to the operation in the `Poppy-Operation` header. The website handles a request as the Session when the browser is signed in through a join with an access token, or is signed out with no login of its own. A browser that kept a login its join didn't give it gets the website's own approval flow instead, because its operations would belong to an account the Session isn't signed in to (3).
+
+The header is a Dictionary Structured Field ([RFC 9651](https://www.rfc-editor.org/rfc/rfc9651)) with two Strings:
+
+- `sid` is the `sid` of the Session the website handled the request as ([spec 5.2](https://personalagentprotocol.org/docs/0.4/spec#session-header)), so the Personal Agent knows which of its Sessions, and which Company, the operation is for.
+- `ref` is the reference: at most 2048 characters from A–Z, a–z, 0–9, `-`, `_`, and `.`. The Company chooses its form. It works in any Session that can approve the operation (3).
+
+The Company's website SHOULD offer a way to make the original request again, such as a Continue button on the page that's waiting, so the Personal Agent can repeat the action once it's approved (6). An action the website can't repeat, such as one guarded by a single-use form token, isn't suited to operations on the website, and the website handles its approval itself.
+
+The body is for whatever made the request, and doesn't carry the operation, which the Personal Agent gets only from `endpoint`. The Company's website SHOULD answer a page load or form submission with a page that says the action is waiting for the User's approval in their personal agent. For the exchange submitted from the order page:
+
+*Response: Company → Personal Agent's browser*
+
+```
+HTTP/1.1 403 Forbidden
+Content-Type: text/html
+Cache-Control: no-store
+Poppy-Operation: sid="ses_Hq3vT8nW2kLm9xRb", ref="exc_5Rt2.1791487200.k3Jd9Qx2mW8v"
+
+<!doctype html>
+<title>Waiting for approval</title>
+<p>This exchange is waiting for your approval in your personal agent.</p>
+```
+
+The Company's website SHOULD answer a request from its own scripts that accepts JSON, such as a `fetch`, with a JSON object with `error` set to `approval_required`, like an API's but without the operation. The object MAY have other members, such as the website's own error fields:
+
+*Response: Company → Personal Agent's browser*
+
+```
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+Cache-Control: no-store
+Poppy-Operation: sid="ses_Hq3vT8nW2kLm9xRb", ref="exc_5Rt2.1791487200.k3Jd9Qx2mW8v"
+
+{ "error": "approval_required" }
+```
+
+The Personal Agent MUST take a reference only from the `Poppy-Operation` header of a response that its own browser received, never from page content or a message, and only when `sid` names a Session it joined that browser to. It ignores any other `Poppy-Operation` header. It sends the reference only to the `endpoint` of that Session's Company, so a header from anywhere else can't send its Session header to a new destination ([spec 5.2](https://personalagentprotocol.org/docs/0.4/spec#session-header)). It gets the operation by sending the reference there, with the Session header of that Session, or of another Session that can approve the operation (3), and the access token if signed in:
+
+*Request: Personal Agent → Company*
+
+```
+POST https://example.com/poppy/operations
+Poppy-Session: eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…
+Poppy-Version: 0.4
+Poppy-Extensions: "operations";v="2"
+Authorization: Bearer eyJhbGciOi…Qp4w
+Content-Type: application/json
+
+{ "ref": "exc_5Rt2.1791487200.k3Jd9Qx2mW8v" }
+```
+
+The endpoint checks the Session header and the access token as an API does ([spec 7](https://personalagentprotocol.org/docs/0.4/spec#apis)). It requires no scope: recording an approval performs nothing, and the browser's request performs the action with the browser's own access. For a reference to an operation the Session can approve (3), it responds as an API asks for approval, with the operation:
+
+*Response: Company → Personal Agent*
+
+```
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+
+{
+  "error": "approval_required",
+  "operation": {
+    "operation_id": "exc_5Rt2",
+    "revision": "1791487200-k3Jd9Qx2mW8v",
+    "summary": "Exchange the Stormline Jacket (M) on order ord_7Hk2 for the Stormline Insulated Jacket (M), for $70.00 more, charged to the card used for the order.",
+    "expires_at": "2026-10-08T12:20:00-07:00"
+  }
+}
+```
+
+A signed-out Session of the same Personal Agent and User gets a challenge for an operation that belongs to an account, as in section 3. Any other reference that the Session can't use, because the Company didn't return it, its operation has expired, or the Session can't approve it, gets HTTP 400 with `{"error": "invalid_request"}`. The Personal Agent then has its browser make the request again for a new one.
+
 ## 5. Getting the User's approval
 
 When a request returns an operation, the Personal Agent MUST NOT treat the action as done. It either gets the User's approval and sends it (6), or tells the User the action wasn't performed. An approval states that the User approved this revision of the operation.
 
 - The Personal Agent MUST show the User the Company's name and the revision's `summary`, and MUST take the User's answer through its own interface. It MUST NOT treat text from the Company, such as a conversation message, as the User's approval.
 - The Personal Agent MUST ask the User about each operation. It MUST NOT approve one on the User's behalf, even when the User said earlier that they would approve something like it.
-- When the operation has `terms`, the Personal Agent SHOULD check that they agree with the `summary` and with what it asked for before asking for approval, and point out any difference to the User. The Company writes both, so the `summary` alone could describe something other than the `terms`.
+- When the operation has `terms`, the Personal Agent SHOULD check that they agree with the `summary` and with what it asked for before asking for approval, and point out any difference to the User. The Company writes both, so the `summary` alone could describe something other than the `terms`. On a website, what it asked for is the action its browser just took (8.2).
 - An approval covers one revision. When a new revision arrives, the Personal Agent needs a new approval for it. If the User prefers an earlier revision, the Personal Agent can send its approval, but the Company may have replaced it (6).
 - If the User withdraws their approval before the Personal Agent has sent it, the Personal Agent doesn't send it.
 
@@ -261,13 +338,43 @@ The Personal Agent sends a message with the approval as a JSON object in `extens
 
 The message's `text` doesn't approve anything, whatever it says. Only the approval does. The Company Agent performs the action and says how it went in a later message.
 
+### Websites
+
+The approval never passes through the browser, and an operation returned on a website is approved only at `endpoint`. The Company MUST NOT accept an approval of a website's operation at an API, MCP server, or conversation, or an approval of another interface's operation at `endpoint`. The Personal Agent sends the same request to `endpoint` again, with the same body and the approval in the `Poppy-Approval` header, as at an API. The Company makes the checks below and, if they pass, records the approval for the operation and responds with HTTP 204. It performs nothing yet:
+
+*Request: Personal Agent → Company*
+
+```
+POST https://example.com/poppy/operations
+Poppy-Session: eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…
+Poppy-Version: 0.4
+Poppy-Extensions: "operations";v="2"
+Authorization: Bearer eyJhbGciOi…Qp4w
+Content-Type: application/json
+Poppy-Approval: operation_id="exc_5Rt2", revision="1791487200-k3Jd9Qx2mW8v", approved_at=1791487260, input_type="tap"
+
+{ "ref": "exc_5Rt2.1791487200.k3Jd9Qx2mW8v" }
+```
+
+The Personal Agent then has its browser make the action's request again, such as by pressing the page's Continue button, submitting the same form, or pressing the same button. The website MAY make it again itself, such as from a page that waits for the approval. Either way, section 7 keeps the action from happening twice.
+
+When a request from a browser joined to a Session asks for an action, the website looks for a recorded approval that the Session can approve (3) and that passes check 3 for the request, as if the request carried it. If several match, it uses the one recorded first, and each request uses up at most one. If it finds one, it makes check 2 and performs the action if it passes, and the approval is then used up. Otherwise, it handles the request as one without an approval, and returns a new reference as in section 4. At `endpoint`, a request that fails check 3 gets the response section 4 describes for its reference: the operation, or `invalid_request` once it has expired. The Company MUST keep a recorded approval that isn't used up until the approved revision's `expires_at`, and MUST NOT apply it to requests from a Session that can't approve the operation.
+
+**Looking up an approved operation.** Once an operation has a recorded approval, a request to `endpoint` with its reference and no approval responds with HTTP 200 and the operation's state in `status`: `approved` while the approval waits for the browser's request, `performing` while the Company performs the action or doesn't yet know whether it took effect, and `performed` after. The Company answers this way for as long as it remembers the operation (7):
+
+*Response body: Company → Personal Agent*
+
+```
+{ "operation_id": "exc_5Rt2", "status": "performed" }
+```
+
 ### What the Company checks
 
 After the Session header checks in [spec 5.3](https://personalagentprotocol.org/docs/0.4/spec#session-verification) and the token checks in [spec 7](https://personalagentprotocol.org/docs/0.4/spec#apis), the Company MUST make the following checks before performing the action, and respond as the first one that fails says, whatever order it makes them in internally:
 
 1. The Session can approve the operation (3). If it can't, the Company handles the request as if it had no approval.
 2. The operation hasn't been performed already. If it has, or is being performed, the Company responds as section 7 describes.
-3. The `revision` is one the Company returned for this operation, it hasn't expired, and the request asks for exactly what it describes. The API request or tool call asks for the same action as the one that returned the operation, and in a conversation, the operation is the conversation's. The Company compares what the requests mean, not their bytes, and MAY ignore differences it considers inconsequential, such as the order of JSON members. It MAY treat a revision it has replaced with a later one as failing this check.
+3. The `revision` is one the Company returned for this operation, it hasn't expired, and the request asks for exactly what it describes. The API request or tool call asks for the same action as the one that returned the operation, in a conversation, the operation is the conversation's, and at `endpoint`, the reference is the operation's. The Company compares what the requests mean, not their bytes, and MAY ignore differences it considers inconsequential, such as the order of JSON members. It MAY treat a revision it has replaced with a later one as failing this check.
 
 If every check passes, the Company performs the action and responds as it would have without operations. If check 3 fails, it performs nothing and returns the operation with a revision for what the request asks, as in section 4. A Company MUST NOT answer an approval with the revision it names, so a Personal Agent never retries the same approval in a loop.
 
@@ -275,9 +382,10 @@ If every check passes, the Company performs the action and responds as it would 
 
 - The Company MUST perform each operation at most once, however many times its approval is sent.
 - A request with the approval of an operation already performed gets the response the Company gave the first time, or one that says the same, for as long as the Company remembers the operation.
-- The Company MUST remember that it performed an operation at least until the approved revision's `expires_at`, and while it is being performed. After that, it MAY forget it. A retry then fails check 3 or is handled as a request without an approval, so it gets a new revision and the action still isn't performed twice. In a conversation, a message retried with the same ID gets the original response ([spec 8.3](https://personalagentprotocol.org/docs/0.4/spec#sending-messages)), and a new message with the same approval adds nothing.
+- The Company MUST remember that it performed an operation at least until the approved revision's `expires_at`, and while it is being performed. After that, it MAY forget it. A retry then fails check 3 or is handled as a request without an approval, so it gets a new revision and the action still isn't performed twice. On a website, the browser's request carries no approval, so once the action is performed, the next request for it is a new one and gets a new operation (6). In a conversation, a message retried with the same ID gets the original response ([spec 8.3](https://personalagentprotocol.org/docs/0.4/spec#sending-messages)), and a new message with the same approval adds nothing.
 - While an operation is being performed, or the Company doesn't know whether it took effect, for example after a timeout in one of its own systems, the Company MUST NOT respond as if it failed. An API or MCP server responds with HTTP 503 and a `Retry-After` header, or as it does for work that hasn't finished.
 - If a request with an approval fails or times out, the Personal Agent sends it again with the same approval. It MUST NOT ask the User to approve a new operation for the same action until it knows whether the first one was performed. A new operation in answer to a retry doesn't say, so the Personal Agent finds out another way, such as from the order in the Company's API.
+- On a website, if the browser's request fails or times out after the approval was recorded, the Personal Agent has the browser make it again. An approval that wasn't used up still applies. A new reference in answer means the approval was used up or no longer matches. Before asking the User about the new one, the Personal Agent looks up the earlier reference at `endpoint` (6): while it is `performing`, it waits, and when it is `performed`, it doesn't ask again.
 
 ## 8. Security considerations
 
@@ -293,9 +401,17 @@ It doesn't prove that the User saw the terms or approved them. The Company can't
 
 Approvals the User signs are on the [roadmap](https://personalagentprotocol.org/docs/roadmap#signed-approvals). A later version or extension can add a signature over the operation's terms, made on the User's device with a key the User registered with the Company, so the Company can verify the User's approval itself. It would be another member of the approval, which Companies that don't support it ignore.
 
+### 8.2 Operations on websites
+
+Anything that runs in the browser can send requests in its Session: the website's own scripts, including third-party ones, and pages that the Personal Agent's model was led to open. So on a website, only the Personal Agent's own request to `endpoint`, with the Session header and its access token, can approve an operation (6). Neither the browser's cookie nor anything a page can read or write is enough. A reference isn't a credential either: it gets an operation only in a Session that can approve it (3). The `sid` in `Poppy-Operation` isn't one either. It's in every Session JWT the Company receives, and the header shows it only to the browser already in that Session. Without the Personal Agent's key, it can't be used to sign a request.
+
+A script on the website can still make it return an operation the Personal Agent didn't ask for, because the script's requests belong to the Session too. The summary comes from the Company, so the User sees the real terms, but the Personal Agent SHOULD check that the operation is for the action its browser just took, and point out any difference to the User, as with `terms` (5).
+
+Once an approval is recorded, a request for exactly the approved revision from a browser in a Session that can approve it performs it, even one a page script sends. That performs only what the User approved, at most once.
+
 ## 9. References
 
-This extension uses [RFC 9651](https://www.rfc-editor.org/rfc/rfc9651) for the `Poppy-Approval` header, [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110) for the target URI, [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/) for `summary` formatting, and [draft-ietf-httpapi-idempotency-key-header](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/) for the `Idempotency-Key` header.
+This extension uses [RFC 9651](https://www.rfc-editor.org/rfc/rfc9651) for the `Poppy-Approval` and `Poppy-Operation` headers, [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110) for the target URI, [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/) for `summary` formatting, and [draft-ietf-httpapi-idempotency-key-header](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/) for the `Idempotency-Key` header.
 
 ---
 

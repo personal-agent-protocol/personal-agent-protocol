@@ -95,6 +95,7 @@ export const SECTION_NUMBERS: Record<string, string> = {
     "operations#at-most-once": "7",
     "operations#security": "8",
     "operations#approval-proof": "8.1",
+    "operations#website-security": "8.2",
     "operations#references": "9",
     "mediated-sign-in#intro": "1",
     "mediated-sign-in#support": "2",

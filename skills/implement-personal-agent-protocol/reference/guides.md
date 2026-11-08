@@ -280,6 +280,14 @@ When you support the [Operations extension](https://personalagentprotocol.org/do
 
 - After a request with an approval times out or gets a 503, send it again with the same approval, waiting for `Retry-After` if there is one. Don't ask the user to approve the action again until you know whether it happened ([Operations 7](https://personalagentprotocol.org/docs/0.4/extensions/operations#at-most-once)).
 
+- On a website, watch the responses your browser gets for `Poppy-Operation`, in the software that drives the browser, not the model. Use its `sid` to find your session and the company, ignore a header whose `sid` isn't a session you joined that browser to, and send the reference to that company's `endpoint`. Handle the response as an API's `approval_required` ([Operations 4](https://personalagentprotocol.org/docs/0.4/extensions/operations#approval-required)).
+
+- Before asking the user about an operation from a website, check that it's for the action your browser just took. A script on the page can make the website return another one ([Operations 8.2](https://personalagentprotocol.org/docs/0.4/extensions/operations#website-security)).
+
+- After the company records the approval, have the browser repeat the action, such as by pressing the page's Continue button or the same button as before, unless the page already moved on by itself ([Operations 6](https://personalagentprotocol.org/docs/0.4/extensions/operations#sending-approval)).
+
+- If repeating the action gets a new reference, look up the earlier one first. Don't ask the user about the new operation while the earlier one is `performing`, or once it's `performed` ([Operations 7](https://personalagentprotocol.org/docs/0.4/extensions/operations#at-most-once)).
+
 ## For companies
 
 ### Choosing capabilities
@@ -568,6 +576,11 @@ When you offer the [Operations extension](https://personalagentprotocol.org/docs
 - When you call another system to perform the action, such as a payment processor or a warehouse, derive its idempotency key from the operation ID. A retry then can't perform the action twice downstream either.
 - If a downstream call times out, ask that system whether the action happened, using your business reference, before trying again. Until you know, answer retries with 503 and `Retry-After` ([Operations 7](https://personalagentprotocol.org/docs/0.4/extensions/operations#at-most-once)).
 - Keep a record of each approval: the operation, revision, `client_id`, account, and time. It shows what the personal agent stated the user approved ([Operations 8.1](https://personalagentprotocol.org/docs/0.4/extensions/operations#approval-proof)).
+- To ask for approval on your website, make the reference in `Poppy-Operation` a sealed copy of the operation and the request's fingerprint, such as a JWS or an HMAC over who can approve it as for the `revision`, so you don't store operations nobody approved ([Operations 4](https://personalagentprotocol.org/docs/0.4/extensions/operations#approval-required)).
+- Keep recorded approvals in the store you use for performed operations, by the account, or by the personal agent's `client_id` and User ID when signed out, with a time to live set from `expires_at`. One record can go from approved to performing to performed ([Operations 6](https://personalagentprotocol.org/docs/0.4/extensions/operations#sending-approval)).
+- When the browser repeats the request, check it against each unused approval recorded for that account or user as you would check a request that carries the approval: compute the terms and the HMAC again with the approved revision's `operation_id` and expiry. Mark the approval used when you perform the action, so a later request gets a new operation.
+- On the page that's waiting, tell the user the action needs their approval in their personal agent, and offer a Continue button that makes the original request again. A page that polls your own status endpoint can repeat the request itself once the approval is recorded. Don't use operations on the website for an action you can't repeat, such as one behind a single-use form token. Handle its approval yourself instead. Send `Poppy-Operation` on the response to the request itself, including a script's `fetch`, so it works for buttons as well as forms.
+- Make sure your CDN or web application firewall passes a 403 with `Poppy-Operation` through unchanged. Some replace the body of error responses with their own page or drop headers, and the personal agent then can't find the operation ([Operations 4](https://personalagentprotocol.org/docs/0.4/extensions/operations#approval-required)).
 
 ### Error messages
 

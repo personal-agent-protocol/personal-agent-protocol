@@ -33,8 +33,8 @@ Local copies: `reference/extensions.md` and `reference/operations.md`.
 ## Operations version 2
 
 Optional. Build it for the actions that need the User's approval, on the interfaces that offer them
-([Operations 1](https://personalagentprotocol.org/docs/extensions/operations#intro)). It adds no
-endpoints. List `operations` with `version: "2"` in `poppy.json` and use it only when
+([Operations 1](https://personalagentprotocol.org/docs/extensions/operations#intro)). It adds an
+endpoint only for approval on your website. List `operations` with `version: "2"` in `poppy.json` and use it only when
 the request declares that version in `Poppy-Extensions`. Otherwise handle approval yourself, or refuse with
 `extension_required`. An MCP tool returns an ordinary tool error instead. See
 [Operations 2](https://personalagentprotocol.org/docs/extensions/operations#support).
@@ -67,6 +67,16 @@ the request declares that version in `Poppy-Extensions`. Otherwise handle approv
   perform each operation once, however often its approval comes. Remember a performed operation until its
   approved revision expires. Until then, a repeated approval gets the first response.
   While the outcome is unknown, answer with 503 and `Retry-After`, never as a failure.
+- **Websites,** if you ask for approval there
+  ([Operations 4](https://personalagentprotocol.org/docs/extensions/operations#approval-required),
+  [6](https://personalagentprotocol.org/docs/extensions/operations#sending-approval)): list
+  `endpoint` in the `operations` entry, with `browser_session_endpoint`. Without operations on your
+  website, don't list or serve it. Only for a browser whose join declared the extension, perform
+  nothing and respond with 403 and `Poppy-Operation`, with the Session's `sid` and a reference.
+  Offer a Continue button that repeats the request. At `endpoint`, answer the
+  reference like an API with `approval_required`, and the same request with `Poppy-Approval` by
+  recording the approval and returning 204. When a browser in a Session that can approve the
+  operation repeats the request, check it against the recorded approval and perform it once.
 
 ## Decisions for Operations
 
@@ -92,7 +102,9 @@ describes, or `extension_required`.
   changes nothing. The same request with the approval performs it, and sending it again doesn't
   perform it twice. A different body with the same approval, a revision you didn't return, and an
   expired revision each get a new revision. Make a downstream system time out and see 503 until the
-  outcome is known.
+  outcome is known. On a website, the reference gets the operation only in a Session that can
+  approve it, and the browser's repeated request performs the action only after the approval is
+  recorded.
 
 Also try a request with no `operations` in `Poppy-Extensions`, or with `v="1"`: return no operation
 and handle approval yourself, or refuse as above.

@@ -83,6 +83,26 @@ const OPERATIONS_EXAMPLES: Record<string, Target> = {
         },
     },
     "approval-required:3": "event.schema.json",
+    // A website's answer to its own script's request, without the operation.
+    "approval-required:4": {
+        type: "object",
+        required: ["error"],
+        properties: { error: { const: "approval_required" } },
+    },
+    // The Personal Agent sends a website's reference to the extension's endpoint.
+    "approval-required:5": {
+        type: "object",
+        required: ["ref"],
+        properties: { ref: { type: "string", pattern: "^[A-Za-z0-9._-]{1,2048}$" } },
+    },
+    "approval-required:6": {
+        type: "object",
+        required: ["error", "operation"],
+        properties: {
+            error: { const: "approval_required" },
+            operation: { $ref: "operation.schema.json" },
+        },
+    },
     // A request to the Company's own API, sent again with the approval in a header.
     "sending-approval:1": null,
     // An MCP tool call, whose schema is MCP's. Only the approval in _meta is the protocol's.
@@ -100,6 +120,21 @@ const OPERATIONS_EXAMPLES: Record<string, Target> = {
         },
     },
     "sending-approval:3": "message.schema.json",
+    // The same request to the endpoint, sent again with the approval in a header.
+    "sending-approval:4": {
+        type: "object",
+        required: ["ref"],
+        properties: { ref: { type: "string", pattern: "^[A-Za-z0-9._-]{1,2048}$" } },
+    },
+    // The state of an operation with a recorded approval, looked up at the endpoint.
+    "sending-approval:5": {
+        type: "object",
+        required: ["operation_id", "status"],
+        properties: {
+            operation_id: { $ref: "message.schema.json#/$defs/id" },
+            status: { enum: ["approved", "performing", "performed"] },
+        },
+    },
 };
 
 function checkExamples(
