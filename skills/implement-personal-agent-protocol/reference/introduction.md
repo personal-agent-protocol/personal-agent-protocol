@@ -22,7 +22,7 @@ As agents take on more of what people do online, the cost of all or nothing grow
 - **Controls, not policy.** The protocol offers a range of options, and each side chooses what fits. A company decides whether agents can work anonymously or must sign the user in, which personal agents to allow, which channels to offer, and how much access to grant. A user decides how to sign in and what the agent can see and do in their account.
 - **Secure and private.** We think Personal Agent Protocol can become part of the foundation of the internet, so it has to be trustworthy. A personal agent always identifies itself, but until the person signs in, the company knows them only by an ID that contains no personal information. The ID stays the same over time, so the company can recognize a returning user, but it is different at every company. Companies can choose which sign-in options meet their security needs, and access is limited to what was granted and can be revoked.
 - **Progressive adoption.** A company can start with only a website, only APIs, or only an agent, and add more over time, without rebuilding its existing systems.
-- **Extensible.** Discovery, identity, APIs, and conversations are building blocks that companies and industries can extend, for example to add payments, push notifications, or interactive elements.
+- **Extensible.** Discovery, identity, APIs, and conversations are building blocks that companies and industries can extend. Extensions already add approval of exact terms before an action, links and disclosures in messages, and checkout through UCP.
 
 ---
 

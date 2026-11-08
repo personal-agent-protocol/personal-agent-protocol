@@ -185,28 +185,31 @@ export function HomeContent() {
                                 <h3>Discovery</h3>
                                 <p>
                                     A document at <code>/.well-known/poppy.json</code> identifies
-                                    the organization and says how to start sessions and sign in,
-                                    along with the APIs and company agent it offers.
+                                    the organization and lists the APIs, website, and company agent
+                                    it offers, and the access agents can ask for. Standard OAuth
+                                    metadata says where to sign in.
                                 </p>
                             </div>
                             <div className="feature">
                                 <h3>Standard sign-in</h3>
                                 <p>
                                     The user signs in on the company's own page through standard
-                                    OAuth and chooses what access to grant. If the company allows
-                                    it, the personal agent can also sign in for the user with the
-                                    credentials the company asks for, such as an email and password.
+                                    OAuth and chooses what access to grant. A company that can't
+                                    offer that yet can let the personal agent sign in for the user,
+                                    through an extension, with the credentials the company asks for,
+                                    such as an email and password.
                                 </p>
                             </div>
                             <div className="feature">
                                 <h3>One session across interfaces</h3>
                                 <p>
                                     One session covers API calls, conversations, and web browsing.
-                                    APIs and conversations use a short-lived session token, bound to
-                                    a key only the personal agent holds. Signing in gives the
-                                    personal agent lasting access, within the scopes the company
-                                    allows for that sign-in type, until it expires or the user or
-                                    the company revokes it.
+                                    The personal agent signs a header on each API and conversation
+                                    request with a short-lived key, naming the session and an ID for
+                                    the user that is different at each company. Signing in adds an
+                                    access token, and gives the personal agent lasting access within
+                                    the scopes granted, until it expires or the user or the company
+                                    revokes it.
                                 </p>
                             </div>
                         </div>
@@ -229,9 +232,10 @@ export function HomeContent() {
                                 <h3>Web page access</h3>
                                 <p>
                                     A personal agent can browse the company's website in the same
-                                    session. The agent's browser proves which session it belongs to,
-                                    and the company sets its own cookie, so it recognizes the user
-                                    and applies their sign-in permissions on each page.
+                                    session. Its browser gets a one-time code from the company that
+                                    the agent authorizes, and the company sets its own cookie, so it
+                                    recognizes the user on each page. Browsing signed in takes its
+                                    own scope, and a company can ask agents not to browse at all.
                                 </p>
                             </div>
                             <div className="feature">
@@ -247,9 +251,9 @@ export function HomeContent() {
                                 <h3>Extensions</h3>
                                 <p>
                                     Discovery, identity, APIs, and conversations are all open to
-                                    extension. Companies and industries can build on them to add
-                                    things like payments, push notifications, or interactive
-                                    elements.
+                                    extension. Extensions already add approval of exact terms before
+                                    an action, links and disclosures in messages, and checkout
+                                    through UCP, and companies and industries can add their own.
                                 </p>
                             </div>
                         </div>

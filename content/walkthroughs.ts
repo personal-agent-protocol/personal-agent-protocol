@@ -31,20 +31,33 @@ const MADRONE = {
 };
 const LAUREL = { name: "Laurel Fiber", domain: "laurelfiber.example", color: "#5f3dc4", logo: "L" };
 
-// Signed-out Session Tokens are agent-issued JWTs. Signed-in tokens are company-issued and opaque.
-// Both are shortened here. Signing in replaces the token and keeps the Session Key.
+// Access tokens are company-issued and opaque, shortened here. A signed-out request carries none.
 const TOKENS = {
-    manzanitaSignedOut: "eyJhbGciOi…Lm9x",
     manzanita: "eyJhbGciOi…Qp4w",
-    laurelSignedOut: "eyJhbGciOi…Xr3e",
     laurel: "eyJhbGciOi…Tc6r",
     pacifica: "eyJhbGciOi…Nv1p",
     arroyo: "eyJhbGciOi…Qs2v",
     madrone: "eyJhbGciOi…Wx3z",
+    chaparral: "eyJhbGciOi…Hd4k",
 };
 
-// Atlas signs a new DPoP Proof for every request. All proofs are shortened to this placeholder.
-const DPOP = "eyJ0eXAiOiJkcG9wK2p3dCIs…";
+// Atlas signs a new Session JWT for every request to a company's APIs and protocol endpoints. All
+// of them are shortened to this placeholder.
+const SESSION = "eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…";
+
+// Manzanita lists Operations version 2, so Atlas declares it on each request there.
+const OPERATIONS = `"operations";v="2"`;
+
+// The headers of a request with the Session header: the protocol version, the extensions Atlas uses
+// with the company, if any, and the access token when signed in.
+function poppyHeaders(token?: string, extensions?: string): string {
+    return [
+        `Poppy-Session: ${SESSION}`,
+        `Poppy-Version: ${LATEST.id}`,
+        ...(extensions ? [`Poppy-Extensions: ${extensions}`] : []),
+        ...(token ? [`Authorization: Bearer ${token}`] : []),
+    ].join("\n");
+}
 
 // Every token request carries Atlas's client assertion.
 const CLIENT_AUTH = `&client_id=https%3A%2F%2Fatlas.example%2Fagent.json
@@ -63,7 +76,7 @@ export const walkthroughs: Walkthrough[] = [
                 time: "Thu 7:31 PM",
                 title: "Finding Manzanita",
                 caption:
-                    "The user wants to return a jacket. Atlas reads poppy.json, a file Manzanita publishes on its website, to learn how to reach Manzanita's own agent. Both list Operations version 2 in their metadata, so Atlas can get the user's approval before an exchange.",
+                    "The user wants to return a jacket. Atlas reads poppy.json, a file Manzanita publishes on its website, to learn how to reach Manzanita's own agent. Manzanita lists Operations version 2, and Atlas supports it too, so Manzanita can ask for the user's approval before an exchange.",
                 chat: [
                     {
                         t: "user",
@@ -98,7 +111,6 @@ Content-Type: application/json
     "domain": "manzanitasupply.example"
   },
   "auth": {
-    "issuer": "https://auth.manzanitasupply.example",
     "scopes": {
       "orders:read": "See your orders and returns",
       "orders:write": "Return or exchange items in your orders"
@@ -113,18 +125,27 @@ Content-Type: application/json
     ]
   },
   "extensions": {
-    "operations": { "version": "2" }
+    "operations": [{ "version": "2" }]
   }
-}`,
+}
+
+// Atlas supports Operations version 2 too, so it declares it
+// in the Poppy-Extensions header of each request to Manzanita.`,
                     },
                     {
-                        dir: "Manzanita → atlas.example",
-                        kind: "client metadata excerpt",
-                        body: `// Atlas's client metadata document at https://atlas.example/agent.json
-// advertises the same version of the Operations extension.
-"extensions": {
-  "operations": { "version": "2" }
-}`,
+                        dir: "Atlas → manzanitasupply.example",
+                        kind: "protected resource metadata",
+                        body: `GET https://manzanitasupply.example/.well-known/oauth-protected-resource
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "resource": "https://manzanitasupply.example",
+  "authorization_servers": ["https://auth.manzanitasupply.example"]
+}
+
+// The one authorization server listed is Manzanita's issuer.`,
                     },
                     {
                         dir: "Atlas → auth.manzanitasupply.example",
@@ -147,7 +168,7 @@ Content-Type: application/json
   "protected_resources": ["https://manzanitasupply.example"]
 }
 
-// Atlas checks that issuer matches auth.issuer and that
+// Atlas checks that issuer matches the one it found and that
 // protected_resources includes https://manzanitasupply.example.
 // authorization_code means Direct Sign-In is offered.`,
                     },
@@ -157,7 +178,7 @@ Content-Type: application/json
                 time: "Thu 7:31 PM",
                 title: "Starting signed out",
                 caption:
-                    "Atlas signs a token for a session: Manzanita's record of this user working through Atlas. It starts signed out, so Atlas can ask about the return right away. Manzanita replies that it needs the user to sign in.",
+                    "Atlas starts a session, Manzanita's record of this user working through Atlas, by sending a header it signs with its first request. The session starts signed out, so Atlas can ask about the return right away. Manzanita replies that it needs the user to sign in.",
                 chat: [
                     {
                         t: "agent",
@@ -184,30 +205,39 @@ Content-Type: application/json
                 },
                 wire: [
                     {
-                        dir: "Atlas signs a token",
-                        kind: "signed-out session token",
-                        body: `// Atlas signs this JWT with its published agent key.
-// It sends the token directly to Manzanita with DPoP.
-// cnf.jkt names the key of this Session.
+                        dir: "Atlas signs a Session JWT",
+                        kind: "Poppy-Session header",
+                        body: `// Atlas signs this JWT for the request below and sends it
+// in the Poppy-Session header. Its header and payload:
+{
+  "typ": "poppy-session+jwt",
+  "alg": "ES256",
+  "kid": "9E421cSqd5UfAq5slDKYxXQd8Zmm8B3CIsT9cDxRHx8",
+  "poppy_dlg": "eyJhbGciOiJFUzI1NiIsInR5cCI6InBvcHB5LWRlbGVnYXRpb24rand0Iiw…"
+}
+.
 {
   "iss": "https://atlas.example/agent.json",
-  "sub": "usr_Q7c1vK",
   "aud": "https://auth.manzanitasupply.example",
-  "iat": 1790900000,
-  "exp": 1790900060,
-  "cnf": { "jkt": "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I" }
+  "sid": "Yx2b7Qd_Kp8mR3vT1nWc4A",
+  "sub": "usr_Q7c1vK",
+  "htm": "POST",
+  "htu": "https://api.manzanitasupply.example/poppy/conversations",
+  "iat": 1791513079,
+  "jti": "e1j3V_bKic8-LAEBq7Rw2g"
 }
 
-// Manzanita verifies the token with Atlas's published
-// keys and the proof with the Session Key. A new key
-// creates a Session. There is no token endpoint request.`,
+// sub is the user's ID at Manzanita, which holds nothing
+// personal, and sid names the Session. A short-lived key
+// signs the JWT, and poppy_dlg carries the delegation that
+// one of Atlas's published keys signed for it. A new sid
+// starts a Session. There is no token endpoint request.`,
                     },
                     {
                         dir: "Atlas ↔ api.manzanitasupply.example",
                         kind: "new conversation",
                         body: `POST https://api.manzanitasupply.example/poppy/conversations?wait=10
-Authorization: DPoP ${TOKENS.manzanitaSignedOut}
-DPoP: ${DPOP}
+${poppyHeaders(undefined, OPERATIONS)}
 Content-Type: application/json
 
 {
@@ -306,9 +336,7 @@ Content-Type: application/json
   &state=Xq81vR
   &code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM
   &code_challenge_method=S256
-  &dpop_jkt=0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I
 
-// dpop_jkt binds the code to the Session's key.
 // The user signs in on Manzanita's page and approves access.
 // Manzanita sends the browser back to Atlas with a code:
 
@@ -318,11 +346,10 @@ https://atlas.example/oauth/callback
   &iss=https%3A%2F%2Fauth.manzanitasupply.example
 
 // Atlas checks that state matches and that iss is
-// Manzanita's auth.issuer, then exchanges the code.
+// Manzanita's issuer, then exchanges the code.
 
 POST https://auth.manzanitasupply.example/oauth/token
 Content-Type: application/x-www-form-urlencoded
-DPoP: ${DPOP}
 
 grant_type=authorization_code
 &code=SplxlOBeZQQYbYS6WxSbIA
@@ -336,15 +363,16 @@ Cache-Control: no-store
 
 {
   "access_token": "${TOKENS.manzanita}",
-  "token_type": "DPoP",
+  "token_type": "Bearer",
   "expires_in": 3600,
   "refresh_token": "pat_M8xk…Rf2",
-  "refresh_token_expires_in": 2592000,
   "scope": "orders:read orders:write"
 }
 
-// refresh_token is the Account Token. Atlas keeps it
-// so the user won't need to sign in next time.`,
+// Sign-in doesn't change the Session. Its requests now carry
+// the access token too, and each Session JWT's ath covers it.
+// Atlas keeps the refresh token so the user won't need to
+// sign in next time.`,
                     },
                 ],
             },
@@ -352,11 +380,11 @@ Cache-Control: no-store
                 time: "Thu 7:33 PM",
                 title: "An offer comes back",
                 caption:
-                    "Now signed in, Atlas continues the same conversation. Manzanita finds the order and offers a warmer jacket at the same price, or a refund.",
+                    "Now signed in, Atlas continues the same conversation. Manzanita finds the order and offers a warmer jacket at the same price, or a refund. It sends the exchange as an operation, with exact terms for the user to approve.",
                 chat: [
                     {
                         t: "agent",
-                        text: "Manzanita can swap it for the Stormline Insulated, the same jacket with a warm lining, at the same price. Or you can get a full refund. Which would you like?",
+                        text: "Manzanita offers to exchange your Stormline Jacket (M) for the Stormline Insulated (M), the same jacket with a warm lining, at no extra cost, and to email you a prepaid return label. Do you approve the exchange, or would you rather have a full refund?",
                     },
                 ],
                 company: {
@@ -365,13 +393,13 @@ Cache-Control: no-store
                         ["agent", "The user has signed in. The order is SW-48213."],
                         [
                             "company",
-                            "Thanks. I can exchange it for the Stormline Insulated at no extra cost, or issue a full refund.",
+                            "Thanks. I can exchange it for the Stormline Insulated at no extra cost once you approve, or issue a full refund.",
                         ],
                     ],
                     rows: [
                         ["Order", "SW-48213"],
                         ["Options", "Even exchange or refund"],
-                        ["Status", "Waiting for the user's choice"],
+                        ["Status", "Exchange waiting for the user's approval"],
                     ],
                 },
                 wire: [
@@ -379,8 +407,7 @@ Cache-Control: no-store
                         dir: "Atlas ↔ api.manzanitasupply.example",
                         kind: "message and reply",
                         body: `POST https://api.manzanitasupply.example/poppy/conversations/cnv_J6wP3d/messages?cursor=evt_m3&wait=10
-Authorization: DPoP ${TOKENS.manzanita}
-DPoP: ${DPOP}
+${poppyHeaders(TOKENS.manzanita, OPERATIONS)}
 Content-Type: application/json
 
 {
@@ -416,8 +443,18 @@ Content-Type: application/json
         "id": "msg_b3Lx",
         "role": "company",
         "author": { "type": "agent" },
-        "text": "Thanks. I can exchange it for the Stormline Insulated at no extra cost, or issue a full refund.",
-        "data": { "exchange_sku": "stormline-insulated-m", "price_difference": 0 }
+        "text": "Thanks. I can exchange it for the Stormline Insulated at no extra cost once you approve, or issue a full refund.",
+        "data": { "exchange_sku": "stormline-insulated-m", "price_difference": 0 },
+        "extensions": {
+          "operations": {
+            "operation": {
+              "operation_id": "exc_7Wd3",
+              "revision": "k3Jd9Qx2mW8v",
+              "summary": "Exchange the Stormline Jacket (M) on order SW-48213 for the Stormline Insulated Jacket (M), at no extra cost, and email a prepaid return label for the original jacket.",
+              "expires_at": "2026-10-08T20:03:06-07:00"
+            }
+          }
+        }
       }
     }
   ],
@@ -427,7 +464,10 @@ Content-Type: application/json
   "handoff": "none",
   "responder": "agent",
   "closed": false
-}`,
+}
+
+// The operation holds the exact terms of the exchange. Atlas
+// shows the user its summary and asks for their approval.`,
                     },
                 ],
             },
@@ -435,9 +475,9 @@ Content-Type: application/json
                 time: "Thu 7:34 PM",
                 title: "The exchange is set",
                 caption:
-                    "Atlas passes on the user's choice. Manzanita arranges the exchange and sends a return label, and Atlas closes the conversation.",
+                    "Atlas sends Manzanita the user's approval of the operation. Manzanita arranges the exchange and sends a return label, and Atlas closes the conversation.",
                 chat: [
-                    { t: "user", text: "Let's do the exchange." },
+                    { t: "user", text: "I approve the exchange." },
                     {
                         t: "agent",
                         text: "Done. The Stormline Insulated ships tomorrow, and Manzanita emailed you a prepaid return label for the old jacket.",
@@ -447,7 +487,7 @@ Content-Type: application/json
                 company: {
                     co: MANZANITA,
                     messages: [
-                        ["agent", "The user would like the exchange."],
+                        ["agent", "The user approved the exchange."],
                         [
                             "company",
                             "Done. The new jacket ships tomorrow, and I've emailed the user a prepaid return label.",
@@ -464,20 +504,31 @@ Content-Type: application/json
                         dir: "Atlas ↔ api.manzanitasupply.example",
                         kind: "message and reply",
                         body: `POST https://api.manzanitasupply.example/poppy/conversations/cnv_J6wP3d/messages?cursor=evt_m5&wait=10
-Authorization: DPoP ${TOKENS.manzanita}
-DPoP: ${DPOP}
+${poppyHeaders(TOKENS.manzanita, OPERATIONS)}
 Content-Type: application/json
 
 {
   "id": "msg_Ue2hV9mJ4sKb7TfA",
   "message": {
     "author": { "type": "agent" },
-    "text": "The user would like the exchange."
+    "text": "The user approved the exchange.",
+    "extensions": {
+      "operations": {
+        "approval": {
+          "operation_id": "exc_7Wd3",
+          "revision": "k3Jd9Qx2mW8v",
+          "approved_at": 1791513248,
+          "input_type": "typed"
+        }
+      }
+    }
   }
 }
 
-// If the connection drops, Atlas sends the same message
-// with the same id, and Manzanita won't count it twice.
+// Only the approval approves the exchange, whatever the text
+// says. If the connection drops, Atlas sends the same message
+// with the same id, and Manzanita won't count it twice or
+// perform the exchange twice.
 
 HTTP/1.1 202 Accepted
 Content-Type: application/json
@@ -493,7 +544,17 @@ Content-Type: application/json
         "id": "msg_Ue2hV9mJ4sKb7TfA",
         "role": "user",
         "author": { "type": "agent" },
-        "text": "The user would like the exchange."
+        "text": "The user approved the exchange.",
+        "extensions": {
+          "operations": {
+            "approval": {
+              "operation_id": "exc_7Wd3",
+              "revision": "k3Jd9Qx2mW8v",
+              "approved_at": 1791513248,
+              "input_type": "typed"
+            }
+          }
+        }
       }
     },
     {
@@ -521,8 +582,7 @@ Content-Type: application/json
                         dir: "Atlas ↔ api.manzanitasupply.example",
                         kind: "close",
                         body: `POST https://api.manzanitasupply.example/poppy/conversations/cnv_J6wP3d/close
-Authorization: DPoP ${TOKENS.manzanita}
-DPoP: ${DPOP}
+${poppyHeaders(TOKENS.manzanita, OPERATIONS)}
 Content-Type: application/json
 
 { "id": "cls_Fh6tYc1Wz8Lp3DsN" }
@@ -547,7 +607,7 @@ Content-Type: application/json
                 time: "Tue 1:22 PM",
                 title: "Signing in for the user",
                 caption:
-                    "Laurel lets Atlas sign in with the user's saved Laurel login, through the Mediated Sign-In extension. Laurel also texts the user a one-time code, and Atlas asks for it.",
+                    "Laurel doesn't offer sign-in on its own page yet, so it lets Atlas sign in with the user's saved Laurel login, through the Mediated Sign-In extension. Laurel also texts the user a one-time code, and Atlas asks for it.",
                 chat: [
                     {
                         t: "user",
@@ -565,7 +625,7 @@ Content-Type: application/json
                     rows: [
                         ["Sign-in", "By Atlas, with the user's login"],
                         ["Extra check", "Code texted to the user"],
-                        ["Session", "Signed in, read and write"],
+                        ["Access", "Read and write, and the website"],
                     ],
                 },
                 wire: [
@@ -581,10 +641,10 @@ Content-Type: application/json
   "protocol_version": "${LATEST.id}",
   "organization": { "name": "Laurel Fiber", "domain": "laurelfiber.example" },
   "auth": {
-    "issuer": "https://auth.laurelfiber.example",
     "scopes": {
       "account:read": "See your plan, bills, and service appointments",
-      "account:write": "Change your plan and book or move service appointments"
+      "account:write": "Change your plan and book or move service appointments",
+      "poppy:browser-sign-in": "Use the website signed in, with the other access you approve"
     }
   },
   "agent": {
@@ -596,64 +656,69 @@ Content-Type: application/json
     "browser_session_endpoint": "https://laurelfiber.example/poppy/browser-session"
   },
   "extensions": {
-    "mediated-sign-in": {
-      "version": "1",
-      "endpoint": "https://auth.laurelfiber.example/poppy/sign-in",
-      "fields": [
-        { "name": "email", "label": "Email", "secret": false },
-        { "name": "password", "label": "Password", "secret": true }
-      ],
-      "scopes": ["account:read", "account:write"]
-    }
+    "mediated-sign-in": [
+      {
+        "version": "1",
+        "fields": [
+          { "name": "email", "label": "Email", "secret": false },
+          { "name": "password", "label": "Password", "secret": true }
+        ],
+        "scopes": ["account:read", "account:write", "poppy:browser-sign-in"]
+      }
+    ]
   }
 }
 
-// Atlas checks Laurel's OAuth server metadata and starts
-// a signed-out session, as in the jacket example.`,
+// Atlas finds Laurel's issuer and checks its OAuth server
+// metadata, as in the jacket example. Its grant_types_supported
+// lists the Mediated Sign-In grant, and not Direct or Device
+// Sign-In.`,
                     },
                     {
                         dir: "Atlas ↔ auth.laurelfiber.example",
                         kind: "Mediated Sign-In",
-                        body: `POST https://auth.laurelfiber.example/poppy/sign-in
-Authorization: DPoP ${TOKENS.laurelSignedOut}
-DPoP: ${DPOP}
+                        body: `// The grant goes to Laurel's token endpoint, with the
+// user's saved login, in code Atlas's model can't read.
+POST https://auth.laurelfiber.example/oauth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=https%3A%2F%2Fpersonalagentprotocol.org%2Fgrant%2Fmediated-sign-in
+&scope=account%3Aread%20account%3Awrite%20poppy%3Abrowser-sign-in
+&email=…
+&password=…
+${CLIENT_AUTH}
+
+HTTP/1.1 400 Bad Request
 Content-Type: application/json
 
 {
-  "scope": "account:read account:write",
-  "credentials": { "email": "…", "password": "…" }
-}
-
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "status": "code_required",
+  "error": "code_required",
   "sign_in_id": "sgn_8Qm2",
-  "code": { "sent_to": "Text to the phone number ending in 71" },
-  "expires_at": "2026-10-06T13:32:00-05:00"
+  "sent_to": "Text to the phone number ending in 71",
+  "expires_in": 600
 }
 
 // Atlas collects the code in a field its model can't read, and
-// sends only the code:
+// sends the same grant again with only the code:
 
-POST https://auth.laurelfiber.example/poppy/sign-in/sgn_8Qm2
-Authorization: DPoP ${TOKENS.laurelSignedOut}
-DPoP: ${DPOP}
-Content-Type: application/json
+POST https://auth.laurelfiber.example/oauth/token
+Content-Type: application/x-www-form-urlencoded
 
-{ "code": "482913" }
+grant_type=https%3A%2F%2Fpersonalagentprotocol.org%2Fgrant%2Fmediated-sign-in
+&sign_in_id=sgn_8Qm2
+&one_time_code=…
+${CLIENT_AUTH}
 
 HTTP/1.1 200 OK
 Content-Type: application/json
+Cache-Control: no-store
 
 {
-  "status": "complete",
   "access_token": "${TOKENS.laurel}",
-  "token_type": "DPoP",
+  "token_type": "Bearer",
   "expires_in": 3600,
   "refresh_token": "pat_L5wd…Hn8",
-  "scope": "account:read account:write"
+  "scope": "account:read account:write poppy:browser-sign-in"
 }`,
                     },
                 ],
@@ -692,21 +757,32 @@ Set-Cookie: __Host-lf_join=Jq7mW2…; Path=/; Max-Age=60; Secure; HttpOnly; Same
 
 <form method="post" action="/poppy/browser-session">
   <input type="hidden" name="code" value="bc_Vn3qT8xLw2Rk9mZ4yHc1Ad">
-  <input type="text" name="token">
-  <input type="text" name="proof">
+  <button>Continue</button>
 </form>
 
-// Atlas reads the code from its own browser, signs a DPoP Proof
-// with its Laurel Session Key and the code as the nonce, puts it
-// in the form with a signed-out token, and submits it:
+// Atlas reads the code from the page in its own browser and
+// authorizes it for its Laurel session, signed in. Its first
+// request with a new sid starts the session. The access token
+// never passes through the browser:
+POST https://laurelfiber.example/poppy/browser-session/authorize
+${poppyHeaders(TOKENS.laurel)}
+Content-Type: application/json
+
+{ "code": "bc_Vn3qT8xLw2Rk9mZ4yHc1Ad" }
+
+HTTP/1.1 204 No Content
+
+// Then its browser submits the form, with the cookie that
+// ties the code to this browser:
 POST https://laurelfiber.example/poppy/browser-session
 Content-Type: application/x-www-form-urlencoded
 Cookie: __Host-lf_join=Jq7mW2…
 
-code=bc_Vn3qT8xLw2Rk9mZ4yHc1Ad&token=eyJhbGciOiJFUzI1NiIs…&proof=eyJ0eXAiOiJkcG9wK2p3dCIs…
+code=bc_Vn3qT8xLw2Rk9mZ4yHc1Ad
 
 HTTP/1.1 303 See Other
 Location: https://laurelfiber.example/
+Set-Cookie: __Host-lf_join=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict
 Set-Cookie: __Host-lf_session=Pz81kQ…; Path=/; Secure; HttpOnly; SameSite=Lax`,
                     },
                     {
@@ -760,8 +836,7 @@ Content-Type: text/html
                         dir: "Atlas ↔ api.laurelfiber.example",
                         kind: "new conversation",
                         body: `POST https://api.laurelfiber.example/poppy/conversations
-Authorization: DPoP ${TOKENS.laurel}
-DPoP: ${DPOP}
+${poppyHeaders(TOKENS.laurel)}
 Content-Type: application/json
 
 {
@@ -783,8 +858,7 @@ Content-Type: application/json
                         dir: "Atlas ↔ api.laurelfiber.example",
                         kind: "ask for a person",
                         body: `POST https://api.laurelfiber.example/poppy/conversations/cnv_2Lm0/handoff
-Authorization: DPoP ${TOKENS.laurel}
-DPoP: ${DPOP}
+${poppyHeaders(TOKENS.laurel)}
 Content-Type: application/json
 
 { "id": "hnd_Vb3nQ8rT1kLm6XcP" }
@@ -798,8 +872,7 @@ Content-Type: application/json
                         dir: "Atlas ↔ api.laurelfiber.example",
                         kind: "read events",
                         body: `GET https://api.laurelfiber.example/poppy/conversations/cnv_2Lm0/events?wait=30
-Authorization: DPoP ${TOKENS.laurel}
-DPoP: ${DPOP}
+${poppyHeaders(TOKENS.laurel)}
 
 HTTP/1.1 200 OK
 Content-Type: application/json
@@ -910,13 +983,13 @@ Content-Type: application/json
                         dir: "Atlas ↔ api.laurelfiber.example",
                         kind: "Direct Conversation",
                         body: `POST https://api.laurelfiber.example/poppy/conversations
-Authorization: DPoP ${TOKENS.laurel}
-DPoP: ${DPOP}
+${poppyHeaders(TOKENS.laurel)}
 Content-Type: application/json
 
 {
   "id": "msg_Pe6jWm3Kd0RtXc8V",
   "parent_conversation_id": "cnv_2Lm0",
+  "user_requested_event_id": "evt_l5",
   "message": {
     "author": { "type": "human" },
     "text": "Hi, I'm here. What should I check?"
@@ -928,6 +1001,7 @@ Content-Type: application/json
 
 { "conversation_id": "cnv_9Dq4" }
 
+// user_requested_event_id answers the technician's request.
 // author type "human" tells Laurel these are the user's own words.
 // The user's later messages go to cnv_9Dq4/messages the same way.`,
                     },
@@ -936,8 +1010,7 @@ Content-Type: application/json
                         kind: "close",
                         body: `// Closing the first conversation also closes the Direct Conversation.
 POST https://api.laurelfiber.example/poppy/conversations/cnv_2Lm0/close
-Authorization: DPoP ${TOKENS.laurel}
-DPoP: ${DPOP}
+${poppyHeaders(TOKENS.laurel)}
 Content-Type: application/json
 
 { "id": "cls_Np2wKd7Rx4Tq9MbH" }
@@ -948,8 +1021,7 @@ Content-Type: application/json
 { "conversation_id": "cnv_2Lm0" }
 
 GET https://api.laurelfiber.example/poppy/conversations/cnv_2Lm0/events?cursor=evt_l5&wait=10
-Authorization: DPoP ${TOKENS.laurel}
-DPoP: ${DPOP}
+${poppyHeaders(TOKENS.laurel)}
 
 HTTP/1.1 200 OK
 Content-Type: application/json
@@ -1001,7 +1073,7 @@ Content-Type: application/json
                 time: "Tue 11:02 AM",
                 title: "Checking the flight",
                 caption:
-                    "Atlas kept the user's Pacifica sign-in from before, as an Account Token, so it starts a signed-in session without asking. It only needs to read the booking, so it asks for read access alone.",
+                    "Atlas kept the user's Pacifica sign-in from before, as a refresh token, so it gets an access token and starts a signed-in session without asking. It only needs to read the booking, so it asks for read access alone.",
                 chat: [
                     {
                         t: "user",
@@ -1026,15 +1098,11 @@ Content-Type: application/json
                         kind: "saved sign-in",
                         body: `POST https://auth.pacificaair.example/oauth/token
 Content-Type: application/x-www-form-urlencoded
-DPoP: ${DPOP}
 
 grant_type=refresh_token
 &refresh_token=pat_P3kq…Vb7
 &scope=bookings%3Aread
 ${CLIENT_AUTH}
-
-// The proof is signed with a new key, so Pacifica
-// starts a new Session that is already signed in.
 
 HTTP/1.1 200 OK
 Content-Type: application/json
@@ -1042,7 +1110,7 @@ Cache-Control: no-store
 
 {
   "access_token": "${TOKENS.pacifica}",
-  "token_type": "DPoP",
+  "token_type": "Bearer",
   "expires_in": 3600,
   "scope": "bookings:read"
 }`,
@@ -1051,9 +1119,10 @@ Cache-Control: no-store
                         dir: "Atlas ↔ api.pacificaair.example",
                         kind: "company API",
                         body: `// Pacifica lists this API in its poppy.json as type "openapi".
+// The Session JWT has a new sid, so this request starts a
+// Pacifica Session, signed in with the access token.
 GET https://api.pacificaair.example/v1/bookings/PX2L7D
-Authorization: DPoP ${TOKENS.pacifica}
-DPoP: ${DPOP}
+${poppyHeaders(TOKENS.pacifica)}
 
 HTTP/1.1 200 OK
 Content-Type: application/json
@@ -1092,13 +1161,11 @@ Content-Type: application/json
                     {
                         dir: "Atlas ↔ api.arroyorides.example",
                         kind: "company API",
-                        body: `// Atlas got a signed-in Arroyo Session Token from its
-// Arroyo Account Token, as with Pacifica.
-// The request format is Arroyo's own.
+                        body: `// Atlas got an Arroyo access token from its Arroyo refresh
+// token, as with Pacifica. The request format is Arroyo's own.
 
 PATCH https://api.arroyorides.example/v1/rides/ride_7Pz3
-Authorization: DPoP ${TOKENS.arroyo}
-DPoP: ${DPOP}
+${poppyHeaders(TOKENS.arroyo)}
 Content-Type: application/json
 
 { "pickup": { "place": "BOS Terminal B arrivals", "at": "2026-10-14T10:05:00-04:00" } }
@@ -1139,7 +1206,7 @@ Content-Type: application/json
                     ],
                     rows: [
                         ["Result", "Stay moved, tonight waived"],
-                        ["Status", "Idle"],
+                        ["Conversation", "Still open"],
                     ],
                 },
                 wire: [
@@ -1147,8 +1214,7 @@ Content-Type: application/json
                         dir: "Atlas ↔ api.madroneinn.example",
                         kind: "new conversation",
                         body: `POST https://api.madroneinn.example/poppy/conversations?wait=30
-Authorization: DPoP ${TOKENS.madrone}
-DPoP: ${DPOP}
+${poppyHeaders(TOKENS.madrone)}
 Content-Type: application/json
 
 {
@@ -1235,21 +1301,30 @@ Set-Cookie: __Host-ch_join=Lk40sB…; Path=/; Max-Age=60; Secure; HttpOnly; Same
 
 <form method="post" action="/poppy/browser-session">
   <input type="hidden" name="code" value="bc_8Jr2Lp0Qx5Tm1Wc7Ns4Ke">
-  <input type="text" name="token">
-  <input type="text" name="proof">
+  <button>Continue</button>
 </form>
 
-// Atlas signs a proof over the code with the Session Key of its
-// signed-in Chaparral session, adds a signed-out token, and its
-// browser submits the form:
+// Atlas got a Chaparral access token with poppy:browser-sign-in
+// from its refresh token, as with Pacifica. It authorizes the
+// code for a signed-in Chaparral session:
+POST https://chaparralhotel.example/poppy/browser-session/authorize
+${poppyHeaders(TOKENS.chaparral)}
+Content-Type: application/json
+
+{ "code": "bc_8Jr2Lp0Qx5Tm1Wc7Ns4Ke" }
+
+HTTP/1.1 204 No Content
+
+// Then its browser submits the form:
 POST https://chaparralhotel.example/poppy/browser-session
 Content-Type: application/x-www-form-urlencoded
 Cookie: __Host-ch_join=Lk40sB…
 
-code=bc_8Jr2Lp0Qx5Tm1Wc7Ns4Ke&token=eyJhbGciOiJFUzI1NiIs…&proof=eyJ0eXAiOiJkcG9wK2p3dCIs…
+code=bc_8Jr2Lp0Qx5Tm1Wc7Ns4Ke
 
 HTTP/1.1 303 See Other
 Location: https://chaparralhotel.example/
+Set-Cookie: __Host-ch_join=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict
 Set-Cookie: __Host-ch_session=Wq52nT…; Path=/; Secure; HttpOnly; SameSite=Lax`,
                     },
                     {

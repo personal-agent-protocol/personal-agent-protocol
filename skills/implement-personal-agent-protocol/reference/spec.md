@@ -499,7 +499,7 @@ Authorization: Bearer eyJhbGciOi…Qp4w
   "typ": "poppy-session+jwt",
   "alg": "ES256",
   "kid": "9E421cSqd5UfAq5slDKYxXQd8Zmm8B3CIsT9cDxRHx8",
-  "poppy_dlg": "eyJhbGciOiJFUzI1NiIsInR5cCI6InBhcC1kZWxlZ2F0aW9uK2p3dCIs…"
+  "poppy_dlg": "eyJhbGciOiJFUzI1NiIsInR5cCI6InBvcHB5LWRlbGVnYXRpb24rand0Iiw…"
 }
 .
 {
@@ -581,7 +581,7 @@ A Session JWT carries its delegation in its header:
   "typ": "poppy-session+jwt",
   "alg": "ES256",
   "kid": "9E421cSqd5UfAq5slDKYxXQd8Zmm8B3CIsT9cDxRHx8",
-  "poppy_dlg": "eyJhbGciOiJFUzI1NiIsInR5cCI6InBhcC1kZWxlZ2F0aW9uK2p3dCIs…"
+  "poppy_dlg": "eyJhbGciOiJFUzI1NiIsInR5cCI6InBvcHB5LWRlbGVnYXRpb24rand0Iiw…"
 }
 ```
 
