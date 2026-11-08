@@ -50,10 +50,9 @@ const EXAMPLES: Record<string, Target> = {
     "direct-conversations:2": "event.schema.json",
     "direct-conversations:3": "conversation-request.schema.json",
     "conversation-sign-in:1": "event.schema.json",
-    "excluded-tasks:1": "excluded-tasks.schema.json",
+    "task-coverage:1": "tasks.schema.json",
     "alternatives:1": "alternative.schema.json",
     "feedback:1": "feedback-report.schema.json",
-    "agent-context:1": excerpt("skill_index", "skill-index.schema.json"),
 };
 
 // The token requests are form bodies, which aren't JSON examples. Their parameters are in

@@ -20,6 +20,7 @@ import {
     signDelegation,
     thumbprint,
 } from "../jose.ts";
+import { feedbackEndpoint } from "./tasks.ts";
 import {
     conversationEndpoint,
     fieldOf,
@@ -382,8 +383,8 @@ async function invalidEverywhere(ctx: Context, r: Recorder): Promise<void> {
     const conversations = conversationEndpoint(poppy);
     if (conversations)
         endpoints.push({ url: conversations, body: {}, what: "the conversation endpoint" });
-    const feedback = fieldOf(poppy, "feedback", "endpoint");
-    if (isHttpsUrl(feedback)) endpoints.push({ url: feedback, body: {}, what: "feedback" });
+    const feedback = await feedbackEndpoint(ctx);
+    if (feedback) endpoints.push({ url: feedback, body: {}, what: "feedback" });
     const browser = fieldOf(poppy, "web", "browser_session_endpoint");
     if (isHttpsUrl(browser))
         endpoints.push({

@@ -148,6 +148,20 @@ before closing. After a close, handoff cancels also return `conversation_closed`
 
 </Change>
 
+<Change title="Task coverage per Session" breaking sections="3, 3.1, 4.8, 5.2, 9, 9.1, 9.3, 9.4, guides#both-fetching, guides#agent-session-header, guides#agent-excluded-tasks, guides#company-excluded-tasks">
+
+Excluded tasks, the skill index, and the feedback endpoint move out of `poppy.json`, which now
+names one `tasks.endpoint` in place of `excluded_tasks.url`, `skill_index`, and
+`feedback.endpoint`. The Personal Agent gets them from `tasks.endpoint` with a GET and the Session
+header, without an access token, early in each Session, and uses the response only in that
+Session. The response lists `excluded_tasks`, `skill_index`, and `feedback.endpoint`. Feedback
+reports themselves are unchanged. A Company can give different Sessions different responses, based
+on the Session, User ID, or Agent ID, for example to try a new skill with some Users, and marks
+those responses `private` so shared caches don't mix them up. `poppy.json` stays the same for
+everyone. Skill URLs resolve against `tasks.endpoint`.
+
+</Change>
+
 <Change title="Operations on websites" breaking sections="Operations 1, Operations 2, Operations 3, Operations 4, Operations 5, Operations 6, Operations 7, Operations 8.2, Operations 9, guides#agent-operations, guides#company-operations">
 
 A Company can ask for approval on its website, in a browser joined to a Session. It lists `endpoint`

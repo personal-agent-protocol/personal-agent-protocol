@@ -32,8 +32,10 @@ export type Flaws = {
     redirectToUpload?: boolean;
     // poppy.json names the issuer in auth.issuer.
     authIssuer?: string;
-    // An excluded-tasks document that doesn't match its schema.
+    // A tasks response whose excluded tasks don't match the schema.
     excludedTasksInvalid?: boolean;
+    // A tasks response with a malformed skill index.
+    skillIndexInvalid?: boolean;
     // An excluded task whose alternative references an API that poppy.json doesn't list.
     unlistedAlternativeApi?: boolean;
     // The domain publishes no protected resource metadata.
@@ -266,6 +268,7 @@ export const MCP_URL = `${ORIGIN}/mcp`;
 const MCP = MCP_URL;
 const MCP_PRM = `${ORIGIN}/.well-known/oauth-protected-resource/mcp`;
 const FEEDBACK = `${ORIGIN}/poppy/feedback`;
+const TASKS = `${ORIGIN}/poppy/tasks`;
 const BROWSER_SESSION = `${ORIGIN}/poppy/browser-session`;
 const MEDIATED_GRANT = "https://personalagentprotocol.org/grant/mediated-sign-in";
 const DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code";
@@ -886,8 +889,7 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                 { type: "mcp", url: MCP, description: "Search" },
             ],
             web: { browser_session_endpoint: BROWSER_SESSION },
-            excluded_tasks: { url: `${ORIGIN}/poppy/excluded-tasks.json` },
-            feedback: { endpoint: FEEDBACK },
+            tasks: { endpoint: TASKS },
             extensions: {
                 "mediated-sign-in": [
                     {
@@ -959,28 +961,45 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
 
     const excludedTasks = () =>
         flaws.excludedTasksInvalid
-            ? { tasks: [{ alternative: "Use the app." }] }
-            : {
-                  tasks: [
-                      {
-                          task: "Send a wire transfer",
-                          alternative: {
-                              instructions: "Wire transfers can only be sent in the Shop app.",
-                              references: [
-                                  { type: "web", url: `${ORIGIN}/transfers/wire` },
-                                  {
-                                      type: "openapi",
-                                      url: flaws.unlistedAlternativeApi
-                                          ? "https://payments.test/openapi.json"
-                                          : `${ORIGIN}/openapi.json`,
-                                      operation_id: "sendAchTransfer",
-                                  },
-                              ],
-                          },
+            ? [{ alternative: "Use the app." }]
+            : [
+                  {
+                      task: "Send a wire transfer",
+                      alternative: {
+                          instructions: "Wire transfers can only be sent in the Shop app.",
+                          references: [
+                              { type: "web", url: `${ORIGIN}/transfers/wire` },
+                              {
+                                  type: "openapi",
+                                  url: flaws.unlistedAlternativeApi
+                                      ? "https://payments.test/openapi.json"
+                                      : `${ORIGIN}/openapi.json`,
+                                  operation_id: "sendAchTransfer",
+                              },
+                          ],
                       },
-                      { task: "Close an account" },
+                  },
+                  { task: "Close an account" },
+              ];
+
+    const tasks = () => ({
+        excluded_tasks: excludedTasks(),
+        feedback: { endpoint: FEEDBACK },
+        skill_index: flaws.skillIndexInvalid
+            ? { skills: "not a list" }
+            : {
+                  $schema: "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+                  skills: [
+                      {
+                          name: "manage-orders",
+                          description: "Manage the User's orders with Shop.",
+                          type: "skill-md",
+                          url: "skills/manage-orders/SKILL.md",
+                          digest: `sha256:${"a".repeat(64)}`,
+                      },
                   ],
-              };
+              },
+    });
 
     function openapi(): Response {
         if (flaws.openapiStatus) return json(flaws.openapiStatus, { error: "not_found" });
@@ -1209,8 +1228,6 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                       headers: { location: `${ORIGIN}/poppy/old.json` },
                   })
                 : json(200, olderPoppy());
-        if (path === "/poppy/excluded-tasks.json" && method === "GET")
-            return json(200, excludedTasks(), { "cache-control": "max-age=300" });
         if (path === "/.well-known/oauth-protected-resource" && flaws.resourceMetadataStatus)
             return json(flaws.resourceMetadataStatus, { error: "unavailable" });
         if (path === "/.well-known/oauth-protected-resource" && !flaws.noResourceMetadata)
@@ -1244,6 +1261,8 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
         if (here === TOKEN && method === "POST") return tokenEndpoint(body);
         if (here === MCP) return mcp(headers, body);
         if (here === FEEDBACK && method === "POST") return feedback(here, headers, body);
+        if (here === TASKS && method === "GET")
+            return json(200, tasks(), { "cache-control": "private, max-age=300" });
         if (here === BROWSER_SESSION && method === "GET") return browserSessionPage(headers);
         if (here === `${BROWSER_SESSION}/authorize` && method === "POST")
             return browserSessionAuthorize(url.toString(), headers, body);

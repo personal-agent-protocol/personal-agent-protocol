@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { PROTOCOL_VERSION } from "../catalog.ts";
 import { check } from "../schemas.ts";
 
 const schema = "https://schemas.agentskills.io/discovery/0.2.0/schema.json";
@@ -13,12 +12,7 @@ const skill = {
 };
 
 function document(index: unknown) {
-    return {
-        protocol_version: PROTOCOL_VERSION,
-        organization: { name: "Example Company", domain: "example.com" },
-        web: {},
-        skill_index: index,
-    };
+    return { skill_index: index };
 }
 
 test("skill indexes accept cross-domain URLs, relative references, and both artifact types", () => {
@@ -31,21 +25,21 @@ test("skill indexes accept cross-domain URLs, relative references, and both arti
     ]) {
         assert.deepEqual(
             check(
-                "poppy.schema.json",
+                "tasks.schema.json",
                 document({ $schema: schema, skills: [{ ...skill, type, url }] }),
             ),
             [],
             `${type}: ${url}`,
         );
     }
-    assert.deepEqual(check("poppy.schema.json", document({ $schema: schema, skills: [] })), []);
+    assert.deepEqual(check("tasks.schema.json", document({ $schema: schema, skills: [] })), []);
 });
 
 test("skill indexes validate required fields and SHA-256 digests", () => {
     for (const field of Object.keys(skill)) {
         const entry: Record<string, unknown> = { ...skill };
         delete entry[field];
-        const errors = check("poppy.schema.json", document({ $schema: schema, skills: [entry] }));
+        const errors = check("tasks.schema.json", document({ $schema: schema, skills: [entry] }));
         assert.ok(
             errors.some((e) => e.path === `/skill_index/skills/0/${field}`),
             field,
@@ -81,7 +75,7 @@ test("skill indexes reject non-HTTPS schemes and allow unknown fields, types, an
     }
     assert.deepEqual(
         check(
-            "poppy.schema.json",
+            "tasks.schema.json",
             document({
                 $schema: schema,
                 future_index_field: true,
@@ -93,7 +87,7 @@ test("skill indexes reject non-HTTPS schemes and allow unknown fields, types, an
     // Clients skip an unknown version rather than interpret its fields using 0.2.0 rules.
     assert.deepEqual(
         check(
-            "poppy.schema.json",
+            "tasks.schema.json",
             document({
                 $schema: "https://schemas.agentskills.io/discovery/99.0.0/schema.json",
                 future_format: true,

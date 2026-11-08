@@ -88,8 +88,6 @@ const SCENARIOS: Scenario[] = [
         flaws: { poppy: (d) => (d.web = { unscoped: true }) },
         fails: ["discovery.web-unscoped"],
     },
-    { flaws: { excludedTasksInvalid: true }, fails: ["discovery.excluded-tasks"] },
-    { flaws: { unlistedAlternativeApi: true }, fails: ["discovery.alternative-references"] },
 
     // Authorization server metadata
     { flaws: { noResourceMetadata: true }, fails: ["metadata.issuer-required"] },
@@ -184,6 +182,11 @@ const SCENARIOS: Scenario[] = [
     { flaws: { mcpStatus404: true }, fails: ["mcp.no-token"] },
     { flaws: { mcpNoResourceMetadata: true }, fails: ["mcp.no-token"] },
     { flaws: { mcpInvalidTokenNoError: true }, fails: ["mcp.invalid-token"] },
+
+    // Excluded tasks and skills
+    { flaws: { excludedTasksInvalid: true }, fails: ["tasks.response"] },
+    { flaws: { skillIndexInvalid: true }, fails: ["tasks.skill-index"] },
+    { flaws: { unlistedAlternativeApi: true }, fails: ["tasks.alternative-references"] },
 
     // Feedback
     { flaws: { feedbackWithoutSession: true }, fails: ["feedback.no-session"] },

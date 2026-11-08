@@ -113,7 +113,7 @@ rule applies.
 
 **Redirects and addresses.** Outside discovery, a redirect never carries the protocol's secrets. If
 the token, revocation, or device authorization endpoint, an API, `{browser_session_endpoint}/authorize`, or a
-conversation, feedback, or extension endpoint answers with a redirect, the Personal Agent MUST NOT
+conversation, tasks, feedback, or extension endpoint answers with a redirect, the Personal Agent MUST NOT
 send a token, Session JWT, assertion, or credentials to the new URL. Personal Agents and Companies
 MUST NOT connect to a loopback, private, or link-local address for a URL the other party gave them,
 unless they were configured to on purpose. Otherwise a Company could aim Personal Agents at
@@ -153,11 +153,8 @@ An example document:
   "web": {
     "browser_session_endpoint": "https://example.com/poppy/browser-session"
   },
-  "feedback": {
-    "endpoint": "https://api.example.com/poppy/feedback"
-  },
-  "excluded_tasks": {
-    "url": "https://example.com/poppy/excluded-tasks.json"
+  "tasks": {
+    "endpoint": "https://api.example.com/poppy/tasks"
   },
   "apis": [
     {
@@ -191,10 +188,8 @@ An example document:
 | `web`                | At least one of `agent`, `apis`, or `web`                                            | The Company's website. The optional `browser_session_endpoint` is where the Personal Agent's browser joins a Session (section 6). Without it, Personal Agents browse the site as ordinary signed-out visitors, unless `web.disabled` is set.                                                                           |
 | `web.disabled`       | No                                                                                   | `true` if the Company asks Personal Agents not to browse its website, and to use its Company Agent and APIs instead (section 6). Defaults to `false`.                                                                                                                                                                  |
 | `web.unscoped`       | No                                                                                   | `true` if the website doesn't apply the Company's other scopes, so `poppy:browser-sign-in` gives the account's full access there (section 6). Defaults to `false`.                                                                                                                                                     |
-| `feedback`           | No                                                                                   | `endpoint` is an HTTPS URL where Personal Agents report a User's task that can't be done through this protocol (9.3).                                                                                                                                                                                                  |
-| `excluded_tasks`     | No                                                                                   | `url` is an HTTPS URL of the document that lists the tasks the Company chose not to offer through this protocol (9.1).                                                                                                                                                                                                 |
+| `tasks`              | No                                                                                   | `endpoint` is an HTTPS URL where Personal Agents get, for a Session, the tasks the Company chose not to offer through this protocol, the skills it publishes, and where to send feedback (section 9).                                                                                                                  |
 | `extensions`         | No                                                                                   | The extensions the Company supports, keyed by name, with an entry for each version (3.3).                                                                                                                                                                                                                              |
-| `skill_index`        | No                                                                                   | An Agent Skills discovery index for Personal Agents acting for the User at this Company (9.4).                                                                                                                                                                                                                         |
 
 ### 3.2 OAuth server {#oauth-server}
 
@@ -735,7 +730,7 @@ Poppy's rate limits, and section 3.3 describes `extension_required`.
   signed with a delegated key, which a key in the Personal Agent's `jwks_uri` vouches for in a
   delegation carried in the JWT's `poppy_dlg` header (5.2).
 - **Interactions above OAuth:** browser join, with its `poppy:browser-sign-in` scope (section 6),
-  APIs (section 7), conversations (section 8), excluded tasks and feedback (section 9), and
+  APIs (section 7), conversations (section 8), excluded tasks, skills, and feedback (section 9), and
   extensions (3.3), including [Operations](/docs/extensions/operations).
 - **An extension grant:** the [Mediated Sign-In extension](/docs/extensions/mediated-sign-in) adds
   a grant type at the token endpoint, as RFC 6749 §4.5 allows.
@@ -800,7 +795,8 @@ conversations, and other resource endpoints this protocol or an extension define
 destinations come from the Company's `poppy.json`: the request URLs its listed APIs describe
 (section 7), and protocol endpoints listed there or derived as the protocol or extension defines.
 For example, conversation requests use the selected `agent.protocols[].endpoint` and the routes
-in 8.2, and browser authorization uses `{browser_session_endpoint}/authorize` (section 6).
+in 8.2, browser authorization uses `{browser_session_endpoint}/authorize` (section 6), and
+feedback uses the `feedback.endpoint` that the response from `tasks.endpoint` lists (section 9).
 Sharing a hostname with one of these URLs doesn't make another URL a Session destination.
 
 The Personal Agent MUST NOT send a Company's Session JWT to any other destination. Discovery and
@@ -2056,14 +2052,13 @@ including for a task it doesn't offer, and can see them in its own logs.
 A Company can also publish agent context as skills that help Personal Agents carry out supported
 tasks (9.4).
 
-### 9.1 Excluded tasks {#excluded-tasks}
+A Company that lists excluded tasks, publishes skills, or takes feedback lists `tasks.endpoint` in
+`poppy.json` (3.1). The Personal Agent sends `GET {tasks.endpoint}` with the Session header (5.2)
+and no access token, and the Company responds with HTTP 200 and a JSON object:
 
-A Company that lists tasks it doesn't offer lists `excluded_tasks.url` in `poppy.json` (3.1). The
-URL points to a JSON document:
-
-```json label="Excluded tasks, published by the Company"
+```json label="Response body: Company → Personal Agent"
 {
-  "tasks": [
+  "excluded_tasks": [
     {
       "task": "Send a wire transfer",
       "alternative": {
@@ -2072,13 +2067,52 @@ URL points to a JSON document:
       }
     },
     { "task": "Close an account" }
-  ]
+  ],
+  "skill_index": {
+    "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+    "skills": [
+      {
+        "name": "manage-bookings",
+        "description": "Manage the User's bookings with this Company.",
+        "type": "skill-md",
+        "url": "https://cdn.example.com/skills/manage-bookings/SKILL.md",
+        "digest": "sha256:1b2a8cde934e632f7e14fa080a627ad7191e29d412d2b8a7aa07d9c9ab2f475e"
+      }
+    ]
+  },
+  "feedback": {
+    "endpoint": "https://api.example.com/poppy/feedback"
+  }
 }
 ```
 
-| Field   | Req. | Description                                                                                |
-| ------- | ---- | ------------------------------------------------------------------------------------------ |
-| `tasks` | Yes  | The tasks the Company chose not to offer through this protocol. Each has the fields below. |
+| Field            | Req. | Description                                                                                     |
+| ---------------- | ---- | ----------------------------------------------------------------------------------------------- |
+| `excluded_tasks` | No   | The tasks the Company chose not to offer through this protocol (9.1). Defaults to none.         |
+| `skill_index`    | No   | An Agent Skills discovery index of the skills the Company publishes (9.4).                      |
+| `feedback`       | No   | `endpoint` is an HTTPS URL where Personal Agents report a User's task that can't be done (9.3). |
+
+- The response describes what the Company offers, not the User's account, so the request carries
+  no access token, even in a signed-in Session.
+- A Company MAY give different Sessions different responses, based on the Session, User ID, or
+  Agent ID, for example to try a new skill with some Users. It verifies the Session header before
+  it does (5.3). A Company that gives every Session the same response can serve it without
+  verifying the header.
+- A Company that gives different Sessions different responses MUST mark them `private` or
+  `no-store` in `Cache-Control` ([RFC 9111](https://www.rfc-editor.org/rfc/rfc9111) §5.2.2), so
+  that a shared cache doesn't give one Session's response to another.
+- A Personal Agent SHOULD get the response before it starts on a task in a Session. It MAY reuse it
+  for the rest of the Session, as its caching headers allow, and MUST NOT use it in another
+  Session.
+- Session errors are `invalid_session` and `session_ended` (5.3), and version errors
+  `version_unsupported` (3.4). Rate limits follow 5.6. When it gets no response, the Personal Agent
+  carries on as if the Company listed no excluded tasks, published no skills, and took no
+  feedback.
+
+### 9.1 Excluded tasks {#excluded-tasks}
+
+A Company lists the tasks it chose not to offer in `excluded_tasks` in its tasks response (section
+9), each with the fields below:
 
 | Field         | Req. | Description                                                                                                                      |
 | ------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------- |
@@ -2087,11 +2121,10 @@ URL points to a JSON document:
 
 - A listed task isn't offered through any of the Company's interfaces: its Company Agent, its APIs,
   or its website in a browser session.
-- The document is the same for every User. The Personal Agent fetches it with a GET and no token.
-- A Personal Agent SHOULD read the document before it starts on a task at the Company. Whether the
-  User's task is one listed is the Personal Agent's judgment, since each `task` is a phrase.
-- A limit that depends on the User or their account, such as a transfer limit, isn't an excluded
-  task. The Company returns an error for it, as for any request it refuses.
+- Whether the User's task is one listed is the Personal Agent's judgment, since each `task` is a
+  phrase.
+- A limit that depends on the User's account, such as a transfer limit, isn't an excluded task. The
+  Company returns an error for it, as for any request it refuses.
 
 ### 9.2 Alternatives {#alternatives}
 
@@ -2136,9 +2169,9 @@ An alternative MUST have at least one of `instructions` or `references`. Each re
 
 A Company can ask Personal Agents to tell it when a User's task can't be done through this protocol.
 
-A Company that wants feedback lists `feedback.endpoint` in `poppy.json` (3.1). When a User's task
-can't be done, the Personal Agent MAY send `POST {feedback.endpoint}` with the Session header (5.2),
-and a JSON body:
+A Company that wants feedback lists `feedback.endpoint` in its tasks response (section 9). When a
+User's task can't be done, the Personal Agent MAY send `POST {feedback.endpoint}` with the Session
+header (5.2), and a JSON body:
 
 ```json label="Request body: Personal Agent → Company"
 {
@@ -2174,40 +2207,26 @@ that is malformed or too long. Rate limits follow 5.6.
 
 ### 9.4 Agent context {#agent-context}
 
-A Company MAY include `skill_index` in `poppy.json` to publish skills for Personal Agents acting
-on the User's behalf at that Company. A skill describes how to perform a task, such as changing a
-booking through the Company's APIs. This index is for those Personal Agents, not for developers
-implementing Poppy or for the Company's own agents.
+A Company MAY include `skill_index` in its tasks response (section 9) to publish skills for
+Personal Agents acting on the User's behalf at that Company. A skill describes how to perform a
+task, such as changing a booking through the Company's APIs. This index is for those Personal
+Agents, not for developers implementing Poppy or for the Company's own agents.
 
 APIs describe available operations. A skill can explain how to combine them into a task: the
-prerequisites, the order of calls, and how to handle common outcomes. Publishing the index in
-`poppy.json` lets a Personal Agent find these workflows during Company discovery and identify
-relevant skills from their descriptions before fetching their contents. Using the Agent Skills
-format lets Companies reuse existing skills and tooling.
+prerequisites, the order of calls, and how to handle common outcomes. Publishing the index in the
+tasks response lets a Personal Agent find these workflows before it starts on a task, and identify
+relevant skills from their descriptions before fetching their contents. It also lets the Company
+publish different skills to different Sessions. Using the Agent Skills format lets Companies reuse existing skills and tooling.
 
 `skill_index` contains a complete index from the [Agent Skills discovery
 proposal](https://github.com/jonathanhefner/agentskills/blob/ab2ff8db3d5c9597985b06f94ea3caf1996ce82e/docs/well-known-uri.mdx),
 using its `0.2.0` schema identifier. That proposal is a draft, not an adopted Agent Skills standard;
 this specification refers to the linked revision. Companies that publish `skill_index` MUST
-follow that revision's index format, artifact distribution, integrity, and HTTP requirements, with
-the index embedded here instead of fetched separately. Its HTTP requirements for `index.json`
-apply to the enclosing `poppy.json` document. Skills use the [Agent Skills
-format](https://agentskills.io/specification).
-
-```json label="Excerpt from poppy.json"
-"skill_index": {
-  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
-  "skills": [
-    {
-      "name": "manage-bookings",
-      "description": "Manage the User's bookings with this Company.",
-      "type": "skill-md",
-      "url": "https://cdn.example.com/skills/manage-bookings/SKILL.md",
-      "digest": "sha256:1b2a8cde934e632f7e14fa080a627ad7191e29d412d2b8a7aa07d9c9ab2f475e"
-    }
-  ]
-}
-```
+follow that revision's index format, artifact distribution, integrity, and HTTP requirements for
+artifacts, with the index in the tasks response instead of fetched from its own URL. The tasks
+response follows section 9, not the proposal's HTTP requirements for `index.json`. Skills use the
+[Agent Skills format](https://agentskills.io/specification). The example in section 9 shows an
+index with one skill.
 
 Every entry has `name`, `description`, `type`, `url`, and `digest`. `type` is `skill-md` for a
 single `SKILL.md` file or `archive` for a skill with supporting files. `digest` is the SHA-256 of
@@ -2222,9 +2241,8 @@ channels, following the usual Session, account access, and approval requirements
 MAY ignore `skill_index` and use those channels directly; a Company does not need to publish skills
 to support Poppy.
 
-**URLs.** Personal Agents MUST resolve an entry's `url` against the final `poppy.json` URL after
-redirects, using [RFC 3986 §5](https://www.rfc-editor.org/rfc/rfc3986#section-5). Relative references
-such as `skills/manage-bookings/SKILL.md`, origin-relative references such as
+**URLs.** Personal Agents MUST resolve an entry's `url` against `tasks.endpoint`, using [RFC 3986
+§5](https://www.rfc-editor.org/rfc/rfc3986#section-5). Relative references such as `skills/manage-bookings/SKILL.md`, origin-relative references such as
 `/skills/manage-bookings/SKILL.md`, and full URLs on other domains are all allowed. Resolved URLs
 and redirects still follow section 3's HTTPS and address rules. Listing an artifact on another
 domain does not make that domain an API endpoint or authorize sending it credentials or Session
@@ -2232,12 +2250,12 @@ headers.
 
 **Compatibility.** Personal Agents SHOULD ignore unknown index fields, and SHOULD skip entries
 with an unknown `type`. Personal Agents SHOULD ignore the index when `$schema` is absent or
-unknown; the rest of `poppy.json` remains usable. The
+unknown; the rest of the tasks response remains usable. The
 [guides](/docs/guides#agent-excluded-tasks) suggest what to tell the User. `$schema`
 is an opaque version identifier, not a URL Personal Agents need to fetch. A Company MAY also
 publish the same index at `/.well-known/agent-skills/index.json` for other clients. Absolute URLs
-let it reuse entries unchanged at either location; relative references use each document's URL
-as their base. Poppy does not require that separate index or require other skill clients to
+let it reuse entries unchanged at either location; relative references use `tasks.endpoint` or
+the index's URL as their base. Poppy does not require that separate index or require other skill clients to
 discover `poppy.json`.
 
 **Authority.** A skill is Company content (10.1). Personal Agents MAY use its descriptions and

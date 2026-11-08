@@ -6,6 +6,7 @@ import { isInvalidSession, jsonError, type Exchange } from "../http.ts";
 import { formatSchemaErrors } from "../schema.ts";
 import { check } from "../schemas.ts";
 import { invalidSessionShape } from "./resource.ts";
+import { feedbackEndpoint } from "./tasks.ts";
 import {
     apisOf,
     fieldOf,
@@ -59,9 +60,29 @@ export function unlistedReferences(ctx: Context, alternative: unknown, where: st
 }
 
 export async function checkFeedback(ctx: Context, r: Recorder): Promise<void> {
-    const endpoint = fieldOf(ctx.discovered.poppy, "feedback", "endpoint");
-    if (!isHttpsUrl(endpoint)) {
-        skipRest(r, FEEDBACK_IDS, "poppy.json lists no feedback endpoint.");
+    if (!isHttpsUrl(fieldOf(ctx.discovered.poppy, "tasks", "endpoint"))) {
+        skipRest(r, FEEDBACK_IDS, "poppy.json lists no tasks endpoint, so no feedback endpoint.");
+        return;
+    }
+    if (!ctx.identity || !ctx.discovered.audience || ctx.blocked.identity) {
+        skipRest(
+            r,
+            FEEDBACK_IDS,
+            ctx.blocked.identity ??
+                ctx.identityProblem ??
+                "No test Personal Agent or Company identity.",
+        );
+        return;
+    }
+    const endpoint = await feedbackEndpoint(ctx);
+    if (!endpoint) {
+        skipRest(
+            r,
+            FEEDBACK_IDS,
+            ctx.discovered.tasks?.status === 200
+                ? "The tasks response lists no feedback endpoint."
+                : "The tasks response couldn't be loaded (see tasks.response).",
+        );
         return;
     }
 
@@ -84,17 +105,6 @@ export async function checkFeedback(ctx: Context, r: Recorder): Promise<void> {
                         : (invalidSessionShape(ex) ??
                           "A request without the Session header gets HTTP 400 with invalid_session in a JSON body (section 7)."),
             });
-    }
-
-    if (!ctx.identity || !ctx.discovered.audience || ctx.blocked.identity) {
-        skipRest(
-            r,
-            FEEDBACK_IDS,
-            ctx.blocked.identity ??
-                ctx.identityProblem ??
-                "No test Personal Agent or Company identity.",
-        );
-        return;
     }
 
     const ex = await sessionRequest(ctx, {

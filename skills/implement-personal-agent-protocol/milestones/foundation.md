@@ -56,7 +56,7 @@ on.
   authorization server, and names the one Personal Agents use, exactly as it appears in that list.
   With one authorization server it's optional, and if present it must name that server (3.1).
 - List only the interfaces that are live. During this milestone that's usually nothing beyond
-  `organization`. Add `agent`, `apis`, `web`, `feedback`, and `extensions` as later milestones ship
+  `organization`. Add `agent`, `apis`, `web`, `tasks`, and `extensions` as later milestones ship
   them.
 - Direct and Device Sign-In aren't listed in `poppy.json`. Personal Agents treat them as offered
   when the issuer's `grant_types_supported` includes `authorization_code` or the device code grant
@@ -105,7 +105,7 @@ types, `authorization_endpoint`, and `device_authorization_endpoint` come in the
 **5. The Session header at every resource**
 ([5.2](https://personalagentprotocol.org/docs/0.4/spec#session-header),
 [5.3](https://personalagentprotocol.org/docs/0.4/spec#session-verification)). Every API, conversation,
-feedback, browser-session `/authorize`, and extension endpoint receives `Poppy-Session`. Verification
+tasks, feedback, browser-session `/authorize`, and extension endpoint receives `Poppy-Session`. Verification
 is recommended generally and required before using any Session claim for identity, ownership,
 continuity, or state. Stateless APIs and OAuth-only account endpoints can ignore the header if they
 use no Session claims or state. Conversations, Session carts, browser join, and approval ownership require

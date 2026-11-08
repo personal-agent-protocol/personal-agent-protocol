@@ -55,8 +55,7 @@ export type Poppy = {
     };
     agent?: { protocols?: { type?: string; endpoint?: string; access?: string }[] };
     web?: { browser_session_endpoint?: string; disabled?: boolean; unscoped?: boolean };
-    feedback?: { endpoint?: string };
-    excluded_tasks?: { url?: string };
+    tasks?: { endpoint?: string };
     apis?: { type?: string; url?: string; description?: string }[];
     // Each extension has an entry for each version (spec 3.3).
     extensions?: Record<string, { version?: string }[]> & {
@@ -109,6 +108,8 @@ export type Discovered = {
     audience?: string;
     metadata?: Metadata;
     metadataUrl?: string;
+    // The response from tasks.endpoint for this run's Session (spec section 9).
+    tasks?: Exchange;
 };
 
 export type SessionState = {
@@ -432,7 +433,7 @@ export function conversationEndpoint(poppy: Poppy | undefined): string | undefin
     return entry ? (entry.endpoint as string).replace(/\/+$/, "") : undefined;
 }
 
-// A string field inside an object field of poppy.json, such as feedback.endpoint.
+// A string field inside an object field of poppy.json, such as tasks.endpoint.
 export function fieldOf(poppy: Poppy | undefined, object: string, field: string): unknown {
     const value = (poppy as Record<string, unknown> | undefined)?.[object];
     return isObject(value) ? value[field] : undefined;

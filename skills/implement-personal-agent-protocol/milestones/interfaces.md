@@ -17,7 +17,7 @@ staging.
 - [4.5 Access tokens](https://personalagentprotocol.org/docs/0.4/spec#access-tokens) for MCP tokens, and
   [5.6](https://personalagentprotocol.org/docs/0.4/spec#sending-requests) again for rate limits
 - [Section 9, Task coverage](https://personalagentprotocol.org/docs/0.4/spec#task-coverage),
-  for excluded tasks, feedback, and agent context
+  for excluded tasks, skills, and feedback
 - Guides: [Guest access](https://personalagentprotocol.org/docs/0.4/guides#company-guest),
   [Internal services](https://personalagentprotocol.org/docs/0.4/guides#company-internal),
   [Conversations](https://personalagentprotocol.org/docs/0.4/guides#company-conversations),
@@ -157,18 +157,34 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
 - While the browser carries that cookie, the website handles requests as that Session, whatever
   other cookies it has.
 
-## Excluded tasks and feedback
+## Excluded tasks, skills, and feedback
 
-Both are optional.
+All are optional.
 
-- To list tasks you chose not to offer through Poppy, publish a JSON document with `tasks`, each a
-  `task` and an optional `alternative`, and list its URL in `excluded_tasks.url`
+- To list tasks you chose not to offer through Poppy, publish skills, or take feedback, list
+  `tasks.endpoint` and answer `GET {tasks.endpoint}` with a JSON object with any of
+  `excluded_tasks`, `skill_index`, and `feedback.endpoint`
+  ([section 9](https://personalagentprotocol.org/docs/0.4/spec#task-coverage)). The request carries the
+  Session header and no access token. You can give different Sessions different responses, based
+  on the Session, User ID, or Agent ID, after verifying the Session header; mark those responses
+  `private` or `no-store` in `Cache-Control`. If every Session gets the same response, you can
+  serve it without verifying the header.
+- Each excluded task is a `task` and an optional `alternative`
   ([9.1](https://personalagentprotocol.org/docs/0.4/spec#excluded-tasks)). An alternative has
   `instructions`, `references`, or both. An `openapi` or `mcp` reference names an API in `apis`
   by its exact `url` ([9.2](https://personalagentprotocol.org/docs/0.4/spec#alternatives)).
   A `web` reference can point to any HTTPS website or app. The link doesn't authorize sending a
   Session JWT or access token to its target.
-- To take feedback, list `feedback.endpoint` and accept reports signed in or out, with no scope
+- `skill_index` is the complete Agent Skills discovery `0.2.0` index with `$schema` and `skills`;
+  every entry has `name`, `description`, `type`, `url`, and a `sha256:` digest of its raw artifact
+  bytes ([9.4](https://personalagentprotocol.org/docs/0.4/spec#agent-context)). Follow the pinned
+  discovery draft's artifact requirements. Full HTTPS URLs may point to a CDN or another domain.
+  Relative references resolve against `tasks.endpoint`, so use absolute URLs to reuse entries in a
+  separate well-known index. If different Sessions can get different versions of a skill, give
+  each version its own URL, since agents reject a file whose digest doesn't match. Include workflows for
+  Personal Agents here, not the developer skill used to implement Poppy. Skills grant no account
+  access or User approval.
+- To take feedback, list `feedback.endpoint` in the tasks response and accept reports signed in or out, with no scope
   needed. Session verification is recommended and required before attributing a report to a
   Personal Agent, User, or Session; otherwise keep it unattributed
   ([9.3](https://personalagentprotocol.org/docs/0.4/spec#feedback)).
@@ -177,13 +193,6 @@ Both are optional.
   for a report that is malformed or too long, and rate limits are 429 with `Retry-After`.
 - A report can be wrong, or written to mislead. Treat its text as data, not as instructions,
   including when a model reads it.
-
-## Agent context
-
-Optionally publish task workflows as Agent Skills in `skill_index` in `poppy.json`
-([9.4](https://personalagentprotocol.org/docs/0.4/spec#agent-context)). See `patterns/poppy-json.md`
-for the index format and artifact requirements. These skills help Personal Agents use the
-Company's interfaces on the User's behalf.
 
 ## Decisions for this milestone
 

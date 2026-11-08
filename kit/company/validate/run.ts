@@ -8,17 +8,13 @@ import {
     checkOperationsNotReturned,
     closeCreated,
 } from "./checks/conversations.ts";
-import {
-    checkExcludedTasks,
-    checkMetadata,
-    checkPoppyDocument,
-    checkPoppyOnline,
-} from "./checks/discovery.ts";
+import { checkMetadata, checkPoppyDocument, checkPoppyOnline } from "./checks/discovery.ts";
 import { checkFeedback } from "./checks/feedback.ts";
 import { checkMcp } from "./checks/mcp.ts";
 import { checkOpenApi } from "./checks/openapi.ts";
 import { checkResources } from "./checks/resource.ts";
 import { checkSessions } from "./checks/session.ts";
+import { checkTasks } from "./checks/tasks.ts";
 import { checkWeb } from "./checks/web.ts";
 import {
     recorder,
@@ -57,7 +53,6 @@ export async function runChecks(
     } else {
         await checkPoppyOnline(ctx, r);
         if (!ctx.blocked.poppy) {
-            await checkExcludedTasks(ctx, r);
             await checkMetadata(ctx, r);
             await runDependent(ctx, r, options.cwd);
         }
@@ -91,6 +86,7 @@ async function runDependent(ctx: Context, r: Recorder, cwd?: string): Promise<vo
         "conversations.",
         "operations.",
         "feedback.",
+        "tasks.",
         "web.",
     ]);
     if (needsIdentity && companyReady) {
@@ -122,6 +118,7 @@ async function runDependent(ctx: Context, r: Recorder, cwd?: string): Promise<vo
                     "operations.",
                     "web.",
                     "feedback.",
+                    "tasks.",
                 ])
             )
                 await checkSessions(ctx, r);
@@ -136,6 +133,7 @@ async function runDependent(ctx: Context, r: Recorder, cwd?: string): Promise<vo
                 if (wantsAny(ctx, ["conversations.", "operations."]))
                     await checkConversations(ctx, r);
                 checkOperationsNotReturned(ctx, r);
+                if (wantsAny(ctx, ["tasks."])) await checkTasks(ctx, r);
                 if (wantsAny(ctx, ["feedback."])) await checkFeedback(ctx, r);
                 if (wantsAny(ctx, ["web."])) await checkWeb(ctx, r);
             }

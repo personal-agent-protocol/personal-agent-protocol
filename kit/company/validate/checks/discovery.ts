@@ -41,8 +41,6 @@ export const DISCOVERY_IDS = [
     "discovery.web-unscoped",
 ];
 
-export const EXCLUDED_TASKS_IDS = ["discovery.excluded-tasks", "discovery.alternative-references"];
-
 export const METADATA_IDS = [
     "metadata.issuer-required",
     "metadata.resource-metadata",
@@ -325,9 +323,7 @@ export function checkPoppyDocument(
                 "Every field in the form section 3.1 describes (kit/company/schemas/poppy.schema.json)",
             cause: "Fix each field listed. Unknown fields are fine; these are fields the spec defines with the wrong type or form, or required ones that are missing.",
         });
-        // Personal Agents ignore a malformed skill index and still use the rest (section 9.4).
-        if (errors.some((e) => !e.path.startsWith("/skill_index")))
-            unusable.push("discovery.schema");
+        unusable.push("discovery.schema");
     } else {
         r.pass("discovery.schema");
     }
@@ -451,85 +447,6 @@ function checkExtensionNames(r: Recorder, poppy: Poppy, ex: Exchange | undefined
             expected: `Either an extension this protocol defines (${PROTOCOL_EXTENSIONS.join(", ")}), or a name that starts with a domain, such as example.com/gift-wrap`,
             cause: "Plain names are reserved for extensions defined with this protocol, so a Company's own extension can't clash with one the protocol adds later. Start the name with a domain you control.",
         });
-}
-
-// Fetches and checks the excluded-tasks document that poppy.json names, if any (spec 9.1, 9.2).
-export async function checkExcludedTasks(ctx: Context, r: Recorder): Promise<void> {
-    const poppy = ctx.discovered.poppy;
-    if (!poppy || ctx.blocked.poppy) {
-        skipRest(r, EXCLUDED_TASKS_IDS, ctx.blocked.poppy ?? "poppy.json wasn't loaded.");
-        return;
-    }
-    const url = isObject(poppy.excluded_tasks) ? poppy.excluded_tasks.url : undefined;
-    if (url === undefined) {
-        skipRest(r, EXCLUDED_TASKS_IDS, "poppy.json lists no excluded_tasks.");
-        return;
-    }
-    if (typeof url !== "string" || !url.startsWith("https://")) {
-        skipRest(
-            r,
-            EXCLUDED_TASKS_IDS,
-            "excluded_tasks.url isn't an HTTPS URL (see discovery.schema).",
-        );
-        return;
-    }
-    const follow = await getFollowing(ctx.http, url, { headers: { Accept: "application/json" } });
-    const ex = follow.final!;
-    const doc = ex.json as { tasks?: { task?: unknown; alternative?: unknown }[] } | undefined;
-    if (ex.error || ex.status !== 200 || !isObject(doc)) {
-        r.fail("discovery.excluded-tasks", {
-            exchange: follow.chain,
-            expected: `200 with a JSON object at ${url}`,
-            cause: ex.error
-                ? `The request failed before a response (${ex.error}).`
-                : follow.nonHttpsRedirect
-                  ? `A redirect went to ${follow.nonHttpsRedirect}, which isn't HTTPS.`
-                  : "Serve the document that excluded_tasks.url in poppy.json names, as JSON, without a token.",
-        });
-        skipRest(r, EXCLUDED_TASKS_IDS, "The excluded-tasks document couldn't be loaded.");
-        return;
-    }
-    const errors = check("excluded-tasks.schema.json", doc);
-    if (errors.length) {
-        r.fail("discovery.excluded-tasks", {
-            exchange: ex,
-            got: formatSchemaErrors(errors).join("; "),
-            expected: "The fields in 9.1 and 9.2 (kit/company/schemas/excluded-tasks.schema.json)",
-            cause: "Fix each field listed.",
-        });
-    } else {
-        const count = Array.isArray(doc.tasks) ? doc.tasks.length : 0;
-        r.pass("discovery.excluded-tasks", { summary: `${count} excluded task(s).` });
-    }
-
-    const listed = new Set(apisOf(poppy).map((api) => `${api.type} ${api.url}`));
-    const unlisted: string[] = [];
-    for (const [i, entry] of (Array.isArray(doc.tasks) ? doc.tasks : []).entries()) {
-        const alternative = (isObject(entry) ? entry.alternative : undefined) as
-            | { references?: unknown }
-            | undefined;
-        const references = Array.isArray(alternative?.references) ? alternative.references : [];
-        for (const [j, ref] of references.entries()) {
-            const { type, url: refUrl } = (isObject(ref) ? ref : {}) as {
-                type?: unknown;
-                url?: unknown;
-            };
-            if ((type === "openapi" || type === "mcp") && !listed.has(`${type} ${refUrl}`)) {
-                unlisted.push(`tasks[${i}].alternative.references[${j}] (${type} ${refUrl})`);
-            }
-        }
-    }
-    if (unlisted.length) {
-        r.fail("discovery.alternative-references", {
-            exchange: ex,
-            got: unlisted.join(", "),
-            expected:
-                "Each openapi or mcp reference's url is the url of an apis entry of that type",
-            cause: "Personal Agents ignore a reference to an API that poppy.json doesn't list. List the API in apis, or fix the url to match its entry exactly.",
-        });
-    } else {
-        r.pass("discovery.alternative-references");
-    }
 }
 
 // A Company that turns off sign-in doesn't advertise ways to sign in (3.2).

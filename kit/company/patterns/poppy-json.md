@@ -35,14 +35,10 @@ the provider.
 
 ## What to watch for
 
-- Optionally publish `skill_index` for Personal Agents performing the User's tasks at this
-  Company ([9.4](https://personalagentprotocol.org/docs/spec#agent-context)). Embed the complete Agent
-  Skills discovery `0.2.0` index with `$schema` and `skills`; every entry has `name`, `description`,
-  `type`, `url`, and a `sha256:` digest of its raw artifact bytes. Follow the pinned discovery
-  draft's distribution requirements. Full HTTPS URLs may point to a CDN or another domain.
-  Relative references resolve against the final `poppy.json` URL, so use absolute URLs to reuse
-  entries in a separate well-known index. Include workflows for Personal Agents here, not the
-  developer skill used to implement Poppy. Skills grant no account access or User approval.
+- Excluded tasks, skills, and the feedback endpoint aren't in `poppy.json`: list `tasks.endpoint`
+  and serve them there,
+  per Session ([section 9](https://personalagentprotocol.org/docs/spec#task-coverage)). Keep
+  `poppy.json` the same for everyone, so it can be cached anywhere.
 - Redirects are allowed, but only to HTTPS, and the last URL's path must be exactly
   `/.well-known/poppy.json` with no query (section 3). If `example.com` redirects to
   `www.example.com`, `organization.domain` is `www.example.com`. Domains are compared ignoring case

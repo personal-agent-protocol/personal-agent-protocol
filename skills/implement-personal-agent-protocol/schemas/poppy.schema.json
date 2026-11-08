@@ -100,20 +100,11 @@
                 }
             }
         },
-        "feedback": {
+        "tasks": {
             "type": "object",
             "required": ["endpoint"],
             "properties": {
                 "endpoint": {
-                    "$ref": "#/$defs/https_url"
-                }
-            }
-        },
-        "excluded_tasks": {
-            "type": "object",
-            "required": ["url"],
-            "properties": {
-                "url": {
                     "$ref": "#/$defs/https_url"
                 }
             }
@@ -153,9 +144,6 @@
                     }
                 }
             }
-        },
-        "skill_index": {
-            "$ref": "skill-index.schema.json"
         },
         "extensions": {
             "type": "object",

@@ -199,11 +199,11 @@ test("a Company that follows the spec passes every check", async () => {
     assert.ok(results.filter((r) => r.status === "pass").length > 45);
 });
 
-test("an alternative that references an API poppy.json doesn't list fails discovery.alternative-references", async () => {
-    const { byId } = await run({ unlistedAlternativeApi: true }, "foundation", [
-        "discovery.alternative-references",
+test("an alternative that references an API poppy.json doesn't list fails tasks.alternative-references", async () => {
+    const { byId } = await run({ unlistedAlternativeApi: true }, "interfaces", [
+        "tasks.alternative-references",
     ]);
-    const result = byId("discovery.alternative-references");
+    const result = byId("tasks.alternative-references");
     assert.equal(result.status, "fail");
     assert.match(result.got ?? "", /payments\.test/);
 });
@@ -664,14 +664,11 @@ test("an issuerless Company skips token.invented", async () => {
     assert.match(byId("token.invented").reason ?? "", /no account access/);
 });
 
-test("a malformed skill index fails the schema check without blocking poppy.json", async () => {
-    const { ctx, byId } = await run(
-        { poppy: (doc) => (doc.skill_index = { skills: "not a list" }) },
-        "foundation",
-        ["discovery.schema"],
-    );
-    assert.equal(byId("discovery.schema").status, "fail");
-    assert.equal(ctx.blocked.poppy, undefined);
+test("a malformed skill index fails its own check and not the rest of the tasks response", async () => {
+    const { byId } = await run({ skillIndexInvalid: true }, "interfaces", ["tasks."]);
+    assert.equal(byId("tasks.skill-index").status, "fail");
+    assert.equal(byId("tasks.response").status, "pass");
+    assert.equal(byId("tasks.alternative-references").status, "pass");
 });
 
 test("section numbers match the headings in the docs", () => {

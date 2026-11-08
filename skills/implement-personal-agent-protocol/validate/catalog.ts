@@ -249,18 +249,6 @@ export const CATALOG: CheckInfo[] = [
         "spec#web-browsing",
         "A Company that sets web.unscoped MUST list browser_session_endpoint.",
     ),
-    foundation(
-        "discovery.excluded-tasks",
-        "The excluded-tasks document loads and has the fields in 9.1",
-        "spec#excluded-tasks",
-        "The Personal Agent fetches it with a GET and no token",
-    ),
-    foundation(
-        "discovery.alternative-references",
-        "Each openapi or mcp reference in an alternative names an API listed in poppy.json",
-        "spec#alternatives",
-        "An openapi or mcp reference MUST name an API listed in the Company's poppy.json.",
-    ),
 
     // Milestone 1: the issuer and its OAuth server metadata (3.2).
     foundation(
@@ -627,6 +615,26 @@ export const CATALOG: CheckInfo[] = [
         "The MCP server refuses an invented access token with invalid_token and points to its metadata",
         "spec#apis",
         "An MCP server's challenges include resource_metadata with the server's protected resource metadata URL",
+    ),
+
+    // Milestone 2: excluded tasks and skills (section 9, 9.1, 9.4).
+    interfaces(
+        "tasks.response",
+        "The tasks endpoint answers a signed-out Session with the fields in section 9 and 9.1",
+        "spec#task-coverage",
+        "the Company responds with HTTP 200 and a JSON object",
+    ),
+    interfaces(
+        "tasks.skill-index",
+        "The skill index in the tasks response has the form in 9.4",
+        "spec#agent-context",
+        "Companies that publish skill_index MUST follow that revision's index format",
+    ),
+    interfaces(
+        "tasks.alternative-references",
+        "Each openapi or mcp reference in an excluded task's alternative names an API listed in poppy.json",
+        "spec#alternatives",
+        "An openapi or mcp reference MUST name an API listed in the Company's poppy.json.",
     ),
 
     // Milestone 2: feedback (section 9.3).

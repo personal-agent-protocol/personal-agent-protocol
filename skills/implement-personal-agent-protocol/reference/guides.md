@@ -60,7 +60,7 @@ The Session JWT is the core authentication mechanism. Personal agents should als
 
 ### Fetching metadata safely
 
-Personal agents fetch `poppy.json` files, OAuth and protected resource metadata, API descriptions, and excluded-task documents. Companies fetch client metadata documents and key sets. Each fetch goes to a URL the other party controls, so:
+Personal agents fetch `poppy.json` files, OAuth and protected resource metadata, and API descriptions. Companies fetch client metadata documents and key sets. Each fetch goes to a URL the other party controls, so:
 
 - Set limits: a few redirects at most, a response size such as 100 KB, and a timeout of a few seconds.
 - Validate HTTPS certificates. Personal agents MUST follow discovery redirects only to HTTPS URLs ([section 3](https://personalagentprotocol.org/docs/0.4/spec#discovery)).
@@ -148,7 +148,7 @@ Keep the mapping of each user's IDs across companies confidential (MUST, [5.1](h
 
 ### The Session header
 
-- Decide where to send the header from the company's `poppy.json` and its listed API descriptions ([5.2](https://personalagentprotocol.org/docs/0.4/spec#session-header)). For OpenAPI, resolve the request URL from the operation's server and path. For MCP, use the listed server endpoint and its transport's request URLs. For conversations, use the listed endpoint and the routes in [8.2](https://personalagentprotocol.org/docs/0.4/spec#conversation-requests). Other protocol and extension endpoints follow their definitions, such as `feedback.endpoint` and `{browser_session_endpoint}/authorize`. Match the request to those operations and routes before signing. A host allowlist alone would include unrelated paths on a shared host.
+- Decide where to send the header from the company's `poppy.json` and its listed API descriptions ([5.2](https://personalagentprotocol.org/docs/0.4/spec#session-header)). For OpenAPI, resolve the request URL from the operation's server and path. For MCP, use the listed server endpoint and its transport's request URLs. For conversations, use the listed endpoint and the routes in [8.2](https://personalagentprotocol.org/docs/0.4/spec#conversation-requests). Other protocol and extension endpoints follow their definitions, such as `tasks.endpoint`, the `feedback.endpoint` its response lists, and `{browser_session_endpoint}/authorize`. Match the request to those operations and routes before signing. A host allowlist alone would include unrelated paths on a shared host.
 - Fetch discovery documents, API descriptions, and other public documents without the Session header. Keep it off OAuth requests and website page loads too. A web link in an alternative or message doesn't add a destination. The JWT's `aud` identifies the company, while `htu` binds it to the request URL. Neither chooses where to send it.
 - Choose each session's `sid` at random, and never use it for another session (MUST, [5.2](https://personalagentprotocol.org/docs/0.4/spec#session-header)). Keep it for as long as you use the session: it names the session, so a lost `sid` means a new session.
 - Send the same `sub` and `agent_id` in every Session JWT for a session (MUST, [5.2](https://personalagentprotocol.org/docs/0.4/spec#session-header)).
@@ -253,10 +253,10 @@ When a company offers the [Mediated Sign-In extension](https://personalagentprot
 
 ### Task coverage
 
-- Read the company's excluded tasks before you try a task there. When the user's task is one of them, tell the user right away instead of trying each interface ([9.1](https://personalagentprotocol.org/docs/0.4/spec#excluded-tasks)).
+- Get the company's tasks response early in each Session, before you try a task there, and use it only in that Session ([section 9](https://personalagentprotocol.org/docs/0.4/spec#task-coverage)). When the user's task is one of the excluded tasks, tell the user right away instead of trying each interface ([9.1](https://personalagentprotocol.org/docs/0.4/spec#excluded-tasks)).
 - Offer the alternative when there is one. When it's something the user does themselves, such as a page that opens the company's app, give the user the link instead of browsing it yourself ([9.2](https://personalagentprotocol.org/docs/0.4/spec#alternatives)).
 - A web alternative can lead to another company's website or app. Show the link's destination domain. To act there, use that company's discovery and its own session and account access, rather than carrying the referring company's Session JWT or access token along.
-- Send feedback to `feedback.endpoint` ([9.3](https://personalagentprotocol.org/docs/0.4/spec#feedback)). A company's APIs may also have feedback operations meant for other clients.
+- Send feedback to the `feedback.endpoint` in the tasks response ([9.3](https://personalagentprotocol.org/docs/0.4/spec#feedback)). A company's APIs may also have feedback operations meant for other clients.
 - When a company answers your feedback report with an alternative, try it before you tell the user the task can't be done ([9.3](https://personalagentprotocol.org/docs/0.4/spec#feedback)).
 - When you skip a company's skill index, or a skill in it, because you don't recognize its `$schema` or `type`, say so to the user if it matters for the task, so they know the company's guidance wasn't used ([9.4](https://personalagentprotocol.org/docs/0.4/spec#agent-context)).
 
@@ -555,9 +555,11 @@ For a conversation endpoint that requires account access before useful work, lis
 - List the tasks you've chosen not to offer to personal agents, such as ones you allow only in your app for security or regulatory reasons ([9.1](https://personalagentprotocol.org/docs/0.4/spec#excluded-tasks)). Personal agents then stop looking for a way to do them, and don't send feedback about them.
 - Write each task the way a customer would ask for it, such as "Send a wire transfer".
 - Give an alternative whenever there is one. Link to the page, or the screen in your app, where the user can do the task ([9.2](https://personalagentprotocol.org/docs/0.4/spec#alternatives)).
-- Set caching headers on the document, and update it when you add or remove a task.
+- Serve excluded tasks, skills, and your feedback endpoint from `tasks.endpoint` ([section 9](https://personalagentprotocol.org/docs/0.4/spec#task-coverage)). If every Session gets the same response, you can cache it at your edge without verifying the Session header.
+- To try different skills, alternatives, or feedback endpoints with some users, choose each Session's variant after verifying its Session header, and mark the response `private`. Choose by User ID to keep a user in the same variant across Sessions, or by Session ID to vary it from one Session to the next.
+- If different Sessions can get different versions of a skill, give each version its own URL. A personal agent rejects a file whose digest doesn't match the index it got.
 - When a feedback report asks for a task you do offer, answer with an alternative that says how, so the personal agent can finish the task ([9.3](https://personalagentprotocol.org/docs/0.4/spec#feedback)).
-- Take feedback from personal agents at `feedback.endpoint` ([9.3](https://personalagentprotocol.org/docs/0.4/spec#feedback)). If your APIs also serve clients that don't read `poppy.json` and you keep a feedback operation for them, say in its description that personal agents use `feedback.endpoint`. Ideally both feed the same place.
+- Take feedback from personal agents at the `feedback.endpoint` in your tasks response ([9.3](https://personalagentprotocol.org/docs/0.4/spec#feedback)). If your APIs also serve clients that don't read `poppy.json` and you keep a feedback operation for them, say in its description that personal agents use `feedback.endpoint`. Ideally both feed the same place.
 
 ### Operations
 

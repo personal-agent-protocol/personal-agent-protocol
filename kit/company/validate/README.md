@@ -72,15 +72,15 @@ allowlist.
 | Milestone     | Checks                                                                                                                                                                                                                     |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1. Foundation | `discovery.*` poppy.json; `metadata.*` the issuer, from the protected resource metadata, and its OAuth server metadata; `session.*` the Session header at resources; `assertion.*` client assertions at the token endpoint |
-| 2. Interfaces | `openapi.*` OpenAPI documents; `mcp.*` MCP servers; `conversations.*` the conversation endpoint; `feedback.*` the feedback endpoint; `web.*` the browser-session endpoint                                                  |
+| 2. Interfaces | `openapi.*` OpenAPI documents; `mcp.*` MCP servers; `conversations.*` the conversation endpoint; `tasks.*` the tasks endpoint; `feedback.*` the feedback endpoint; `web.*` the browser-session endpoint                    |
 | 3. Sign-in    | `mediated.*` only what needs no real sign-in, such as an unknown `sign_in_id` at the token endpoint. Check the rest of sign-in by hand against `checklist.md`.                                                             |
 | 4. Extensions | `operations.*` only what a signed-out run sees: no operations returned in response to a request that doesn't declare the Operations extension.                                                                             |
 
 `catalog.ts` lists every check with its requirement and section.
 
 Issuerless Companies use their validated HTTPS domain as the Session audience. OAuth checks are
-skipped; Session, conversation, feedback, and browser-join checks still run. Generic API probes test
-the verification recommendation; use `--probe-session` for APIs that use Session claims or state.
+skipped; Session, conversation, tasks, feedback, and browser-join checks still run. Generic API
+probes test the verification recommendation; use `--probe-session` for APIs that use Session claims or state.
 Conversations and browser join still require verification. Feedback may be unattributed; attribution
 requires verification and needs manual inspection. Discovery errors never
 select that fallback. The MCP probes cover modern `server/discover` and legacy `initialize` with
