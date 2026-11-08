@@ -183,6 +183,7 @@ To add a protocol version (3.4):
 - [ ] Cache client metadata and key sets, as described in Fetching metadata safely.
 - [ ] Keep allowlists or blocklists of `client_id` values, and rate-limit session creation and new `client_id` values (4.1).
 - [ ] Check whether your authorization server supports client ID metadata documents. Some do, some support them only for clients an administrator registers by URL, and some don't yet. If yours needs registration, register the personal agents you accept by their `client_id` URL and reject others with `invalid_client`, which 4.1 allows. Your OAuth integration can fetch and check the metadata document. Your resources also fetch it when verifying Session JWTs (5.3).
+- [ ] If your authorization server accepts client ID metadata documents, publish `client_id_metadata_document_supported: true` in its metadata, as the CIMD draft §8 defines, so other clients, such as MCP clients, can tell. Personal agents don't need it: a company that offers sign-in already reads their metadata documents (4.1).
 
 ### Recommended: [Verifying the Session header](https://personalagentprotocol.org/docs/0.4/guides#company-session-header)
 

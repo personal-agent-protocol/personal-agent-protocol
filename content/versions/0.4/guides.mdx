@@ -674,6 +674,11 @@ Your identifier stays the issuer, so nothing changes for users when you turn sig
   others with `invalid_client`, which 4.1 allows. Your OAuth integration can fetch and check the
   metadata document. Your resources also fetch it
   when verifying Session JWTs ([5.3](/docs/spec#session-verification)).
+- If your authorization server accepts client ID metadata documents, publish
+  `client_id_metadata_document_supported: true` in its metadata, as the [CIMD
+  draft](https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/) §8 defines,
+  so other clients, such as MCP clients, can tell. Personal agents don't need it: a company that
+  offers sign-in already reads their metadata documents ([4.1](/docs/spec#agent-identity)).
 
 ### Verifying the Session header {#company-session-header}
 

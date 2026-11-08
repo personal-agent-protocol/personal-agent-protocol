@@ -190,6 +190,12 @@ The Company guide gives each new request a random `operation_id`, so a User can 
 
 A Company whose APIs also serve clients that don't read `poppy.json` can keep a feedback operation for them, with a description that sends Personal Agents to `feedback.endpoint`. The Personal Agent guide says to send feedback to `feedback.endpoint`.
 
+#### Advertising CIMD support
+
+[Guides: Verifying personal agents](https://personalagentprotocol.org/docs/0.4/guides#company-agents)
+
+The Company guide suggests publishing `client_id_metadata_document_supported` in the authorization server metadata, as the CIMD draft defines, for clients other than Personal Agents.
+
 ## Version 0.3
 
 Published November 4, 2026. It's frozen at [/docs/0.3/spec](https://personalagentprotocol.org/docs/0.3/spec). Major changes are design decisions. Minor changes fill gaps, make the text consistent, or follow an RFC. A change tagged "Breaking" can require an implementation that followed the 0.2 text to change, whether it's major or minor.
