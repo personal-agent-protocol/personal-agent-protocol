@@ -108,6 +108,12 @@ Breaking · [Spec 3.3](https://personalagentprotocol.org/docs/0.4/spec#extension
 
 At APIs, `extension_required` is a JSON body, as it already was at the protocol's own endpoints, instead of a `WWW-Authenticate` challenge. It isn't an access token error or an RFC 6750 error code, and OAuth and MCP clients that read the challenge could treat it as a problem with the token.
 
+#### Device sign-in links on the issuer or Company domain
+
+Breaking · [Spec 4.3](https://personalagentprotocol.org/docs/0.4/spec#device-sign-in) · [Guides: Direct and device sign-in](https://personalagentprotocol.org/docs/0.4/guides#agent-direct-device) · [Guides: Device sign-in](https://personalagentprotocol.org/docs/0.4/guides#company-device)
+
+A Personal Agent shows a Device Sign-In link only if its host is the issuer's host or `organization.domain`, or a subdomain of either. Hosts of other URLs in `protected_resources` no longer qualify. That list can name other domains that share the issuer and services such as MCP servers, so a link there could pass off a page the Company doesn't control as its sign-in page.
+
 #### Refresh token lifetimes left to the Company
 
 [Spec 4.4](https://personalagentprotocol.org/docs/0.4/spec#refresh-tokens) · [Spec 4.8](https://personalagentprotocol.org/docs/0.4/spec#oauth-additions) · [Guides: Token lifetimes and sign-out](https://personalagentprotocol.org/docs/0.4/guides#company-lifetimes)

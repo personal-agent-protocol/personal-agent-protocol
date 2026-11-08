@@ -376,7 +376,7 @@ Device Sign-In is a cross-device flow, and it is easier to use for phishing than
 
 Poppy adds these rules to the grant:
 
-- The Personal Agent shows the User `verification_uri` and `user_code`, or `verification_uri_complete` as a link or QR code. It keeps `device_code` private. Before showing them, the Personal Agent MUST check that the link's host is the host of the Company's issuer or of a URL in the issuer's `protected_resources` (3.2), or a subdomain of either, and MUST show the Company's `organization.name` and domain with them. Otherwise a Company could pass off another Company's sign-in page as its own, and the User would approve a sign-in there for the Company that asked.
+- The Personal Agent shows the User `verification_uri` and `user_code`, or `verification_uri_complete` as a link or QR code. It keeps `device_code` private. Before showing them, the Personal Agent MUST check that the link's host is the host of the Company's issuer or `organization.domain` (3.1), or a subdomain of either, and MUST show the Company's `organization.name` and domain with them. Otherwise a Company could pass off another Company's sign-in page as its own, and the User would approve a sign-in there for the Company that asked.
 - Opening the link MUST NOT approve the request by itself.
 - Each poll carries the client assertion. Once the User approves, the poll returns the tokens in 4.7.
 

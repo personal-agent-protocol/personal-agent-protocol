@@ -87,8 +87,9 @@ second account.
 - `device_authorization_endpoint` in the metadata, and
   `urn:ietf:params:oauth:grant-type:device_code` in its `grant_types_supported`.
 - The device authorization request and each poll at `token_endpoint` carry the client assertion.
-- Put the verification page on the host of the issuer or of a URL in `protected_resources`, or a
-  subdomain of either. Personal Agents don't show a link anywhere else.
+- Put the verification page on the host of the issuer or `organization.domain`, or a subdomain of
+  either. Personal Agents don't show a link anywhere else. With one issuer for several domains, a
+  page on the issuer's host works for all of them.
 - The verification page shows the Personal Agent and scopes. Opening the link or scanning the code
   never approves by itself.
 - Poll responses: `authorization_pending`, `slow_down`, `access_denied`, `expired_token`.

@@ -459,6 +459,7 @@ The page where the user approves access, in direct and device sign-in (4.2, 4.3)
 - [ ] Offer direct sign-in too (SHOULD, 4). Device sign-in is easier to use for phishing.
 - [ ] RFC 10027 §6.2.1.5 advises against the device authorization grant for sensitive, high-value, or business-critical resources. A company whose accounts hold them, such as a bank, may offer only direct sign-in.
 - [ ] Follow the best practices for cross-device flows in RFC 10027 §2 (MUST, 4.3): assess the risk before offering device sign-in, and choose mitigations from its §6.1, such as short-lived single-use codes, rate limits, limited scopes, and a consent page that says which personal agent is asking and tells the user to decline a code they didn't ask for.
+- [ ] Put the verification page on your issuer's host or your domain, or a subdomain of either. Personal agents don't show a link anywhere else (4.3). If one issuer serves several domains, a page on the issuer's host works for all of them.
 - [ ] Opening the link MUST NOT approve the request by itself (4.3). The same goes for scanning the QR code. The user signs in and approves on the page.
 - [ ] Ask the user to confirm that the code on the page matches the one the personal agent shows.
 - [ ] Return `slow_down` to personal agents that poll faster than `interval`, and limit wrong `user_code` entries.

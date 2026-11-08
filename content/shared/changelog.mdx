@@ -174,6 +174,15 @@ and OAuth and MCP clients that read the challenge could treat it as a problem wi
 
 </Change>
 
+<Change title="Device sign-in links on the issuer or Company domain" breaking sections="4.3, guides#agent-direct-device, guides#company-device">
+
+A Personal Agent shows a Device Sign-In link only if its host is the issuer's host or
+`organization.domain`, or a subdomain of either. Hosts of other URLs in `protected_resources` no
+longer qualify. That list can name other domains that share the issuer and services such as MCP
+servers, so a link there could pass off a page the Company doesn't control as its sign-in page.
+
+</Change>
+
 <Change title="Refresh token lifetimes left to the Company" sections="4.4, 4.8, guides#company-lifetimes">
 
 Using a refresh token may extend its lifetime. Poppy no longer requires a fixed one, which neither
