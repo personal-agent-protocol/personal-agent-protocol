@@ -109,8 +109,13 @@ your server receives. Watch for path rewrites, such as a gateway that strips a p
 
 - Session header destinations come from `poppy.json` and the listed APIs' request URLs
   ([5.2](https://personalagentprotocol.org/docs/spec#session-header)). A listed endpoint doesn't
-  include every path on its host. Discovery and description documents, OAuth endpoints, and
-  website pages don't carry the header. Browser join uses it only on the `/authorize` request.
+  include every path on its host. Discovery and description documents and OAuth endpoints don't
+  carry the header. Browser join uses it only on the `/authorize` request.
+- Website pages on the host that serves `poppy.json` can carry the header when a Personal Agent
+  fetches them without a browser, never with an access token
+  ([5.2](https://personalagentprotocol.org/docs/spec#session-header)). Treat those requests as
+  signed out, and reject a header that fails verification with `invalid_session`, as anywhere
+  else ([5.3](https://personalagentprotocol.org/docs/spec#session-verification)).
 - Use an acceptance window of about a minute, plus a small clock skew.
 - Sessions are keyed by `client_id`, `sid`, and User ID, never by a key. Refresh tokens are tied to the
   `client_id` (4.4).

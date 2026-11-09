@@ -23,7 +23,7 @@ Poppy separates request identity, Session continuity, and account access. Compan
 | Interaction channels | Uses APIs, browses the website, or talks to the Company Agent, including handoff to a person. | The Company exposes the channels it supports. Browser join connects website activity to the Session (sections 6, 7, and 8). |
 | Task coverage and extensions | Communicates unsupported tasks, collects feedback, and adds capabilities such as operation approvals. | The Company advertises the capabilities it implements (section 9 and [Extensions](https://personalagentprotocol.org/docs/0.4/extensions)). |
 
-Sessions and account access are independent. A Session identifies activity through a Personal Agent; OAuth authorizes access to a Company account. On APIs and protocol endpoints, a signed-out request carries the Session header, and a signed-in request also carries an access token. OAuth endpoints use their own client authentication. Website pages use the Company's cookies, with browser join when supported (5.2 and section 6).
+Sessions and account access are independent. A Session identifies activity through a Personal Agent; OAuth authorizes access to a Company account. On APIs and protocol endpoints, a signed-out request carries the Session header, and a signed-in request also carries an access token. OAuth endpoints use their own client authentication. A browser on the website uses the Company's cookies, with browser join when supported. A website page the Personal Agent fetches without a browser carries the Session header, and is always signed out (5.2 and section 6).
 
 A Company can expose signed-out APIs without running an OAuth server. An endpoint that uses no Session claims can handle requests without verifying the Session header. Relying on Session identity, ownership, continuity, or state requires verification (5.3). The Personal Agent still sends the header even when the Company ignores it. Operator recognition alone does not verify Session claims, authorize account access, or decide whether the Company accepts the request.
 
@@ -144,7 +144,7 @@ An example document:
 | `agent` | At least one of `agent`, `apis`, or `web` | The Company Agent. `protocols` lists its supported conversation protocols, each with a `type` and HTTPS `endpoint` (section 8). A `poppy` entry may include an `access` hint (3.2). |
 | `apis` | At least one of `agent`, `apis`, or `web` | A list of APIs. Each has a `type`, such as those in section 7, a `url`, and a short `description` that helps the Personal Agent pick the right one. |
 | `web` | At least one of `agent`, `apis`, or `web` | The Company's website. The optional `browser_session_endpoint` is where the Personal Agent's browser joins a Session (section 6). Without it, Personal Agents browse the site as ordinary signed-out visitors, unless `web.disabled` is set. |
-| `web.disabled` | No | `true` if the Company asks Personal Agents not to browse its website, and to use its Company Agent and APIs instead (section 6). Defaults to `false`. |
+| `web.disabled` | No | `true` if the Company asks Personal Agents not to browse its website in a browser, and to use its Company Agent and APIs instead (section 6). Defaults to `false`. |
 | `web.unscoped` | No | `true` if the website doesn't apply the Company's other scopes, so `poppy:browser-sign-in` gives the account's full access there (section 6). Defaults to `false`. |
 | `tasks` | No | `endpoint` is an HTTPS URL where Personal Agents get, for a Session, the tasks the Company chose not to offer through this protocol, the skills it publishes, and where to send feedback (section 9). |
 | `extensions` | No | The extensions the Company supports, keyed by name, with an entry for each version (3.3). |
@@ -454,7 +454,7 @@ OAuth errors follow the relevant grant's RFC, including `invalid_client`, `inval
 
 A Session belongs to one User, at one Company, through one Personal Agent. It can tie together activity such as a cart and an open conversation, whether signed in or out. A Personal Agent can run several Sessions for the same User, for example for tasks running in parallel.
 
-The Personal Agent declares its Session with a `Poppy-Session` header on requests to the Company's APIs, conversations, and other protocol and extension endpoints (5.2). The Company verifies the header before using Session claims or state; endpoints that use neither can ignore it (5.3). There's no separate step to start a Session: the first request with a new `sid` starts it. Account access is separate, and is plain OAuth (section 4):
+The Personal Agent declares its Session with a `Poppy-Session` header on requests to the Company's APIs, conversations, and other protocol and extension endpoints, and on website pages it fetches without a browser (5.2). The Company verifies the header before using Session claims or state; endpoints that use neither can ignore it (5.3). There's no separate step to start a Session: the first request with a new `sid` starts it. Account access is separate, and is plain OAuth (section 4):
 
 | Request | Carries |
 | --- | --- |
@@ -477,7 +477,7 @@ The Personal Agent holds the User IDs and Agent IDs of each of its Users at ever
 
 The Personal Agent MUST send a `Poppy-Session` header on every request to a Company's APIs, conversations, and other resource endpoints this protocol or an extension defines. The destinations come from the Company's `poppy.json`: the request URLs its listed APIs describe (section 7), and protocol endpoints listed there or derived as the protocol or extension defines. For example, conversation requests use the selected `agent.protocols[].endpoint` and the routes in 8.2, browser authorization uses `{browser_session_endpoint}/authorize` (section 6), and feedback uses the `feedback.endpoint` that the response from `tasks.endpoint` lists (section 9). Sharing a hostname with one of these URLs doesn't make another URL a Session destination.
 
-The Personal Agent MUST NOT send a Company's Session JWT to any other destination. Discovery and description documents, OAuth endpoints, and website pages don't carry this header. Requests that carry it also carry `Poppy-Version`, and `Poppy-Extensions` when the Personal Agent uses extensions with the Company (3.4). The header holds a JWT that the Personal Agent signs for that one request, with a delegated key that a key from its `jwks_uri` vouches for (Delegated keys, below):
+The Personal Agent MUST NOT send a Company's Session JWT to any other destination, except the website pages below. Discovery and description documents and OAuth endpoints don't carry this header. Requests that carry it also carry `Poppy-Version`, and `Poppy-Extensions` when the Personal Agent uses extensions with the Company (3.4). The header holds a JWT that the Personal Agent signs for that one request, with a delegated key that a key from its `jwks_uri` vouches for (Delegated keys, below):
 
 *Request headers: Personal Agent → Company*
 
@@ -524,6 +524,8 @@ Authorization: Bearer eyJhbGciOi…Qp4w
 The Personal Agent MUST include every claim except `agent_id`, and `ath` when there's no access token. It MUST send the same `sub` and `agent_id`, or no `agent_id`, in every Session JWT for a Session.
 
 A Session JWT is fresh for each request, so a copied one works only for the same method and URL, and only briefly. Its `ath` ties it to the access token, and the access token was issued to the same `client_id`, so a copied access token is useless without the Personal Agent's key (5.3). If the access token is also DPoP-bound (4.5), the request carries both the Session JWT and a DPoP proof, each signed with its own key. Both carry `ath`, so a Session header can be verified without DPoP, for example at a gateway. The Session JWT doesn't replace DPoP: it names the Session and User, which a DPoP proof doesn't, and it covers signed-out requests, which have no token for a DPoP proof to bind to.
+
+**Website pages.** A Personal Agent that fetches a page of the Company's website with its own HTTP client, rather than a browser, SHOULD send the Session header with it, so the Company can tell which Personal Agent and Session the request is from. This covers only HTTPS URLs whose host is exactly `organization.domain`, the host that served `poppy.json` (section 3), and not the documents above or other hosts on the Company's domain. The Personal Agent MUST NOT send an access token with these requests, so the JWT has no `ath` and the request is signed out (5.4), even when a browser joined to the Session is signed in. An access token is for the Company's APIs (4.5), and signed-in browsing goes through browser join with `poppy:browser-sign-in` (section 6). A headless browser is a browser: it joins the Session as section 6 describes, and doesn't send the header. When a page redirects, the Personal Agent signs a new Session JWT for the new URL only if its host is still `organization.domain`, and otherwise follows the redirect without the header. A page that verifies the header rejects a failed check with `invalid_session`, as any endpoint does (5.3), so the Personal Agent learns of a mistake in its header. The Personal Agent MAY then fetch the page again without the header.
 
 #### Delegated keys
 
@@ -651,8 +653,8 @@ When a Session continues signed out:
 
 ### 5.6 Sending requests
 
-- Companies MUST accept the Session header and access token without requiring cookies. Web pages carry a cookie instead (section 6).
-- Personal Agents MUST NOT leave out the Session header to appear to the Company as a person on their own. Web browsing follows section 6.
+- Companies MUST accept the Session header and access token at their APIs, conversations, and other protocol and extension endpoints without requiring cookies. A browser on the website carries a cookie instead (section 6).
+- Personal Agents MUST NOT leave out the Session header to appear to the Company as a person on their own, including on website pages they fetch without a browser, other than fetching a page again after `invalid_session` (5.2). A browser follows section 6.
 - Personal Agents MUST NOT send tokens or Session JWTs in a URL, and Companies MUST NOT accept them from one.
 
 **Rate limits.** A Company that limits how often a Personal Agent can make requests returns HTTP 429 ([RFC 6585 §4](https://www.rfc-editor.org/rfc/rfc6585#section-4)) with a `Retry-After` header ([RFC 9110 §10.2.3](https://www.rfc-editor.org/rfc/rfc9110#section-10.2.3)) when a request goes over the limit, on any of its endpoints, APIs, conversations, or website. The Personal Agent MUST wait at least that long before sending the request again.
@@ -661,9 +663,11 @@ When a Session continues signed out:
 
 A Personal Agent can browse the Company's website in the same Session it uses for APIs and conversations, so the Company sees one Session for the User, whether or not the User is signed in. The Personal Agent's browser loads the Company's browser-session page, which gives it a one-time code. The Personal Agent authorizes that code in a request of its own, with the Session header and, if signed in, its access token. The browser then submits the code, and the Company answers with a cookie for the Session. The access token never passes through the browser. Only the browser that loaded the page can submit its code, and only the Personal Agent can authorize it, so no one else can make a browser join the Session (10.6).
 
-This is optional. A Company that supports it lists `web.browser_session_endpoint` in its `poppy.json` (section 3). When it does, the Personal Agent MUST join its browser to a Session before browsing the Company's website. On a website without the endpoint, the Personal Agent browses as an ordinary signed-out visitor.
+A Personal Agent can also fetch the website's pages with its own HTTP client, without a browser, for example to read a help article. It doesn't join a Session for that, and sends the Session header instead, always signed out (5.2). The rest of this section is about browsers, including headless ones.
 
-**Asking Personal Agents not to browse.** A Company that wants Personal Agents to use only its Company Agent and APIs sets `web.disabled` to `true` in `poppy.json`. A Personal Agent SHOULD NOT browse the website of a Company that sets it, and uses the interfaces the Company lists instead. A Company that sets `web.disabled` MUST NOT list `browser_session_endpoint`, and MUST list `agent` or `apis`. The protocol can't enforce `web.disabled`, because a Company can't always tell a Personal Agent's browser from a person's. It says what the Company prefers, and isn't a promise that Personal Agents won't browse.
+Browser join is optional. A Company that supports it lists `web.browser_session_endpoint` in its `poppy.json` (section 3). When it does, the Personal Agent MUST join its browser to a Session before browsing the Company's website. On a website without the endpoint, the Personal Agent browses as an ordinary signed-out visitor.
+
+**Asking Personal Agents not to browse.** A Company that wants Personal Agents to use only its Company Agent and APIs sets `web.disabled` to `true` in `poppy.json`. A Personal Agent SHOULD NOT use a browser on the website of a Company that sets it, and uses the interfaces the Company lists instead. `web.disabled` doesn't cover pages the Personal Agent fetches without a browser (5.2). A Company that sets `web.disabled` MUST NOT list `browser_session_endpoint`, and MUST list `agent` or `apis`. The protocol can't enforce `web.disabled`, because a Company can't always tell a Personal Agent's browser from a person's. It says what the Company prefers, and isn't a promise that Personal Agents won't browse.
 
 The Personal Agent MUST join only a browser it controls to a Session, never the User's own browser. Otherwise, the Company would treat the User's own visits as the Personal Agent's.
 

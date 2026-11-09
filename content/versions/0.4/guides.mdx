@@ -295,9 +295,16 @@ service providers that process it for you.
   `feedback.endpoint` its response lists, and `{browser_session_endpoint}/authorize`. Match the
   request to those operations and routes before signing. A host allowlist alone would include unrelated paths on a shared host.
 - Fetch discovery documents, API descriptions, and other public documents without the Session
-  header. Keep it off OAuth requests and website page loads too. A web link in an alternative or
-  message doesn't add a destination. The JWT's `aud` identifies the company, while `htu` binds it
-  to the request URL. Neither chooses where to send it.
+  header. Keep it off OAuth requests too. A web link in an alternative or message doesn't add a
+  destination. The JWT's `aud` identifies the company, while `htu` binds it to the request URL.
+  Neither chooses where to send it.
+- When you fetch a website page yourself, without a browser, send the header if the page is on the
+  host that served `poppy.json` (SHOULD, [5.2](/docs/spec#session-header)), never with an access
+  token. Sign a new one for a redirect only while it stays on that host. A browser, headless or
+  not, joins the session instead ([section 6](/docs/spec#web-browsing)).
+- If a page answers `invalid_session`, treat it as a bug in your header, as at any endpoint, and
+  check the JWT. You can fetch the page again without the header in the meantime
+  ([5.2](/docs/spec#session-header)).
 - Choose each session's `sid` at random, and never use it for another session (MUST,
   [5.2](/docs/spec#session-header)). Keep it for as long as you use the session: it names the
   session, so a lost `sid` means a new session.
@@ -453,8 +460,10 @@ When a company offers the [Mediated Sign-In extension](/docs/extensions/mediated
 
 ### Web browsing {#agent-browsing}
 
-- Don't browse the website of a company that sets `web.disabled`. Use its company agent and APIs
-  (SHOULD NOT, [section 6](/docs/spec#web-browsing)).
+- Don't use a browser on the website of a company that sets `web.disabled`. Use its company
+  agent and APIs (SHOULD NOT, [section 6](/docs/spec#web-browsing)). Fetching a page without a
+  browser, such as a policy, is still fine, with the Session header
+  ([5.2](/docs/spec#session-header)).
 - To browse signed in, request `poppy:browser-sign-in` with the other scopes the task needs, from a
   company that lists `browser_session_endpoint` ([section 6](/docs/spec#web-browsing)). Where
   `web.unscoped` is `true`, it gives the account's full access on the website, so treat it like a
@@ -755,6 +764,12 @@ DPoP proof. To verify reliably:
 - At an MCP server, accept a token issued for its `resource` only at that server (MUST,
   [section 7](/docs/spec#apis)). Accept the Session header there too, if you want its calls tied to
   sessions. Signed-out calls that use no Session state can work without verification.
+- Pages on the host that serves your `poppy.json` can get the Session header too, from personal
+  agents that fetch them without a browser, and never with an access token
+  ([5.2](/docs/spec#session-header)). Verify it before using it, for example to recognize the
+  personal agent or to keep the request in its session. Treat the request as signed out, even when
+  the session's browser is signed in. When the check fails, return `invalid_session` as at any
+  endpoint ([5.3](/docs/spec#session-verification)), so the personal agent can find the mistake.
 - Serve personal agent conversations only from your conversation endpoint
   ([8.2](/docs/spec#conversation-requests)). If your website chat or other channels can open the
   same conversations, they may not check the Session header, and anyone with a copied token could
@@ -931,8 +946,9 @@ website, so start there for the tasks users ask for most. Then choose how much o
 personal agents can use, from least to most:
 
 1. **No browsing.** Set `web.disabled`, and cover the tasks in your company agent or APIs. Personal
-   agents that follow the protocol won't browse, but nothing stops one that doesn't
-   ([section 6](/docs/spec#web-browsing)).
+   agents that follow the protocol won't browse in a browser, but nothing stops one that doesn't
+   ([section 6](/docs/spec#web-browsing)). They can still fetch pages without a browser, with the
+   Session header ([5.2](/docs/spec#session-header)).
 2. **Signed-out browsing.** List `web` without a `browser_session_endpoint`. Personal agents browse
    as ordinary signed-out visitors, and use your company agent and APIs for anything that needs the
    account.

@@ -61,6 +61,10 @@ are left out.
 - [ ] **MUST**: Companies MUST reject a client assertion with any other `aud`, compared character for character, including their token endpoint URL.
 - [ ] **MUST**: Companies MUST accept client assertions signed with `ES256`, and SHOULD accept ones signed with `PS384`.
 
+### Specification: [5.2 The Session header](https://personalagentprotocol.org/docs/0.4/spec#session-header)
+
+- [ ] **SHOULD**: A Personal Agent that fetches a page of the Company's website with its own HTTP client, rather than a browser, SHOULD send the Session header with it, so the Company can tell which Personal Agent and Session the request is from.
+
 ### Specification: [Delegated keys](https://personalagentprotocol.org/docs/0.4/spec#delegated-keys)
 
 - [ ] **MUST**: Companies MUST accept delegations signed with `ES256`, and SHOULD accept delegations signed with `PS384`.
@@ -85,7 +89,7 @@ are left out.
 
 ### Specification: [5.6 Sending requests](https://personalagentprotocol.org/docs/0.4/spec#sending-requests)
 
-- [ ] **MUST**: Companies MUST accept the Session header and access token without requiring cookies.
+- [ ] **MUST**: Companies MUST accept the Session header and access token at their APIs, conversations, and other protocol and extension endpoints without requiring cookies.
 - [ ] **MUST NOT**: Personal Agents MUST NOT send tokens or Session JWTs in a URL, and Companies MUST NOT accept them from one.
 
 ### Recommended: [Handling secrets](https://personalagentprotocol.org/docs/0.4/guides#both-secrets)
@@ -199,6 +203,7 @@ Verify Session headers generally (SHOULD, 5.3). Complete all checks before trust
 - [ ] Return `invalid_session` for a failed check, and keep access token errors in `WWW-Authenticate`, as OAuth does (section 7).
 - [ ] Binding access tokens with DPoP is your choice (4.5), and you can choose for each service. If you do, verify the proof as RFC 9449 describes, separately from the Session JWT. For a service that doesn't verify proofs, such as an MCP server built for ordinary MCP clients, have your authorization server issue Bearer tokens for its `resource`. If your authorization server can't issue DPoP-bound tokens, verifying the Session JWT and its `ath` binds the token to the personal agent's key. Endpoints that skip Session verification lose that extra protection.
 - [ ] At an MCP server, accept a token issued for its `resource` only at that server (MUST, section 7). Accept the Session header there too, if you want its calls tied to sessions. Signed-out calls that use no Session state can work without verification.
+- [ ] Pages on the host that serves your `poppy.json` can get the Session header too, from personal agents that fetch them without a browser, and never with an access token (5.2). Verify it before using it, for example to recognize the personal agent or to keep the request in its session. Treat the request as signed out, even when the session's browser is signed in. When the check fails, return `invalid_session` as at any endpoint (5.3), so the personal agent can find the mistake.
 - [ ] Serve personal agent conversations only from your conversation endpoint (8.2). If your website chat or other channels can open the same conversations, they may not check the Session header, and anyone with a copied token could read them there.
 
 ### Recommended: [Sessions](https://personalagentprotocol.org/docs/0.4/guides#company-sessions)
@@ -338,7 +343,7 @@ A language model usually reads your API descriptions and MCP tool descriptions t
 
 Personal agents work faster and more reliably through a company agent or APIs than through a website, so start there for the tasks users ask for most. Then choose how much of your website personal agents can use, from least to most:
 
-- [ ] No browsing. Set `web.disabled`, and cover the tasks in your company agent or APIs. Personal agents that follow the protocol won't browse, but nothing stops one that doesn't (section 6).
+- [ ] No browsing. Set `web.disabled`, and cover the tasks in your company agent or APIs. Personal agents that follow the protocol won't browse in a browser, but nothing stops one that doesn't (section 6). They can still fetch pages without a browser, with the Session header (5.2).
 - [ ] Signed-out browsing. List `web` without a `browser_session_endpoint`. Personal agents browse as ordinary signed-out visitors, and use your company agent and APIs for anything that needs the account.
 - [ ] Signed-in browsing with the account's full access. List `browser_session_endpoint`, set `web.unscoped`, and let `poppy:browser-sign-in` allow everything the account can do on the website. This suits a website whose permissions don't match your OAuth scopes. Describe `poppy:browser-sign-in` that way in `auth.scopes`, give it hints that match the website's most consequential action, usually `irreversible` with `personal_data`, and show it on your consent page as its own choice (section 6).
 - [ ] Signed-in browsing with your scopes. Your website applies the same scopes as your APIs, so `poppy:browser-sign-in` adds nothing, and you can grant it without asking the user.
