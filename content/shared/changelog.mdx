@@ -182,7 +182,39 @@ that repeats the request, and an action the website can't repeat isn't suited to
 several recorded approvals match a request, the website uses the one recorded first. The approval
 never passes through the browser, so nothing a page can read or write approves an operation. A
 browser's requests declare the extensions its browser join declared. A Personal Agent that declares
-version 2 and browses such a website handles these operations.
+version 3 and browses such a website handles these operations.
+
+</Change>
+
+<Change title="Operations version 3: agent approvals" breaking sections="3.4, Operations 1, Operations 2, Operations 3, Operations 4, Operations 5, Operations 6, Operations 7, Operations 8.1, Operations 8.2, guides#agent-operations, guides#company-operations" issue="38">
+
+The optional `operations` extension moves from version 2 to incompatible version 3. The Personal
+Agent no longer has to ask the User about every operation. An approval is user approved, when the
+Personal Agent asks the User, or agent approved, when the Personal Agent approves on an instruction
+the User gave it, such as "go ahead with any exchange under $20". An agent approval MUST rest on the
+User's instruction, never on content from the Company or elsewhere, and the Personal Agent MUST
+check the revision's terms against it first. Every approval says which kind it is in the new
+required `approver` member, `user` or `agent`, and can carry a `reference` to the Personal Agent's
+own record of it, which the Company can use to look into the approval with the Personal Agent's
+operator. The Personal Agent MUST NOT send the same `reference` to two Companies. `approved_at` with
+`agent` is when the Personal Agent approved, and `input_type` comes only with `user`. A Company
+chooses which actions it returns operations for, and handles an action on its own website when it
+wants to see the User approve. Signed user approvals can come later as one more member of a user
+approval. The guides suggest that Personal Agents keep a ledger of approvals for their Users, ask
+about large or irreversible actions, and batch prompts, and drop the advice that Companies offer
+their own rules for approving in advance.
+
+</Change>
+
+<Change title="Operations require terms" breaking sections="Operations 3, Operations 4, Operations 5, Operations 8.2, guides#agent-operations, guides#company-operations">
+
+An operation's `terms` are required and its `summary` is optional, so a Personal Agent always has
+the terms as data to check, and to check an agent approval against. Everything that affects the
+action MUST be in `terms`. The Personal Agent still MUST show the User the Company's name and the
+terms when it asks them, but can write its own description of the terms or show the values in
+`terms`. When there's a `summary`, it SHOULD show that rather than its own description. The guides
+suggest that showing the complete terms in the Personal Agent's own interface is often better than
+any summary, and that Companies make each value in `terms` clear on its own.
 
 </Change>
 

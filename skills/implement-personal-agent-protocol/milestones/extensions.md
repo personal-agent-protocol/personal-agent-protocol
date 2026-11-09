@@ -1,7 +1,7 @@
 # Milestone: extensions
 
 Optional. Build this only for extensions the design lists, after the milestones they depend on.
-Operations version 2 is defined with the protocol. Other extensions can be the Company's own, or
+Operations version 3 is defined with the protocol. Other extensions can be the Company's own, or
 ones others define.
 
 ## Read first
@@ -18,7 +18,7 @@ Local copies: `reference/extensions.md` and `reference/operations.md`.
   you support, each with its `version` and the fields that version defines
   ([3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)).
 - Read the extensions a request uses from its `Poppy-Extensions` header, a list of names, each with
-  its version in `v`, such as `"operations";v="2"`
+  its version in `v`, such as `"operations";v="3"`
   ([3.4](https://personalagentprotocol.org/docs/0.4/spec#versions)). Without the header, or when it
   doesn't parse, the request uses none. Behave as the spec alone describes for a request that
   doesn't declare the extension, unless the request itself uses it, such as Mediated Sign-In's
@@ -30,19 +30,19 @@ Local copies: `reference/extensions.md` and `reference/operations.md`.
 - The Company's own extensions are named with a domain it controls, such as `example.com/gift-wrap`.
   Plain names are reserved for the protocol.
 
-## Operations version 2
+## Operations version 3
 
-Optional. Build it for the actions that need the User's approval, on the interfaces that offer them
+Optional. Build it for the actions that need approval, on the interfaces that offer them
 ([Operations 1](https://personalagentprotocol.org/docs/0.4/extensions/operations#intro)). It adds an
-endpoint only for approval on your website. List `operations` with `version: "2"` in `poppy.json` and use it only when
+endpoint only for approval on your website. List `operations` with `version: "3"` in `poppy.json` and use it only when
 the request declares that version in `Poppy-Extensions`. Otherwise handle approval yourself, or refuse with
 `extension_required`. An MCP tool returns an ordinary tool error instead. See
 [Operations 2](https://personalagentprotocol.org/docs/0.4/extensions/operations#support).
 
 - **The operation**
   ([Operations 3](https://personalagentprotocol.org/docs/0.4/extensions/operations#operation-object)):
-  an `operation_id` for the action, a `revision` for its terms, a `summary` that holds everything that
-  affects the action, `terms` if you want, and `expires_at`. When the terms change, keep the
+  an `operation_id` for the action, a `revision` for its terms, `terms` that hold everything that
+  affects the action, a `summary` if you want, and `expires_at`. When the terms change, keep the
   `operation_id` and return a new `revision`. Compute both from the request, so only performed
   operations need storing: a random `operation_id` for each new request, and a `revision` that
   changes with the terms, not with rewording of the `summary`. The `summary` can use bold, italics,
@@ -62,6 +62,8 @@ the request declares that version in `Poppy-Extensions`. Otherwise handle approv
   order is recommended. Preserve authorization, response semantics, and at-most-once behavior. Compare
   what the request means, not its bytes. When the revision isn't one you returned, has expired, or the
   request doesn't match it, return a new revision instead. Never answer an approval with the revision it names.
+  Record `approver` (`user` or `agent`) and `reference` with the operation, and don't reject an
+  approval for an optional member it lacks.
 - **At most once**
   ([Operations 7](https://personalagentprotocol.org/docs/0.4/extensions/operations#at-most-once)):
   perform each operation once, however often its approval comes. Remember a performed operation until its
@@ -80,8 +82,9 @@ the request declares that version in `Poppy-Extensions`. Otherwise handle approv
 
 ## Decisions for Operations
 
-- Which actions, if any, need the User's approval, how long each can be approved, and whether Users
-  can allow some of them in advance with rules you offer
+- Which actions, if any, return operations, so the User or the Personal Agent on the User's
+  instruction can approve them, how long each can be approved, and which you handle on your website
+  instead
   ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-operations)).
 
 ## Common Operations mistakes

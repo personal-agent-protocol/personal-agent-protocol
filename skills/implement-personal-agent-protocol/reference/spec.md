@@ -273,7 +273,7 @@ A Company can serve several protocol versions at once, so Personal Agents can mo
 ```
 Poppy-Session: eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…
 Poppy-Version: 0.4
-Poppy-Extensions: "operations";v="2", "links";v="1"
+Poppy-Extensions: "operations";v="3", "links";v="1"
 ```
 
 Requests without the Session header, such as discovery and OAuth requests, don't carry these headers. A browser joins a Session at the `browser_session_endpoint` of the chosen version's document (section 6).

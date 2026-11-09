@@ -48,13 +48,17 @@ nothing says how to fetch it, who can open it, or when it stops working.
 Company can verify that the User approved the exact terms, instead of trusting the Personal Agent's
 word.
 
-**Where it stands:** In the [Operations extension](/docs/extensions/operations), the User approves
-one revision of an operation's exact terms, and the approval can say when and how the User approved.
-That is still the Personal Agent's statement, not proof ([Operations
-8.1](/docs/extensions/operations#approval-proof)). The proposals take three approaches: the User
-approves on the Company's own page or in its app, the User's device signs the terms with a key the
-User registered with the Company, or a third party attests to the approval. Some actions also need
-the account holder, not just anyone on the account, to approve.
+**Where it stands:** In the [Operations extension](/docs/extensions/operations), an approval covers
+one revision of an operation's exact terms. It is user approved, when the Personal Agent asks the
+User, or agent approved, when the Personal Agent approves on the User's instruction, and can carry a
+reference to the Personal Agent's own record of it. Either way the Company relies on the Personal
+Agent ([Operations 8.1](/docs/extensions/operations#approval-proof)), so a Company that wants to see
+the User approve an action doesn't offer it through operations yet. A signature from the User's
+device would add a third kind, signed user approval, as one more member of a user approval. Mandates, where the User signs once for a class of
+actions with limits, such as transfers of up to $50 a week, would build on it. The proposals take
+three approaches: the User approves on the Company's own page or in its app, the User's device
+signs the terms with a key the User registered with the Company, or a third party attests to the
+approval. Some actions also need the account holder, not just anyone on the account, to approve.
 
 **Issues:** [roadmap: approvals](https://github.com/personal-agent-protocol/personal-agent-protocol/issues?q=is%3Aissue%20label%3A%22roadmap%3A%20approvals%22)
 

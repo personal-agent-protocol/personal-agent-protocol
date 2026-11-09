@@ -656,6 +656,7 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                                       operation_id: "exc_5Rt2",
                                       revision: "1",
                                       summary: "Exchange a test item.",
+                                      terms: { item_id: "itm_test" },
                                       expires_at: "2026-10-08T20:00:00Z",
                                   },
                               },

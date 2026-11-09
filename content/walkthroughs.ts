@@ -45,8 +45,8 @@ const TOKENS = {
 // of them are shortened to this placeholder.
 const SESSION = "eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…";
 
-// Manzanita lists Operations version 2, so Atlas declares it on each request there.
-const OPERATIONS = `"operations";v="2"`;
+// Manzanita lists Operations version 3, so Atlas declares it on each request there.
+const OPERATIONS = `"operations";v="3"`;
 
 // The headers of a request with the Session header: the protocol version, the extensions Atlas uses
 // with the company, if any, and the access token when signed in.
@@ -76,7 +76,7 @@ export const walkthroughs: Walkthrough[] = [
                 time: "Thu 7:31 PM",
                 title: "Finding Manzanita",
                 caption:
-                    "The user wants to return a jacket. Atlas reads poppy.json, a file Manzanita publishes on its website, to learn how to reach Manzanita's own agent. Manzanita lists Operations version 2, and Atlas supports it too, so Manzanita can ask for the user's approval before an exchange.",
+                    "The user wants to return a jacket. Atlas reads poppy.json, a file Manzanita publishes on its website, to learn how to reach Manzanita's own agent. Manzanita lists Operations version 3, and Atlas supports it too, so Manzanita can ask for the user's approval before an exchange.",
                 chat: [
                     {
                         t: "user",
@@ -125,11 +125,11 @@ Content-Type: application/json
     ]
   },
   "extensions": {
-    "operations": [{ "version": "2" }]
+    "operations": [{ "version": "3" }]
   }
 }
 
-// Atlas supports Operations version 2 too, so it declares it
+// Atlas supports Operations version 3 too, so it declares it
 // in the Poppy-Extensions header of each request to Manzanita.`,
                     },
                     {
@@ -451,6 +451,12 @@ Content-Type: application/json
               "operation_id": "exc_7Wd3",
               "revision": "k3Jd9Qx2mW8v",
               "summary": "Exchange the Stormline Jacket (M) on order SW-48213 for the Stormline Insulated Jacket (M), at no extra cost, and email a prepaid return label for the original jacket.",
+              "terms": {
+                "order_id": "SW-48213",
+                "replacement_sku": "stormline-insulated-m",
+                "price_difference": { "amount": "0.00", "currency": "USD" },
+                "return_label": "email"
+              },
               "expires_at": "2026-10-08T20:03:06-07:00"
             }
           }
@@ -517,6 +523,7 @@ Content-Type: application/json
         "approval": {
           "operation_id": "exc_7Wd3",
           "revision": "k3Jd9Qx2mW8v",
+          "approver": "user",
           "approved_at": 1791513248,
           "input_type": "typed"
         }
@@ -550,6 +557,7 @@ Content-Type: application/json
             "approval": {
               "operation_id": "exc_7Wd3",
               "revision": "k3Jd9Qx2mW8v",
+              "approver": "user",
               "approved_at": 1791513248,
               "input_type": "typed"
             }

@@ -508,7 +508,7 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
 ### Operations: [3. The operation](https://personalagentprotocol.org/docs/0.4/extensions/operations#operation-object)
 
 - [ ] **MUST NOT**: It stays the same when the terms change (see "New terms"), and the Company MUST NOT use it for another action.
-- [ ] **MUST**: Everything that affects the action, such as what it changes, any amount, date, or recipient, or a condition for cancelling, MUST be in the revision's `summary`, and in `terms` if present.
+- [ ] **MUST**: Everything that affects the action, such as what it changes, any amount, date, or recipient, or a condition for cancelling, MUST be in the revision's `terms`, and in `summary` if present.
 - [ ] **MUST**: The Company MUST perform only what the approved revision describes, and MUST NOT start the action before it receives an approval for it.
 - [ ] **MUST NOT**: It MUST NOT give two different sets of terms the same `revision`, so an approval of one revision never applies to other terms.
 - [ ] **MUST**: Whichever revision is approved, the Company MUST perform each operation at most once (7).
@@ -517,12 +517,12 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
 ### Operations: [4. Asking for approval](https://personalagentprotocol.org/docs/0.4/extensions/operations#approval-required)
 
 - [ ] **SHOULD**: The Company's website SHOULD offer a way to make the original request again, such as a Continue button on the page that's waiting, so the Personal Agent can repeat the action once it's approved (6).
-- [ ] **SHOULD**: The Company's website SHOULD answer a page load or form submission with a page that says the action is waiting for the User's approval in their personal agent.
+- [ ] **SHOULD**: The Company's website SHOULD answer a page load or form submission with a page that says the action is waiting for approval in the User's personal agent.
 - [ ] **SHOULD**: The Company's website SHOULD answer a request from its own scripts that accepts JSON, such as a `fetch`, with a JSON object with `error` set to `approval_required`, like an API's but without the operation.
 
 ### Operations: [6. Sending the approval](https://personalagentprotocol.org/docs/0.4/extensions/operations#sending-approval)
 
-- [ ] **MUST NOT**: A Company MAY record `approved_at` and `input_type`, and MUST NOT reject an approval because either is missing or because it doesn't recognize the `input_type`.
+- [ ] **MUST NOT**: A Company MAY record `approver`, `approved_at`, `input_type`, and `reference`, and MUST NOT reject an approval because an optional member is missing or because it doesn't recognize the `input_type`.
 - [ ] **MUST**: Companies MUST ignore members of `Poppy-Approval` they don't recognize, so later versions can add members.
 - [ ] **MUST NOT**: The Company MUST NOT accept an approval of a website's operation at an API, MCP server, or conversation, or an approval of another interface's operation at `endpoint`.
 - [ ] **MUST**: The Company MUST keep a recorded approval that isn't used up until the approved revision's `expires_at`, and MUST NOT apply it to requests from a Session that can't approve the operation.
@@ -543,10 +543,11 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
 When you offer the Operations extension:
 
 - [ ] Ask for approval for actions with a business effect that the user would want to confirm, such as ones that cost money or can't be undone. Don't ask for routine changes the user already asked for in so many words, such as updating a saved address.
-- [ ] Write the `summary` so it stands alone: what will happen, to what, and any cost, date, or condition. Use bold for what matters most, such as the amount, and keep links out of it. Personal agents show it to users as is (Operations 3).
-- [ ] Name the keys of `terms` after the fields of the request or of your API's resources, such as `order_id`, so personal agents can compare them with what they asked for (Operations 3).
+- [ ] Put everything that affects the action in `terms`. Name its keys after the fields of the request or of your API's resources, such as `order_id`, so personal agents can compare them with what they asked for, and make each value clear on its own, such as an amount with its currency. Personal agents show `terms` to users, or describe them in their own words (Operations 3).
+- [ ] Send a `summary` when you want users to read your wording. Write it so it stands alone: what will happen, to what, and any cost, date, or condition. Use bold for what matters most, such as the amount, and keep links out of it. Personal agents that show a summary show yours as is (Operations 3).
 - [ ] Say in your OpenAPI description which endpoints can return `approval_required` (Operations 4).
-- [ ] To let users allow some actions in advance, such as exchanges for a different size that cost under $20, don't return operations for those actions. You can offer your own API or tool for users to set such rules. Make setting a rule an operation itself, so the user approves the exact rule.
+- [ ] An approval is a user approval, or an agent approval on the user's instruction, and says which in `approver`. Record `approver` and `reference` with the operation, so you can look into an approval with the personal agent's operator later (Operations 8.1).
+- [ ] For actions where you want to see the user approve, don't return operations. Handle them on your website or in your app until signed user approvals exist (roadmap).
 - [ ] Choose `expires_at` for each kind of action. Give the user at least 15 minutes, and longer for terms that don't change, such as cancelling a subscription at the end of the month. Keep it short when you hold something for the user, such as a seat or a sale price. If you don't store operations, you can't hold a price: an approval that arrives after the price changed gets a new revision (Operations 3).
 - [ ] Keep your record of a performed operation until its approved revision expires, and no longer than you need to. A store with a time to live set from `expires_at` works (Operations 7).
 - [ ] To avoid storing operations nobody has approved, compute them from the request (Operations 3). Give a request without an approval a new random `operation_id`, such as `exc_5Rt2`, so a user can repeat an action on purpose. When a request with an approval no longer matches, return the new revision with that approval's `operation_id`. In a conversation, keep the `operation_id` when the user asks for different terms.

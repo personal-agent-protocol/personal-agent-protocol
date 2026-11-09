@@ -56,9 +56,9 @@ access tokens, refresh tokens, and Sessions, how long to remember ended Sessions
 checks in [5.5](https://personalagentprotocol.org/docs/0.4/spec#ending-sessions). See the
 [guides](https://personalagentprotocol.org/docs/0.4/guides#company-lifetimes).
 
-**Operations.** Which actions, if any, need the User's approval before you perform them
+**Operations.** Which actions, if any, need approval before you perform them
 ([Operations 1](https://personalagentprotocol.org/docs/0.4/extensions/operations#intro)). Build the
-optional `operations` version 2 extension in the extensions milestone.
+optional `operations` version 3 extension in the extensions milestone.
 
 **Extensions.** Whether to define any of the Company's own
 ([3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)). Usually none.
