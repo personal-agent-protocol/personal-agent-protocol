@@ -831,29 +831,12 @@ function eventChecks(
     const eventErrors = read.exchanges.flatMap((ex) =>
         ex.status === 200 && ex.json ? check("events-response.schema.json", ex.json) : [],
     );
-    // The test Personal Agent declares no extensions, so no extension content is for it (8.4).
-    const operations = read.events.flatMap((e, i) => {
-        const extensions =
-            e.message && typeof e.message === "object"
-                ? (e.message as { extensions?: unknown }).extensions
-                : undefined;
-        return extensions && typeof extensions === "object"
-            ? Object.keys(extensions).map((k) => `events[${i}].message.extensions.${k}`)
-            : [];
-    });
     if (eventErrors.length)
         r.fail("conversations.events-schema", {
             exchange: read.last,
             got: formatSchemaErrors(eventErrors).slice(0, 8).join("; "),
             expected:
                 "Events as section 8.5 describes (kit/company/schemas/events-response.schema.json)",
-        });
-    else if (operations.length)
-        r.fail("conversations.events-schema", {
-            exchange: read.last,
-            got: operations.join(", "),
-            expected: "Message events without extension content",
-            cause: "operation is a field of the Operations extension, and the test Personal Agent's requests don't declare it. A Company doesn't return operations in response to a request that doesn't declare the extension (Operations 2).",
         });
     else r.pass("conversations.events-schema", { summary: `${read.events.length} event(s).` });
 
@@ -1308,21 +1291,25 @@ export async function closeCreated(ctx: Context): Promise<void> {
     );
 }
 
-// Where a JSON value holds an operation (Operations 3), as paths such as events[2].message.operation.
-function operationPaths(value: unknown, path = ""): string[] {
-    if (Array.isArray(value)) return value.flatMap((v, i) => operationPaths(v, `${path}[${i}]`));
+// Where a JSON value holds extension content (8.4), as paths such as
+// events[2].message.extensions.links. An operation (Operations 3) also counts, wherever it is.
+function extensionPaths(value: unknown, path = ""): string[] {
+    if (Array.isArray(value)) return value.flatMap((v, i) => extensionPaths(v, `${path}[${i}]`));
     if (!value || typeof value !== "object") return [];
-    return Object.entries(value).flatMap(([k, v]) =>
-        (k === "operation" || k === "operations") && v !== null && v !== undefined
-            ? [`${path ? `${path}.` : ""}${k}`]
-            : operationPaths(v, `${path ? `${path}.` : ""}${k}`),
-    );
+    const at = (k: string) => `${path ? `${path}.` : ""}${k}`;
+    return Object.entries(value).flatMap(([k, v]) => {
+        if (v === null || v === undefined) return [];
+        if (k === "extensions" && typeof v === "object" && !Array.isArray(v))
+            return Object.keys(v).map((name) => `${at(k)}.${name}`);
+        if (k === "operation" || k === "operations") return [at(k)];
+        return extensionPaths(v, at(k));
+    });
 }
 
-// The test Personal Agent doesn't declare the Operations extension, so the Company returns it no
-// operations (Operations 2). Checks every conversation response the run received.
-export function checkOperationsNotReturned(ctx: Context, r: Recorder): void {
-    const id = "operations.not-returned";
+// The test Personal Agent declares no extensions, so the Company returns it no extension content
+// (8.4). Checks every conversation response the run received.
+export function checkExtensionsNotReturned(ctx: Context, r: Recorder): void {
+    const id = "extensions.not-returned";
     if (!r.wants(id)) return;
     const endpoint = conversationEndpoint(ctx.discovered.poppy);
     const responses = endpoint
@@ -1344,16 +1331,18 @@ export function checkOperationsNotReturned(ctx: Context, r: Recorder): void {
                     // Not JSON.
                 }
             }
-        const paths = bodies.flatMap((b) => operationPaths(b));
+        const paths = bodies.flatMap((b) => extensionPaths(b));
         return paths.length ? [{ ex, paths }] : [];
     });
     if (found.length === 0)
-        r.pass(id, { summary: `${responses.length} conversation response(s) without operations.` });
+        r.pass(id, {
+            summary: `${responses.length} conversation response(s) without extension content.`,
+        });
     else
         r.fail(id, {
             exchange: found.map((f) => f.ex),
             got: found.map((f) => `${f.ex.method} ${f.ex.url}: ${f.paths.join(", ")}`).join("; "),
-            expected: "No operation in any response",
-            cause: "The test Personal Agent's requests don't declare the Operations extension, so it can't approve operations. Handle approval another way, such as on the website or in a Direct Conversation, or refuse with extension_required.",
+            expected: "No extension content in any response",
+            cause: "The test Personal Agent's requests declare no extensions in Poppy-Extensions, so a Company sends it no extension content (8.4). Put what the message says in text and data, which every Personal Agent reads. For Operations, handle approval another way, such as on the website or in a Direct Conversation, or refuse with extension_required.",
         });
 }

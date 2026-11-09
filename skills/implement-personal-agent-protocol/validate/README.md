@@ -74,7 +74,7 @@ allowlist.
 | 1. Foundation | `discovery.*` poppy.json; `metadata.*` the issuer, from the protected resource metadata, and its OAuth server metadata; `session.*` the Session header at resources; `assertion.*` client assertions at the token endpoint |
 | 2. Interfaces | `openapi.*` OpenAPI documents; `mcp.*` MCP servers; `conversations.*` the conversation endpoint; `tasks.*` the tasks endpoint; `feedback.*` the feedback endpoint; `web.*` the browser-session endpoint                    |
 | 3. Sign-in    | `mediated.*` only what needs no real sign-in, such as an unknown `sign_in_id` at the token endpoint. Check the rest of sign-in by hand against `checklist.md`.                                                             |
-| 4. Extensions | `operations.*` only what a signed-out run sees: no operations returned in response to a request that doesn't declare the Operations extension.                                                                             |
+| 4. Extensions | `extensions.*` only what a run that declares no extensions sees: no extension content, including operations, in any conversation response (8.4).                                                                           |
 
 `catalog.ts` lists every check with its requirement and section.
 

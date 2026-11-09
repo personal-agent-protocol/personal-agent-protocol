@@ -5,7 +5,7 @@ import { loadIdentity, verifyHosted } from "./identity.ts";
 import { checkAssertions, checkMediatedSignIn } from "./checks/assertion.ts";
 import {
     checkConversations,
-    checkOperationsNotReturned,
+    checkExtensionsNotReturned,
     closeCreated,
 } from "./checks/conversations.ts";
 import { checkMetadata, checkPoppyDocument, checkPoppyOnline } from "./checks/discovery.ts";
@@ -84,7 +84,7 @@ async function runDependent(ctx: Context, r: Recorder, cwd?: string): Promise<vo
         "assertion.",
         "mediated.",
         "conversations.",
-        "operations.",
+        "extensions.",
         "feedback.",
         "tasks.",
         "web.",
@@ -115,7 +115,7 @@ async function runDependent(ctx: Context, r: Recorder, cwd?: string): Promise<vo
                     "session.",
                     "token.",
                     "conversations.",
-                    "operations.",
+                    "extensions.",
                     "web.",
                     "feedback.",
                     "tasks.",
@@ -130,9 +130,9 @@ async function runDependent(ctx: Context, r: Recorder, cwd?: string): Promise<vo
             if (wantsAny(ctx, ["openapi."])) await checkOpenApi(ctx, r);
             if (wantsAny(ctx, ["mcp."])) await checkMcp(ctx, r);
             if (companyReady) {
-                if (wantsAny(ctx, ["conversations.", "operations."]))
+                if (wantsAny(ctx, ["conversations.", "extensions."]))
                     await checkConversations(ctx, r);
-                checkOperationsNotReturned(ctx, r);
+                checkExtensionsNotReturned(ctx, r);
                 if (wantsAny(ctx, ["tasks."])) await checkTasks(ctx, r);
                 if (wantsAny(ctx, ["feedback."])) await checkFeedback(ctx, r);
                 if (wantsAny(ctx, ["web."])) await checkWeb(ctx, r);

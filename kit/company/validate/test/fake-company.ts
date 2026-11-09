@@ -234,6 +234,8 @@ export type Flaws = {
     directIgnoresParent?: boolean;
     // The Company's reply carries an operation.
     returnOperations?: boolean;
+    // The Company's reply carries links.
+    returnLinks?: boolean;
 
     // --- Versions ---
     // poppy.json links another version's document from supported_versions: an older one ("older"),
@@ -662,7 +664,15 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                               },
                           },
                       }
-                    : {}),
+                    : flaws.returnLinks
+                      ? {
+                            extensions: {
+                                links: {
+                                    items: [{ url: "https://shop.test/help", title: "Help" }],
+                                },
+                            },
+                        }
+                      : {}),
             },
         });
     }

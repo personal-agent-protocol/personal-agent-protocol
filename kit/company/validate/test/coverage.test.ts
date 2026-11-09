@@ -269,7 +269,8 @@ const SCENARIOS: Scenario[] = [
     },
 
     // Extensions
-    { flaws: { returnOperations: true }, fails: ["operations.not-returned"] },
+    { flaws: { returnOperations: true }, fails: ["extensions.not-returned"] },
+    { flaws: { returnLinks: true }, fails: ["extensions.not-returned"] },
 ];
 
 async function runScenario(s: Scenario): Promise<CheckResult[]> {

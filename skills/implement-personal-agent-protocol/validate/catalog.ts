@@ -996,12 +996,12 @@ export const CATALOG: CheckInfo[] = [
         "The parent conversation MUST be open, belong to the same owner (8.2), and not be a Direct Conversation itself.",
     ),
 
-    // Milestone 4: the Operations extension, as far as a signed-out run sees it.
+    // Milestone 4: extensions, as far as a run that declares none sees them.
     extensions(
-        "operations.not-returned",
-        "No operations are returned in response to a request that doesn't declare the Operations extension",
-        "operations#support",
-        "A Company MUST NOT return operations in response to a request that doesn't declare it.",
+        "extensions.not-returned",
+        "No extension content is returned in response to a request that declares no extensions",
+        "spec#message-fields",
+        "A side MUST NOT send an extension's content unless the other side uses that extension with the same version",
     ),
 ];
 

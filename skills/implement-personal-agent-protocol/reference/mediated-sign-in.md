@@ -91,6 +91,8 @@ grant_type=https%3A%2F%2Fpersonalagentprotocol.org%2Fgrant%2Fmediated-sign-in
 
 A correct code returns the token response. A wrong code returns `code_required` again, until the Company's attempt limit, and then `invalid_grant`. Only the `client_id` that started a sign-in can finish it.
 
+The [OAuth 2.0 for First-Party Applications draft](https://datatracker.ietf.org/doc/draft-ietf-oauth-first-party-apps/) handles the same second step with `insufficient_authorization` and `auth_session` at an endpoint of its own. This extension is transitional (1), so it keeps the step in the grant at `token_endpoint` instead.
+
 ## 5. Errors
 
 Errors are OAuth error responses from the token endpoint, with HTTP 400 unless shown otherwise. The usual token endpoint errors also apply, such as `invalid_client`. Rate limits are HTTP 429 with `Retry-After`, as in [spec 5.6](https://personalagentprotocol.org/docs/0.4/spec#sending-requests).
