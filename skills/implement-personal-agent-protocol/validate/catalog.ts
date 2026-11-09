@@ -121,6 +121,18 @@ export const SECTION_NUMBERS: Record<string, string> = {
     "ucp#security": "10",
     "ucp#example": "11",
     "ucp#references": "12",
+    "browser-control#intro": "1",
+    "browser-control#operations": "2",
+    "browser-control#support": "3",
+    "browser-control#marking": "4",
+    "browser-control#user-control": "5",
+    "browser-control#controller": "6",
+    "browser-control#example": "7",
+    "browser-control#security": "8",
+    "browser-control#signals": "8.1",
+    "browser-control#no-guarantee": "8.2",
+    "browser-control#users-browser": "8.3",
+    "browser-control#references": "9",
 };
 
 function foundation(

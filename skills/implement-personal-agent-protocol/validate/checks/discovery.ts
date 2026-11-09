@@ -419,6 +419,7 @@ export function checkPoppyDocument(
 
 // The extensions this version of the protocol defines, whose plain names are reserved for them.
 export const PROTOCOL_EXTENSIONS = [
+    "browser-control",
     "disclosures",
     "links",
     "mediated-sign-in",
