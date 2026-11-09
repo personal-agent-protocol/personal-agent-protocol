@@ -21,6 +21,7 @@ The rules are in [the specification's Extensions section](https://personalagentp
 
 | Extension | Version | What it adds |
 | --- | --- | --- |
+| [`browser-control`](https://personalagentprotocol.org/docs/0.4/extensions/browser-control) | 1 | The company indicates which steps on its website the user should take, and the personal agent hands the user control. The page can read who controls the browser. |
 | [`disclosures`](https://personalagentprotocol.org/docs/0.4/extensions/disclosures) | 1 | Company messages mark notices, such as allergen warnings, apart from the rest of the message. |
 | [`links`](https://personalagentprotocol.org/docs/0.4/extensions/links) | 1 | Company messages carry the web pages they refer to as links. |
 | [`mediated-sign-in`](https://personalagentprotocol.org/docs/0.4/extensions/mediated-sign-in) | 1 | Transitional. The personal agent signs in with credentials the user gave it, at a company that doesn't offer Direct or Device Sign-In yet. |

@@ -4,6 +4,7 @@
         "pages": [
             "spec",
             "extensions",
+            "extensions/browser-control",
             "extensions/disclosures",
             "extensions/links",
             "extensions/mediated-sign-in",

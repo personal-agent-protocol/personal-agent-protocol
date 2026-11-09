@@ -77,6 +77,16 @@
             "permanent": false
         },
         {
+            "source": "/docs/extensions/browser-control",
+            "destination": "/docs/0.4/extensions/browser-control",
+            "permanent": false
+        },
+        {
+            "source": "/docs/extensions/browser-control.md",
+            "destination": "/docs/0.4/extensions/browser-control.md",
+            "permanent": false
+        },
+        {
             "source": "/docs/extensions/disclosures",
             "destination": "/docs/0.4/extensions/disclosures",
             "permanent": false
@@ -134,6 +144,26 @@
         {
             "source": "/docs/guides.md",
             "destination": "/docs/0.4/guides.md",
+            "permanent": false
+        },
+        {
+            "source": "/docs/extensions/controller-hints",
+            "destination": "/docs/0.4/extensions/controller-hints",
+            "permanent": false
+        },
+        {
+            "source": "/docs/extensions/controller-hints.md",
+            "destination": "/docs/0.4/extensions/controller-hints.md",
+            "permanent": false
+        },
+        {
+            "source": "/docs/extensions/human-only",
+            "destination": "/docs/0.4/extensions/human-only",
+            "permanent": false
+        },
+        {
+            "source": "/docs/extensions/human-only.md",
+            "destination": "/docs/0.4/extensions/human-only.md",
             "permanent": false
         },
         {

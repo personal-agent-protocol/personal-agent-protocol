@@ -120,6 +120,14 @@ const TABS: TabInfo[] = [
                 outlineDepth: 2,
             },
             {
+                slug: "extensions/browser-control",
+                navTitle: "Browser Control",
+                title: "Personal Agent Protocol: Browser Control extension",
+                description:
+                    "A company indicates which steps on its website the user should take themselves, such as checking in for a flight, and the personal agent hands the user control of its browser.",
+                outlineDepth: 3,
+            },
+            {
                 slug: "extensions/disclosures",
                 navTitle: "Disclosures",
                 title: "Personal Agent Protocol: Disclosures extension",

@@ -178,6 +178,21 @@ everyone. Skill URLs resolve against `tasks.endpoint`.
 
 </Change>
 
+<Change title="Browser Control extension" sections="Browser Control">
+
+A new [Browser Control extension](/docs/extensions/browser-control), version 1, lets a Company
+indicate which steps on its website the User should take themselves, with `data-poppy-user-step`
+(`interaction` or `submission`). A Personal Agent that declares it leaves a marked step to the User
+and offers them control of the browser. While the User holds control, the Personal Agent's model
+doesn't use the browser, and only the User ends that control. On the Company's website, the Personal
+Agent's software provides `navigator.poppy.controller`, `"user"` or `"agent"`, which the page can
+send with its requests. The value should be correct, but isn't signed: a Company can record it or
+act on it, but doesn't rely on it as a guarantee, and its servers still check every action. A
+section compares the extension with Operations, which a Company should use for actions it can
+describe as terms to approve, because it's the better experience for the User.
+
+</Change>
+
 <Change title="Operations on websites" breaking sections="Operations 1, Operations 2, Operations 3, Operations 4, Operations 5, Operations 6, Operations 7, Operations 8.2, Operations 9, guides#agent-operations, guides#company-operations">
 
 A Company can ask for approval on its website, in a browser joined to a Session. It lists `endpoint`

@@ -81,6 +81,16 @@ const SECTIONS: Record<string, Record<string, Milestone>> = {
         errors: "sign-in",
         security: "sign-in",
     },
+    "browser-control": {
+        operations: "extensions",
+        support: "extensions",
+        marking: "extensions",
+        "user-control": "extensions",
+        controller: "extensions",
+        signals: "extensions",
+        "no-guarantee": "extensions",
+        "users-browser": "extensions",
+    },
     operations: {
         support: "extensions",
         "operation-object": "extensions",
@@ -345,13 +355,17 @@ const PAGE_TITLES: Record<string, string> = {
     spec: "Specification",
     operations: "Operations",
     "mediated-sign-in": "Mediated Sign-In",
+    "browser-control": "Browser Control",
 };
 
 // The checklist as Markdown.
 export function checklistMarkdown(version: string): string {
-    const pages = ["spec", "extensions/operations", "extensions/mediated-sign-in"].map((slug) =>
-        docsPage(docsHref(slug)!),
-    );
+    const pages = [
+        "spec",
+        "extensions/operations",
+        "extensions/mediated-sign-in",
+        "extensions/browser-control",
+    ].map((slug) => docsPage(docsHref(slug)!));
     const all = pages.flatMap(requirements).filter((r) => r.party !== "agent");
     const recommended = recommendations();
     const titles = new Map([

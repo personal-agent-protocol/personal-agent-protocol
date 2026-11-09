@@ -543,6 +543,24 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
 - [ ] **MUST**: The Company MUST remember that it performed an operation at least until the approved revision's `expires_at`, and while it is being performed.
 - [ ] **MUST NOT**: While an operation is being performed, or the Company doesn't know whether it took effect, for example after a timeout in one of its own systems, the Company MUST NOT respond as if it failed.
 
+### Browser Control: [2. Browser control and Operations](https://personalagentprotocol.org/docs/0.4/extensions/browser-control#operations)
+
+- [ ] **SHOULD**: A Company SHOULD use Operations for an action that it can describe as terms to approve.
+
+### Browser Control: [4. Marking steps](https://personalagentprotocol.org/docs/0.4/extensions/browser-control#marking)
+
+- [ ] **SHOULD**: The Company SHOULD mark every control that performs the step, or the form it is in, and SHOULD mark them before they can be used.
+- [ ] **SHOULD NOT**: The Company SHOULD NOT let filling in a `submission` form perform the step itself.
+- [ ] **MUST**: Whatever it marks, the Company's servers MUST check the action's conditions themselves, because marks don't stop anything (8.1).
+
+### Browser Control: [5. Handing control to the User](https://personalagentprotocol.org/docs/0.4/extensions/browser-control#user-control)
+
+- [ ] **MUST NOT**: A timeout, a change to the page's marks, or anything the Company sends MUST NOT end it.
+
+### Browser Control: [6. Who controls the browser](https://personalagentprotocol.org/docs/0.4/extensions/browser-control#controller)
+
+- [ ] **MUST NOT**: It MUST NOT rely on `"user"` as a guarantee that the User took the step.
+
 ### Recommended: [Operations](https://personalagentprotocol.org/docs/0.4/guides#company-operations)
 
 When you offer the Operations extension:
