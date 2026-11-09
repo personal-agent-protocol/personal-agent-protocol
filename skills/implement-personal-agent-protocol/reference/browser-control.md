@@ -21,13 +21,13 @@ Both extensions let a Company involve the User in an action, in different ways:
 
 |  | Operations | Browser control |
 | --- | --- | --- |
-| Who performs the action | The Personal Agent, once the terms are approved | The User, in the Personal Agent's browser |
+| Who takes the step | The Personal Agent, once the terms are approved | The User, in the Personal Agent's browser |
 | What the User does | Approves the terms in the Personal Agent's own interface, or gives the Personal Agent an instruction that covers them | Takes over the browser and uses the Company's page |
 | Interfaces | APIs, MCP servers, conversations, and websites | Websites only, in a browser joined to a Session |
-| What the Company receives | An approval of one revision of the terms, which says whether the User or the Personal Agent approved, in a request signed for the Session | A `controller` value the page reads, which isn't signed |
+| What the Company receives | An approval of one revision of the terms, which says whether the User or the Personal Agent approved, in a request signed for the Session | A `controller` value, if the page sends it, which isn't signed |
 | Repeated requests | Performed at most once | As the website handles them |
 
-Operations is the better experience for the User when it fits. The User approves in the place they already talk to their Personal Agent, such as with a tap on their phone, without finding a browser window and learning the Company's page, or doesn't need to be asked at all when an instruction they gave covers the terms ([Operations 5](https://personalagentprotocol.org/docs/0.4/extensions/operations#approval)). The Personal Agent finishes the action, so the task doesn't wait on the User any longer than the approval. The Company gets more, too: an approval of exact terms, tied to the Session and the access token, and an action performed at most once ([Operations 1](https://personalagentprotocol.org/docs/0.4/extensions/operations#intro)).
+Operations is the better experience for the User when it fits. The User approves in the place they already talk to their Personal Agent, such as with a tap on their phone, without finding a browser window and learning the Company's page, or doesn't need to be asked at all when an instruction they gave covers the terms ([Operations 5](https://personalagentprotocol.org/docs/0.4/extensions/operations#approval)). The Personal Agent finishes the action, so the task doesn't wait on the User any longer than the approval. The Company gets more, too: an approval of exact terms, tied to the Session and, when signed in, the access token, and an action performed at most once ([Operations 1](https://personalagentprotocol.org/docs/0.4/extensions/operations#intro)).
 
 A Company SHOULD use Operations for an action that it can describe as terms to approve. Browser control fits steps that Operations doesn't:
 
