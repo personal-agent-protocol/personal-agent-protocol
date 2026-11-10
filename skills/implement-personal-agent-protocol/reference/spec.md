@@ -350,6 +350,8 @@ Poppy adds these rules to the grant:
 - The redirect back carries the Company's issuer in `iss` ([RFC 9207](https://www.rfc-editor.org/rfc/rfc9207)), including on `error=access_denied`. The Personal Agent MUST check that `iss` exactly matches the issuer of the Company it started sign-in with. This stops a response from another Company's sign-in being swapped in.
 - The token request carries the Personal Agent's client assertion (4.1).
 
+Nothing in the redirect says who approved the sign-in. Opened on another device, such as from a link sent to the User's phone, Direct Sign-In is a cross-device flow like Device Sign-In: someone can start a sign-in, send the link to another person, and get tokens for that person's account if they approve it (10.8). Companies that offer Direct Sign-In, and Personal Agents that open the authorization URL on a device other than the one the User is using, MUST follow the best practices in [RFC 10027](https://www.rfc-editor.org/rfc/rfc10027) (BCP 247) §2, as for Device Sign-In (4.3). A Personal Agent SHOULD receive the redirect only on the device that opened the authorization URL when it can, at a loopback redirect URI or in its own app signed in as the User who started the sign-in ([RFC 8252](https://www.rfc-editor.org/rfc/rfc8252)). A forwarded link then fails.
+
 ### 4.3 Device Sign-In
 
 Device Sign-In is the OAuth 2.0 device authorization grant ([RFC 8628](https://www.rfc-editor.org/rfc/rfc8628)). The Personal Agent asks the Company's `device_authorization_endpoint` (3.2) for a code, with the scopes it needs and its client assertion. It shows the User a link and a short code, and the User signs in on the Company's page on whatever device they like, such as their phone. Meanwhile the Personal Agent polls the `token_endpoint` every `interval` seconds until the User approves or declines, or the request expires, as RFC 8628 §3.4–3.5 describe. It suits Personal Agents that can't receive a browser redirect, and Companies that already offer this kind of sign-in.
@@ -367,7 +369,7 @@ Device Sign-In is the OAuth 2.0 device authorization grant ([RFC 8628](https://w
 }
 ```
 
-Device Sign-In is a cross-device flow, and it is easier to use for phishing than Direct Sign-In: whoever holds the `device_code` gets the tokens, so an attacker can start a request and persuade the User to approve it ([RFC 10027](https://www.rfc-editor.org/rfc/rfc10027) §4.1.1). Companies that offer Device Sign-In and Personal Agents that use it MUST follow the best practices in RFC 10027 (BCP 247) §2. They include its guidance on when to use the device authorization grant (§6.2.1.5).
+Device Sign-In is always a cross-device flow, and it is easier to use for phishing than Direct Sign-In on the User's own device: whoever holds the `device_code` gets the tokens, so an attacker can start a request and persuade the User to approve it ([RFC 10027](https://www.rfc-editor.org/rfc/rfc10027) §4.1.1). Companies that offer Device Sign-In and Personal Agents that use it MUST follow the best practices in RFC 10027 (BCP 247) §2. They include its guidance on when to use the device authorization grant (§6.2.1.5).
 
 Poppy adds these rules to the grant:
 
@@ -1567,6 +1569,16 @@ Delegations keep the keys in `jwks_uri` from signing anything that names a User 
 A key that signs blindly signs whatever a User's device sends it. A Company accepts any client assertion or delegation that verifies with a key in `jwks_uri`, so a device that can get blind signatures from one key can get any client assertion or delegation the Personal Agent could issue. A Personal Agent that signs blindly MUST therefore sign both its client assertions and its delegations blindly, and MUST NOT rely on a signature by a key in its `jwks_uri` to mean its own systems approved what it signed, for example to limit delegation lifetimes or to stop a User.
 
 Blind signing also means any of the Personal Agent's Users can authenticate as the Personal Agent. A refresh token works only with a client assertion from the client it was issued to (4.4), so a refresh token stolen from one User could then be used by any other User of the same Personal Agent. The same goes for an access token: another User can make the Session JWT that has to go with it (5.3). The same holds whenever Users' devices can get client assertions, blindly or not. A Personal Agent that signs blindly, or otherwise lets devices get client assertions, keeps refresh and access tokens on the User's device, protected as its other secrets are (10.2), and limits how many signatures each User can get.
+
+### 10.8 Sign-ins someone else started
+
+Direct and Device Sign-In give the tokens to whoever started the request: the User the Personal Agent recorded for `state` (4.2), or the holder of `device_code` (4.3). Neither says who approved it. Another User of the same Personal Agent can start a sign-in, send the link to someone else, and get tokens for that person's account, with the scopes they approve, if they sign in and approve. The Company sees a genuine request from the Personal Agent, and the Personal Agent sees a valid redirect or poll, so neither can tell. This is the consent phishing that [RFC 10027](https://www.rfc-editor.org/rfc/rfc10027) describes for cross-device flows.
+
+The protocol accepts this risk, as OAuth does for cross-device flows, and limits it:
+
+- A Personal Agent that receives the redirect only on the device that opened the authorization URL ties the tokens to that device, so a forwarded link fails (4.2). One that can tell which of its Users is in the browser at `redirect_uri`, such as by its own sign-in there, can check that it's the User who started the request. Neither is possible for every Personal Agent, such as one whose link opens in a new browser on another device.
+- The Company's sign-in and consent pages name the Personal Agent that wants to connect, and tell the User to continue only if they just asked it to ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-consent)). A person who doesn't use that Personal Agent, or didn't ask, can decline. This doesn't help when the person tricked uses the same Personal Agent.
+- Both sign-in types follow the best practices in RFC 10027 §2 (4.2, 4.3), such as short-lived requests and limited scopes.
 
 ## 11. References
 

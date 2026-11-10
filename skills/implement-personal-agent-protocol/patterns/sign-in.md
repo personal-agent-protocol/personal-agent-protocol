@@ -14,7 +14,9 @@ method the Company allows) and then to a consent page for the Personal Agent.
 - Fits: every Company. Existing sign-in, MFA, and fraud checks keep working.
 - Needs: the authorization request kept across the existing sign-in, and a consent page that shows
   the Personal Agent's name, logo, and `client_id` domain, the account, each scope in plain
-  language, and how long access lasts
+  language, and how long access lasts. On the sign-in page and the consent page, a heading names
+  the Personal Agent that wants to connect, and the User is told to continue only if they just
+  asked it to: anyone can start a sign-in and send the User the link
   ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-consent)).
 - Watch for: an existing OAuth consent page built for first-party or registered clients. Personal
   Agents name themselves, so show the `client_id` domain. Protect the page against cross-site

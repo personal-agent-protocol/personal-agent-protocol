@@ -868,13 +868,21 @@ operations ([7](/docs/spec#apis)). Write them for that reader:
 The page where the user approves access, in direct and device sign-in
 ([4.2](/docs/spec#direct-sign-in), [4.3](/docs/spec#device-sign-in)):
 
+- Start with a heading that names the personal agent and says it wants to connect to the user's
+  account, such as "Muse wants to connect to your Example account". Show it on your sign-in page
+  too, before the user signs in, since that's where they decide whether to go on. Word it as
+  connecting, not as "Sign in with Muse", which reads as signing in with a Muse account.
 - Let the user sign in with a passkey or another phishing-resistant method, as on your website.
   Direct and device sign-in happen on your own pages, so passkeys work there. They can't work with
   mediated sign-in, where the personal agent collects the credentials. A passkey protects against
-  fake sign-in pages, but not against a user approving a device code someone else started, so the
-  [device sign-in](#company-device) advice still applies.
+  fake sign-in pages, but not against a user approving a sign-in someone else started, so the
+  advice on this page and for [device sign-in](#company-device) still applies.
 - Show the personal agent's name and logo, and the domain of its `client_id`. The personal agent
   chooses its own name, so the domain is what the user can trust.
+- Tell the user to continue only if they just asked that personal agent to connect, such as "Only
+  continue if you asked Muse to do this just now." Anyone can start a sign-in and send the user the
+  link, and nothing in the request says who started it. A user who doesn't use that personal agent,
+  or didn't ask, can then decline.
 - Show the account being connected, the requested scopes in plain language, and how long access
   lasts. Group related scopes rather than listing their names.
 - Point out scopes that allow changes that can't be undone or that show personal data, the scopes

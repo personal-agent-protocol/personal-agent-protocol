@@ -14,6 +14,12 @@ In progress, at [/docs/spec](https://personalagentprotocol.org/docs/0.4/spec). T
 
 Direct Sign-In is the preferred sign-in type. A Company that offers sign-in SHOULD offer Direct Sign-In, and a Personal Agent SHOULD use it when the Company offers it. Device Sign-In stays in the specification. Section 4.3 no longer says that RFC 10027 §6.2.1.5 prefers Direct Sign-In: that section compares the device authorization grant with other cross-device flows. The guides point out that it advises against the device authorization grant for sensitive or high-value resources, so such a Company may offer only Direct Sign-In.
 
+#### Sign-ins someone else started
+
+Breaking · [Spec 4.2](https://personalagentprotocol.org/docs/0.4/spec#direct-sign-in) · [Spec 4.3](https://personalagentprotocol.org/docs/0.4/spec#device-sign-in) · [Spec 10.8](https://personalagentprotocol.org/docs/0.4/spec#attacker-started-sign-in) · [Guides: Consent pages](https://personalagentprotocol.org/docs/0.4/guides#company-consent)
+
+Section 10.8 names the risk that someone starts a sign-in, sends the link to another person, and gets tokens for that person's account if they approve, and accepts it with mitigations. Direct Sign-In opened on another device is a cross-device flow, so Companies that offer it, and Personal Agents that open the authorization URL on another device, MUST follow RFC 10027 §2, as for Device Sign-In. A Personal Agent SHOULD receive the redirect only on the device that opened the authorization URL when it can. The Company guide puts a heading on the sign-in and consent pages that names the Personal Agent asking to connect, worded as connecting rather than "Sign in with", and tells the User to continue only if they just asked that Personal Agent to.
+
 #### Several protocol versions
 
 Breaking · [Spec 3.1](https://personalagentprotocol.org/docs/0.4/spec#fields) · [Spec 3.4](https://personalagentprotocol.org/docs/0.4/spec#versions) · [Spec 5.2](https://personalagentprotocol.org/docs/0.4/spec#session-header) · [Spec 7](https://personalagentprotocol.org/docs/0.4/spec#apis) · [Spec 8.13](https://personalagentprotocol.org/docs/0.4/spec#conversation-errors) · [Spec 11](https://personalagentprotocol.org/docs/0.4/spec#references) · [Guides: Versions](https://personalagentprotocol.org/docs/0.4/guides#agent-versions) · [Guides: Serving several versions](https://personalagentprotocol.org/docs/0.4/guides#company-versions)

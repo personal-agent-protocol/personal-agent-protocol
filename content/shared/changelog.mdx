@@ -23,6 +23,19 @@ such a Company may offer only Direct Sign-In.
 
 </Change>
 
+<Change title="Sign-ins someone else started" breaking sections="4.2, 4.3, 10.8, guides#company-consent">
+
+Section 10.8 names the risk that someone starts a sign-in, sends the link to another person, and gets
+tokens for that person's account if they approve, and accepts it with mitigations. Direct Sign-In
+opened on another device is a cross-device flow, so Companies that offer it, and Personal Agents
+that open the authorization URL on another device, MUST follow RFC 10027 §2, as for Device Sign-In.
+A Personal Agent SHOULD receive the redirect only on the device that opened the authorization URL
+when it can. The Company guide puts a heading on the sign-in and consent pages that names the
+Personal Agent asking to connect, worded as connecting rather than "Sign in with", and tells the
+User to continue only if they just asked that Personal Agent to.
+
+</Change>
+
 <Change title="Several protocol versions" breaking sections="3.1, 3.4, 5.2, 7, 8.13, 11, guides#agent-versions, guides#company-versions">
 
 A Company can serve several protocol versions at once. `poppy.json` is the document for the version

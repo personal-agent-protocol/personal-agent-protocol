@@ -68,6 +68,9 @@ second account.
 
 **Direct Sign-In** ([4.2](https://personalagentprotocol.org/docs/0.4/spec#direct-sign-in)).
 
+- Follow the best practices for cross-device flows in RFC 10027 §2 (MUST): a link can be opened on
+  another device or sent to someone else, so assess the risk, and choose mitigations with the
+  engineer ([10.8](https://personalagentprotocol.org/docs/0.4/spec#attacker-started-sign-in)).
 - `authorization_endpoint` in the OAuth metadata, and `authorization_code` in its
   `grant_types_supported`.
 - The authorization code flow with PKCE. Accept `S256` only
@@ -77,6 +80,9 @@ second account.
 - The consent page shows the Personal Agent's name and logo, the domain of its `client_id`, the
   account, each scope in plain language, and how long access lasts. The User can approve some or
   all scopes, or decline.
+- The sign-in page and the consent page start with a heading naming the Personal Agent that wants to
+  connect, such as "Muse wants to connect to your Example account", and tell the User to continue
+  only if they just asked it to.
 - Every redirect, success or error, carries `iss`.
 - The code exchange takes the client assertion.
 
