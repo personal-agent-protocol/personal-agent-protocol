@@ -2,9 +2,13 @@
 # change. The push isn't forced, so if the public main has commits that aren't here, the job fails
 # instead of overwriting them.
 #
-# Setup: install a GitHub App on the public repository with Contents and Workflows write access,
-# and in this repository save its app ID as the Actions variable MIRROR_APP_ID and its private key
-# as the Actions secret MIRROR_APP_PRIVATE_KEY.
+# Only main is mirrored: a run on any other branch or tag, including a manual run, pushes nothing.
+#
+# Setup: install a GitHub App on the public repository with Contents and Workflows write access.
+# In this repository, create the deployment environment public-mirror, with deployment branches
+# limited to main, and save the app's ID as its variable MIRROR_APP_ID and its private key as its
+# secret MIRROR_APP_PRIVATE_KEY. Don't save the key as a repository secret: a run on any branch
+# can read those, including one that edits this file to remove the checks below.
 name: Mirror to public repository
 
 on:
@@ -22,7 +26,9 @@ permissions:
 jobs:
     mirror:
         # The workflow is mirrored too; don't run it in the public repository.
-        if: github.repository == 'sierra-inc/personal-agent-protocol'
+        if: github.repository == 'sierra-inc/personal-agent-protocol' && github.ref == 'refs/heads/main'
+        # The environment's branch policy gives the key only to runs on main.
+        environment: public-mirror
         runs-on: ubuntu-latest
         steps:
             - uses: actions/create-github-app-token@v2
@@ -37,6 +43,10 @@ jobs:
               with:
                   fetch-depth: 0
                   persist-credentials: false
+
+            # A run on main can be older than main, but never ahead of it.
+            - name: Check the commit is on main
+              run: git merge-base --is-ancestor "${GITHUB_SHA}" origin/main
 
             - name: Push main
               env:
