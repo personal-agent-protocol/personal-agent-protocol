@@ -244,6 +244,18 @@ A Company whose APIs also serve clients that don't read `poppy.json` can keep a 
 
 The Company guide suggests publishing `client_id_metadata_document_supported` in the authorization server metadata, as the CIMD draft defines, for clients other than Personal Agents.
 
+#### Scopes the Company doesn't grant
+
+[Guides: Choosing how to sign in](https://personalagentprotocol.org/docs/0.4/guides#agent-choosing-sign-in) · [Issue #49](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/49)
+
+The Personal Agent guide says what to do when a sign-in comes back without a scope the task needs, which can mean the Company doesn't grant it to this User, such as an action only the account holder can allow: don't send the User to sign in again just for it, and tell them someone else on the account may need to do the task.
+
+#### Passkeys on the consent page
+
+[Guides: Consent pages](https://personalagentprotocol.org/docs/0.4/guides#company-consent)
+
+The Company guide suggests offering passkeys or another phishing-resistant way to sign in during direct and device sign-in. They can't work with mediated sign-in.
+
 ## Version 0.3
 
 Published November 4, 2026. It's frozen at [/docs/0.3/spec](https://personalagentprotocol.org/docs/0.3/spec). Major changes are design decisions. Minor changes fill gaps, make the text consistent, or follow an RFC. A change tagged "Breaking" can require an implementation that followed the 0.2 text to change, whether it's major or minor.

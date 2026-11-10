@@ -453,6 +453,7 @@ Describe the scopes you offer personal agents, in the OAuth security scheme of a
 
 The page where the user approves access, in direct and device sign-in (4.2, 4.3):
 
+- [ ] Let the user sign in with a passkey or another phishing-resistant method, as on your website. Direct and device sign-in happen on your own pages, so passkeys work there. They can't work with mediated sign-in, where the personal agent collects the credentials. A passkey protects against fake sign-in pages, but not against a user approving a device code someone else started, so the device sign-in advice still applies.
 - [ ] Show the personal agent's name and logo, and the domain of its `client_id`. The personal agent chooses its own name, so the domain is what the user can trust.
 - [ ] Show the account being connected, the requested scopes in plain language, and how long access lasts. Group related scopes rather than listing their names.
 - [ ] Point out scopes that allow changes that can't be undone or that show personal data, the scopes your `auth.scope_hints` mark `irreversible` or with `personal_data`.
