@@ -62,6 +62,10 @@ the request declares that version in `Poppy-Extensions`. Otherwise handle approv
   order is recommended. Preserve authorization, response semantics, and at-most-once behavior. Compare
   what the request means, not its bytes. When the revision isn't one you returned, has expired, or the
   request doesn't match it, return a new revision instead. Never answer an approval with the revision it names.
+  To refuse an approval that passes the checks, decline it: perform nothing, return no new revision,
+  and answer with `approval_declined` (in a conversation, `extensions.operations.declined`), an
+  optional `reason` for the User that reveals nothing new, and an optional `alternative`. On a
+  website, decline at `endpoint` and don't record the declined approval.
   Record `approver` (`user` or `agent`) and `reference` with the operation, and don't reject an
   approval for an optional member it lacks.
 - **At most once**

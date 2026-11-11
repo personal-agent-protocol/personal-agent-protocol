@@ -262,6 +262,23 @@ any summary, and that Companies make each value in `terms` clear on its own.
 
 </Change>
 
+<Change title="Operations: declining an approval" breaking sections="Operations 1, Operations 2, Operations 5, Operations 6, Operations 7, Operations 8.1, guides#agent-operations, guides#company-operations" issue="78">
+
+A Company that won't act on an approval that passes its checks, for its own reasons such as
+`approver`, the account, or its risk checks, can decline it. It performs nothing and returns no new
+operation, only `approval_declined` with the `operation_id` and `revision`, an optional `reason` for
+the User, and an optional `alternative` as in spec 9.2. An API responds with HTTP 403, an MCP tool
+with an error result, and the Company Agent with `extensions.operations.declined` in a later
+message. On a website, the Company declines at `endpoint` and doesn't record the declined approval. There
+are no reason codes, and `reason` holds nothing the Session couldn't already see. The Personal Agent
+doesn't send that approval again or approve a new revision for the same action without asking the
+User, and tells the User. Separately, when the Company answers an agent approval with a new
+revision, or a website returns a new operation after recording one, the Personal Agent asks the User
+instead of approving it on the same instruction. Both
+stop a Personal Agent from approving revisions in a loop.
+
+</Change>
+
 ### Minor changes {#v0-4-minor}
 
 <Change title="`auth.disabled` without other clients" sections="3.2, guides#company-without-oauth, guides#company-agent-issuer" issue="67">

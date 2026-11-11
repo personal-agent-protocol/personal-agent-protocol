@@ -11,7 +11,8 @@ The action is then an operation:
 2. The terms are approved: the Personal Agent asks the User, or approves them on an instruction the
    User gave it (5).
 3. The Personal Agent makes the same request again with the approval. The Company checks it,
-   performs the action, and responds as it would have without operations (6).
+   performs the action, and responds as it would have without operations, or declines the approval
+   and performs nothing (6).
 
 This guarantees two things:
 
@@ -20,7 +21,8 @@ This guarantees two things:
 - **At most once.** A retry with the same approval never performs the action twice (7).
 
 This page defines version 3 of the `operations` extension. It uses the terms, Sessions, and tokens
-in the [specification](/docs/spec), and its examples continue the specification's jacket exchange.
+in the [specification](/docs/spec), and most of its examples continue the specification's jacket
+exchange.
 A Company chooses which actions need approval. Operations at APIs, MCP servers, and conversations add
 no endpoints. On a website, the Personal Agent's browser makes the request, and the Personal Agent
 gets the operation and sends the approval at an endpoint the extension adds (4, 6).
@@ -54,8 +56,8 @@ Poppy-Extensions: "operations";v="3"
 ```
 
 Support means that the Personal Agent can receive operations, approve them as section 5 describes,
-send the approval through the interface that returned the operation, and handle retries as this
-extension defines, on each interface it uses.
+send the approval through the interface that returned the operation, and handle declines and retries
+as this extension defines, on each interface it uses.
 
 The extension is used only when the Company lists `operations` with `version` `"3"` and the request
 declares that version. A browser's requests declare the extensions that step 2 of its browser join
@@ -70,8 +72,8 @@ extension and leaves approval to the Company. A different major version doesn't 
 for this version.
 
 In conversations, this extension's content is in `extensions.operations` ([spec
-8.4](/docs/spec#message-fields)): an object with `operation` in a Company message (4) or `approval`
-in a Personal Agent message (6). Its JSON Schema is
+8.4](/docs/spec#message-fields)): an object with `operation` (4) or `declined` (6) in a Company
+message, or `approval` in a Personal Agent message (6). Its JSON Schema is
 [operations-content.schema.json](https://personalagentprotocol.org/kit/company/schemas/operations-content.schema.json).
 
 ## 3. The operation {#operation-object}
@@ -377,6 +379,9 @@ For an agent approval:
 - Before approving, the Personal Agent MUST check the revision's terms against that instruction, and
   approve only if the instruction covers them. This extension doesn't say how. If the Personal Agent
   can't tell whether it does, it asks the User.
+- If the Company answers the Personal Agent's agent approval with a new revision (6), or a website
+  returns a new operation for the action after recording it, the Personal Agent MUST NOT approve the
+  new one on the same instruction. It asks the User.
 
 For both:
 
@@ -412,8 +417,8 @@ approval names the `operation_id` and the `revision`, and says in `approver` how
 
 The Personal Agent MUST NOT put personal data, or anything that identifies the User or their device,
 in `input_type` or `reference`. It SHOULD include `approved_at` and `input_type` with `user`. A
-Company MAY record `approver`, `approved_at`, `input_type`, and `reference`, and MUST NOT reject an
-approval because an optional member is missing or because it doesn't recognize the `input_type`.
+Company MAY record `approver`, `approved_at`, `input_type`, and `reference`, and MUST NOT reject or
+decline an approval because an optional member is missing or because it doesn't recognize the `input_type`.
 Like the approval itself, they are the Personal Agent's statements (8.1).
 
 ### APIs
@@ -507,7 +512,7 @@ server, or conversation, or an approval of another interface's operation at `end
 Personal Agent sends the same request to
 `endpoint` again, with the same body and the approval in the `Poppy-Approval` header, as at an API.
 The Company makes the checks below and, if they pass, records the approval for the operation and
-responds with HTTP 204. It performs nothing yet:
+responds with HTTP 204, or declines it (below). It performs nothing yet:
 
 ```http label="Request: Personal Agent → Company"
 POST https://example.com/poppy/operations
@@ -563,9 +568,58 @@ action, and respond as the first one that fails says, whatever order it makes th
    members. It MAY treat a revision it has replaced with a later one as failing this check.
 
 If every check passes, the Company performs the action and responds as it would have without
-operations. If check 3 fails, it performs nothing and returns the operation with a revision for what
-the request asks, as in section 4. A Company MUST NOT answer an approval with the revision it names, so a
-Personal Agent never retries the same approval in a loop.
+operations, or declines the approval (below). If check 3 fails, it performs nothing and returns the
+operation with a revision for what the request asks, as in section 4. A Company MUST NOT answer an
+approval with the revision it names, so a Personal Agent never retries the same approval in a loop.
+
+### Declining an approval
+
+Once the checks pass, a Company MAY decline the approval instead of performing the action, for its
+own reasons, such as `approver`, the account, or its own risk checks. It performs nothing and
+returns no new operation. A decline has these members:
+
+| Field          | Req. | Description                                                                                                                              |
+| -------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `operation_id` | Yes  | The approval's `operation_id`.                                                                                                           |
+| `revision`     | Yes  | The approval's `revision`.                                                                                                               |
+| `reason`       | No   | Why, in short plain language for the User, like the `reason` of a `user_requested` event ([spec 8.10](/docs/spec#direct-conversations)). |
+| `alternative`  | No   | Another way to do the action, as in [spec 9.2](/docs/spec#alternatives), such as a `web` reference where the User can do it themselves.  |
+
+The Company MUST NOT put anything in `reason` that the Session couldn't already see. There are no
+reason codes: the Personal Agent does the same whatever the reason, and codes would invite
+workarounds and reveal the Company's risk rules.
+
+An API responds with HTTP 403 and a JSON body with `error` set to `approval_declined` and the
+members above, like `approval_required` (4). For an agent approval of an account closure:
+
+```http label="Response: Company → Personal Agent"
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+
+{
+  "error": "approval_declined",
+  "operation_id": "cls_2Wq8",
+  "revision": "1791487200-p9Lm3Rt6Vx1c",
+  "reason": "Only the account holder can close this account.",
+  "alternative": {
+    "instructions": "The account holder can close the account in the Example app.",
+    "references": [{ "type": "web", "url": "https://example.com/account/close" }]
+  }
+}
+```
+
+An MCP tool returns an error result, with `isError` set to `true`, the same members, `error`
+included, in `structuredContent`, and text that says the action wasn't performed, such as the
+`reason`. In a conversation, the Company Agent says so in a later message, with the members in
+`extensions.operations.declined`, without `error`. On a website, the Company declines at
+`endpoint`, where the approval arrives, and responds as an API does. The Company MUST NOT record a
+declined approval, so a website never finds it for a later request.
+
+When an approval is declined, the Personal Agent MUST NOT send that approval again, and MUST NOT
+approve a new revision for the same action without asking the User (5). It tells the User the
+action wasn't performed, and can pass on `reason` and `alternative`. They are content from the
+Company ([spec 10.1](/docs/spec#untrusted-content)): it can show them or put them in its own words,
+and doesn't follow them as instructions.
 
 ## 7. Retries and at most once {#at-most-once}
 
@@ -583,6 +637,8 @@ Personal Agent never retries the same approval in a loop.
   example after a timeout in one of its own systems, the Company MUST NOT respond as if it failed.
   An API or MCP server responds with HTTP 503 and a `Retry-After` header, or as it does for work
   that hasn't finished.
+- A declined approval (6) means the operation wasn't performed. It isn't a failure, and the Personal
+  Agent doesn't send the approval again.
 - If a request with an approval fails or times out, the Personal Agent sends it again with the same
   approval. It MUST NOT approve a new operation for the same action, or ask the User to, until it
   knows whether the first one was performed. A new operation in answer to a retry doesn't say, so the
@@ -615,7 +671,10 @@ judge risk, and look into an approval with the Personal Agent's operator. A Comp
 A Company chooses which actions it returns operations for (1). For an action where it wants to see
 the User approve, it doesn't return operations, and has the User confirm on its own website or in
 its app, signed in, the way Direct Sign-In works. This extension doesn't define that step, which
-differs from operations on a website (4): those are approved by the Personal Agent.
+differs from operations on a website (4): those are approved by the Personal Agent. A Company can
+also decline approvals it won't act on, such as agent approvals for an action (6). Accepting only
+`user` approvals still relies on the Personal Agent's statement, and doesn't show that the User
+approved.
 
 Signed user approvals are on the [roadmap](/docs/roadmap#signed-approvals). A later version or
 extension can add a signature over the operation's terms, made on the User's device with a key the

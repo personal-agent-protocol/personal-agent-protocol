@@ -583,7 +583,7 @@ When you support the [Operations extension](/docs/extensions/operations):
   changed before asking them to approve the new one. If they'd rather have the earlier terms, you
   can send that approval. If the company has replaced it, you get a new revision to show them
   ([Operations 6](/docs/extensions/operations#sending-approval)). If you approved the earlier one
-  yourself, check the new terms against the user's instruction again.
+  yourself, ask the user about the new one, rather than approving it on the same instruction.
 - Show when the revision expires. If it expires before the user answers, make the request again for
   new terms, and ask again.
 - Save the request that returned the operation, its method, URL, and body or the tool's arguments,
@@ -1228,8 +1228,8 @@ When you offer the [Operations extension](/docs/extensions/operations):
   happen, to what, and any cost, date, or condition. Use bold for what matters most, such as the
   amount, and keep links out of it. Personal agents that show a summary show yours as is
   ([Operations 3](/docs/extensions/operations#operation-object)).
-- Say in your OpenAPI description which endpoints can return `approval_required`
-  ([Operations 4](/docs/extensions/operations#approval-required)).
+- Say in your OpenAPI description which endpoints can return `approval_required` or
+  `approval_declined` ([Operations 4](/docs/extensions/operations#approval-required)).
 - An approval is a user approval, or an agent approval on the user's instruction, and says which
   in `approver`. Record `approver` and `reference` with the operation, so you can look into an
   approval with the personal agent's operator later ([Operations 8.1](/docs/extensions/operations#approval-proof)).

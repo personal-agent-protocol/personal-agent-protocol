@@ -134,6 +134,10 @@ const OPERATIONS_EXAMPLES: Record<string, Target> = {
             status: { enum: ["approved", "performing", "performed"] },
         },
     },
+    // An API's refusal of an approval it declines.
+    "sending-approval:6": {
+        allOf: [{ $ref: "approval-declined.schema.json" }, { required: ["error"] }],
+    },
 };
 
 function checkExamples(

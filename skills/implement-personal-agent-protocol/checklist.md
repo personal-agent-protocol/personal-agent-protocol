@@ -530,7 +530,7 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
 
 ### Operations: [6. Sending the approval](https://personalagentprotocol.org/docs/0.4/extensions/operations#sending-approval)
 
-- [ ] **MUST NOT**: A Company MAY record `approver`, `approved_at`, `input_type`, and `reference`, and MUST NOT reject an approval because an optional member is missing or because it doesn't recognize the `input_type`.
+- [ ] **MUST NOT**: A Company MAY record `approver`, `approved_at`, `input_type`, and `reference`, and MUST NOT reject or decline an approval because an optional member is missing or because it doesn't recognize the `input_type`.
 - [ ] **MUST**: Companies MUST ignore members of `Poppy-Approval` they don't recognize, so later versions can add members.
 - [ ] **MUST NOT**: The Company MUST NOT accept an approval of a website's operation at an API, MCP server, or conversation, or an approval of another interface's operation at `endpoint`.
 - [ ] **MUST**: The Company MUST keep a recorded approval that isn't used up until the approved revision's `expires_at`, and MUST NOT apply it to requests from a Session that can't approve the operation.
@@ -539,6 +539,8 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
     - [ ] The operation hasn't been performed already. If it has, or is being performed, the Company responds as section 7 describes.
     - [ ] The `revision` is one the Company returned for this operation, it hasn't expired, and the request asks for exactly what it describes. The API request or tool call asks for the same action as the one that returned the operation, in a conversation, the operation is the conversation's, and at `endpoint`, the reference is the operation's. The Company compares what the requests mean, not their bytes, and MAY ignore differences it considers inconsequential, such as the order of JSON members. It MAY treat a revision it has replaced with a later one as failing this check.
 - [ ] **MUST NOT**: A Company MUST NOT answer an approval with the revision it names, so a Personal Agent never retries the same approval in a loop.
+- [ ] **MUST NOT**: The Company MUST NOT put anything in `reason` that the Session couldn't already see.
+- [ ] **MUST NOT**: The Company MUST NOT record a declined approval, so a website never finds it for a later request.
 
 ### Operations: [7. Retries and at most once](https://personalagentprotocol.org/docs/0.4/extensions/operations#at-most-once)
 
@@ -571,7 +573,7 @@ When you offer the Operations extension:
 - [ ] Ask for approval for actions with a business effect that the user would want to confirm, such as ones that cost money or can't be undone. Don't ask for routine changes the user already asked for in so many words, such as updating a saved address.
 - [ ] Put everything that affects the action in `terms`. Name its keys after the fields of the request or of your API's resources, such as `order_id`, so personal agents can compare them with what they asked for, and make each value clear on its own, such as an amount with its currency. Personal agents show `terms` to users, or describe them in their own words (Operations 3).
 - [ ] Send a `summary` when you want users to read your wording. Write it so it stands alone: what will happen, to what, and any cost, date, or condition. Use bold for what matters most, such as the amount, and keep links out of it. Personal agents that show a summary show yours as is (Operations 3).
-- [ ] Say in your OpenAPI description which endpoints can return `approval_required` (Operations 4).
+- [ ] Say in your OpenAPI description which endpoints can return `approval_required` or `approval_declined` (Operations 4).
 - [ ] An approval is a user approval, or an agent approval on the user's instruction, and says which in `approver`. Record `approver` and `reference` with the operation, so you can look into an approval with the personal agent's operator later (Operations 8.1).
 - [ ] For actions where you want to see the user approve, don't return operations. Handle them on your website or in your app until signed user approvals exist (roadmap).
 - [ ] Choose `expires_at` for each kind of action. Give the user at least 15 minutes, and longer for terms that don't change, such as cancelling a subscription at the end of the month. Keep it short when you hold something for the user, such as a seat or a sale price. If you don't store operations, you can't hold a price: an approval that arrives after the price changed gets a new revision (Operations 3).
