@@ -1,17 +1,18 @@
 [
     {
         "id": "0.4",
-        "pages": [
-            "spec",
-            "extensions",
-            "extensions/browser-control",
-            "extensions/disclosures",
-            "extensions/links",
-            "extensions/mediated-sign-in",
-            "extensions/operations",
-            "extensions/ucp",
-            "guides"
-        ]
+        "published": "2026-11-10",
+        "pages": {
+            "spec": "9bad19ea5e1f74ad4eb14d2e746d0dbb388d96884dd6af27a2771ef8641b43b2",
+            "extensions": "9551439dbf2eee5809da465d9c084c5f941c76316b076bf1f63fda87abd9d183",
+            "extensions/browser-control": "f6b1c55bffa1684dabd72f7b33306a6b61366d28bb312a4bda77c06a6aa73041",
+            "extensions/disclosures": "5ef8174b267b84767e081a11d7b3b81cf4fa727eb6ec76464af1c3990729477d",
+            "extensions/links": "20c02ca301a5ad9a8df5884081173cca867a3098bf7a8433c0de0a55428907df",
+            "extensions/mediated-sign-in": "dd05b88da8c0376b6cd272f9f90c9f01fcda3958f42de81b6de82c0fea91cd2f",
+            "extensions/operations": "85a99b01b583161095bbf51ee9824093dd4bedd4ff5f89c578175470e6ab15fc",
+            "extensions/ucp": "17eca6bbfcb716890da1d52b86034a42cc7e708757eac42dbcae65cc946da860",
+            "guides": "76db8df23345bb143c01e85b3b3019bc6d8dbffcb1ecfa4616f1d3355b3741d3"
+        }
     },
     {
         "id": "0.3",

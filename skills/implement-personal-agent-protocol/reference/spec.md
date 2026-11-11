@@ -4,7 +4,7 @@
 
 Personal Agent Protocol (Poppy for short) defines how a Personal Agent, acting for one User, works with a Company on that User's behalf. It covers discovery, identity, account access, and interactions across APIs, web browsing, and conversations with the Company Agent.
 
-This is draft version 0.4. Any part of it can change before a stable version, including in ways that aren't backward compatible. Areas it doesn't cover yet are on the [roadmap](https://personalagentprotocol.org/docs/roadmap).
+This is draft version 0.4. It's the 1.0 release candidate: if implementers find problems, the fixes, which can include changes that aren't backward compatible, go into a draft 1.0. Otherwise this text is published as 1.0. Areas it doesn't cover yet are on the [roadmap](https://personalagentprotocol.org/docs/roadmap).
 
 The examples use `example.com` for the Company and `agent.example` for the Personal Agent. Tokens, keys, and codes in the examples are shortened placeholders, not real values.
 

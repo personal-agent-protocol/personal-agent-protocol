@@ -1,6 +1,6 @@
 # Company checklist
 
-Generated from the Personal Agent Protocol docs, draft 0.4. It lists every
+Generated from the Personal Agent Protocol docs, version 0.4. It lists every
 requirement on the Company in the specification and extensions, and the guides' advice for
 companies, grouped by milestone. Go through the sections for the milestones and features in
 your design. The validator checks some of these. The rest need a review or a manual test.

@@ -1,17 +1,16 @@
 # Path to 1.0
 
-**Current status**, updated November 4, 2026
+**Current status**, updated November 10, 2026
 
-- **[0.3](https://personalagentprotocol.org/docs/0.3/spec) is published and won't change.** It was a large shift from 0.2. See [what changed](https://personalagentprotocol.org/docs/changelog#v0-3).
-- **0.4 is in progress, as [the draft](https://personalagentprotocol.org/docs/0.4/spec).** It's much smaller than 0.3: mostly additions, clarifications, and fixes to 0.3. We don't expect Companies that implement 0.3 to need significant work to adopt 0.4. The [changelog](https://personalagentprotocol.org/docs/changelog#v0-4) lists each change so far.
+[0.4](https://personalagentprotocol.org/docs/0.4/spec) is the 1.0 release candidate, so build against it now. If implementers find problems, we'll fix them in a draft 1.0. Otherwise, we'll publish 0.4 as 1.0 once we've validated implementations. See [what changed since 0.3](https://personalagentprotocol.org/docs/changelog#v0-4).
 
-The [specification](https://personalagentprotocol.org/docs/0.4/spec) is a draft. Before 1.0, we want to learn what works and what doesn't by implementing it, and refine the spec based on what we learn.
+The [specification](https://personalagentprotocol.org/docs/0.4/spec) is a draft, and 0.4 is the 1.0 release candidate. Before 1.0, we want to confirm by implementing it that it works, and fix what doesn't.
 
 ## How we get there
 
 - **Anyone can implement it.** Build against the draft, as a personal agent or a company, and [send us feedback](#feedback) on what you run into.
 - **We're implementing it with design partners.** The spec's authors are working through implementations with several of the [design partners](#partners).
-- **The spec changes based on what we learn.** Until 1.0, a revision can break compatibility with earlier drafts.
+- **The spec changes based on what we learn.** From the release candidate on, changes before 1.0 are fixes, made in a draft 1.0, not new features. A fix can still break compatibility with earlier versions.
 
 ## Providing feedback
 
