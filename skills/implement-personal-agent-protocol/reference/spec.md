@@ -669,6 +669,8 @@ A Personal Agent can also fetch the website's pages with its own HTTP client, wi
 
 Browser join is optional. A Company that supports it lists `web.browser_session_endpoint` in its `poppy.json` (section 3). When it does, the Personal Agent MUST join its browser to a Session before browsing the Company's website. On a website without the endpoint, the Personal Agent browses as an ordinary signed-out visitor.
 
+**Where the endpoint can be.** Like the other endpoints in `poppy.json`, the endpoint can be on any host the Company chooses, such as `accounts.example.com` for `example.com`. The join works only where the cookie the Company sets in step 3 reaches the pages the Personal Agent browses.
+
 **Asking Personal Agents not to browse.** A Company that wants Personal Agents to use only its Company Agent and APIs sets `web.disabled` to `true` in `poppy.json`. A Personal Agent SHOULD NOT use a browser on the website of a Company that sets it, and uses the interfaces the Company lists instead. `web.disabled` doesn't cover pages the Personal Agent fetches without a browser (5.2). A Company that sets `web.disabled` MUST NOT list `browser_session_endpoint`, and MUST list `agent` or `apis`. The protocol can't enforce `web.disabled`, because a Company can't always tell a Personal Agent's browser from a person's. It says what the Company prefers, and isn't a promise that Personal Agents won't browse.
 
 The Personal Agent MUST join only a browser it controls to a Session, never the User's own browser. Otherwise, the Company would treat the User's own visits as the Personal Agent's.

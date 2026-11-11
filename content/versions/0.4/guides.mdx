@@ -983,6 +983,10 @@ personal agents can use, from least to most:
 With a `browser_session_endpoint`, personal agents' browsing is in the same session as their API
 calls and conversations, signed in or out. The rest of this section is about that endpoint.
 
+- Put the endpoint on the host personal agents browse when you can. It can be on another host, such
+  as `accounts.example.com`, as long as the session's cookie it sets reaches the pages personal
+  agents browse ([section 6](/docs/spec#web-browsing)).
+
 - Make each code at least 128 random bits, and expire it within 60 seconds.
 - Set the cookie that ties the code to the browser as
   `__Host-poppy_join=…; Path=/; Max-Age=60; Secure; HttpOnly; SameSite=Strict`, with `Max-Age` no
@@ -1002,9 +1006,12 @@ calls and conversations, signed in or out. The rest of this section is about tha
   signed-out join, keep the browser's login cookie. After a signed-in join, clear it, so the browser
   is signed out when the session's sign-in ends. [Section 6](/docs/spec#web-browsing) has a table
   of each case.
-- Make the session's cookie `Secure` and `HttpOnly`, and use the `__Host-` prefix unless it has to
-  cover several hosts. Limit it to the hosts personal agents need, such as your main site, rather
-  than your whole domain.
+- Make the session's cookie `Secure` and `HttpOnly`, and use the `__Host-` prefix when the endpoint
+  is on the host personal agents browse. When it's on another host, such as `accounts.example.com`
+  for `www.example.com`, the cookie can't use `__Host-` and needs a `Domain` attribute. Set
+  `Domain` to the narrowest domain that covers the hosts personal agents need, because
+  `Domain=example.com` is sent to every subdomain, including one an attacker might take over. The
+  join cookie is only read on the endpoint's host, so it keeps `__Host-` either way.
 - Look up the session on each request, so sign-out and scope changes take effect on the website
   right away.
 

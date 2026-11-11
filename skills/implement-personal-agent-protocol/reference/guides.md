@@ -467,14 +467,24 @@ Personal agents work faster and more reliably through a company agent or APIs th
 
 With a `browser_session_endpoint`, personal agents' browsing is in the same session as their API calls and conversations, signed in or out. The rest of this section is about that endpoint.
 
+- Put the endpoint on the host personal agents browse when you can. It can be on another host, such as `accounts.example.com`, as long as the session's cookie it sets reaches the pages personal agents browse ([section 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)).
+
 - Make each code at least 128 random bits, and expire it within 60 seconds.
+
 - Set the cookie that ties the code to the browser as `__Host-poppy_join=…; Path=/; Max-Age=60; Secure; HttpOnly; SameSite=Strict`, with `Max-Age` no longer than the code's lifetime. The `__Host-` prefix keeps other hosts on your domain from setting it, and `SameSite=Strict` keeps a form on another site from sending it ([RFC 6265bis](https://datatracker.ietf.org/doc/draft-ietf-httpbis-rfc6265bis/)).
+
 - Send the page with `Cache-Control: no-store`, `Content-Security-Policy: frame-ancestors 'none'`, and `Cross-Origin-Opener-Policy: same-origin`, so caches don't keep it, other pages can't frame it, and the page that opened it can't keep a reference to its window ([section 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)).
+
 - Answer a successful form with `303 See Other`, and a failed one with 400, or 429 when the browser sends too many requests.
+
 - Don't log the endpoint's responses or request bodies. They contain browser-session codes.
+
 - Keep a short-lived record for each code: whether it was authorized, for which session and account, and whether it was submitted. A store with a time to live of the code's lifetime works.
+
 - Use a cookie for the session that's separate from your login cookie, and check it first. After a signed-out join, keep the browser's login cookie. After a signed-in join, clear it, so the browser is signed out when the session's sign-in ends. [Section 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing) has a table of each case.
-- Make the session's cookie `Secure` and `HttpOnly`, and use the `__Host-` prefix unless it has to cover several hosts. Limit it to the hosts personal agents need, such as your main site, rather than your whole domain.
+
+- Make the session's cookie `Secure` and `HttpOnly`, and use the `__Host-` prefix when the endpoint is on the host personal agents browse. When it's on another host, such as `accounts.example.com` for `www.example.com`, the cookie can't use `__Host-` and needs a `Domain` attribute. Set `Domain` to the narrowest domain that covers the hosts personal agents need, because `Domain=example.com` is sent to every subdomain, including one an attacker might take over. The join cookie is only read on the endpoint's host, so it keeps `__Host-` either way.
+
 - Look up the session on each request, so sign-out and scope changes take effect on the website right away.
 
 ### Enforcing scopes everywhere

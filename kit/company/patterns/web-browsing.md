@@ -46,8 +46,12 @@ Session.
 - Success sets the Session's cookie, signed in to the account from `/authorize` if there was one,
   clears the join cookie, and responds `303 See Other` to a page on the website. Errors are an error
   page with HTTP 400, or 429, and set no cookie.
-- The guides suggest a `Secure`, `HttpOnly` cookie for the Session, with the `__Host-` prefix unless
-  it has to cover several hosts.
+- The endpoint can be on any host whose session cookie reaches the pages Personal Agents browse,
+  such as a subdomain.
+- The guides suggest a `Secure`, `HttpOnly` cookie for the Session, with the `__Host-` prefix when
+  the endpoint is on the host Personal Agents browse. On another host, such as
+  `accounts.example.com`, the cookie needs `Domain`: keep it as narrow as possible, because
+  `Domain=example.com` reaches every subdomain.
 - The cookie acts for the account and scopes authorized at `/authorize`, stops acting for the
   account at sign-out or disconnect, and doesn't outlive the Session. Look up the Session on each
   request ([guides](https://personalagentprotocol.org/docs/guides#company-browsing)).

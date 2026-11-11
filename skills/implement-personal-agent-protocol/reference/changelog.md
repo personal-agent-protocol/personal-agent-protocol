@@ -198,6 +198,12 @@ Breaking · [Spec 5.3](https://personalagentprotocol.org/docs/0.4/spec#session-v
 
 The Company looks up a Session by `client_id`, `sid`, and User ID. A request with a known `sid` and another User ID names a different Session instead of getting `invalid_session`, and the Company no longer checks the Agent ID, which is fixed when the Session starts. The Personal Agent rules don't change: it still never reuses a `sid` and sends the same `sub` and `agent_id` throughout a Session, so nothing changes on the wire.
 
+#### Where the browser-session endpoint can be
+
+[Spec 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing) · [Guides: Browser sessions](https://personalagentprotocol.org/docs/0.4/guides#company-browsing) · [Issue #80](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/80)
+
+Section 6 says that `browser_session_endpoint` can be on any host the Company chooses, such as a subdomain, and that the join works only where the session's cookie reaches the pages the Personal Agent browses. The guides explain the cookie's `Domain` when the endpoint isn't on the host personal agents browse.
+
 #### Operations: what a revision covers
 
 [Operations 3](https://personalagentprotocol.org/docs/0.4/extensions/operations#operation-object)

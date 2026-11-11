@@ -1144,6 +1144,10 @@ Browser join is optional. A Company that supports it lists `web.browser_session_
 browsing the Company's website. On a website without the endpoint, the Personal Agent browses as an
 ordinary signed-out visitor.
 
+**Where the endpoint can be.** Like the other endpoints in `poppy.json`, the endpoint can be on any
+host the Company chooses, such as `accounts.example.com` for `example.com`. The join works only where
+the cookie the Company sets in step 3 reaches the pages the Personal Agent browses.
+
 **Asking Personal Agents not to browse.** A Company that wants Personal Agents to use only its
 Company Agent and APIs sets `web.disabled` to `true` in `poppy.json`. A Personal Agent SHOULD NOT
 use a browser on the website of a Company that sets it, and uses the interfaces the Company lists

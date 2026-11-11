@@ -131,8 +131,9 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
 ## Web browsing
 
 - List `web.browser_session_endpoint` in `poppy.json`
-  ([section 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)). To keep Personal Agents
-  off the website instead, set `web.disabled` and list no endpoint.
+  ([section 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)), on a host whose session
+  cookie reaches the pages Personal Agents browse. To keep Personal Agents off the website instead,
+  set `web.disabled` and list no endpoint.
 - **Step 1.** A GET to the endpoint returns a form with an unguessable, short-lived, one-time code
   in a hidden `code` field, posting to the endpoint. Caches can't store the page, other pages can't
   frame it, and its opener keeps no reference to it. It sets a cookie that ties the code to the
