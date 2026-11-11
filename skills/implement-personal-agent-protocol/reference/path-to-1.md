@@ -4,11 +4,11 @@
 
 [0.4](https://personalagentprotocol.org/docs/0.4/spec) is the 1.0 release candidate, so build against it now. If implementers find problems, we'll fix them in a draft 1.0. Otherwise, we'll publish 0.4 as 1.0 once we've validated implementations. See [what changed since 0.3](https://personalagentprotocol.org/docs/changelog#v0-4).
 
-The [specification](https://personalagentprotocol.org/docs/0.4/spec) is a draft, and 0.4 is the 1.0 release candidate. Before 1.0, we want to confirm by implementing it that it works, and fix what doesn't.
+The [specification](https://personalagentprotocol.org/docs/0.4/spec) is at 0.4, the 1.0 release candidate. Before 1.0, we want to confirm by implementing it that it works, and fix what doesn't.
 
 ## How we get there
 
-- **Anyone can implement it.** Build against the draft, as a personal agent or a company, and [send us feedback](#feedback) on what you run into.
+- **Anyone can implement it.** Build against it, as a personal agent or a company, and [send us feedback](#feedback) on what you run into.
 - **We're implementing it with design partners.** The spec's authors are working through implementations with several of the [design partners](#partners).
 - **The spec changes based on what we learn.** From the release candidate on, changes before 1.0 are fixes, made in a draft 1.0, not new features. A fix can still break compatibility with earlier versions.
 
@@ -26,7 +26,7 @@ Two tools can help you write it:
 
 ## Roadmap
 
-The [roadmap](https://personalagentprotocol.org/docs/roadmap) lists the areas we expect to work on before 1.0, including the ones the draft doesn't cover yet, such as payments, push notifications, and attachments.
+The [roadmap](https://personalagentprotocol.org/docs/roadmap) lists the areas we expect to work on before 1.0, including the ones the spec doesn't cover yet, such as payments, push notifications, and attachments.
 
 ## Design partners
 

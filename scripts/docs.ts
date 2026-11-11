@@ -88,6 +88,16 @@ function publish(date = today()) {
     if (draft.published || !Array.isArray(draft.pages)) {
         fail(`${draft.id} is already published. Start a draft with pnpm docs:draft <version>.`);
     }
+    // A published spec doesn't call itself a draft.
+    const spec = join(root, `content/versions/${draft.id}/spec.mdx`);
+    edit(
+        spec,
+        (text) =>
+            text
+                .replace(`This is draft version ${draft.id}.`, `This is version ${draft.id}.`)
+                .replace(`This draft is \`${draft.id}\``, `This version is \`${draft.id}\``),
+        'drop "draft" from the version number',
+    );
     const hash = (slug: string) =>
         createHash("sha256")
             .update(readFileSync(join(root, `content/versions/${draft.id}/${slug}.mdx`)))
@@ -140,10 +150,16 @@ function startDraft(id: string | undefined) {
         join(root, `content/versions/${id}/spec.mdx`),
         (text) =>
             text
-                .replace(new RegExp(`(This is draft version )${old}\\.`), `$1${id}.`)
+                .replace(
+                    new RegExp(`This is (?:draft )?version ${old}\\.`),
+                    `This is draft version ${id}.`,
+                )
                 .replace(new RegExp(`("protocol_version": ")${old}"`, "g"), `$1${id}"`)
                 .replace(new RegExp(`^(Poppy-Version: )${old}$`, "gm"), `$1${id}`)
-                .replace(new RegExp(`(This draft is \`)${old}\``), `$1${id}\``),
+                .replace(
+                    new RegExp(`This (?:draft|version) is \`${old}\``),
+                    `This draft is \`${id}\``,
+                ),
         "change the version number",
     );
     // The version in examples on every page: poppy.json documents and the Poppy-Version header.

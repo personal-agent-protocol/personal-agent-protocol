@@ -3,7 +3,7 @@
         "id": "0.4",
         "published": "2026-11-10",
         "pages": {
-            "spec": "9bad19ea5e1f74ad4eb14d2e746d0dbb388d96884dd6af27a2771ef8641b43b2",
+            "spec": "d915d8f28bf4e2e4f6e89cfaa2a4e62ba398258144e09abcde1f0868752ec63b",
             "extensions": "9551439dbf2eee5809da465d9c084c5f941c76316b076bf1f63fda87abd9d183",
             "extensions/browser-control": "f6b1c55bffa1684dabd72f7b33306a6b61366d28bb312a4bda77c06a6aa73041",
             "extensions/disclosures": "5ef8174b267b84767e081a11d7b3b81cf4fa727eb6ec76464af1c3990729477d",

@@ -4,7 +4,7 @@
 
 Personal Agent Protocol (Poppy for short) defines how a Personal Agent, acting for one User, works with a Company on that User's behalf. It covers discovery, identity, account access, and interactions across APIs, web browsing, and conversations with the Company Agent.
 
-This is draft version 0.4. It's the 1.0 release candidate: if implementers find problems, the fixes, which can include changes that aren't backward compatible, go into a draft 1.0. Otherwise this text is published as 1.0. Areas it doesn't cover yet are on the [roadmap](https://personalagentprotocol.org/docs/roadmap).
+This is version 0.4. It's the 1.0 release candidate: if implementers find problems, the fixes, which can include changes that aren't backward compatible, go into a draft 1.0. Otherwise this text is published as 1.0. Areas it doesn't cover yet are on the [roadmap](https://personalagentprotocol.org/docs/roadmap).
 
 The examples use `example.com` for the Company and `agent.example` for the Personal Agent. Tokens, keys, and codes in the examples are shortened placeholders, not real values.
 
@@ -133,7 +133,7 @@ An example document:
 
 | Field | Req. | Description |
 | --- | --- | --- |
-| `protocol_version` | Yes | The protocol version the document follows, as `major.minor`. This draft is `0.4`. A Personal Agent uses the document only if the version is compatible with one it implements (3.4). From 1.0, a newer minor version won't break older Personal Agents, which use the document and ignore fields they don't recognize. |
+| `protocol_version` | Yes | The protocol version the document follows, as `major.minor`. This version is `0.4`. A Personal Agent uses the document only if the version is compatible with one it implements (3.4). From 1.0, a newer minor version won't break older Personal Agents, which use the document and ignore fields they don't recognize. |
 | `supported_versions` | No | The other protocol versions the Company serves, each mapped to the URL of that version's document (3.4). |
 | `organization` | Yes | The Company's display `name`, its `domain`, and an optional `logo_uri`, an HTTPS URL of the Company's logo, named as in client metadata (4.1). `domain` MUST be the host that serves the document, after any redirects. Domains are compared ignoring case, with no other normalization. |
 | `auth` | No | The Company's sign-in details: `issuer`, `disabled`, `scopes`, and `scope_hints`, below. |
@@ -1587,7 +1587,7 @@ The protocol accepts this risk, as OAuth does for cross-device flows, and limits
 
 ## 11. References
 
-This draft uses these standards and versions:
+This version uses these standards and versions:
 
 | Subject | References |
 | --- | --- |

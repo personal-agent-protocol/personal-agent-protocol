@@ -100,8 +100,8 @@ function versionProblems(): string[] {
 
 // The version number a spec states, wherever it states it.
 const VERSION_MENTIONS = [
-    /This is draft version (\d+\.\d+)\./g,
-    /This draft is `(\d+\.\d+)`/g,
+    /This is (?:draft )?version (\d+\.\d+)\./g,
+    /This (?:draft|version) is `(\d+\.\d+)`/g,
     /"protocol_version": "(\d+\.\d+)"/g,
     /^Poppy-Version: (\d+\.\d+)$/gm,
 ];
@@ -117,7 +117,9 @@ function specVersionProblems(version: DocsVersion): string[] {
         [...markdown.matchAll(pattern)].map((m) => m[1]),
     );
     if (!found.length) {
-        return [`content/${spec.file}: it needs "This is draft version ${version.id}."`];
+        return [
+            `content/${spec.file}: it needs "This is ${version.draft ? "draft " : ""}version ${version.id}."`,
+        ];
     }
     return found
         .filter((id) => id !== version.id)
