@@ -18,8 +18,10 @@ permissions it grants:
 - Start from the scopes the Company's OAuth server already has, and from what a signed-in customer
   can do. Decide what a Personal Agent shouldn't do under any scope, such as changing sign-in
   credentials or closing the account.
-- List every offered scope in `scopes_supported` in the OAuth metadata, and describe every one (SHOULD, 4.7):
-  in the OAuth security scheme of an OpenAPI description you list, or in `auth.scopes`, a map from
+- List every offered scope in `scopes_supported` in the OAuth metadata, in the domain's protected
+  resource metadata, or in both, and describe every one (SHOULD, 3.2, 4.7). Use the protected resource
+  list when the issuer's list can't be tailored, such as a hosted issuer or one shared with other
+  resources. Describe scopes in the OAuth security scheme of an OpenAPI description you list, or in `auth.scopes`, a map from
   scope name to description in the same form.
 - Write descriptions in words a User understands, specific enough for a language model to pick the
   scopes a task needs. Say whether it only reads, whether a write scope also allows reading, which
@@ -35,14 +37,14 @@ permissions it grants:
   access requests every scope it still needs, including earlier scopes it wants to keep, and uses
   the new refresh token in place of the old one (4.7).
 - If the issuer also serves other OAuth clients, leave scopes you don't offer Personal Agents out of
-  `scopes_supported`, and limit the scopes you grant by client (3.2, 4.7). To keep Direct or Device
+  the `scopes_supported` lists, and limit the scopes you grant by client (3.2, 4.7). To keep Direct or Device
   Sign-In from Personal Agents, return `unauthorized_client` for their `client_id` (4.1), or set
   `auth.disabled` to turn off sign-in for all of them (3.2). An issuer only for Personal Agents is
   the fallback when the authorization server can't refuse by client; choose it before launch,
   because changing the issuer later makes every User look new to the Company
   ([guides](https://personalagentprotocol.org/docs/guides#company-agent-issuer)).
 - Agents can also request scopes documented by the Company's APIs or sign-in extensions, even if
-  `scopes_supported` omits them. Direct and Device Sign-In can grant the scopes their policies allow. Decide which Mediated Sign-In
+  neither `scopes_supported` list includes them. Direct and Device Sign-In can grant the scopes their policies allow. Decide which Mediated Sign-In
   can grant, in its extension's `scopes`. It often grants less.
 - Make the scopes cover what Users ask Personal Agents to do, so they don't fall back to the User's
   credentials (SHOULD, [5.4](https://personalagentprotocol.org/docs/spec#sign-in),

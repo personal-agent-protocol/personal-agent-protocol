@@ -85,6 +85,7 @@ export const SECTION_NUMBERS: Record<string, string> = {
     "spec#credentials": "10.5",
     "spec#browser-join": "10.6",
     "spec#delegated-key-security": "10.7",
+    "spec#attacker-started-sign-in": "10.8",
     "spec#references": "11",
     "operations#intro": "1",
     "operations#support": "2",
@@ -339,7 +340,7 @@ export const CATALOG: CheckInfo[] = [
         "metadata.scopes-supported",
         "scopes_supported lists every scope a sign-in can grant",
         "spec#oauth-server",
-        "A Company that offers sign-in SHOULD publish it and include every scope a Personal Agent can request (4.7).",
+        "A Company that offers sign-in SHOULD list every scope a Personal Agent can request here, in scopes_supported of its protected resource metadata (above), or in both (4.7).",
         "SHOULD",
     ),
     foundation(

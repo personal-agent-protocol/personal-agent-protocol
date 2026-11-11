@@ -832,22 +832,37 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
         (offersGrant(json, SIGN_IN_GRANTS.direct) ||
             offersGrant(json, SIGN_IN_GRANTS.device) ||
             mediatedSignIn(poppy) !== undefined);
-    const supported = json.scopes_supported;
+    // Personal Agents use the union of the issuer's list and the domain's protected resource
+    // metadata list (spec 3.2, 4.7).
+    const issuerScopes = json.scopes_supported;
+    const resourceScopes = ctx.discovered.resourceMetadata?.scopes_supported;
+    const supported = [
+        ...new Set([
+            ...(Array.isArray(issuerScopes) ? issuerScopes : []),
+            ...(Array.isArray(resourceScopes) ? resourceScopes : []),
+        ]),
+    ];
+    const lists = [
+        issuerScopes === undefined
+            ? "no scopes_supported in the OAuth server metadata"
+            : `scopes_supported ${JSON.stringify(issuerScopes)} in the OAuth server metadata`,
+        resourceScopes === undefined
+            ? "none in the protected resource metadata"
+            : `${JSON.stringify(resourceScopes)} in the protected resource metadata`,
+    ].join(", ");
     if (!signsIn) {
         r.skip("metadata.scopes-supported", "The Company offers no type of sign-in.");
         r.skip(
             "metadata.scopes-described",
             "The Company offers no type of sign-in, so it offers Personal Agents no scopes.",
         );
-    } else if (!Array.isArray(supported) || supported.length === 0) {
+    } else if (supported.length === 0) {
         r.fail("metadata.scopes-supported", {
             exchange: ex,
-            got:
-                supported === undefined
-                    ? "no scopes_supported"
-                    : `scopes_supported ${JSON.stringify(supported)}`,
-            expected: "scopes_supported, listing every scope a Personal Agent can request",
-            cause: "Publishing a complete scope list is recommended. Agents can also request scopes documented by the Company's APIs or sign-in extensions (4.7).",
+            got: lists,
+            expected:
+                "scopes_supported, in the OAuth server metadata or the protected resource metadata, listing every scope a Personal Agent can request",
+            cause: "Publishing a complete scope list is recommended. When the issuer's list can't be tailored to Personal Agents, list their scopes in the domain's protected resource metadata. Agents can also request scopes documented by the Company's APIs or sign-in extensions (4.7).",
         });
         r.skip("metadata.scopes-described", "scopes_supported lists no scopes.");
     } else {
@@ -860,15 +875,15 @@ export async function checkMetadata(ctx: Context, r: Recorder): Promise<void> {
         if (missing.length) {
             r.fail("metadata.scopes-supported", {
                 exchange: ex,
-                got: `scopes_supported ${JSON.stringify(supported)}`,
-                expected: `scopes_supported including ${missing.join(", ")}`,
+                got: lists,
+                expected: `scopes_supported including ${missing.join(", ")}, in either metadata`,
                 cause: "Including the Mediated Sign-In scopes in scopes_supported is recommended. Agents can also discover them in the extension's scopes (4.7).",
             });
         } else if (browse) {
             r.fail("metadata.scopes-supported", {
                 exchange: ex,
-                got: `scopes_supported ${JSON.stringify(supported)}`,
-                expected: `scopes_supported including ${BROWSER_SIGN_IN_SCOPE}`,
+                got: lists,
+                expected: `scopes_supported including ${BROWSER_SIGN_IN_SCOPE}, in either metadata`,
                 cause: `poppy.json lists browser_session_endpoint, so a signed-in browser join needs ${BROWSER_SIGN_IN_SCOPE}, which the Company supports (section 6). Including it in scopes_supported is recommended.`,
             });
         } else r.pass("metadata.scopes-supported");

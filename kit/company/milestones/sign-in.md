@@ -33,7 +33,8 @@ Patterns: `patterns/sign-in.md`, `patterns/scopes.md`, `patterns/session-records
 ## What to build
 
 **Scopes** ([4.7](https://personalagentprotocol.org/docs/spec#scopes)). Listing every offered scope
-in `scopes_supported` and describing it are recommended. Agents can also use scopes documented by
+in `scopes_supported`, in the OAuth metadata or the domain's protected resource metadata, and
+describing it are recommended. Agents can also use scopes documented by
 the APIs or sign-in extensions. Put descriptions in
 the OAuth security scheme of an OpenAPI description you list or in `auth.scopes`. Write them in
 words a User and a language model can understand

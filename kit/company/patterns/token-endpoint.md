@@ -38,7 +38,7 @@ receive the Session header, and sign-in doesn't need to know the Session.
 
 Publish RFC 8414 metadata with `issuer`, `token_endpoint`, `revocation_endpoint`,
 `grant_types_supported` with `refresh_token` and the sign-in grants, the sign-in endpoints,
-`scopes_supported`, and `protected_resources` listing `https://{domain}` for every domain whose
+`scopes_supported` (or put it in the domain's protected resource metadata), and `protected_resources` listing `https://{domain}` for every domain whose
 issuer it is ([3.2](https://personalagentprotocol.org/docs/spec#oauth-server)). The domain's own
 protected resource metadata names this issuer in `authorization_servers`.
 

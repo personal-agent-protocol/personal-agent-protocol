@@ -94,6 +94,7 @@ export function offersGrant(metadata: Metadata | undefined, grant: string): bool
 export type ResourceMetadata = {
     resource?: unknown;
     authorization_servers?: unknown;
+    scopes_supported?: unknown;
     [field: string]: unknown;
 };
 

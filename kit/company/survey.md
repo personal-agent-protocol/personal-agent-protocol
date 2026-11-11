@@ -34,7 +34,11 @@ lists. Personal Agents find the issuer there
 (`patterns/token-endpoint.md`). Find out whether it:
 
 - publishes OAuth Authorization Server Metadata (RFC 8414), and whether you can set
-  `grant_types_supported`, `scopes_supported`, and `protected_resources` (RFC 9728) in it;
+  `grant_types_supported`, `scopes_supported`, and `protected_resources` (RFC 9728) in it. Check
+  `protected_resources` first: it's the required field an existing issuer is most likely to be
+  missing, and a vendor service may need a new release to add it. If you can't tailor
+  `scopes_supported` to Personal Agents, list their scopes in the domain's protected resource
+  metadata instead ([4.7](https://personalagentprotocol.org/docs/spec#scopes));
 - authenticates clients with `private_key_jwt` (RFC 7523), and can fetch client keys from a
   `jwks_uri`;
 - accepts clients it hasn't registered, identified by a URL (Client ID Metadata Documents), or has a

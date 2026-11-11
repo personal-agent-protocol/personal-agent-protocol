@@ -33,6 +33,8 @@ export type SurveyReport = {
     };
     // The issuer the domain's protected resource metadata names (spec 3.2).
     issuer?: string;
+    // scopes_supported in the domain's protected resource metadata (spec 3.2, 4.7).
+    resourceScopes?: unknown;
     authorizationServer?: {
         url: string;
         found: boolean;
@@ -132,6 +134,7 @@ export async function survey(http: Http, target: string): Promise<SurveyReport> 
         const url = metadataUrlFor(issuer);
         const meta = ctx.discovered.metadata;
         report.issuer = issuer;
+        report.resourceScopes = ctx.discovered.resourceMetadata?.scopes_supported;
         report.authorizationServer = {
             url,
             found: meta !== undefined,
@@ -216,6 +219,10 @@ export function formatSurvey(s: SurveyReport): string {
         out.push(`  organization      ${p?.organization?.name} (${p?.organization?.domain})`);
         if (s.issuer) {
             out.push(`  issuer            ${s.issuer} (from the protected resource metadata)`);
+            if (s.resourceScopes !== undefined)
+                out.push(
+                    `  resource scopes   ${JSON.stringify(s.resourceScopes)} (scopes_supported in the protected resource metadata)`,
+                );
             const meta = s.authorizationServer?.fields as Metadata | undefined;
             const direct = offersGrant(meta, SIGN_IN_GRANTS.direct);
             const device = offersGrant(meta, SIGN_IN_GRANTS.device);

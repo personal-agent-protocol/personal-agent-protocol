@@ -56,7 +56,7 @@ Session.
   account at sign-out or disconnect, and doesn't outlive the Session. Look up the Session on each
   request ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-browsing)).
 - `/authorize` rejects an access token without `poppy:browser-sign-in` with `insufficient_scope`, as an API
-  would. A Company that offers sign-in supports `poppy:browser-sign-in` and lists it in `scopes_supported`.
+  would. A Company that offers sign-in supports `poppy:browser-sign-in` and lists it in `scopes_supported` (in the OAuth metadata or the protected resource metadata).
 - The website either applies the cookie's scopes, as the APIs do (`patterns/scopes.md`), and then
   may grant `poppy:browser-sign-in` without asking the User; or treats `poppy:browser-sign-in` as everything the
   account can do on the website, and then asks the User to approve it and describes it that way in

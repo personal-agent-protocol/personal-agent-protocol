@@ -539,6 +539,56 @@ test("scopes_supported without poppy:browser-sign-in warns when poppy.json lists
     assert.match(r.expected ?? "", /poppy:browser-sign-in/);
 });
 
+for (const split of [false, true]) {
+    test(`scopes_supported ${split ? "split between both metadata documents" : "only in the protected resource metadata"} passes metadata.scopes-supported`, async () => {
+        const { byId } = await run(
+            {
+                metadata(doc) {
+                    if (split) doc.scopes_supported = ["orders:read"];
+                    else delete doc.scopes_supported;
+                },
+                resourceMetadata(doc) {
+                    doc.scopes_supported = split
+                        ? ["poppy:browser-sign-in"]
+                        : ["orders:read", "poppy:browser-sign-in"];
+                },
+            },
+            "foundation",
+            ["metadata."],
+        );
+        assert.equal(byId("metadata.scopes-supported").status, "pass");
+        assert.equal(byId("metadata.scopes-described").status, "pass");
+    });
+}
+
+test("a Mediated Sign-In scope in neither scopes_supported list warns, and in the protected resource metadata passes", async () => {
+    for (const listed of [false, true]) {
+        const { byId } = await run(
+            {
+                metadata: (doc) => (doc.scopes_supported = ["poppy:browser-sign-in"]),
+                resourceMetadata: (doc) => {
+                    if (listed) doc.scopes_supported = ["orders:read"];
+                },
+            },
+            "foundation",
+            ["metadata."],
+        );
+        const r = byId("metadata.scopes-supported");
+        assert.equal(r.status, listed ? "pass" : "warn");
+        if (!listed) assert.match(r.expected ?? "", /orders:read/);
+    }
+});
+
+test("a scope only in the protected resource metadata with no description warns on metadata.scopes-described", async () => {
+    const { byId } = await run(
+        { resourceMetadata: (doc) => (doc.scopes_supported = ["addresses"]) },
+        "foundation",
+        ["metadata."],
+    );
+    assert.equal(byId("metadata.scopes-supported").status, "pass");
+    assert.match(byId("metadata.scopes-described").got ?? "", /addresses/);
+});
+
 for (const incomplete of [false, true]) {
     test(`${incomplete ? "incomplete" : "absent"} scope metadata warns without blocking Sessions`, async () => {
         const { byId, results } = await run(

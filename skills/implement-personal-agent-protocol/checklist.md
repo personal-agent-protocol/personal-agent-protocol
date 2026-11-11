@@ -42,7 +42,7 @@ are left out.
 - [ ] **MUST**: The issuer MUST publish OAuth Authorization Server Metadata (RFC 8414), at the URL RFC 8414 §3.1 defines.
 - [ ] **MUST**: Its `protected_resources` (RFC 9728 §4) MUST list `https://{domain}` for every domain whose issuer it is, with no path, port, or trailing slash.
 - [ ] **MUST**: Required, and it MUST include `refresh_token` (4.4).
-- [ ] **SHOULD**: A Company that offers sign-in SHOULD publish it and include every scope a Personal Agent can request (4.7).
+- [ ] **SHOULD**: A Company that offers sign-in SHOULD list every scope a Personal Agent can request here, in `scopes_supported` of its protected resource metadata (above), or in both (4.7).
 - [ ] **MUST**: A Company that lists `signed_in` MUST have an issuer, and MUST NOT set `auth.disabled`.
 
 ### Specification: [3.4 Versions](https://personalagentprotocol.org/docs/0.4/spec#versions)
@@ -169,7 +169,7 @@ Start with the tasks you want personal agents to accomplish and the interfaces y
 
 - [ ] Signed-out APIs. You can expose a catalog or other stateless API without an OAuth server. Accept the Session header personal agents send. If the endpoint uses no Session claims, it can serve requests without verifying the header (5.3).
 - [ ] Session continuity. Verify Session JWTs when you want to recognize a pseudonymous user, maintain a Session cart, or connect activity across channels. Verification is required before relying on Session identity, ownership, continuity, or state (5.3). This works without OAuth.
-- [ ] Account access. Add OAuth when tasks need access to a user's account. Your endpoints can rely on OAuth alone if they use no Session claims. They still validate tokens and enforce scopes and any required DPoP checks. Check your existing authorization server against what Poppy adds to OAuth and client metadata support.
+- [ ] Account access. Add OAuth when tasks need access to a user's account. Your endpoints can rely on OAuth alone if they use no Session claims. They still validate tokens and enforce scopes and any required DPoP checks. Check your existing authorization server against what Poppy adds to OAuth and client metadata support. Check `protected_resources` in its metadata first (3.2): it's the required field an existing issuer is most likely to be missing, and adding it may need a release from its vendor.
 - [ ] Channels and other capabilities. Offer APIs, web browsing, conversations, or a combination. Add browser join to connect website activity to a Session. Advertise excluded tasks, feedback, and extensions where they help users complete the tasks you support.
 
 ### Recommended: [Serving several versions](https://personalagentprotocol.org/docs/0.4/guides#company-versions)
@@ -237,7 +237,7 @@ When keeping session state:
 
 A company can offer personal agents less than its other OAuth clients get without a second issuer:
 
-- [ ] Limit the scopes it grants by client, as OAuth allows (4.7). It can also leave scopes it doesn't offer personal agents out of `scopes_supported`, as RFC 8414 allows (3.2). That list is discovery, not enforcement: agents can request scopes documented by an API or sign-in extension too.
+- [ ] Limit the scopes it grants by client, as OAuth allows (4.7). It can also leave scopes it doesn't offer personal agents out of `scopes_supported`, as RFC 8414 allows (3.2). When the issuer's metadata can't be tailored, such as a hosted issuer or one shared with other resources, list the scopes personal agents can request in `scopes_supported` of your protected resource metadata instead (4.7). These lists are discovery, not enforcement: agents can request scopes documented by an API or sign-in extension too.
 - [ ] Refuse sign-in, or one sign-in type, to a personal agent with `unauthorized_client` from the grant's endpoint, and keep accepting it for signed-out sessions (4.1). `grant_types_supported` lists the grants every client can see, so a refusal by `client_id` is how you keep direct or device sign-in from some personal agents.
 - [ ] Turn off sign-in for every personal agent with `auth.disabled`, for example while your issuer serves only other clients, or to keep one identifier across hostname changes before you offer sign-in (3.2). Personal agents don't try to sign in, and still use signed-out sessions. Remove it when you're ready.
 
@@ -425,7 +425,7 @@ Personal agents work faster and more reliably through a company agent or APIs th
 ### Mediated Sign-In: [2. Advertising support](https://personalagentprotocol.org/docs/0.4/extensions/mediated-sign-in#support)
 
 - [ ] **MUST NOT**: It MUST NOT be `grant_type`, `scope`, `resource`, a client authentication parameter such as `client_id` or `client_assertion`, or a parameter this extension defines, such as `sign_in_id`.
-- [ ] **SHOULD**: The Company SHOULD also include them in `scopes_supported`.
+- [ ] **SHOULD**: The Company SHOULD also include them in `scopes_supported`, in its OAuth server metadata or protected resource metadata (spec 3.2).
 - [ ] **MUST NOT**: The Company MUST NOT grant scopes beyond those requested and listed here.
 
 ### Recommended: [Token lifetimes and sign-out](https://personalagentprotocol.org/docs/0.4/guides#company-lifetimes)

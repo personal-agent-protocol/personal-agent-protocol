@@ -162,6 +162,8 @@ The Personal Agent finds the issuer from the protected resource metadata ([RFC 9
 - If it lists one authorization server, that is the Company's issuer. `auth.issuer` is optional, and if present MUST name that server (3.1).
 - If it lists more than one, such as one for the Company's employees, `auth.issuer` in `poppy.json` names the one Personal Agents use (3.1). RFC 9728 leaves the choice among them to the client, but User IDs and refresh tokens belong to one issuer (5.1), so every Personal Agent has to choose the same one.
 
+The protected resource metadata can also list the scopes a Personal Agent can request in `scopes_supported` ([RFC 9728](https://www.rfc-editor.org/rfc/rfc9728) §2), instead of or as well as the issuer's metadata (below, 4.7). This suits a Company whose issuer also serves other resources or clients, since the issuer's metadata has one list for all of them.
+
 **Turning off sign-in.** A Company that has an issuer but offers Personal Agents no sign-in sets `auth.disabled` to `true` in `poppy.json`, such as while its issuer serves only other clients, or to keep one identifier across hostname changes before it offers sign-in. Its identifier is still its issuer. A Personal Agent MUST NOT start Direct, Device, or Mediated Sign-In with a Company that sets it. Refresh tokens the Company issued earlier keep working until it revokes them (4.4). A Company that sets `auth.disabled` MUST NOT list the [Mediated Sign-In extension](https://personalagentprotocol.org/docs/0.4/extensions/mediated-sign-in) or `signed_in` access (below).
 
 A Company that sets `auth.disabled` and has never issued a refresh token to a Personal Agent has no tokens to protect: it answers every refresh with `invalid_grant` ([RFC 6749 §5.2](https://www.rfc-editor.org/rfc/rfc6749#section-5.2)) and every revocation with success ([RFC 7009 §2.2](https://www.rfc-editor.org/rfc/rfc7009#section-2.2)). It MAY do so without verifying the client assertion (4.1). Once it has issued one, or turns sign-in on, it verifies client assertions as usual.
@@ -171,7 +173,8 @@ A Company that sets `auth.disabled` and has never issued a refresh token to a Pe
 ```
 {
   "resource": "https://example.com",
-  "authorization_servers": ["https://auth.example.com"]
+  "authorization_servers": ["https://auth.example.com"],
+  "scopes_supported": ["orders:read", "orders:write", "addresses", "poppy:browser-sign-in"]
 }
 ```
 
@@ -214,7 +217,7 @@ The Personal Agent uses these fields of the metadata:
 - `grant_types_supported` lists the grant types the token endpoint accepts. Required, and it MUST include `refresh_token` (4.4). It also says which of Direct and Device Sign-In the Company offers (4): `authorization_code` for Direct Sign-In and `urn:ietf:params:oauth:grant-type:device_code` for Device Sign-In.
 - `authorization_endpoint` starts Direct Sign-In (4.2). Required if `grant_types_supported` includes `authorization_code`.
 - `device_authorization_endpoint` starts Device Sign-In (4.3). Required if `grant_types_supported` includes `urn:ietf:params:oauth:grant-type:device_code`.
-- `scopes_supported` lists the scopes the issuer supports, as RFC 8414 §2 defines. A Company that offers sign-in SHOULD publish it and include every scope a Personal Agent can request (4.7).
+- `scopes_supported` lists the scopes the issuer supports, as RFC 8414 §2 defines. A Company that offers sign-in SHOULD list every scope a Personal Agent can request here, in `scopes_supported` of its protected resource metadata (above), or in both (4.7).
 - `token_endpoint_auth_signing_alg_values_supported` lists the signing algorithms the token endpoint accepts for client assertions, as RFC 8414 §2 defines (4.1). It does not describe support for delegation signatures at resource endpoints (5.2).
 
 The metadata MAY have other fields, which Personal Agents ignore.
@@ -407,7 +410,7 @@ The Personal Agent revokes a refresh token at the Company's `revocation_endpoint
 
 Scopes say what account access a sign-in grants. Each Company defines its own scopes, such as `orders:read`, `orders:write`, and `addresses`, usually the OAuth scopes it already has. The protocol defines one, `poppy:browser-sign-in`, which lets the Personal Agent sign its browser in to the Company's website (section 6).
 
-- `scopes_supported` in the OAuth server metadata lists the scopes the Company supports (3.2). A Personal Agent MAY also request scopes documented by the Company's APIs or sign-in extensions, even when absent from that list. The list MAY leave out scopes the Company offers only to its other clients, and the Company MAY limit the scopes it grants by client, as [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749#section-3.3) §3.3 allows.
+- `scopes_supported` in the OAuth server metadata, in the protected resource metadata of the domain the Personal Agent is working with, or in both, lists the scopes the Company supports (3.2). The Personal Agent uses the scopes in either list. It MAY also request scopes documented by the Company's APIs or sign-in extensions, even when absent from both. Either list MAY leave out scopes the Company offers only to its other clients, and the Company MAY limit the scopes it grants by client, as [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749#section-3.3) §3.3 allows.
 
 - The Company SHOULD describe each scope it offers Personal Agents, so the Personal Agent can choose the ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it lists (section 7), or otherwise in `auth.scopes`. When both describe a scope, the Personal Agent uses the description in `auth.scopes`.
 

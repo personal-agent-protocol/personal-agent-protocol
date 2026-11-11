@@ -297,6 +297,16 @@ tokens to protect. Once it has issued one, or turns sign-in on, it verifies them
 
 </Change>
 
+<Change title="Scopes in the protected resource metadata" sections="3.2, 4.7, Mediated Sign-In 2, guides#agent-choosing-sign-in, guides#company-adoption, guides#company-agent-issuer" issue="77">
+
+A Company can list the scopes Personal Agents can request in `scopes_supported` of its protected
+resource metadata (RFC 9728 §2), instead of or as well as its issuer's metadata, and the Personal
+Agent uses the scopes in either list. An issuer's list covers every client and resource it serves,
+and a hosted or shared issuer often can't tailor it to one Company. The guides also say to check
+`protected_resources` first when surveying an existing issuer.
+
+</Change>
+
 <Change title="`extension_required` in a JSON body at APIs" breaking sections="3.3, 7">
 
 At APIs, `extension_required` is a JSON body, as it already was at the protocol's own endpoints,

@@ -382,8 +382,8 @@ not automatically reconnect an account the User disconnected.
   6](/docs/extensions/mediated-sign-in#security)), and
   direct to device sign-in (SHOULD, [4](/docs/spec#oauth)). With direct and device sign-in, the
   user's password stays with the company.
-- Use `scopes_supported`, the company's OpenAPI description, and its sign-in extension metadata
-  to find scopes. The advertised list may be incomplete. Read descriptions where available to pick
+- Use `scopes_supported` from the issuer's metadata and from the domain's protected resource
+  metadata, the company's OpenAPI description, and its sign-in extension metadata to find scopes. The advertised list may be incomplete. Read descriptions where available to pick
   the ones the task needs ([4.7](/docs/spec#scopes)); a missing description or hint says nothing
   about whether a scope is safe to request automatically.
 - Use `auth.scope_hints` to decide which scopes need the user's go-ahead before you request them
@@ -648,7 +648,9 @@ Publish `poppy.json` with at least one of `apis`, `web`, or `agent`
   rely on OAuth alone if they use no Session claims. They still validate tokens and enforce
   scopes and any required DPoP checks. Check your existing authorization server against
   [what Poppy adds to OAuth](/docs/spec#oauth-additions) and
-  [client metadata support](#company-agents).
+  [client metadata support](#company-agents). Check `protected_resources` in its metadata first
+  ([3.2](/docs/spec#oauth-server)): it's the required field an existing issuer is most likely to be
+  missing, and adding it may need a release from its vendor.
 - **Channels and other capabilities.** Offer APIs, web browsing, conversations, or a combination.
   Add browser join to connect website activity to a Session. Advertise excluded tasks, feedback,
   and extensions where they help users complete the tasks you support.
@@ -1118,7 +1120,10 @@ A company can offer personal agents less than its other OAuth clients get withou
 
 - Limit the scopes it grants by client, as OAuth allows ([4.7](/docs/spec#scopes)). It can also
   leave scopes it doesn't offer personal agents out of `scopes_supported`, as RFC 8414 allows
-  ([3.2](/docs/spec#oauth-server)). That list is discovery, not enforcement: agents can request
+  ([3.2](/docs/spec#oauth-server)). When the issuer's metadata can't be tailored, such as a hosted
+  issuer or one shared with other resources, list the scopes personal agents can request in
+  `scopes_supported` of your protected resource metadata instead
+  ([4.7](/docs/spec#scopes)). These lists are discovery, not enforcement: agents can request
   scopes documented by an API or sign-in extension too.
 - Refuse sign-in, or one sign-in type, to a personal agent with `unauthorized_client` from the
   grant's endpoint, and keep accepting it for signed-out sessions ([4.1](/docs/spec#agent-identity)).

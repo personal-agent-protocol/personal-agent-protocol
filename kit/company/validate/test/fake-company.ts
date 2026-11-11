@@ -23,6 +23,8 @@ export type Flaws = {
     // Changes poppy.json, or the issuer's metadata, after it's built.
     poppy?: (doc: Record<string, any>) => void;
     metadata?: (doc: Record<string, any>) => void;
+    // Changes the domain's protected resource metadata after it's built.
+    resourceMetadata?: (doc: Record<string, any>) => void;
     // Serves this text as poppy.json.
     poppyRaw?: string;
     poppyStatus?: number;
@@ -1241,8 +1243,8 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                 : json(200, olderPoppy());
         if (path === "/.well-known/oauth-protected-resource" && flaws.resourceMetadataStatus)
             return json(flaws.resourceMetadataStatus, { error: "unavailable" });
-        if (path === "/.well-known/oauth-protected-resource" && !flaws.noResourceMetadata)
-            return json(200, {
+        if (path === "/.well-known/oauth-protected-resource" && !flaws.noResourceMetadata) {
+            const doc: Record<string, any> = {
                 resource: flaws.resourceWithSlash ? `${ORIGIN}/` : ORIGIN,
                 ...(flaws.omitAuthorizationServers
                     ? {}
@@ -1258,7 +1260,10 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                                           : []),
                                   ],
                       }),
-            });
+            };
+            flaws.resourceMetadata?.(doc);
+            return json(200, doc);
+        }
         if (path === "/.well-known/oauth-authorization-server" && !flaws.noIssuerMetadata)
             return json(200, metadata());
         if (path === "/openapi.json") return openapi();

@@ -150,6 +150,12 @@ Any Company with an issuer that offers Personal Agents no sign-in can set `auth.
 
 A Company that sets `auth.disabled` and has never issued a refresh token to a Personal Agent may answer refresh and revocation requests without verifying the client assertion, because it has no tokens to protect. Once it has issued one, or turns sign-in on, it verifies them as usual.
 
+#### Scopes in the protected resource metadata
+
+[Spec 3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server) · [Spec 4.7](https://personalagentprotocol.org/docs/0.4/spec#scopes) · [Mediated Sign-In 2](https://personalagentprotocol.org/docs/0.4/extensions/mediated-sign-in#support) · [Guides: Choosing how to sign in](https://personalagentprotocol.org/docs/0.4/guides#agent-choosing-sign-in) · [Guides: Choosing capabilities](https://personalagentprotocol.org/docs/0.4/guides#company-adoption) · [Guides: Offering personal agents less](https://personalagentprotocol.org/docs/0.4/guides#company-agent-issuer) · [Issue #77](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/77)
+
+A Company can list the scopes Personal Agents can request in `scopes_supported` of its protected resource metadata (RFC 9728 §2), instead of or as well as its issuer's metadata, and the Personal Agent uses the scopes in either list. An issuer's list covers every client and resource it serves, and a hosted or shared issuer often can't tailor it to one Company. The guides also say to check `protected_resources` first when surveying an existing issuer.
+
 #### `extension_required` in a JSON body at APIs
 
 Breaking · [Spec 3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions) · [Spec 7](https://personalagentprotocol.org/docs/0.4/spec#apis)
