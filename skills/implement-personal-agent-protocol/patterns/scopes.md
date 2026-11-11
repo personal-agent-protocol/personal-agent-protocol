@@ -1,7 +1,7 @@
 # Pattern: scopes
 
 Scopes say what account access a sign-in grants
-([4.7](https://personalagentprotocol.org/docs/0.4/spec#scopes)). The protocol defines none: each
+([4.7](https://personalagentprotocol.org/docs/1.0/spec#scopes)). The protocol defines none: each
 Company defines its own, usually the OAuth scopes it already has. Companies decide which actions need each scope and enforce them on the website, APIs,
 and actions the Company Agent performs (4.7).
 
@@ -26,14 +26,14 @@ permissions it grants:
 - Write descriptions in words a User understands, specific enough for a language model to pick the
   scopes a task needs. Say whether it only reads, whether a write scope also allows reading, which
   actions can't be undone, and what personal data it shows
-  ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-scope-descriptions)).
+  ([guides](https://personalagentprotocol.org/docs/1.0/guides#company-scope-descriptions)).
 - Add `auth.scope_hints` (MAY, 4.7): for each scope, `changes` (`none`, `reversible`, or
   `irreversible`) and `personal_data` (`true` or `false`), both required (MUST, 4.7), judged by the
   most consequential operation that requires the scope. Leave out a scope you're unsure about. Add a
   column for the hints to the table.
 - On the consent page, present scopes in plain words, group related ones, and show which are new
   when the User already granted some
-  ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-consent)). A Personal Agent adding
+  ([guides](https://personalagentprotocol.org/docs/1.0/guides#company-consent)). A Personal Agent adding
   access requests every scope it still needs, including earlier scopes it wants to keep, and uses
   the new refresh token in place of the old one (4.7).
 - If the issuer also serves other OAuth clients, leave scopes you don't offer Personal Agents out of
@@ -42,41 +42,41 @@ permissions it grants:
   `auth.disabled` to turn off sign-in for all of them (3.2). An issuer only for Personal Agents is
   the fallback when the authorization server can't refuse by client; choose it before launch,
   because changing the issuer later makes every User look new to the Company
-  ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-agent-issuer)).
+  ([guides](https://personalagentprotocol.org/docs/1.0/guides#company-agent-issuer)).
 - Agents can also request scopes documented by the Company's APIs or sign-in extensions, even if
   neither `scopes_supported` list includes them. Direct and Device Sign-In can grant the scopes their policies allow. Decide which Mediated Sign-In
   can grant, in its extension's `scopes`. It often grants less.
 - Make the scopes cover what Users ask Personal Agents to do, so they don't fall back to the User's
-  credentials (SHOULD, [5.4](https://personalagentprotocol.org/docs/0.4/spec#sign-in),
-  [10.5](https://personalagentprotocol.org/docs/0.4/spec#credentials)).
+  credentials (SHOULD, [5.4](https://personalagentprotocol.org/docs/1.0/spec#sign-in),
+  [10.5](https://personalagentprotocol.org/docs/1.0/spec#credentials)).
 
 ## One shared check
 
 Put the scope check in one place that every channel calls: the website, APIs, MCP tools, the
 Company Agent's tools, and live agents' tools
-([guides](https://personalagentprotocol.org/docs/0.4/guides#company-scopes)).
+([guides](https://personalagentprotocol.org/docs/1.0/guides#company-scopes)).
 
 - **A policy function or service** that takes the verified Session (`client_id`, account, scopes)
   and an action, and answers allow or deny with the missing scopes. Each channel turns a denial into
   its own error: for APIs, a 401 challenge with `scope` when signed out, or `insufficient_scope`
   when the access token lacks the scopes, in `WWW-Authenticate`
-  ([section 7](https://personalagentprotocol.org/docs/0.4/spec#apis)), an `authorization` event in
-  conversations ([8.11](https://personalagentprotocol.org/docs/0.4/spec#conversation-sign-in)), and a
+  ([section 7](https://personalagentprotocol.org/docs/1.0/spec#apis)), an `authorization` event in
+  conversations ([8.11](https://personalagentprotocol.org/docs/1.0/spec#conversation-sign-in)), and a
   visible error naming the missing scopes on the website (SHOULD,
-  [section 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)).
+  [section 6](https://personalagentprotocol.org/docs/1.0/spec#web-browsing)).
 - **Existing permission checks, fed from scopes.** If services already check permissions, derive
   the permission set from the token's scopes at the edge, and let existing checks do the rest
-  ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-internal)).
+  ([guides](https://personalagentprotocol.org/docs/1.0/guides#company-internal)).
 
 ## What to watch for
 
 - The Company Agent's tools check scopes on every call. Don't rely on the model to decide
-  ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-scopes)).
+  ([guides](https://personalagentprotocol.org/docs/1.0/guides#company-scopes)).
 - A live agent who takes over is held to the same scopes
-  ([4.7](https://personalagentprotocol.org/docs/0.4/spec#scopes)). Their tools need the same check,
+  ([4.7](https://personalagentprotocol.org/docs/1.0/spec#scopes)). Their tools need the same check,
   which may mean changes to the live-agent desk.
 - A message never authorizes an account action (8.11).
 - The website applies the scopes authorized when the browser joined, through its cookie, or treats
   `poppy:browser-sign-in` as the account's full access on the website
-  ([section 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)).
+  ([section 6](https://personalagentprotocol.org/docs/1.0/spec#web-browsing)).
 - Never grant beyond what was requested and allowed for the sign-in type (4.7).

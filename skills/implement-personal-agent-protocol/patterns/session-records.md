@@ -2,8 +2,8 @@
 
 When using Session identity or state, the Company keeps a record for each Session. Endpoints that
 use no Session claims need no Session record. Its OAuth server keeps its usual token records
-([5.3](https://personalagentprotocol.org/docs/0.4/spec#session-verification),
-[5.4](https://personalagentprotocol.org/docs/0.4/spec#sign-in)):
+([5.3](https://personalagentprotocol.org/docs/1.0/spec#session-verification),
+[5.4](https://personalagentprotocol.org/docs/1.0/spec#sign-in)):
 
 | Record        | Holds                                                                                       |
 | ------------- | ------------------------------------------------------------------------------------------- |
@@ -19,7 +19,7 @@ account changes, and on conversations and operations whether they used the accou
 Session records need not be durable. A shared cache can hold them. Behind a load balancer, share
 Session state across the servers that handle it, as with server-side cookie sessions, so each
 request reaches the same state
-([guides](https://personalagentprotocol.org/docs/0.4/guides#company-sessions)). Keep conversations
+([guides](https://personalagentprotocol.org/docs/1.0/guides#company-sessions)). Keep conversations
 independently: they can outlast their Sessions (8.2).
 
 ## A. New Poppy tables or collections
@@ -35,7 +35,7 @@ Store Poppy Sessions in their own store, linked to the existing account by ID wh
 Add `client_id`, `sid`, User ID, and Poppy fields to the records the website already keeps.
 
 - Fits: when existing systems already look up sessions on every request, and the browser-session
-  cookie should be a normal website session ([section 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)).
+  cookie should be a normal website session ([section 6](https://personalagentprotocol.org/docs/1.0/spec#web-browsing)).
 - Trade-offs: existing tooling, such as session lists and fraud checks, works on Poppy Sessions too.
   Changes to a shared, critical table.
 - Watch for: existing jobs that treat every session as a person's browser session.
@@ -47,19 +47,19 @@ Add `client_id`, `sid`, User ID, and Poppy fields to the records the website alr
   (5.4). Personal Agents should start a new Session for another account.
 - When a refresh token is revoked, invalidate the access tokens issued under it, or check on
   each request whether the authorization is still active. If you can't, keep access tokens to a few
-  minutes ([5.5](https://personalagentprotocol.org/docs/0.4/spec#ending-sessions),
-  [guides](https://personalagentprotocol.org/docs/0.4/guides#company-lifetimes)).
+  minutes ([5.5](https://personalagentprotocol.org/docs/1.0/spec#ending-sessions),
+  [guides](https://personalagentprotocol.org/docs/1.0/guides#company-lifetimes)).
 - The account is signed out of a Personal Agent once no refresh token you issued to its `client_id`
   for the account is still valid. Revoking one that a new sign-in replaced isn't sign-out, so the
-  website cookie keeps its account access ([5.5](https://personalagentprotocol.org/docs/0.4/spec#ending-sessions)).
+  website cookie keeps its account access ([5.5](https://personalagentprotocol.org/docs/1.0/spec#ending-sessions)).
 - Conversations and operations that used the account answer requests without its access token with
-  the 401 challenge ([section 7](https://personalagentprotocol.org/docs/0.4/spec#apis)).
+  the 401 challenge ([section 7](https://personalagentprotocol.org/docs/1.0/spec#apis)).
 - Remember the `sid`s of Sessions you end for a while, and refuse them with 400 `session_ended`
-  ([5.5](https://personalagentprotocol.org/docs/0.4/spec#ending-sessions)). Otherwise the ended Session
+  ([5.5](https://personalagentprotocol.org/docs/1.0/spec#ending-sessions)). Otherwise the ended Session
   silently starts again.
 - A known `sid` with a different User ID or Agent ID is refused (5.3).
 - Store refresh tokens as hashes, like passwords, so a leaked table doesn't leak usable tokens.
 - The User ID isn't personal information, but it is a stable identifier. Don't show it in the
   website or to other Personal Agents.
 - Conversations and Sessions are separate: a conversation can outlast its Session
-  ([8.2](https://personalagentprotocol.org/docs/0.4/spec#conversation-requests)).
+  ([8.2](https://personalagentprotocol.org/docs/1.0/spec#conversation-requests)).

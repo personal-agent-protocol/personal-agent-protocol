@@ -3,7 +3,7 @@
 A listed MCP server uses Streamable HTTP and MCP 2025-06-18 or later. When it offers account access,
 it accepts the Company's access tokens issued for its `url`, enforces their scopes, and publishes RFC 9728 protected resource
 metadata whose `authorization_servers` includes the Company's issuer
-([section 7](https://personalagentprotocol.org/docs/0.4/spec#apis)). That is ordinary MCP
+([section 7](https://personalagentprotocol.org/docs/1.0/spec#apis)). That is ordinary MCP
 authorization. An issuerless Company can offer signed-out MCP calls by verifying the Session
 header, without OAuth metadata or token handling. An MCP server that uses no Session claims or
 state can ignore the header and use OAuth alone or serve signed-out calls. Such calls don't join
@@ -16,7 +16,7 @@ as MCP authorization already requires. Ignore the Session header.
 
 - Fits: an existing MCP server that already does MCP authorization.
 - Needs: the token endpoint issues tokens with `resource` set to the server's `url` (RFC 8707) at
-  sign-in or refresh ([4.5](https://personalagentprotocol.org/docs/0.4/spec#access-tokens)). Token
+  sign-in or refresh ([4.5](https://personalagentprotocol.org/docs/1.0/spec#access-tokens)). Token
   validation that can read the token's scopes and `resource`.
 - Trade-off: the server's calls don't join the Session's cart, conversations, or website. It can
   serve signed-out calls only when they need no Session identity or state.
@@ -33,9 +33,9 @@ token. `Poppy-Version` is separate from MCP's own protocol version header.
 - Trade-offs: signed-out calls work with the Session header only, if the server allows them, and
   signed-in calls join the Session. Requests from MCP clients that don't implement Poppy have no
   Session header and are handled as in A. A request that needs Session identity or state is
-  refused without a verified header ([5.3](https://personalagentprotocol.org/docs/0.4/spec#session-verification)).
+  refused without a verified header ([5.3](https://personalagentprotocol.org/docs/1.0/spec#session-verification)).
 - Watch for: the tools' calls to existing APIs must not allow more than the access token does
-  ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-internal)).
+  ([guides](https://personalagentprotocol.org/docs/1.0/guides#company-internal)).
 
 ## What to watch for
 

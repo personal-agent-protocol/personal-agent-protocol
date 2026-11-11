@@ -21,14 +21,14 @@ Start `plan/feedback.md` now (see `feedback.md`).
 **Domains.** The domains the Company serves customers on, and whether they redirect (for example
 `example.com` to `www.example.com`). `organization.domain` in `poppy.json` has to be the host that
 serves the document after redirects
-([3.1](https://personalagentprotocol.org/docs/0.4/spec#fields)). Countries or brands on other domains
+([3.1](https://personalagentprotocol.org/docs/1.0/spec#fields)). Countries or brands on other domains
 that should be one Company share one issuer
-([3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server)).
+([3.2](https://personalagentprotocol.org/docs/1.0/spec#oauth-server)).
 
 **The domain's protected resource metadata.** Whether
 `https://{domain}/.well-known/oauth-protected-resource` exists, and which authorization servers it
 lists. Personal Agents find the issuer there
-([3.2](https://personalagentprotocol.org/docs/0.4/spec#oauth-server)).
+([3.2](https://personalagentprotocol.org/docs/1.0/spec#oauth-server)).
 
 **The OAuth server or identity provider.** This decides the token endpoint pattern
 (`patterns/token-endpoint.md`). Find out whether it:
@@ -38,16 +38,16 @@ lists. Personal Agents find the issuer there
   `protected_resources` first: it's the required field an existing issuer is most likely to be
   missing, and a vendor service may need a new release to add it. If you can't tailor
   `scopes_supported` to Personal Agents, list their scopes in the domain's protected resource
-  metadata instead ([4.7](https://personalagentprotocol.org/docs/0.4/spec#scopes));
+  metadata instead ([4.7](https://personalagentprotocol.org/docs/1.0/spec#scopes));
 - authenticates clients with `private_key_jwt` (RFC 7523), and can fetch client keys from a
   `jwks_uri`;
 - accepts clients it hasn't registered, identified by a URL (Client ID Metadata Documents), or has a
   hook to resolve them;
 - issues access tokens that resources can tie to the `client_id` they were issued to (by
   introspection or a claim), which the Session header check needs
-  ([5.3](https://personalagentprotocol.org/docs/0.4/spec#session-verification));
+  ([5.3](https://personalagentprotocol.org/docs/1.0/spec#session-verification));
 - issues DPoP-bound access tokens (RFC 9449), if the Company wants them (optional,
-  [4.5](https://personalagentprotocol.org/docs/0.4/spec#access-tokens));
+  [4.5](https://personalagentprotocol.org/docs/1.0/spec#access-tokens));
 - supports refresh tokens, their lifetimes, and rotation;
 - supports the device authorization grant (RFC 8628), PKCE with S256, `iss` in redirects (RFC 9207),
   revocation (RFC 7009), and resource indicators (RFC 8707);

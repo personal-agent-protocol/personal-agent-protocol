@@ -1,7 +1,7 @@
 # Pattern: web browsing
 
 With `web.browser_session_endpoint`, the Personal Agent's browser joins its Session in three steps
-([section 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)). The browser loads the
+([section 6](https://personalagentprotocol.org/docs/1.0/spec#web-browsing)). The browser loads the
 endpoint and gets a page with a one-time code and a cookie that ties the code to that browser. The
 Personal Agent authorizes the code at `{browser_session_endpoint}/authorize`, with its Session
 header and, if signed in, its access token. The browser then submits the form with only the code,
@@ -54,14 +54,14 @@ Session.
   `Domain=example.com` reaches every subdomain.
 - The cookie acts for the account and scopes authorized at `/authorize`, stops acting for the
   account at sign-out or disconnect, and doesn't outlive the Session. Look up the Session on each
-  request ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-browsing)).
+  request ([guides](https://personalagentprotocol.org/docs/1.0/guides#company-browsing)).
 - `/authorize` rejects an access token without `poppy:browser-sign-in` with `insufficient_scope`, as an API
   would. A Company that offers sign-in supports `poppy:browser-sign-in` and lists it in `scopes_supported` (in the OAuth metadata or the protected resource metadata).
 - The website either applies the cookie's scopes, as the APIs do (`patterns/scopes.md`), and then
   may grant `poppy:browser-sign-in` without asking the User; or treats `poppy:browser-sign-in` as everything the
   account can do on the website, and then asks the User to approve it and describes it that way in
   `auth.scopes`, and sets `web.unscoped`
-  ([section 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)). A signed-in
+  ([section 6](https://personalagentprotocol.org/docs/1.0/spec#web-browsing)). A signed-in
   website session for a Personal Agent may allow less than a person's own session.
 - A Company that wants Personal Agents to use only its Company Agent and APIs sets `web.disabled`,
   lists no `browser_session_endpoint`, and lists `agent` or `apis`. Personal Agents that follow the
@@ -72,7 +72,7 @@ Session.
 - A login the browser already has: a signed-in join replaces it, and the browser is signed out when
   the Session's sign-in ends, with no earlier login restored. A signed-out join shouldn't end or
   change it, so its own login decides the account. A Session cookie separate from your login cookie,
-  checked first, does both ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-browsing)).
+  checked first, does both ([guides](https://personalagentprotocol.org/docs/1.0/guides#company-browsing)).
 - Limit the cookie to the hosts Personal Agents need, and don't log the endpoint's responses or
   request bodies, which contain codes
-  ([guides](https://personalagentprotocol.org/docs/0.4/guides#company-browsing)).
+  ([guides](https://personalagentprotocol.org/docs/1.0/guides#company-browsing)).

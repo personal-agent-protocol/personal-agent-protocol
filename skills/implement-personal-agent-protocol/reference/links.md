@@ -4,11 +4,11 @@
 
 A Company's message can refer to web pages, such as a return policy or an order's tracking page. With this extension, the Company sends them as links the Personal Agent can show, rather than as URLs written into `text`.
 
-This page defines version 1 of the `links` extension. It uses the terms in the [specification](https://personalagentprotocol.org/docs/0.4/spec).
+This page defines version 1 of the `links` extension. It uses the terms in the [specification](https://personalagentprotocol.org/docs/1.0/spec).
 
 ## 2. Advertising support
 
-A Company that sends links lists the extension in `extensions` in its `poppy.json` ([spec 3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)):
+A Company that sends links lists the extension in `extensions` in its `poppy.json` ([spec 3.3](https://personalagentprotocol.org/docs/1.0/spec#extensions)):
 
 *Excerpt from poppy.json*
 
@@ -18,7 +18,7 @@ A Company that sends links lists the extension in `extensions` in its `poppy.jso
 }
 ```
 
-A Personal Agent that can show them declares it in `Poppy-Extensions` ([spec 3.4](https://personalagentprotocol.org/docs/0.4/spec#versions)):
+A Personal Agent that can show them declares it in `Poppy-Extensions` ([spec 3.4](https://personalagentprotocol.org/docs/1.0/spec#versions)):
 
 *Request header: Personal Agent → Company*
 
@@ -26,11 +26,11 @@ A Personal Agent that can show them declares it in `Poppy-Extensions` ([spec 3.4
 Poppy-Extensions: "links";v="1"
 ```
 
-The Company sends links only in response to a request that declares this version ([spec 8.4](https://personalagentprotocol.org/docs/0.4/spec#message-fields)).
+The Company sends links only in response to a request that declares this version ([spec 8.4](https://personalagentprotocol.org/docs/1.0/spec#message-fields)).
 
 ## 3. Links in messages
 
-A Company message carries its links in `extensions.links` ([spec 8.4](https://personalagentprotocol.org/docs/0.4/spec#message-fields)):
+A Company message carries its links in `extensions.links` ([spec 8.4](https://personalagentprotocol.org/docs/1.0/spec#message-fields)):
 
 *Message: Company → Personal Agent*
 
@@ -59,7 +59,7 @@ A Company message carries its links in `extensions.links` ([spec 8.4](https://pe
 
 Only Company messages carry links. The JSON Schema is [links-content.schema.json](https://personalagentprotocol.org/kit/company/schemas/links-content.schema.json).
 
-The Personal Agent decides whether and how to show the links. A link's `title` and `url` are content from the Company ([spec 10.1](https://personalagentprotocol.org/docs/0.4/spec#untrusted-content)), and a title can name a page other than the one at its URL. The [guides](https://personalagentprotocol.org/docs/0.4/guides#agent-conversations) suggest showing each link's domain.
+The Personal Agent decides whether and how to show the links. A link's `title` and `url` are content from the Company ([spec 10.1](https://personalagentprotocol.org/docs/1.0/spec#untrusted-content)), and a title can name a page other than the one at its URL. The [guides](https://personalagentprotocol.org/docs/1.0/guides#agent-conversations) suggest showing each link's domain.
 
 ---
 

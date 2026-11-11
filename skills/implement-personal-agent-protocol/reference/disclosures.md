@@ -4,11 +4,11 @@
 
 Some notices matter to the User whatever else a message says, such as an allergen warning or a regulatory notice. With this extension, a Company marks them as disclosures, apart from the rest of the message, so the Personal Agent can tell them from ordinary text.
 
-This page defines version 1 of the `disclosures` extension. It uses the terms in the [specification](https://personalagentprotocol.org/docs/0.4/spec).
+This page defines version 1 of the `disclosures` extension. It uses the terms in the [specification](https://personalagentprotocol.org/docs/1.0/spec).
 
 ## 2. Advertising support
 
-A Company that sends disclosures lists the extension in `extensions` in its `poppy.json` ([spec 3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)):
+A Company that sends disclosures lists the extension in `extensions` in its `poppy.json` ([spec 3.3](https://personalagentprotocol.org/docs/1.0/spec#extensions)):
 
 *Excerpt from poppy.json*
 
@@ -18,7 +18,7 @@ A Company that sends disclosures lists the extension in `extensions` in its `pop
 }
 ```
 
-A Personal Agent that can show them declares it in `Poppy-Extensions` ([spec 3.4](https://personalagentprotocol.org/docs/0.4/spec#versions)):
+A Personal Agent that can show them declares it in `Poppy-Extensions` ([spec 3.4](https://personalagentprotocol.org/docs/1.0/spec#versions)):
 
 *Request header: Personal Agent → Company*
 
@@ -26,11 +26,11 @@ A Personal Agent that can show them declares it in `Poppy-Extensions` ([spec 3.4
 Poppy-Extensions: "disclosures";v="1"
 ```
 
-The Company sends disclosures only in response to a request that declares this version ([spec 8.4](https://personalagentprotocol.org/docs/0.4/spec#message-fields)). A Personal Agent that doesn't declare it gets the notice in `text`.
+The Company sends disclosures only in response to a request that declares this version ([spec 8.4](https://personalagentprotocol.org/docs/1.0/spec#message-fields)). A Personal Agent that doesn't declare it gets the notice in `text`.
 
 ## 3. Disclosures in messages
 
-A Company message carries its disclosures in `extensions.disclosures` ([spec 8.4](https://personalagentprotocol.org/docs/0.4/spec#message-fields)):
+A Company message carries its disclosures in `extensions.disclosures` ([spec 8.4](https://personalagentprotocol.org/docs/1.0/spec#message-fields)):
 
 *Message: Company → Personal Agent*
 
@@ -55,7 +55,7 @@ A Company message carries its disclosures in `extensions.disclosures` ([spec 8.4
 
 Only Company messages carry disclosures. The JSON Schema is [disclosures-content.schema.json](https://personalagentprotocol.org/kit/company/schemas/disclosures-content.schema.json).
 
-The Personal Agent decides whether and how to show each disclosure, as it does for the rest of the message. Disclosures are content from the Company ([spec 10.1](https://personalagentprotocol.org/docs/0.4/spec#untrusted-content)). The [guides](https://personalagentprotocol.org/docs/0.4/guides#agent-conversations) describe when to show them.
+The Personal Agent decides whether and how to show each disclosure, as it does for the rest of the message. Disclosures are content from the Company ([spec 10.1](https://personalagentprotocol.org/docs/1.0/spec#untrusted-content)). The [guides](https://personalagentprotocol.org/docs/1.0/guides#agent-conversations) describe when to show them.
 
 ---
 

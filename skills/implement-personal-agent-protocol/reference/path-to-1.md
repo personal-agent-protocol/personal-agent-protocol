@@ -1,10 +1,8 @@
 # Path to 1.0
 
-**Current status**, updated November 10, 2026
+**Current status**, updated November 11, 2026
 
-[0.4](https://personalagentprotocol.org/docs/0.4/spec) is the 1.0 release candidate, so build against it now. If implementers find problems, we'll fix them in a draft 1.0. Otherwise, we'll publish 0.4 as 1.0 once we've validated implementations. See [what changed since 0.3](https://personalagentprotocol.org/docs/changelog#v0-4).
-
-The [specification](https://personalagentprotocol.org/docs/0.4/spec) is at 0.4, the 1.0 release candidate. Before 1.0, we want to confirm by implementing it that it works, and fix what doesn't.
+Build against the [1.0 draft](https://personalagentprotocol.org/docs/1.0/spec), the latest version. It's [version 0.4](https://personalagentprotocol.org/docs/0.4/spec) with fixes for problems found while implementing it, and the [changelog](https://personalagentprotocol.org/docs/changelog#v1-0) lists each fix. We're not adding new features until 1.0 is published.
 
 ## How we get there
 

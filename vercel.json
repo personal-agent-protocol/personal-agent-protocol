@@ -58,92 +58,92 @@
         },
         {
             "source": "/docs/spec",
-            "destination": "/docs/0.4/spec",
+            "destination": "/docs/1.0/spec",
             "permanent": false
         },
         {
             "source": "/docs/spec.md",
-            "destination": "/docs/0.4/spec.md",
+            "destination": "/docs/1.0/spec.md",
             "permanent": false
         },
         {
             "source": "/docs/extensions",
-            "destination": "/docs/0.4/extensions",
+            "destination": "/docs/1.0/extensions",
             "permanent": false
         },
         {
             "source": "/docs/extensions.md",
-            "destination": "/docs/0.4/extensions.md",
+            "destination": "/docs/1.0/extensions.md",
             "permanent": false
         },
         {
             "source": "/docs/extensions/browser-control",
-            "destination": "/docs/0.4/extensions/browser-control",
+            "destination": "/docs/1.0/extensions/browser-control",
             "permanent": false
         },
         {
             "source": "/docs/extensions/browser-control.md",
-            "destination": "/docs/0.4/extensions/browser-control.md",
+            "destination": "/docs/1.0/extensions/browser-control.md",
             "permanent": false
         },
         {
             "source": "/docs/extensions/disclosures",
-            "destination": "/docs/0.4/extensions/disclosures",
+            "destination": "/docs/1.0/extensions/disclosures",
             "permanent": false
         },
         {
             "source": "/docs/extensions/disclosures.md",
-            "destination": "/docs/0.4/extensions/disclosures.md",
+            "destination": "/docs/1.0/extensions/disclosures.md",
             "permanent": false
         },
         {
             "source": "/docs/extensions/links",
-            "destination": "/docs/0.4/extensions/links",
+            "destination": "/docs/1.0/extensions/links",
             "permanent": false
         },
         {
             "source": "/docs/extensions/links.md",
-            "destination": "/docs/0.4/extensions/links.md",
+            "destination": "/docs/1.0/extensions/links.md",
             "permanent": false
         },
         {
             "source": "/docs/extensions/mediated-sign-in",
-            "destination": "/docs/0.4/extensions/mediated-sign-in",
+            "destination": "/docs/1.0/extensions/mediated-sign-in",
             "permanent": false
         },
         {
             "source": "/docs/extensions/mediated-sign-in.md",
-            "destination": "/docs/0.4/extensions/mediated-sign-in.md",
+            "destination": "/docs/1.0/extensions/mediated-sign-in.md",
             "permanent": false
         },
         {
             "source": "/docs/extensions/operations",
-            "destination": "/docs/0.4/extensions/operations",
+            "destination": "/docs/1.0/extensions/operations",
             "permanent": false
         },
         {
             "source": "/docs/extensions/operations.md",
-            "destination": "/docs/0.4/extensions/operations.md",
+            "destination": "/docs/1.0/extensions/operations.md",
             "permanent": false
         },
         {
             "source": "/docs/extensions/ucp",
-            "destination": "/docs/0.4/extensions/ucp",
+            "destination": "/docs/1.0/extensions/ucp",
             "permanent": false
         },
         {
             "source": "/docs/extensions/ucp.md",
-            "destination": "/docs/0.4/extensions/ucp.md",
+            "destination": "/docs/1.0/extensions/ucp.md",
             "permanent": false
         },
         {
             "source": "/docs/guides",
-            "destination": "/docs/0.4/guides",
+            "destination": "/docs/1.0/guides",
             "permanent": false
         },
         {
             "source": "/docs/guides.md",
-            "destination": "/docs/0.4/guides.md",
+            "destination": "/docs/1.0/guides.md",
             "permanent": false
         },
         {
@@ -238,6 +238,15 @@
         }
     ],
     "headers": [
+        {
+            "source": "/docs/0.4/(.*)",
+            "headers": [
+                {
+                    "key": "X-Robots-Tag",
+                    "value": "noindex"
+                }
+            ]
+        },
         {
             "source": "/docs/0.3/(.*)",
             "headers": [

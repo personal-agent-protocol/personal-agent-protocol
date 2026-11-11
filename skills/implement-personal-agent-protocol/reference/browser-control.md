@@ -4,16 +4,16 @@
 
 Some steps on a Company's website are ones the Company wants the User to take themselves, such as checking in for a flight. With this extension, the Company marks those steps in its pages, to indicate to the Personal Agent that the User should take them:
 
-1. The Personal Agent browses the website in a browser joined to a Session ([spec 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)). It reads a marked step and prepares what the mark allows, but leaves the step to the User (4).
+1. The Personal Agent browses the website in a browser joined to a Session ([spec 6](https://personalagentprotocol.org/docs/1.0/spec#web-browsing)). It reads a marked step and prepares what the mark allows, but leaves the step to the User (4).
 2. It tells the User that the step is theirs and offers them control of the browser. While the User holds control, the Personal Agent's model doesn't use the browser (5).
 3. The User takes the step. The page can read who controls the browser from `navigator.poppy.controller` and send it with the request (6).
 4. The User hands control back, and the Personal Agent continues.
 
 Marks signal what the Company wants, and a Personal Agent that follows this extension honors them. `navigator.poppy.controller` should be correct, but a Company shouldn't use it as a guarantee that the User took a step. The Company still enforces its own rules on its servers (8).
 
-Where it fits, the [Operations extension](https://personalagentprotocol.org/docs/0.4/extensions/operations) gives the User a better experience (2).
+Where it fits, the [Operations extension](https://personalagentprotocol.org/docs/1.0/extensions/operations) gives the User a better experience (2).
 
-This page defines version 1 of the `browser-control` extension. It uses the terms and Sessions in the [specification](https://personalagentprotocol.org/docs/0.4/spec).
+This page defines version 1 of the `browser-control` extension. It uses the terms and Sessions in the [specification](https://personalagentprotocol.org/docs/1.0/spec).
 
 ## 2. Browser control and Operations
 
@@ -27,20 +27,20 @@ Both extensions let a Company involve the User in an action, in different ways:
 | What the Company receives | An approval of one revision of the terms, which says whether the User or the Personal Agent approved, in a request signed for the Session | A `controller` value, if the page sends it, which isn't signed |
 | Repeated requests | Performed at most once | As the website handles them |
 
-Operations is the better experience for the User when it fits. The User approves in the place they already talk to their Personal Agent, such as with a tap on their phone, without finding a browser window and learning the Company's page, or doesn't need to be asked at all when an instruction they gave covers the terms ([Operations 5](https://personalagentprotocol.org/docs/0.4/extensions/operations#approval)). The Personal Agent finishes the action, so the task doesn't wait on the User any longer than the approval. The Company gets more, too: an approval of exact terms, tied to the Session and, when signed in, the access token, and an action performed at most once ([Operations 1](https://personalagentprotocol.org/docs/0.4/extensions/operations#intro)).
+Operations is the better experience for the User when it fits. The User approves in the place they already talk to their Personal Agent, such as with a tap on their phone, without finding a browser window and learning the Company's page, or doesn't need to be asked at all when an instruction they gave covers the terms ([Operations 5](https://personalagentprotocol.org/docs/1.0/extensions/operations#approval)). The Personal Agent finishes the action, so the task doesn't wait on the User any longer than the approval. The Company gets more, too: an approval of exact terms, tied to the Session and, when signed in, the access token, and an action performed at most once ([Operations 1](https://personalagentprotocol.org/docs/1.0/extensions/operations#intro)).
 
 A Company SHOULD use Operations for an action that it can describe as terms to approve. Browser control fits steps that Operations doesn't:
 
 - **Steps that are the User's to perform, not to approve.** The Company wants the User to make the choice on its page, such as picking from options the page shows, rather than approving a choice the Personal Agent made.
 - **Input the Personal Agent shouldn't handle.** The User types something into the page, such as passport details at check-in, so the Personal Agent doesn't need to collect it.
-- **Requests the website can't repeat.** Operations on a website needs the browser to make the request again after the approval, and an action guarded by a single-use form token, for example, can't be ([Operations 4](https://personalagentprotocol.org/docs/0.4/extensions/operations#approval-required)).
+- **Requests the website can't repeat.** Operations on a website needs the browser to make the request again after the approval, and an action guarded by a single-use form token, for example, can't be ([Operations 4](https://personalagentprotocol.org/docs/1.0/extensions/operations#approval-required)).
 - **Websites without Operations yet.** Marking steps needs no endpoint and no change to how the website handles requests.
 
 A Company MAY use both for the same action, such as browser control for the User to check in for a flight and Operations for the User to approve the price of a paid seat.
 
 ## 3. Advertising support
 
-A Company that supports this extension lists it in `extensions` in its `poppy.json` ([spec 3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)), with `web.browser_session_endpoint` ([spec 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)):
+A Company that supports this extension lists it in `extensions` in its `poppy.json` ([spec 3.3](https://personalagentprotocol.org/docs/1.0/spec#extensions)), with `web.browser_session_endpoint` ([spec 6](https://personalagentprotocol.org/docs/1.0/spec#web-browsing)):
 
 *Excerpt from poppy.json*
 
@@ -50,7 +50,7 @@ A Company that supports this extension lists it in `extensions` in its `poppy.js
 }
 ```
 
-A Personal Agent that supports this extension declares it in `Poppy-Extensions` ([spec 3.4](https://personalagentprotocol.org/docs/0.4/spec#versions)):
+A Personal Agent that supports this extension declares it in `Poppy-Extensions` ([spec 3.4](https://personalagentprotocol.org/docs/1.0/spec#versions)):
 
 *Request header: Personal Agent → Company*
 
@@ -100,7 +100,7 @@ The Company SHOULD mark every control that performs the step, or the form it is 
 
 A Personal Agent that declares this extension SHOULD NOT take a marked step: change or activate a control that a mark covers, or submit a form that a mark covers, whether with a click, a key press, an accessibility action, a script, or a WebMCP tool. It SHOULD NOT remove or change marks to get around them.
 
-When it reaches a marked step, the Personal Agent tells the User which step is theirs and offers them control of the browser. It MAY instead leave the step undone and continue with other work. What the page says about the step is content from the Company ([spec 10.1](https://personalagentprotocol.org/docs/0.4/spec#untrusted-content)).
+When it reaches a marked step, the Personal Agent tells the User which step is theirs and offers them control of the browser. It MAY instead leave the step undone and continue with other work. What the page says about the step is content from the Company ([spec 10.1](https://personalagentprotocol.org/docs/1.0/spec#untrusted-content)).
 
 While the User holds control:
 
@@ -125,7 +125,7 @@ The page reads it when it needs it, such as when a marked button is pressed, and
 form.elements.controller.value = navigator.poppy?.controller ?? "";
 ```
 
-In a browser without the extension, `navigator.poppy` is undefined. The Personal Agent's software, not its model, sets the value, and changes it as soon as control changes. It provides `navigator.poppy` only on the Company's website, on the hosts of `organization.domain` and its subdomains ([spec 3.1](https://personalagentprotocol.org/docs/0.4/spec#fields)), so other websites can't tell that the browser is a Personal Agent's.
+In a browser without the extension, `navigator.poppy` is undefined. The Personal Agent's software, not its model, sets the value, and changes it as soon as control changes. It provides `navigator.poppy` only on the Company's website, on the hosts of `organization.domain` and its subdomains ([spec 3.1](https://personalagentprotocol.org/docs/1.0/spec#fields)), so other websites can't tell that the browser is a Personal Agent's.
 
 The value should be correct, but it isn't a guarantee (8.2). A Company MAY record it with the action, or use it to choose what its page does, such as showing "This step is for you to complete" when it reads `"agent"`. It MUST NOT rely on `"user"` as a guarantee that the User took the step.
 
@@ -153,7 +153,7 @@ A Personal Agent that follows this extension sets `navigator.poppy.controller` c
 
 ### 8.3 The User in the Personal Agent's browser
 
-The specification forbids joining the User's own browser to a Session, so that the Company doesn't treat the User's own visits as the Personal Agent's ([spec 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)). Handing control to the User doesn't do that. The browser stays the Personal Agent's, and the User uses it through the Personal Agent for the length of the step. Its requests still belong to the Session, and `navigator.poppy.controller` tells the page who was in control when it read it.
+The specification forbids joining the User's own browser to a Session, so that the Company doesn't treat the User's own visits as the Personal Agent's ([spec 6](https://personalagentprotocol.org/docs/1.0/spec#web-browsing)). Handing control to the User doesn't do that. The browser stays the Personal Agent's, and the User uses it through the Personal Agent for the length of the step. Its requests still belong to the Session, and `navigator.poppy.controller` tells the page who was in control when it read it.
 
 ## 9. References
 

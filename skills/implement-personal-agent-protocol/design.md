@@ -9,59 +9,59 @@ engineer's approval**. Build nothing before that.
 Scope decisions are the engineer's. For each one, recommend an option with your reasons, drawing on
 the survey, and record what the engineer chose.
 
-**Interfaces** ([3.1](https://personalagentprotocol.org/docs/0.4/spec#fields)). Which of these to
+**Interfaces** ([3.1](https://personalagentprotocol.org/docs/1.0/spec#fields)). Which of these to
 offer. A Company can start with one and add more later.
 
 - `openapi`: existing APIs, described in OpenAPI 3.0 or 3.1, accepting the Session header and the
-  Company's access tokens ([section 7](https://personalagentprotocol.org/docs/0.4/spec#apis)).
+  Company's access tokens ([section 7](https://personalagentprotocol.org/docs/1.0/spec#apis)).
 - `mcp`: an MCP server accepting the Company's access tokens issued for its `url`, as MCP
   authorization already requires. It MAY ignore the Session header if it uses no Session claims.
   Then its calls belong to no Session, so they don't join the cart, conversations, or website
   (section 7).
 - `conversations`: the Company Agent, through Poppy conversations
-  ([section 8](https://personalagentprotocol.org/docs/0.4/spec#conversations)).
+  ([section 8](https://personalagentprotocol.org/docs/1.0/spec#conversations)).
 - `web`: a browser-session endpoint so the Personal Agent's browser joins the Session
-  ([section 6](https://personalagentprotocol.org/docs/0.4/spec#web-browsing)). Without it, Personal
+  ([section 6](https://personalagentprotocol.org/docs/1.0/spec#web-browsing)). Without it, Personal
   Agents browse as ordinary signed-out visitors. A Company offering only `web` without the endpoint
   needs no `auth` at all.
 
-**Sign-in types** ([5.4](https://personalagentprotocol.org/docs/0.4/spec#sign-in)). None (signed-out
+**Sign-in types** ([5.4](https://personalagentprotocol.org/docs/1.0/spec#sign-in)). None (signed-out
 Sessions only), or any of Direct, Device, and Mediated Sign-In. Direct Sign-In keeps the User's
 password with the Company and suits most Companies. Device Sign-In suits Companies that already
 offer it. Mediated Sign-In is an extension that means accepting credentials from Personal Agents,
-with the duties in the [extension](https://personalagentprotocol.org/docs/0.4/extensions/mediated-sign-in) and the
-[guides](https://personalagentprotocol.org/docs/0.4/guides#company-mediated). It is transitional: the
+with the duties in the [extension](https://personalagentprotocol.org/docs/1.0/extensions/mediated-sign-in) and the
+[guides](https://personalagentprotocol.org/docs/1.0/guides#company-mediated). It is transitional: the
 protocol plans to remove it, on a date set when version 1.0 is published. Choose it only as a bridge
 to Direct or Device Sign-In, and record when you plan to add those.
 
-**Scopes** ([4.7](https://personalagentprotocol.org/docs/0.4/spec#scopes)). Which scopes to offer,
+**Scopes** ([4.7](https://personalagentprotocol.org/docs/1.0/spec#scopes)). Which scopes to offer,
 usually the OAuth scopes the Company already has, where each one
 is described (an OpenAPI description or `auth.scopes`), and which scopes Mediated Sign-In can grant.
 See `patterns/scopes.md`.
 
-**Which Personal Agents** ([4.1](https://personalagentprotocol.org/docs/0.4/spec#agent-identity)).
+**Which Personal Agents** ([4.1](https://personalagentprotocol.org/docs/1.0/spec#agent-identity)).
 Accept any Personal Agent, keep an allowlist or blocklist by `client_id`, or require registration.
 Also rate limits on Session creation and on new `client_id` values.
 
-**Access tokens** ([4.5](https://personalagentprotocol.org/docs/0.4/spec#access-tokens)). Bearer or
+**Access tokens** ([4.5](https://personalagentprotocol.org/docs/1.0/spec#access-tokens)). Bearer or
 DPoP-bound, as for any OAuth client: DPoP is the Company's choice, and Personal Agents should
 support it. Which services, if any, accept only tokens issued for them, by publishing RFC 9728
 protected resource metadata. MCP servers that offer account access always do.
 
 **Lifetimes.** The acceptance window for a Session JWT's `iat`, such as one minute
-([5.3](https://personalagentprotocol.org/docs/0.4/spec#session-verification)), and the largest
+([5.3](https://personalagentprotocol.org/docs/1.0/spec#session-verification)), and the largest
 delegation lifetime you accept, up to 24 hours
-([Delegated keys](https://personalagentprotocol.org/docs/0.4/spec#delegated-keys)). The lifetime of
+([Delegated keys](https://personalagentprotocol.org/docs/1.0/spec#delegated-keys)). The lifetime of
 access tokens, refresh tokens, and Sessions, how long to remember ended Sessions, and the sign-out
-checks in [5.5](https://personalagentprotocol.org/docs/0.4/spec#ending-sessions). See the
-[guides](https://personalagentprotocol.org/docs/0.4/guides#company-lifetimes).
+checks in [5.5](https://personalagentprotocol.org/docs/1.0/spec#ending-sessions). See the
+[guides](https://personalagentprotocol.org/docs/1.0/guides#company-lifetimes).
 
 **Operations.** Which actions, if any, need approval before you perform them
-([Operations 1](https://personalagentprotocol.org/docs/0.4/extensions/operations#intro)). Build the
+([Operations 1](https://personalagentprotocol.org/docs/1.0/extensions/operations#intro)). Build the
 optional `operations` version 3 extension in the extensions milestone.
 
 **Extensions.** Whether to define any of the Company's own
-([3.3](https://personalagentprotocol.org/docs/0.4/spec#extensions)). Usually none.
+([3.3](https://personalagentprotocol.org/docs/1.0/spec#extensions)). Usually none.
 
 The architecture is yours to propose, with the engineer's review. Choose a pattern from
 `patterns/` for each component. If none fits, describe your own and say why, and add a **Kit** entry

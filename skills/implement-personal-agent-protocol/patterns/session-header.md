@@ -3,13 +3,13 @@
 Every request to the Company's APIs, conversations, feedback, browser-session `/authorize`, and
 extension endpoints carries a `Poppy-Session` header: a JWT the Personal Agent signs for that one
 request with a delegated key, carrying the delegation in its `poppy_dlg` header
-([5.2](https://personalagentprotocol.org/docs/0.4/spec#session-header)). The Company SHOULD verify it
+([5.2](https://personalagentprotocol.org/docs/1.0/spec#session-header)). The Company SHOULD verify it
 generally and MUST complete the checks in
-[5.3](https://personalagentprotocol.org/docs/0.4/spec#session-verification) before trusting Session claims
+[5.3](https://personalagentprotocol.org/docs/1.0/spec#session-verification) before trusting Session claims
 for identity, ownership, continuity, or state. An endpoint that uses none of those claims can ignore
 the header. OAuth validation, scope enforcement, and required DPoP checks still apply. Use an
 existing JOSE library for the signatures rather than writing them
-yourself. The [guides](https://personalagentprotocol.org/docs/0.4/guides#both-signing) cover JWT
+yourself. The [guides](https://personalagentprotocol.org/docs/1.0/guides#both-signing) cover JWT
 verification in general.
 
 The header is separate from OAuth. The authorization server never sees it, and it never grants
@@ -46,7 +46,7 @@ Each service verifies the header itself, with a shared library.
 2. Verify the delegation in `poppy_dlg` with the key in `jwks_uri` named by its `kid`, `ES256` or
    `PS384` (ES256 required, PS384 recommended). Check its `typ` is `poppy-delegation+jwt`, its `iss` is the Session JWT's `iss`, it
    hasn't expired, and its `exp` is at most 24 hours after its `iat`
-   ([Delegated keys](https://personalagentprotocol.org/docs/0.4/spec#delegated-keys)).
+   ([Delegated keys](https://personalagentprotocol.org/docs/1.0/spec#delegated-keys)).
 3. Verify the Session JWT's `ES256` signature with the delegation's `cnf.jwk`, check that its `kid`
    is that key's JWK thumbprint.
 4. Check `typ` `poppy-session+jwt`, `aud` equal to the Company's identifier character for character
@@ -60,7 +60,7 @@ Each service verifies the header itself, with a shared library.
    one. For a known one, check that it hasn't ended.
 
 7. Check `Poppy-Version` is a version you serve
-   ([3.4](https://personalagentprotocol.org/docs/0.4/spec#versions)). A missing or unsupported one
+   ([3.4](https://personalagentprotocol.org/docs/1.0/spec#versions)). A missing or unsupported one
    returns HTTP 400 with `{"error": "version_unsupported"}`. Read `Poppy-Extensions` for the
    extensions the request uses, and pass both inward with the Session.
 
@@ -94,7 +94,7 @@ assertion expires.
 ## Operator signatures at the edge
 
 Personal Agents may also sign requests with an HTTP Message Signature (RFC 9421) using Web Bot Auth
-([5.3](https://personalagentprotocol.org/docs/0.4/spec#operator-signatures)), so a CDN or bot manager can
+([5.3](https://personalagentprotocol.org/docs/1.0/spec#operator-signatures)), so a CDN or bot manager can
 let them through. If yours checks these, it authenticates the operator's key, not the `client_id` in
 the request. Keep running every check above on the Session JWT before trusting any Session claim. A
 request without an operator signature is still valid.
@@ -108,25 +108,25 @@ your server receives. Watch for path rewrites, such as a gateway that strips a p
 ## Also
 
 - Session header destinations come from `poppy.json` and the listed APIs' request URLs
-  ([5.2](https://personalagentprotocol.org/docs/0.4/spec#session-header)). A listed endpoint doesn't
+  ([5.2](https://personalagentprotocol.org/docs/1.0/spec#session-header)). A listed endpoint doesn't
   include every path on its host. Discovery and description documents and OAuth endpoints don't
   carry the header. Browser join uses it only on the `/authorize` request.
 - Website pages on the host that serves `poppy.json` can carry the header when a Personal Agent
   fetches them without a browser, never with an access token
-  ([5.2](https://personalagentprotocol.org/docs/0.4/spec#session-header)). Treat those requests as
+  ([5.2](https://personalagentprotocol.org/docs/1.0/spec#session-header)). Treat those requests as
   signed out, and reject a header that fails verification with `invalid_session`, as anywhere
-  else ([5.3](https://personalagentprotocol.org/docs/0.4/spec#session-verification)).
+  else ([5.3](https://personalagentprotocol.org/docs/1.0/spec#session-verification)).
 - Use an acceptance window of about a minute, plus a small clock skew.
 - Sessions are keyed by `client_id`, `sid`, and User ID, never by a key. Refresh tokens are tied to the
   `client_id` (4.4).
 - DPoP for access tokens is a separate, optional choice
-  ([4.5](https://personalagentprotocol.org/docs/0.4/spec#access-tokens)). If your access tokens are
+  ([4.5](https://personalagentprotocol.org/docs/1.0/spec#access-tokens)). If your access tokens are
   DPoP-bound, a signed-in request carries both a Session JWT and a DPoP proof, each signed with its
   own key. Verify both.
 - Any API can ignore Session claims when it uses no Session identity or state
-  ([section 7](https://personalagentprotocol.org/docs/0.4/spec#apis)). Agents still send the header.
+  ([section 7](https://personalagentprotocol.org/docs/1.0/spec#apis)). Agents still send the header.
 - Serve Personal Agent conversations only from the conversation endpoint
-  ([8.2](https://personalagentprotocol.org/docs/0.4/spec#conversation-requests)). Website chat or other
+  ([8.2](https://personalagentprotocol.org/docs/1.0/spec#conversation-requests)). Website chat or other
   channels that open the same conversations may not check the header.
 - Don't log the header. Session JWTs are secrets
-  ([10.2](https://personalagentprotocol.org/docs/0.4/spec#secrets)).
+  ([10.2](https://personalagentprotocol.org/docs/1.0/spec#secrets)).
