@@ -64,6 +64,13 @@ This writes to `.poppy/` and adds `.poppy/` to `.gitignore`:
 `keygen` won't replace an existing key without `--force`. Before each run, `check` fetches the
 hosted files and explains any mismatch with `.poppy/`.
 
+**Testing a local issuer.** With `--allow-private-addresses`, the validator connects to a local
+deployment, but your issuer should still refuse to fetch client metadata or a `jwks_uri` from a
+loopback or private address, so the `assertion.*` checks end in `invalid_client`. To run them,
+register the test Personal Agent with your issuer by hand: its `client_id` from `.poppy/config.json`,
+with the keys from `.poppy/jwks.json`. Do this only for local testing. In production, the issuer
+fetches them (4.1).
+
 This identity is for testing only, and its key is on your machine. Don't add it to a production
 allowlist.
 
