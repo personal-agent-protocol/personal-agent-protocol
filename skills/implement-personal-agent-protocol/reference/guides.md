@@ -113,6 +113,8 @@ A deployment that also uses the Universal Commerce Protocol (UCP) can reuse an a
 
 When the company you reach is on a different domain from the one the user asked for, tell the user which company you're dealing with, its `organization.name` and domain, before you sign in or act for them. A well-known URL can redirect to any host's `/.well-known/poppy.json` ([section 3](https://personalagentprotocol.org/docs/1.0/spec#discovery)). A rebrand, such as `oldname.example` redirecting to `newname.example`, then costs one line, and a domain that sends you to another company can't move the user's task there without them noticing.
 
+A `poppy.json` that passes every check in the spec proves that its domain publishes it, not that the domain belongs to the company in `organization.name`. Any domain can claim any name, so a lookalike such as `example-orders.example` can pass the same checks as `example.com`. When you show a company's name, help the user understand that nothing has confirmed it. When you're not sure the domain is the one the user means, show the domain with the name.
+
 A company's `organization.logo_uri` helps the user recognize it. Show the logo next to the company's name and domain, never in place of the domain, because any company can use another's logo. Fetch it as you fetch other metadata ([guides](#both-fetching)) and serve your own copy, rather than having the user's device load it from the company.
 
 ### Versions

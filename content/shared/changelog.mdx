@@ -7,6 +7,29 @@ published version stays at its own URL, such as [/docs/0.1/spec](/docs/0.1/spec)
 
 In progress, at [/docs/spec](/docs/spec). This list grows until 1.0 is published.
 
+### Minor changes {#v1-0-minor}
+
+<Change title="Lookalike domains" sections="10.3" issue="73">
+
+Section 10.3 says that nothing in `poppy.json` confirms that the domain belongs to the company in
+`organization.name`, so a lookalike domain can pass every discovery check. The domain is the
+Company's identity, and choosing the right one for the User is up to the Personal Agent.
+
+</Change>
+
+### Guides {#v1-0-guides}
+
+Advice that goes with the spec. Guides aren't requirements.
+
+<Change title="Unconfirmed company names" sections="guides#agent-discovery" issue="73">
+
+The guides say that the discovery checks prove which domain publishes a `poppy.json`, not that the
+domain belongs to the company in `organization.name`. They advise Personal Agents to help the User
+understand that the name isn't confirmed, and to show the domain with it when they aren't sure the
+domain is the one the User means.
+
+</Change>
+
 ## Version 0.4 {#v0-4}
 
 Published November 10, 2026, as the 1.0 release candidate. It's frozen at

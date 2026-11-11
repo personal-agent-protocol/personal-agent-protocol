@@ -6,6 +6,24 @@ What changed in each version of the specification, extensions, and guides, newes
 
 In progress, at [/docs/spec](https://personalagentprotocol.org/docs/1.0/spec). This list grows until 1.0 is published.
 
+### Minor changes
+
+#### Lookalike domains
+
+[Spec 10.3](https://personalagentprotocol.org/docs/1.0/spec#trust) · [Issue #73](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/73)
+
+Section 10.3 says that nothing in `poppy.json` confirms that the domain belongs to the company in `organization.name`, so a lookalike domain can pass every discovery check. The domain is the Company's identity, and choosing the right one for the User is up to the Personal Agent.
+
+### Guides
+
+Advice that goes with the spec. Guides aren't requirements.
+
+#### Unconfirmed company names
+
+[Guides: Finding a company](https://personalagentprotocol.org/docs/1.0/guides#agent-discovery) · [Issue #73](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/73)
+
+The guides say that the discovery checks prove which domain publishes a `poppy.json`, not that the domain belongs to the company in `organization.name`. They advise Personal Agents to help the User understand that the name isn't confirmed, and to show the domain with it when they aren't sure the domain is the one the User means.
+
 ## Version 0.4
 
 Published November 10, 2026, as the 1.0 release candidate. It's frozen at [/docs/0.4/spec](https://personalagentprotocol.org/docs/0.4/spec). Major changes are design decisions. Minor changes fill gaps, make the text consistent, or follow an RFC. A change tagged "Breaking" can require an implementation that followed the 0.3 text to change, whether it's major or minor.

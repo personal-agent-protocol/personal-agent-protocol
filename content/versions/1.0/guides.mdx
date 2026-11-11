@@ -218,6 +218,12 @@ them. A well-known URL can redirect to any host's `/.well-known/poppy.json` ([se
 then costs one line, and a domain that sends you to another company can't move the user's task there
 without them noticing.
 
+A `poppy.json` that passes every check in the spec proves that its domain publishes it, not that
+the domain belongs to the company in `organization.name`. Any domain can claim any name, so a
+lookalike such as `example-orders.example` can pass the same checks as `example.com`. When you show
+a company's name, help the user understand that nothing has confirmed it. When you're not sure the
+domain is the one the user means, show the domain with the name.
+
 A company's `organization.logo_uri` helps the user recognize it. Show the logo next to the
 company's name and domain, never in place of the domain, because any company can use another's
 logo. Fetch it as you fetch other metadata ([guides](#both-fetching)) and serve your own copy,
