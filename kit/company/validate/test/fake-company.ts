@@ -251,6 +251,8 @@ export type Flaws = {
 };
 
 export const ORIGIN = "https://shop.test";
+// The Company's host on another port, as for testing.
+export const PORT_ORIGIN = "https://shop.test:4443";
 export const OTHER_DOMAIN = "https://shop-two.test";
 
 // Every test host resolves to a public documentation address (RFC 5737).
@@ -1218,6 +1220,8 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
                 },
             });
         }
+        if (url.origin === PORT_ORIGIN && path === "/.well-known/poppy.json")
+            return json(200, poppy(flaws.domain ?? "shop.test", "main"));
         if (url.origin === OTHER_DOMAIN && path === "/.well-known/poppy.json")
             return json(200, poppy("shop-two.test", "other"));
         if (url.origin === OTHER_DOMAIN && path === "/.well-known/oauth-protected-resource")

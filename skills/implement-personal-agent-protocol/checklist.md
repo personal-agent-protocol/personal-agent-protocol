@@ -19,7 +19,7 @@ are left out.
 
 ### Specification: [3.1 Fields](https://personalagentprotocol.org/docs/1.0/spec#fields)
 
-- [ ] **MUST**: `domain` MUST be the host that serves the document, after any redirects.
+- [ ] **MUST**: `domain` MUST be the host that serves the document, after any redirects, with its port when that isn't 443.
 - [ ] **MUST**: It MUST be in that list.
 - [ ] **MUST**: With one authorization server, the Company MAY leave it out, and if it includes it, it MUST name that server.
 
@@ -40,7 +40,7 @@ are left out.
 - [ ] **MUST**: An issuer MUST represent exactly one Company.
 - [ ] **MUST**: A provider that hosts several Companies MUST give each its own issuer, such as `https://auth.provider.example/shop-a`, even when they share servers.
 - [ ] **MUST**: The issuer MUST publish OAuth Authorization Server Metadata (RFC 8414), at the URL RFC 8414 §3.1 defines.
-- [ ] **MUST**: Its `protected_resources` (RFC 9728 §4) MUST list `https://{domain}` for every domain whose issuer it is, with no path, port, or trailing slash.
+- [ ] **MUST**: Its `protected_resources` (RFC 9728 §4) MUST list `https://{domain}` for every domain whose issuer it is, with no path or trailing slash.
 - [ ] **MUST**: Required, and it MUST include `refresh_token` (4.4).
 - [ ] **SHOULD**: A Company that offers sign-in SHOULD list every scope a Personal Agent can request here, in `scopes_supported` of its protected resource metadata (above), or in both (4.7).
 - [ ] **MUST**: A Company that lists `signed_in` MUST have an issuer, and MUST NOT set `auth.disabled`.

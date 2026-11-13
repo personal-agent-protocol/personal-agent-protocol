@@ -230,7 +230,7 @@ export const CATALOG: CheckInfo[] = [
         "discovery.domain-matches-host",
         "organization.domain is the host that serves poppy.json, after redirects",
         "spec#fields",
-        "domain MUST be the host that serves the document, after any redirects. Domains are compared ignoring case, with no other normalization.",
+        "domain MUST be the host that serves the document, after any redirects, with its port when that isn't 443.",
     ),
     foundation(
         "discovery.interface-present",
@@ -304,7 +304,7 @@ export const CATALOG: CheckInfo[] = [
         "metadata.protected-resources",
         "protected_resources includes https://{organization.domain}",
         "spec#oauth-server",
-        "MUST list https://{domain} for every domain whose issuer it is, with no path, port, or trailing slash.",
+        "MUST list https://{domain} for every domain whose issuer it is, with no path or trailing slash.",
     ),
     foundation(
         "metadata.token-endpoint",

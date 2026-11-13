@@ -79,6 +79,15 @@ linking started over. The example now requests both scopes.
 
 ### Minor changes {#v1-0-minor}
 
+<Change title="Ports in organization.domain" sections="3.1, 3.2" issue="85">
+
+`organization.domain` includes its port when that isn't 443, as does the domain resource
+`https://{organization.domain}` in `protected_resources`, so a Company on another port can be
+tested. A document on `shop.example:8443` speaks for `shop.example:8443`, not `shop.example`.
+Personal Agents use a Company on another port only when configured to on purpose.
+
+</Change>
+
 <Change title="Personal Agents choose their Companies" sections="4.1">
 
 Section 4.1 says that a Personal Agent decides which Companies it uses the protocol with, as a

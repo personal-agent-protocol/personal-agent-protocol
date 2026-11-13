@@ -46,6 +46,12 @@ For `insufficient_scope` from a UCP operation, the Personal Agent requests every
 
 ### Minor changes
 
+#### Ports in organization.domain
+
+[Spec 3.1](https://personalagentprotocol.org/docs/1.0/spec#fields) · [Spec 3.2](https://personalagentprotocol.org/docs/1.0/spec#oauth-server) · [Issue #85](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/85)
+
+`organization.domain` includes its port when that isn't 443, as does the domain resource `https://{organization.domain}` in `protected_resources`, so a Company on another port can be tested. A document on `shop.example:8443` speaks for `shop.example:8443`, not `shop.example`. Personal Agents use a Company on another port only when configured to on purpose.
+
 #### Personal Agents choose their Companies
 
 [Spec 4.1](https://personalagentprotocol.org/docs/1.0/spec#agent-identity)

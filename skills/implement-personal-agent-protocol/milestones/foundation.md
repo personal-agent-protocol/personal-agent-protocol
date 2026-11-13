@@ -81,7 +81,7 @@ issuer.
 **3. OAuth server metadata** at the issuer's RFC 8414 well-known URL (3.2), with `issuer` exactly
 the issuer named above, `token_endpoint`, `revocation_endpoint`, `grant_types_supported` with
 `refresh_token`, and `protected_resources` listing `https://{domain}` for every domain whose issuer
-it is, with no path, port, or trailing slash. `scopes_supported`, the sign-in grant
+it is, with no path or trailing slash. `scopes_supported`, the sign-in grant
 types, `authorization_endpoint`, and `device_authorization_endpoint` come in the sign-in milestone.
 
 **4. Verifying Personal Agents** ([4.1](https://personalagentprotocol.org/docs/1.0/spec#agent-identity)).

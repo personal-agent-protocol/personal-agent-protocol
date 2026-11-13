@@ -74,6 +74,9 @@ fetches them (4.1).
 This identity is for testing only, and its key is on your machine. Don't add it to a production
 allowlist.
 
+**Testing on another port.** Set `organization.domain` to the host and port, such as
+`shop.test:8443`, and list `https://shop.test:8443` in the issuer's `protected_resources` (3.1, 3.2).
+
 ## What's checked
 
 | Milestone     | Checks                                                                                                                                                                                                                     |

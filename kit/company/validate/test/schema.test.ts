@@ -38,6 +38,16 @@ test("a valid poppy.json passes", () => {
     assert.deepEqual(check("poppy.schema.json", poppy), []);
 });
 
+test("organization.domain can have a port", () => {
+    const errors = (domain: string) =>
+        check("poppy.schema.json", { ...poppy, organization: { name: "A", domain } }).filter(
+            (e) => e.path === "/organization/domain",
+        ).length;
+    assert.equal(errors("a.example:8443"), 0);
+    for (const domain of ["a.example:", "a.example:0", "a.example:8443/x"])
+        assert.equal(errors(domain), 1, domain);
+});
+
 test("type, required, and pattern errors have paths and plain messages", () => {
     const errors = check("poppy.schema.json", {
         ...poppy,

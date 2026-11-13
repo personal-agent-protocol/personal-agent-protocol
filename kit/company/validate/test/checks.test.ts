@@ -15,7 +15,7 @@ import { newContext, type CheckResult, type CheckOptions } from "../checks/types
 import { keygen, UsageError } from "../identity.ts";
 import { parseMilestones, runChecks } from "../run.ts";
 import { check } from "../schemas.ts";
-import { fakeHttp, ORIGIN, type Flaws } from "./fake-company.ts";
+import { fakeHttp, ORIGIN, PORT_ORIGIN, type Flaws } from "./fake-company.ts";
 
 const cwd = mkdtempSync(join(tmpdir(), "poppy-validator-test-"));
 await keygen("https://agent.test", { cwd });
@@ -637,6 +637,26 @@ test("organization.domain that doesn't match the host fails discovery and skips 
     assert.equal(byId("metadata.issuer-required").status, "skip");
     assert.equal(byId("metadata.protected-resources").status, "skip");
 });
+
+for (const [domain, status] of [
+    ["shop.test:4443", "pass"],
+    ["shop.test", "fail"],
+] as const) {
+    test(`poppy.json on port 4443 with organization.domain ${domain}: ${status}`, async () => {
+        const http = fakeHttp(join(cwd, ".poppy"), { domain });
+        const ctx = newContext(
+            http,
+            { milestones: parseMilestones("foundation")!, only: ["discovery."] },
+            PORT_ORIGIN,
+        );
+        const results = await runChecks(ctx, { cwd });
+        const result = results.find((r) => r.id === "discovery.domain-matches-host")!;
+        assert.equal(result.status, status);
+        assert.equal(results.find((r) => r.id === "discovery.schema")?.status, "pass");
+        if (status === "fail")
+            assert.equal(result.expected, 'organization.domain "shop.test:4443"');
+    });
+}
 
 test("a redirect to plain HTTP fails", async () => {
     const http = fakeHttp(join(cwd, ".poppy"), { httpRedirect: true });
