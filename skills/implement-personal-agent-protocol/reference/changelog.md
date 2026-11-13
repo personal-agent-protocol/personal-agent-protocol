@@ -20,6 +20,12 @@ Breaking · [Spec 3.2](https://personalagentprotocol.org/docs/1.0/spec#oauth-ser
 
 A Company MAY require Pushed Authorization Requests ([RFC 9126](https://www.rfc-editor.org/rfc/rfc9126)) for Direct Sign-In, with `require_pushed_authorization_requests` in its issuer's metadata. A Personal Agent then MUST push the request with its client assertion and open the `authorization_endpoint` with only `client_id` and `request_uri`, and SHOULD use PAR whenever the Company offers it. It sends a DPoP proof with the pushed request, so the code is bound to the key. Because a `request_uri` expires quickly, a link the User opens later SHOULD go to the Personal Agent's own page, which pushes the request when it's opened. Before, a Personal Agent that followed the text couldn't sign in at a Company that required PAR, as FAPI 2.0 does.
 
+#### PS384 required
+
+Breaking · [Spec 4.1](https://personalagentprotocol.org/docs/1.0/spec#agent-identity) · [Spec 5.2](https://personalagentprotocol.org/docs/1.0/spec#session-header) · [Spec 10.7](https://personalagentprotocol.org/docs/1.0/spec#delegated-key-security) · [Guides: Signing and verifying JWTs](https://personalagentprotocol.org/docs/1.0/guides#both-signing) · [Issue #42](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/42)
+
+Companies must accept client assertions and delegations signed with `PS384`, as well as `ES256`. `PS384` was only recommended, so a Personal Agent that signs blindly, as 10.7 recommends, could be refused by a conforming Company, and for delegations would get only `invalid_session`. The guides drop the advice for Companies that lack `PS384`, and say to accept RSA keys of 2048 to 4096 bits.
+
 #### Same DPoP key at refresh
 
 Breaking · [Spec 4.4](https://personalagentprotocol.org/docs/1.0/spec#refresh-tokens) · [Spec 4.5](https://personalagentprotocol.org/docs/1.0/spec#access-tokens) · [Spec 4.8](https://personalagentprotocol.org/docs/1.0/spec#oauth-additions) · [Spec 10.7](https://personalagentprotocol.org/docs/1.0/spec#delegated-key-security) · [Guides: Rotating keys](https://personalagentprotocol.org/docs/1.0/guides#both-key-rotation) · [Guides: Storing tokens](https://personalagentprotocol.org/docs/1.0/guides#agent-tokens) · [Guides: Native and distributed apps](https://personalagentprotocol.org/docs/1.0/guides#agent-native-apps) · [Guides: Verifying the Session header](https://personalagentprotocol.org/docs/1.0/guides#company-session-header) · [Guides: Token lifetimes and sign-out](https://personalagentprotocol.org/docs/1.0/guides#company-lifetimes)

@@ -96,8 +96,8 @@ types, `authorization_endpoint`, and `device_authorization_endpoint` come in the
 - Apply the design's policy: allowlist or blocklist, registration, and rate limits by `client_id`.
   A refused Personal Agent gets `invalid_client` at the authorization server and `invalid_session`
   at a resource.
-- At the token endpoint, accept client assertions signed with `ES256` (required) and `PS384`
-  (recommended), with `aud` exactly the issuer. Advertise accepted assertion algorithms in
+- At the token endpoint, accept client assertions signed with `ES256` and with `PS384` (both
+  required), with `aud` exactly the issuer. Advertise accepted assertion algorithms in
   `token_endpoint_auth_signing_alg_values_supported` (RFC 8414 §2). This does not advertise
   delegation support. Rejecting a reused `jti` from the same `client_id` until it expires is
   optional (4.1), and the guides suggest it.
@@ -113,7 +113,7 @@ verification. When verifying:
 
 - Fetch the client metadata named by `iss` and its `jwks_uri`, and apply the design's policy.
 - Verify the delegation in `poppy_dlg` with the key from `jwks_uri` that its `kid` names (`ES256`
-  required, `PS384` recommended), its `typ`, `iss`, expiry, and a lifetime of at most 24 hours. Then verify the Session
+  and `PS384`, both required), its `typ`, `iss`, expiry, and a lifetime of at most 24 hours. Then verify the Session
   JWT with the delegation's `cnf.jwk`, and check that `kid` is that key's thumbprint. Reject a Session JWT without a delegation, including one
   signed directly with a key from `jwks_uri`.
 - Check `typ` `poppy-session+jwt`, `alg` `ES256`, `aud` equal to the issuer, or the HTTPS domain when there is none, `htm` and `htu`

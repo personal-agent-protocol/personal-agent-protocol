@@ -42,16 +42,9 @@ consistently:
 
 - Personal agents: sign Session JWTs with ES256 (MUST, [5.2](/docs/spec#session-header)). Sign
   client assertions and delegations with ES256, or with PS384 if you sign them blindly
-  ([10.7](/docs/spec#delegated-key-security)). Companies: accept ES256 (MUST) and PS384 (SHOULD) in
-  client assertions and delegations ([4.1](/docs/spec#agent-identity),
-  [5.2](/docs/spec#delegated-keys)). Use RSA keys of at least 2048 bits.
-- Personal agents: use `token_endpoint_auth_signing_alg_values_supported` in the Company's OAuth
-  metadata to choose a supported client-assertion algorithm. This list does not establish support
-  for delegation signatures. The protocol has no delegation-algorithm discovery field, and
-  `invalid_session` does not distinguish an unsupported algorithm from other failures. An agent
-  that requires blind signing may be unable to work with a Company that doesn't support PS384.
-  Falling back to ES256 needs a suitable published key and gives up this blind-signing mechanism;
-  don't switch automatically when blind signing is required by the User's privacy settings.
+  ([10.7](/docs/spec#delegated-key-security)). Companies: accept both in client assertions and
+  delegations ([4.1](/docs/spec#agent-identity), [5.2](/docs/spec#delegated-keys)). Use RSA keys
+  of 2048 to 4096 bits, and accept any RSA key in that range.
 - Reject `alg: none` and symmetric algorithms such as HS256.
 - Verify client assertions and delegations only with keys from the personal agent's verified
   `jwks_uri` ([4.1](/docs/spec#agent-identity)), and Session JWTs only with the key their verified

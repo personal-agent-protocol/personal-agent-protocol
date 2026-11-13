@@ -32,6 +32,15 @@ PAR, as FAPI 2.0 does.
 
 </Change>
 
+<Change title="PS384 required" breaking sections="4.1, 5.2, 10.7, guides#both-signing" issue="42">
+
+Companies must accept client assertions and delegations signed with `PS384`, as well as `ES256`.
+`PS384` was only recommended, so a Personal Agent that signs blindly, as 10.7 recommends, could be
+refused by a conforming Company, and for delegations would get only `invalid_session`. The guides
+drop the advice for Companies that lack `PS384`, and say to accept RSA keys of 2048 to 4096 bits.
+
+</Change>
+
 <Change title="Same DPoP key at refresh" breaking sections="4.4, 4.5, 4.8, 10.7, guides#both-key-rotation, guides#agent-tokens, guides#agent-native-apps, guides#company-session-header, guides#company-lifetimes">
 
 A Personal Agent MUST refresh with a proof from the DPoP key it got the refresh token with. It keeps

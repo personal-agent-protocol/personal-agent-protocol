@@ -405,8 +405,7 @@ export const CATALOG: CheckInfo[] = [
         "session.delegation-ps384",
         "A resource accepts a Session JWT whose delegation is signed with PS384",
         "spec#delegated-keys",
-        "SHOULD accept delegations signed with PS384.",
-        "SHOULD",
+        "Companies MUST accept delegations signed with ES256 and with PS384",
     ),
 
     // Milestone 1: client assertions at the token endpoint (4.1).
@@ -414,8 +413,7 @@ export const CATALOG: CheckInfo[] = [
         "assertion.ps384",
         "The token endpoint accepts a client assertion signed with PS384",
         "spec#agent-identity",
-        "SHOULD accept ones signed with PS384.",
-        "SHOULD",
+        "Companies MUST accept client assertions signed with ES256 and with PS384.",
     ),
     foundation(
         "assertion.signature",

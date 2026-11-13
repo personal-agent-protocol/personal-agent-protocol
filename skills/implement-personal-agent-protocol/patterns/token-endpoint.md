@@ -14,8 +14,8 @@ receive the Session header, and sign-in doesn't need to know the Session.
 
 ## Survey the existing server
 
-- Check support for client ID metadata documents, `private_key_jwt` with `ES256` (required) and
-  `PS384` (recommended), PKCE,
+- Check support for client ID metadata documents, `private_key_jwt` with `ES256` and
+  `PS384` (both required), PKCE,
   `iss` in redirects, resource indicators, and the sign-in types the design chose. Some servers
   support them and some don't.
 - Check that resources can tell which `client_id` an access token was issued to, by a claim or

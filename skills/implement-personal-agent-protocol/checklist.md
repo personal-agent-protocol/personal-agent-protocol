@@ -59,7 +59,7 @@ are left out.
 ### Specification: [4.1 Agent identity](https://personalagentprotocol.org/docs/1.0/spec#agent-identity)
 
 - [ ] **MUST**: Companies MUST reject a client assertion with any other `aud`, compared character for character, including their token endpoint URL.
-- [ ] **MUST**: Companies MUST accept client assertions signed with `ES256`, and SHOULD accept ones signed with `PS384`.
+- [ ] **MUST**: Companies MUST accept client assertions signed with `ES256` and with `PS384`.
 
 ### Specification: [5.2 The Session header](https://personalagentprotocol.org/docs/1.0/spec#session-header)
 
@@ -67,7 +67,7 @@ are left out.
 
 ### Specification: [Delegated keys](https://personalagentprotocol.org/docs/1.0/spec#delegated-keys)
 
-- [ ] **MUST**: Companies MUST accept delegations signed with `ES256`, and SHOULD accept delegations signed with `PS384`.
+- [ ] **MUST**: Companies MUST accept delegations signed with `ES256` and with `PS384`.
 - [ ] **MUST**: When verifying a Session header (5.3), the Company MUST reject, with `invalid_session`, a Session JWT without a delegation, including one signed directly with a key from `jwks_uri`, and a Session JWT whose delegation fails any of these checks.
 - [ ] **MUST NOT**: So a Company MUST NOT expect a User's delegated key to stay the same between requests or Sessions, or treat a new one as a reason to reject a request.
 
@@ -110,8 +110,7 @@ To handle them:
 
 Client assertions, delegations, Session JWTs, and DPoP proofs are JWTs. To sign and verify them consistently:
 
-- [ ] Personal agents: sign Session JWTs with ES256 (MUST, 5.2). Sign client assertions and delegations with ES256, or with PS384 if you sign them blindly (10.7). Companies: accept ES256 (MUST) and PS384 (SHOULD) in client assertions and delegations (4.1, 5.2). Use RSA keys of at least 2048 bits.
-- [ ] Personal agents: use `token_endpoint_auth_signing_alg_values_supported` in the Company's OAuth metadata to choose a supported client-assertion algorithm. This list does not establish support for delegation signatures. The protocol has no delegation-algorithm discovery field, and `invalid_session` does not distinguish an unsupported algorithm from other failures. An agent that requires blind signing may be unable to work with a Company that doesn't support PS384. Falling back to ES256 needs a suitable published key and gives up this blind-signing mechanism; don't switch automatically when blind signing is required by the User's privacy settings.
+- [ ] Personal agents: sign Session JWTs with ES256 (MUST, 5.2). Sign client assertions and delegations with ES256, or with PS384 if you sign them blindly (10.7). Companies: accept both in client assertions and delegations (4.1, 5.2). Use RSA keys of 2048 to 4096 bits, and accept any RSA key in that range.
 - [ ] Reject `alg: none` and symmetric algorithms such as HS256.
 - [ ] Verify client assertions and delegations only with keys from the personal agent's verified `jwks_uri` (4.1), and Session JWTs only with the key their verified delegation names in `cnf.jwk` (5.2). Ignore `jku`, `x5u`, and any other key embedded in a JWT. DPoP proofs for DPoP-bound access tokens are the one other exception: the public key in their `jwk` header is how they work.
 - [ ] Check `aud` and `iat`, and `exp` on client assertions and delegations. Session JWTs have no `exp`: accept them only within your `iat` window (5.3). A client assertion has the company's issuer as its `aud`; a Session JWT has the Company's identifier (its issuer, or its HTTPS domain without one), never an endpoint URL (4.1, 5.2). Allow a small clock skew, such as 30 seconds, and reject assertions that claim a long lifetime.

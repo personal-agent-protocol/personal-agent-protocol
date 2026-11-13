@@ -44,7 +44,7 @@ Each service verifies the header itself, with a shared library.
 1. Fetch the client metadata at `iss` and its `jwks_uri` (4.1), and apply the allowlist,
    blocklist, or registration policy.
 2. Verify the delegation in `poppy_dlg` with the key in `jwks_uri` named by its `kid`, `ES256` or
-   `PS384` (ES256 required, PS384 recommended). Check its `typ` is `poppy-delegation+jwt`, its `iss` is the Session JWT's `iss`, it
+   `PS384` (both required). Check its `typ` is `poppy-delegation+jwt`, its `iss` is the Session JWT's `iss`, it
    hasn't expired, and its `exp` is at most 24 hours after its `iat`
    ([Delegated keys](https://personalagentprotocol.org/docs/spec#delegated-keys)).
 3. Verify the Session JWT's `ES256` signature with the delegation's `cnf.jwk`, check that its `kid`

@@ -500,8 +500,8 @@ delegations with, and to check where Direct Sign-In may return the User. This fo
 - Client assertions follow RFC 7523 §3. The Personal Agent MUST make them short-lived, and MUST
   include `iat` and a unique, unguessable `jti`. The Company MAY reject a reused `jti`, as RFC 7523
   §3 allows.
-- Companies MUST accept client assertions signed with `ES256`, and SHOULD accept ones signed
-  with `PS384`. `PS384` lets a Personal Agent have its client assertions signed blindly (10.7).
+- Companies MUST accept client assertions signed with `ES256` and with `PS384`. `PS384` lets a
+  Personal Agent have its client assertions signed blindly (10.7).
 
 A Company decides which Personal Agents it accepts, and how it approves them is outside this
 specification. A refused Personal Agent gets the OAuth `invalid_client` error at the authorization
@@ -976,9 +976,8 @@ at one Company (10.7).
 }
 ```
 
-- `alg` is `ES256` or `PS384`. Companies MUST accept delegations signed with `ES256`, and SHOULD
-  accept delegations signed with `PS384`. `PS384` lets a Personal Agent have its delegations
-  signed blindly (10.7).
+- `alg` is `ES256` or `PS384`. Companies MUST accept delegations signed with `ES256` and with
+  `PS384`. `PS384` lets a Personal Agent have its delegations signed blindly (10.7).
 - `typ` MUST be `poppy-delegation+jwt`, so a delegation can't be used as a Session JWT.
 - `kid` names the key in `jwks_uri` that signed the delegation.
 - `iss` is the Personal Agent's `client_id`.
@@ -2510,7 +2509,7 @@ uses RSA blind signatures ([RFC 9474](https://www.rfc-editor.org/rfc/rfc9474)).
 The User's device writes the JWT, blinds it, and sends it to be signed. The key signs it without
 seeing it, and the device unblinds the result into an ordinary signature. With the
 RSABSSA-SHA384-PSS-Deterministic variant, that signature is a `PS384` signature, which Companies
-that support it (4.1, 5.2) verify like any other. The variants RFC 9474 recommends add a random prefix to
+verify like any other (4.1, 5.2). The variants RFC 9474 recommends add a random prefix to
 the message, so their signatures don't verify as a JWT's. The PSS-Deterministic variant adds nothing,
 so it is safe only when the message has a value the signer can't guess (RFC 9474 §7.3). The `jti` of
 a client assertion or delegation is that value, so the Personal Agent MUST generate it on the User's device. The Personal

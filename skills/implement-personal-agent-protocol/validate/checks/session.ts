@@ -151,7 +151,7 @@ export async function checkSessions(ctx: Context, r: Recorder): Promise<void> {
                 "session.delegation-ps384",
                 ex,
                 "The resource accepts a delegation signed with PS384",
-                "Companies SHOULD accept delegations signed with PS384, which Personal Agents use to sign them blindly (5.2, 10.7). ES256 remains required. To support PS384, check the delegation with the RSA key its kid names.",
+                "Companies MUST accept delegations signed with PS384, which Personal Agents use to sign them blindly (5.2, 10.7). Check the delegation with the RSA key its kid names.",
             );
         }
     }

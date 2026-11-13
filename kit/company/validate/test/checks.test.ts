@@ -231,15 +231,15 @@ test("signed-out requests use resources without any token endpoint call", async 
     assert.ok(feedback.some((ex) => "Poppy-Session" in ex.requestHeaders));
 });
 
-test("a resource that checks delegations only with EC keys warns on session.delegation-ps384", async () => {
+test("a resource that checks delegations only with EC keys fails session.delegation-ps384", async () => {
     const { byId } = await run({ rejectPs384Delegation: true }, "foundation", ["session."]);
-    assert.equal(byId("session.delegation-ps384").status, "warn");
-    assert.equal(byId("session.delegation-ps384").level, "SHOULD");
+    assert.equal(byId("session.delegation-ps384").status, "fail");
+    assert.equal(byId("session.delegation-ps384").level, "MUST");
     assert.ok(!byId("session.delegation-ps384").inconclusive);
     assert.equal(byId("session.start").status, "pass");
 });
 
-test("an ES256-only token endpoint warns on PS384 without failing assertion checks", async () => {
+test("an ES256-only token endpoint fails only assertion.ps384", async () => {
     const { byId, results } = await run(
         {
             rejectPs384Assertion: true,
@@ -250,14 +250,14 @@ test("an ES256-only token endpoint warns on PS384 without failing assertion chec
         "foundation",
         ["assertion."],
     );
-    assert.equal(byId("assertion.ps384").status, "warn");
-    assert.equal(byId("assertion.ps384").level, "SHOULD");
+    assert.equal(byId("assertion.ps384").status, "fail");
+    assert.equal(byId("assertion.ps384").level, "MUST");
     assert.ok(!byId("assertion.ps384").inconclusive);
     assert.equal(byId("assertion.signature").status, "pass");
     assert.equal(byId("assertion.aud-endpoint").status, "pass");
     assert.deepEqual(
-        results.filter((r) => r.status === "fail"),
-        [],
+        results.filter((r) => r.status === "fail").map((r) => r.id),
+        ["assertion.ps384"],
     );
 });
 

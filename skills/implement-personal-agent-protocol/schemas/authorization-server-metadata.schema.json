@@ -18,7 +18,7 @@
         "authorization_endpoint": { "$ref": "#/$defs/https_url" },
         "device_authorization_endpoint": { "$ref": "#/$defs/https_url" },
         "token_endpoint_auth_signing_alg_values_supported": {
-            "description": "RFC 8414 section 2. Accepted client-assertion algorithms, not delegation algorithms. Poppy requires ES256 and recommends PS384.",
+            "description": "RFC 8414 section 2. Accepted client-assertion algorithms, not delegation algorithms. Poppy requires ES256 and PS384.",
             "type": "array",
             "items": { "type": "string", "minLength": 1 }
         },
