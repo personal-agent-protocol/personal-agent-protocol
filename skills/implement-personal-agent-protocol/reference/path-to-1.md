@@ -39,103 +39,100 @@ Partners that have agreed to be listed, in alphabetical order.
 
 ### Companies
 
+- 1Password
+- Adyen
 - Affirm
 - Aflac
 - Agoda
+- Aircall
+- Akoya
+- Atomic
 - Aviva
 - Banco Sabadell
 - Bank of America
 - BBVA
+- Braze
+- Browserbase
+- Checkout.com
 - Chime
 - Cigna
+- Cisco
+- Cloudflare
 - Comcast
 - Cover Genius
 - Creditas
 - Crunch Fitness
 - Cue
 - Delta Air Lines
+- Descope
 - DIRECTV
 - EarnIn
+- ElevenLabs
+- Five9
 - FOX
+- Freshworks
+- Fullstory
 - Gap Inc.
 - GEICO
 - Gen Digital
+- Genesys
+- Global Payments
 - GoFundMe
 - GoodRx
 - Guardian
+- HealthEx
 - HelloFresh
 - Hertz
 - Hyatt
+- Infoblox
 - Insurify
 - Intuit
+- Kernel
 - Kin Insurance
+- Klaviyo
 - Lemonade
 - Liberty Global
 - Liberty Mutual
+- Mastercard
 - Mercury
 - Navy Federal Credit Union
 - Neptune Flood
+- NiCE
 - Nordstrom
+- Notion
+- Okta
+- OneSignal
 - Ora
 - PayPal/Venmo
+- Persona
+- Pindrop
+- Ping Identity
+- Plaid
+- Profound
 - Prosus
 - Remitly
 - Rocket
+- Runlayer
+- Salesforce (Fin, Commerce Cloud, and Agentforce)
+- Shopify
+- Sierra
 - SiriusXM
+- Socure
 - SoFi
+- Stripe
+- Symphony
 - Synchrony
 - Target
 - The Knot
 - The Zebra
 - Travelers
 - Turkish Airlines
+- Twilio
 - United Airlines
+- Visa
 - Walmart
 - Wayfair
 - Wells Fargo
-
-### Technology providers
-
-- 1Password
-- Adyen
-- Aircall
-- Akoya
-- Atomic
-- Braze
-- Browserbase
-- Checkout.com
-- Cisco
-- Cloudflare
-- Descope
-- ElevenLabs
-- Five9
-- Freshworks
-- Fullstory
-- Genesys
-- Global Payments
-- HealthEx
-- Infoblox
-- Kernel
-- Klaviyo
-- Mastercard
-- NiCE
-- Notion
-- Okta
-- OneSignal
-- Persona
-- Pindrop
-- Ping Identity
-- Plaid
-- Profound
-- Runlayer
-- Salesforce (Fin, Commerce Cloud, and Agentforce)
-- Shopify
-- Sierra
-- Socure
-- Stripe
-- Symphony
-- Twilio
-- Visa
 - Wix
 - WorkOS
 - Zapier
