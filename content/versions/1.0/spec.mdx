@@ -1680,8 +1680,9 @@ field and format defined here:
 Agent interprets them as it sees fit, and a Company MAY ignore them. Details of the request itself
 belong in `text` or `data`, not `context`.
 
-Any message can carry `context`, and fields it leaves out keep their previous values. A message with
-only `context` updates it without saying anything else, for example when the User steps away:
+Any message can carry `context`, and fields it leaves out keep their previous values. A field set to
+`null` clears it, as if the Personal Agent had never shared it. A message with only `context`
+updates it without saying anything else, for example when the User steps away:
 
 ```json label="Message: Personal Agent → Company"
 {
@@ -1701,9 +1702,15 @@ Company chooses. Only the Personal Agent sends `context`.
 - `name` is the author's display name, such as `Alex`.
 - `image` is the URL of the author's picture, for the Personal Agent to show next to the name.
 
-Only Company messages have `id`, `name`, and `image`, and each is optional. A Company whose messages
+Only Company messages have `id`, `name`, and `image`, and each is optional. A Company ignores them
+on the Personal Agent's messages, so a later version can define them there. A Company whose messages
 come from several people or AI personas MAY use them to say which one wrote each message. Like
 `text`, the author's name and picture are content from the Company (10.1).
+
+Later versions may add values of `role` and `author.type`. A Personal Agent treats a message with a
+`role` it doesn't recognize as content from the Company (10.1). Either side treats an `author.type`
+it doesn't recognize as `agent`, so a message is never taken to be a person's own words unless it
+says so.
 
 **Extensions.** `extensions` holds content defined by extensions (3.3), keyed by extension name, as
 in `poppy.json`. Each value is a JSON object in the format its extension defines. For example, a
@@ -1838,6 +1845,9 @@ data: {"message_id":"msg_r2Kq","text":"I can do that. "}
 The Personal Agent can show the pieces as they arrive, then replaces them with the complete
 `message` event. After a reconnect, it drops any
 pieces of a message it didn't receive in full.
+
+Personal Agents MUST skip stream events with an SSE `event` name they don't recognize, so later
+versions and extensions can add them.
 
 ### 8.7 State {#state}
 
@@ -2129,6 +2139,11 @@ OAuth error responses:
 | `invalid_request`          | 400    | The request is malformed, such as a missing request `id` (8.3), a message with no content (8.4), an ID with characters not allowed (8.2), or a `wait` that isn't a whole number of seconds. |
 | `extension_required`       | 403    | The request needs an extension it doesn't declare, named in `extension` (3.3).                                                                                                              |
 | `version_mismatch`         | 409    | The conversation started in other versions, and the Company doesn't continue it in these. The protocol version it started in is in `protocol_version` (8.2).                                |
+
+Later versions and extensions may add error codes. A Personal Agent handles an `error` it doesn't
+recognize by the response's HTTP status
+([RFC 9110, section 15](https://www.rfc-editor.org/rfc/rfc9110#section-15)), as it would an error
+with no code.
 
 ## 9. Task coverage {#task-coverage}
 

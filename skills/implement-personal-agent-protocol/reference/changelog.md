@@ -28,6 +28,24 @@ A Personal Agent MUST refresh with a proof from the DPoP key it got the refresh 
 
 ### Minor changes
 
+#### Clearing context
+
+[Spec 8.4](https://personalagentprotocol.org/docs/1.0/spec#message-fields)
+
+A `context` field set to `null` clears it, as if the Personal Agent had never shared it. Before, a fact the Personal Agent had shared, such as `locale`, couldn't be taken back.
+
+#### Room to extend conversations
+
+[Spec 8.4](https://personalagentprotocol.org/docs/1.0/spec#message-fields) · [Spec 8.6](https://personalagentprotocol.org/docs/1.0/spec#streaming) · [Spec 8.13](https://personalagentprotocol.org/docs/1.0/spec#conversation-errors)
+
+Conversations say how to handle values a later version or an extension adds, so 1.x versions can add them without breaking 1.0 implementations:
+
+- A Personal Agent treats a message with a `role` it doesn't recognize as content from the Company.
+- Either side treats an `author.type` it doesn't recognize as `agent`, so a message is taken to be a person's own words only when it says so.
+- A Company ignores `author.id`, `name`, and `image` on the Personal Agent's messages.
+- Personal Agents skip stream events with an SSE `event` name they don't recognize.
+- A Personal Agent handles an `error` code it doesn't recognize by the response's HTTP status.
+
 #### Lookalike domains
 
 [Spec 10.3](https://personalagentprotocol.org/docs/1.0/spec#trust) · [Issue #73](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/73)
