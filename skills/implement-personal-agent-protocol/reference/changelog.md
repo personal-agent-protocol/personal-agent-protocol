@@ -26,11 +26,23 @@ Breaking · [Spec 4.1](https://personalagentprotocol.org/docs/1.0/spec#agent-ide
 
 Companies must accept client assertions and delegations signed with `PS384`, as well as `ES256`. `PS384` was only recommended, so a Personal Agent that signs blindly, as 10.7 recommends, could be refused by a conforming Company, and for delegations would get only `invalid_session`. The guides drop the advice for Companies that lack `PS384`, and say to accept RSA keys of 2048 to 4096 bits.
 
+#### Consent for scopes granted before
+
+Breaking · [Spec 4.2](https://personalagentprotocol.org/docs/1.0/spec#direct-sign-in) · [Spec 4.3](https://personalagentprotocol.org/docs/1.0/spec#device-sign-in) · [Spec 10.8](https://personalagentprotocol.org/docs/1.0/spec#attacker-started-sign-in) · [Spec 11](https://personalagentprotocol.org/docs/1.0/spec#references)
+
+In Direct and Device Sign-In, the Company's consent page MUST list every scope it will grant, and MAY mark the ones the User already granted. A Direct Sign-In request MUST include `prompt=consent`, from OpenID Connect, unless the Personal Agent receives the redirect only on the device that opened the authorization URL. The Company SHOULD support `prompt=consent` and then show the page even when the account already granted every requested scope to the `client_id`, and SHOULD show the page for every Device Sign-In. Every User of a Personal Agent shares one `client_id`, so a Company that skipped the page or hid earlier scopes would give a sign-in another User started scopes the person approving never saw. Section 11 lists OpenID Connect Core for `prompt`.
+
 #### Same DPoP key at refresh
 
 Breaking · [Spec 4.4](https://personalagentprotocol.org/docs/1.0/spec#refresh-tokens) · [Spec 4.5](https://personalagentprotocol.org/docs/1.0/spec#access-tokens) · [Spec 4.8](https://personalagentprotocol.org/docs/1.0/spec#oauth-additions) · [Spec 10.7](https://personalagentprotocol.org/docs/1.0/spec#delegated-key-security) · [Guides: Rotating keys](https://personalagentprotocol.org/docs/1.0/guides#both-key-rotation) · [Guides: Storing tokens](https://personalagentprotocol.org/docs/1.0/guides#agent-tokens) · [Guides: Native and distributed apps](https://personalagentprotocol.org/docs/1.0/guides#agent-native-apps) · [Guides: Verifying the Session header](https://personalagentprotocol.org/docs/1.0/guides#company-session-header) · [Guides: Token lifetimes and sign-out](https://personalagentprotocol.org/docs/1.0/guides#company-lifetimes)
 
 A Personal Agent MUST refresh with a proof from the DPoP key it got the refresh token with. It keeps the key unless the User signs in again, or an extension the Company requires defines how to replace it. The guides no longer suggest rotating DPoP keys at refresh. A Company MAY bind refresh tokens to that key and reject a refresh with any other key. Client assertions can be available to every User of a Personal Agent (10.7), so before, a copied refresh token could get access tokens bound to a new key.
+
+#### UCP scope requests name every scope
+
+Breaking · [UCP 4](https://personalagentprotocol.org/docs/1.0/extensions/ucp#authorization) · [UCP 11](https://personalagentprotocol.org/docs/1.0/extensions/ucp#example)
+
+For `insufficient_scope` from a UCP operation, the Personal Agent requests every scope it still needs, as spec 4.7 describes, instead of only the missing scopes. The Company no longer keeps earlier scopes when it grants new ones: it grants only the scopes the request names. Before, it kept the scopes the account had granted to the `client_id`, and since every User of a Personal Agent shares one `client_id`, another User could start a sign-in for one scope, get someone to approve it, and receive a token carrying that person's earlier scopes too. The new request isn't account linking started over. The example now requests both scopes.
 
 ### Minor changes
 
@@ -85,6 +97,12 @@ The guides say that the discovery checks prove which domain publishes a `poppy.j
 [Guides: Describing scopes](https://personalagentprotocol.org/docs/1.0/guides#company-scope-descriptions)
 
 The company guide says a good scope description answers what the scope unlocks, when an agent should request it, and whether the task can be done without it, with good and bad examples. It explains scopes that aren't required but improve the result, such as personalized search or loyalty discounts at checkout, that whether a scope is required can differ between companies, and that a scope shouldn't be described only in the challenge for a failed call.
+
+#### Earlier scopes on the consent page
+
+[Guides: Consent pages](https://personalagentprotocol.org/docs/1.0/guides#company-consent)
+
+The consent page advice now says to mark which scopes are new but still list them all, and to show the page in Device Sign-In and for `prompt=consent` even when the User approved every scope before, following sections 4.2, 4.3, and 10.8.
 
 ## Version 0.4
 

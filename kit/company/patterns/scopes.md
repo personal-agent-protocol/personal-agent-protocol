@@ -33,8 +33,10 @@ permissions it grants:
   `irreversible`) and `personal_data` (`true` or `false`), both required (MUST, 4.7), judged by the
   most consequential operation that requires the scope. Leave out a scope you're unsure about. Add a
   column for the hints to the table.
-- On the consent page, present scopes in plain words, group related ones, and show which are new
-  when the User already granted some
+- On the consent page, present scopes in plain words, group related ones, and list every scope
+  the token will carry, marking which are new when the User already granted some. Don't leave
+  earlier scopes off because the account granted them before (MUST, 10.8). Show the page for
+  `prompt=consent` and in Device Sign-In even when every scope was granted before (SHOULD, 4.2, 4.3)
   ([guides](https://personalagentprotocol.org/docs/guides#company-consent)). A Personal Agent adding
   access requests every scope it still needs, including earlier scopes it wants to keep, and uses
   the new refresh token in place of the old one (4.7).

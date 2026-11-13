@@ -944,9 +944,14 @@ The page where the user approves access, in direct and device sign-in
   it, such as "Use example.com and example.co.uk as you" ([3.2](/docs/spec#oauth-server)). If any
   of those websites is unscoped, describe the scope as full access and set `web.unscoped` on every
   domain ([section 6](/docs/spec#web-browsing)).
-- When the user already granted some of the scopes, show which ones are new, so the user doesn't
-  review the whole list again. A personal agent that needs more access requests every scope it
-  needs again ([4.7](/docs/spec#scopes)).
+- When the user already granted some of the scopes, mark which ones are new, but still list them
+  all ([10.8](/docs/spec#attacker-started-sign-in)). A personal agent that needs more access
+  requests every scope it needs again ([4.7](/docs/spec#scopes)).
+- Show the page in device sign-in, and in direct sign-in when the request has `prompt=consent`,
+  even if the user approved every scope before. Skipping it there lets anyone who forwards a
+  sign-in link get access the person never saw ([4.2](/docs/spec#direct-sign-in),
+  [4.3](/docs/spec#device-sign-in)). Without `prompt=consent`, you can skip the page for scopes
+  the user already approved, as your server does for other clients.
 - Protect the page against cross-site request forgery, and against framing by other sites with
   `Content-Security-Policy: frame-ancestors`.
 - `redirect_uri` MUST exactly match an entry in the personal agent's `redirect_uris`

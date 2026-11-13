@@ -200,7 +200,7 @@ challenges ([spec 7](/docs/spec#apis)):
 | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `401` with `identity_required` and no `error` in the challenge       | Uses a refresh token that covers the scopes, or signs in for them, and retries ([spec 5.4](/docs/spec#sign-in)).                                       |
 | `401` with `error="invalid_token"`                                   | Refreshes the access token ([spec 4.4](/docs/spec#refresh-tokens)), or continues signed out if refresh fails ([spec 5.5](/docs/spec#ending-sessions)). |
-| `403` with `insufficient_scope` and the full required set in `scope` | Uses a refresh token that covers the scopes if it has one. Otherwise it requests the scopes it lacks (below) and retries.                              |
+| `403` with `insufficient_scope` and the full required set in `scope` | Uses a refresh token that covers the scopes if it has one. Otherwise it signs in for every scope it still needs (below) and retries.                   |
 | `identity_optional` in `messages`                                    | Tells the User what signing in would unlock, and signs in only if the User wants to.                                                                   |
 
 UCP's `identity_required` challenge carries `realm` and `resource_metadata`, and need not carry
@@ -210,14 +210,14 @@ UCP's binding says how the body appears, and they are never a successful result.
 handles them as it handles any API's challenge ([spec 7](/docs/spec#apis)), then retries the
 request.
 
-**Requesting more scopes.** For `insufficient_scope`, the Personal Agent follows UCP: it requests
-only the missing scopes, by incremental authorization, and doesn't start account linking over. This
-replaces [spec 4.7](/docs/spec#scopes)'s rule of requesting every scope still needed, for scope
-requests a UCP operation makes; other scope requests follow spec 4.7. A Company that offers identity
-linking MUST keep the scopes the User already granted when it grants the missing ones, so the new
-token covers both, including scopes for the Company's other APIs. The new refresh token replaces the
-old one, and the Personal Agent checks the token response's `scope` before continuing, as spec 4.7
-describes.
+**Requesting more scopes.** For `insufficient_scope`, the Personal Agent requests every scope it
+still needs, as [spec 4.7](/docs/spec#scopes) describes: the scopes the challenge names, and the
+scopes it already has and wants to keep, including scopes for the Company's other APIs. This is a
+new sign-in, not account linking started over, which UCP forbids. UCP's identity linking says to
+request only the missing scopes, but OAuth doesn't define how a Company would keep the earlier ones,
+so this extension doesn't use that rule. The Company grants only the scopes the request names (spec
+4.7), even when the User granted others before. The new refresh token replaces the old one, and the
+Personal Agent checks the token response's `scope` before continuing, as spec 4.7 describes.
 
 **The Accelerated IdP Flow.** UCP's identity linking also lets a platform present a grant from an
 identity provider the business trusts, in `config.providers`, instead of the browser sign-in. This
@@ -621,12 +621,13 @@ A month later the User asks where that order is. `get_order` with the same acces
 403 with
 `WWW-Authenticate: Bearer realm="https://auth.kettleandleaf.example", error="insufficient_scope", scope="dev.ucp.shopping.order:read"`
 and a body whose message code is `insufficient_scope` (4). The Personal Agent asks the User, then
-requests that one scope through Direct Sign-In; UCP requires incremental authorization here, so the
-scope the User already granted stays. It retries `get_order` with the new access token, and the
-order comes back. Had the User never signed in, the answer would have been HTTP 401 with
-`identity_required` and a `resource_metadata` pointing at
-`https://kettleandleaf.example/.well-known/oauth-protected-resource/api/ucp/mcp`, and the Personal
-Agent would have read the gating scope from the UCP profile's `config.scopes`.
+signs in through Direct Sign-In for `dev.ucp.shopping.order:read` and
+`dev.ucp.shopping.checkout:manage`, so the new token keeps the scope the User already granted. The
+Company's consent page lists both and marks `dev.ucp.shopping.order:read` as new. The Personal
+Agent retries `get_order` with the new access token, and the order comes back. Had the User never
+signed in, the answer would have been HTTP 401 with `identity_required` and a `resource_metadata`
+pointing at `https://kettleandleaf.example/.well-known/oauth-protected-resource/api/ucp/mcp`, and
+the Personal Agent would have read the gating scope from the UCP profile's `config.scopes`.
 
 **What a Personal Agent without this extension does.** It ignores `extensions.ucp` and finds the MCP
 endpoint in `apis`. If it speaks UCP's MCP binding, it lists the tools, sends its platform profile

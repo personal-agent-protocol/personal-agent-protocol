@@ -79,8 +79,9 @@ second account.
 - `redirect_uri` exactly matches an entry in the Personal Agent's `redirect_uris`, except for the
   port of a loopback redirect URI.
 - The consent page shows the Personal Agent's name and logo, the domain of its `client_id`, the
-  account, each scope in plain language, and how long access lasts. The User can approve some or
-  all scopes, or decline.
+  account, each scope in plain language, and how long access lasts. It lists every scope it will
+  grant, marking the ones the User already granted (MUST, 10.8). The User can approve some or all
+  scopes, or decline.
 - The sign-in page and the consent page start with a heading naming the Personal Agent that wants to
   connect, such as "Muse wants to connect to your Example account", and tell the User to continue
   only if they just asked it to.
@@ -90,6 +91,11 @@ second account.
   `pushed_authorization_request_endpoint`, and set `require_pushed_authorization_requests` to
   `true` if Personal Agents must use them (4.2). Accept the pushed request only with the client
   assertion, and give each `request_uri` a short lifetime.
+- Support `prompt=consent` (SHOULD, even without OpenID Connect): show the consent page even when
+  the account already granted every requested scope to the `client_id`. Personal Agents send it
+  unless the redirect comes back on the device that opened the link. Many authorization servers
+  remember consent by client; check that yours honors `prompt=consent` for Personal Agents
+  ([10.8](https://personalagentprotocol.org/docs/1.0/spec#attacker-started-sign-in)).
 
 **Device Sign-In** ([4.3](https://personalagentprotocol.org/docs/1.0/spec#device-sign-in)).
 
@@ -98,6 +104,8 @@ second account.
 - `device_authorization_endpoint` in the metadata, and
   `urn:ietf:params:oauth:grant-type:device_code` in its `grant_types_supported`.
 - The device authorization request and each poll at `token_endpoint` carry the client assertion.
+- Show the consent page for every request, even when the account already granted every requested
+  scope (SHOULD). This usually means turning off remembered consent for Personal Agents.
 - Put the verification page on the host of the issuer or `organization.domain`, or a subdomain of
   either. Personal Agents don't show a link anywhere else. With one issuer for several domains, a
   page on the issuer's host works for all of them.

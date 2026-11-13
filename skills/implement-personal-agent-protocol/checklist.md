@@ -409,17 +409,23 @@ Personal agents work faster and more reliably through a company agent or APIs th
 ### Specification: [4.2 Direct Sign-In](https://personalagentprotocol.org/docs/1.0/spec#direct-sign-in)
 
 - [ ] **MUST**: `redirect_uri` MUST exactly match an entry in the Personal Agent's `redirect_uris` (4.1), except for the port of a loopback redirect URI, as RFC 8252 §7.3 describes.
+- [ ] **SHOULD**: The Company SHOULD support `prompt=consent`, whether or not it supports OpenID Connect, and show its consent page for a request that includes it, even when the account already granted every requested scope to the `client_id` (10.8).
 
 ### Specification: [4.3 Device Sign-In](https://personalagentprotocol.org/docs/1.0/spec#device-sign-in)
 
 - [ ] **MUST**: Companies that offer Device Sign-In and Personal Agents that use it MUST follow the best practices in RFC 10027 (BCP 247) §2.
 - [ ] **MUST NOT**: Opening the link MUST NOT approve the request by itself.
+- [ ] **SHOULD**: The Company SHOULD show its consent page for every request, even when the account already granted every requested scope to the `client_id` (10.8).
 
 ### Specification: [4.7 Scopes and token responses](https://personalagentprotocol.org/docs/1.0/spec#scopes)
 
 - [ ] **SHOULD**: The Company SHOULD describe each scope it offers Personal Agents, so the Personal Agent can choose the ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it lists (section 7), or otherwise in `auth.scopes`.
 - [ ] **MUST**: A Company MUST include both fields in each entry.
 - [ ] **MUST NOT**: The Company MUST NOT grant scopes beyond those requested.
+
+### Specification: [10.8 Sign-ins someone else started](https://personalagentprotocol.org/docs/1.0/spec#attacker-started-sign-in)
+
+- [ ] **MUST**: In Direct and Device Sign-In, the Company's consent page MUST list every scope it will grant, except a `poppy:browser-sign-in` it MAY grant without asking (section 6).
 
 ### Mediated Sign-In: [1. Introduction](https://personalagentprotocol.org/docs/1.0/extensions/mediated-sign-in#intro)
 
@@ -471,7 +477,8 @@ The page where the user approves access, in direct and device sign-in (4.2, 4.3)
 - [ ] Point out scopes that allow changes that can't be undone or that show personal data, the scopes your `auth.scope_hints` mark `irreversible` or with `personal_data`.
 - [ ] When `poppy:browser-sign-in` allows everything the account can do on your website, say so in plain language, such as "Use the website as you, with full access to your account", and let the user leave it out while approving the rest (section 6).
 - [ ] When your issuer serves several domains, `poppy:browser-sign-in` signs the browser in on each of them that lists a `browser_session_endpoint`. Name those websites when you ask the user to approve it, such as "Use example.com and example.co.uk as you" (3.2). If any of those websites is unscoped, describe the scope as full access and set `web.unscoped` on every domain (section 6).
-- [ ] When the user already granted some of the scopes, show which ones are new, so the user doesn't review the whole list again. A personal agent that needs more access requests every scope it needs again (4.7).
+- [ ] When the user already granted some of the scopes, mark which ones are new, but still list them all (10.8). A personal agent that needs more access requests every scope it needs again (4.7).
+- [ ] Show the page in device sign-in, and in direct sign-in when the request has `prompt=consent`, even if the user approved every scope before. Skipping it there lets anyone who forwards a sign-in link get access the person never saw (4.2, 4.3). Without `prompt=consent`, you can skip the page for scopes the user already approved, as your server does for other clients.
 - [ ] Protect the page against cross-site request forgery, and against framing by other sites with `Content-Security-Policy: frame-ancestors`.
 - [ ] `redirect_uri` MUST exactly match an entry in the personal agent's `redirect_uris` (4.2).
 - [ ] Accept PKCE with `S256` only, and reject `plain`.

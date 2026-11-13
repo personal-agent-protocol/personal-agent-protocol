@@ -72,6 +72,7 @@ const SECTIONS: Record<string, Record<string, Milestone>> = {
         "assertion-audience": "foundation",
         credentials: "sign-in",
         "delegated-key-security": "foundation",
+        "attacker-started-sign-in": "sign-in",
     },
     "mediated-sign-in": {
         intro: "sign-in",

@@ -41,6 +41,19 @@ drop the advice for Companies that lack `PS384`, and say to accept RSA keys of 2
 
 </Change>
 
+<Change title="Consent for scopes granted before" breaking sections="4.2, 4.3, 10.8, 11">
+
+In Direct and Device Sign-In, the Company's consent page MUST list every scope it will grant, and
+MAY mark the ones the User already granted. A Direct Sign-In request MUST include `prompt=consent`,
+from OpenID Connect, unless the Personal Agent receives the redirect only on the device that opened
+the authorization URL. The Company SHOULD support `prompt=consent` and then show the page even when
+the account already granted every requested scope to the `client_id`, and SHOULD show the page for
+every Device Sign-In. Every User of a Personal Agent shares one `client_id`, so a Company that
+skipped the page or hid earlier scopes would give a sign-in another User started scopes the person
+approving never saw. Section 11 lists OpenID Connect Core for `prompt`.
+
+</Change>
+
 <Change title="Same DPoP key at refresh" breaking sections="4.4, 4.5, 4.8, 10.7, guides#both-key-rotation, guides#agent-tokens, guides#agent-native-apps, guides#company-session-header, guides#company-lifetimes">
 
 A Personal Agent MUST refresh with a proof from the DPoP key it got the refresh token with. It keeps
@@ -49,6 +62,18 @@ it. The guides no longer suggest rotating DPoP keys at refresh. A
 Company MAY bind refresh tokens to that key and reject a refresh with any other key. Client
 assertions can be available to every User of a Personal Agent (10.7), so before, a copied refresh
 token could get access tokens bound to a new key.
+
+</Change>
+
+<Change title="UCP scope requests name every scope" breaking sections="UCP 4, UCP 11">
+
+For `insufficient_scope` from a UCP operation, the Personal Agent requests every scope it still
+needs, as spec 4.7 describes, instead of only the missing scopes. The Company no longer keeps
+earlier scopes when it grants new ones: it grants only the scopes the request names. Before, it kept
+the scopes the account had granted to the `client_id`, and since every User of a Personal Agent
+shares one `client_id`, another User could start a sign-in for one scope, get someone to approve
+it, and receive a token carrying that person's earlier scopes too. The new request isn't account
+linking started over. The example now requests both scopes.
 
 </Change>
 
@@ -123,6 +148,14 @@ should request it, and whether the task can be done without it, with good and ba
 explains scopes that aren't required but improve the result, such as personalized search or
 loyalty discounts at checkout, that whether a scope is required can differ between companies, and
 that a scope shouldn't be described only in the challenge for a failed call.
+
+</Change>
+
+<Change title="Earlier scopes on the consent page" sections="guides#company-consent">
+
+The consent page advice now says to mark which scopes are new but still list them all, and to show
+the page in Device Sign-In and for `prompt=consent` even when the User approved every scope before,
+following sections 4.2, 4.3, and 10.8.
 
 </Change>
 

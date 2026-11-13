@@ -356,6 +356,7 @@ Poppy adds these rules to the grant:
 - `redirect_uri` MUST exactly match an entry in the Personal Agent's `redirect_uris` (4.1), except for the port of a loopback redirect URI, as [RFC 8252](https://www.rfc-editor.org/rfc/rfc8252) §7.3 describes.
 - The redirect back carries the Company's issuer in `iss` ([RFC 9207](https://www.rfc-editor.org/rfc/rfc9207)), including on `error=access_denied`. The Personal Agent MUST check that `iss` exactly matches the issuer of the Company it started sign-in with. This stops a response from another Company's sign-in being swapped in.
 - The token request carries the Personal Agent's client assertion (4.1).
+- Unless the Personal Agent receives the redirect only on the device that opened the authorization URL, as below, the authorization request MUST include `prompt=consent` ([OpenID Connect Core](https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest) §3.1.2.1). The Company SHOULD support `prompt=consent`, whether or not it supports OpenID Connect, and show its consent page for a request that includes it, even when the account already granted every requested scope to the `client_id` (10.8). A Company that doesn't support it ignores it, as RFC 6749 §3.1 requires for unknown parameters.
 
 **Pushed Authorization Requests.** A Company MAY require Pushed Authorization Requests (PAR, [RFC 9126](https://www.rfc-editor.org/rfc/rfc9126)) by setting `require_pushed_authorization_requests` to `true` in its issuer's metadata (3.2). The Personal Agent then MUST send the authorization request's parameters to the `pushed_authorization_request_endpoint` with its client assertion, and open the `authorization_endpoint` with only `client_id` and the `request_uri` it gets back. A Personal Agent SHOULD use PAR whenever the metadata lists the endpoint. The Company then knows which Personal Agent asked before the User sees its page, and nothing in the browser can change the request. A Personal Agent that sends DPoP proofs (4.5) sends one with the pushed request too, so the Company can bind the code to the key ([RFC 9449](https://www.rfc-editor.org/rfc/rfc9449) §10.1).
 
@@ -386,6 +387,7 @@ Poppy adds these rules to the grant:
 
 - The Personal Agent shows the User `verification_uri` and `user_code`, or `verification_uri_complete` as a link or QR code. It keeps `device_code` private. Before showing them, the Personal Agent MUST check that the link's host is the host of the Company's issuer or `organization.domain` (3.1), or a subdomain of either, and MUST show the Company's `organization.name` and domain with them. Otherwise a Company could pass off another Company's sign-in page as its own, and the User would approve a sign-in there for the Company that asked.
 - Opening the link MUST NOT approve the request by itself.
+- The Company SHOULD show its consent page for every request, even when the account already granted every requested scope to the `client_id` (10.8).
 - Each poll carries the client assertion. Once the User approves, the poll returns the tokens in 4.7.
 
 ### 4.4 Refresh tokens
@@ -1607,6 +1609,11 @@ The protocol accepts this risk, as OAuth does for cross-device flows, and limits
 - The Company's sign-in and consent pages name the Personal Agent that wants to connect, and tell the User to continue only if they just asked it to ([guides](https://personalagentprotocol.org/docs/1.0/guides#company-consent)). A person who doesn't use that Personal Agent, or didn't ask, can decline. This doesn't help when the person tricked uses the same Personal Agent.
 - Both sign-in types follow the best practices in RFC 10027 §2 (4.2, 4.3), such as short-lived requests and limited scopes.
 
+Every User of a Personal Agent shares one `client_id`, so a Company that decides what to show by what the account already granted to that `client_id` can show the person approving less than another User's request gets:
+
+- In Direct and Device Sign-In, the Company's consent page MUST list every scope it will grant, except a `poppy:browser-sign-in` it MAY grant without asking (section 6). It MAY mark the ones the User already granted. A Personal Agent that needs more access requests every scope again (4.7), so the page lists earlier scopes too.
+- A Company that skips the page because the account already granted every requested scope lets a forwarded link get tokens with no page at all. So a Personal Agent sends `prompt=consent` unless the redirect comes back to the device that opened the authorization URL, where a forwarded link fails, and 4.2 and 4.3 ask Companies to show the page for it and in Device Sign-In. A Company that doesn't leaves its Users open to this.
+
 ## 11. References
 
 This version uses these standards and versions:
@@ -1617,7 +1624,7 @@ This version uses these standards and versions:
 | Skills | [Agent Skills format](https://agentskills.io/specification), [Agent Skills discovery proposal, pinned revision](https://github.com/jonathanhefner/agentskills/blob/ab2ff8db3d5c9597985b06f94ea3caf1996ce82e/docs/well-known-uri.mdx), [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986) |
 | OAuth | [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749), [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750), [RFC 7009](https://www.rfc-editor.org/rfc/rfc7009), [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414), [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728) |
 | Sign-in | [RFC 7636](https://www.rfc-editor.org/rfc/rfc7636), [RFC 8252](https://www.rfc-editor.org/rfc/rfc8252), [RFC 8628](https://www.rfc-editor.org/rfc/rfc8628), [RFC 9207](https://www.rfc-editor.org/rfc/rfc9207) |
-| User IDs | [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html) |
+| User IDs and `prompt` | [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html) |
 | Agent identity and client authentication | [OAuth Client ID Metadata Document](https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/), [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523), [draft-ietf-oauth-rfc7523bis](https://datatracker.ietf.org/doc/draft-ietf-oauth-rfc7523bis/), [RFC 7638](https://www.rfc-editor.org/rfc/rfc7638), [RFC 7800](https://www.rfc-editor.org/rfc/rfc7800), [RFC 9474](https://www.rfc-editor.org/rfc/rfc9474) |
 | Token binding and audience | [RFC 9449](https://www.rfc-editor.org/rfc/rfc9449), [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707), [RFC 8725](https://www.rfc-editor.org/rfc/rfc8725) |
 | Web browsing | [RFC 9111](https://www.rfc-editor.org/rfc/rfc9111), [RFC 6265bis](https://datatracker.ietf.org/doc/draft-ietf-httpbis-rfc6265bis/) |
