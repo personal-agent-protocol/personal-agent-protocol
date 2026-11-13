@@ -45,6 +45,15 @@ token could get access tokens bound to a new key.
 
 ### Minor changes {#v1-0-minor}
 
+<Change title="Personal Agents choose their Companies" sections="4.1">
+
+Section 4.1 says that a Personal Agent decides which Companies it uses the protocol with, as a
+Company decides which Personal Agents it accepts. Implementing Poppy doesn't require using it with
+every Company that publishes `poppy.json`, and the requirements on Personal Agents apply when it
+does.
+
+</Change>
+
 <Change title="Clearing context" sections="8.4">
 
 A `context` field set to `null` clears it, as if the Personal Agent had never shared it. Before, a

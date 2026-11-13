@@ -332,6 +332,8 @@ A Personal Agent's `client_id` MUST be an HTTPS URL that returns its metadata do
 
 A Company decides which Personal Agents it accepts, and how it approves them is outside this specification. A refused Personal Agent gets the OAuth `invalid_client` error at the authorization server, or `invalid_session` at a resource (5.3). A Company can also accept a Personal Agent for signed-out Sessions but refuse it sign-in, or one sign-in type, with the OAuth `unauthorized_client` error from the grant's endpoint. The Personal Agent then continues signed out.
 
+Likewise, a Personal Agent decides which Companies it uses the protocol with. Implementing Poppy doesn't require using it with every Company that publishes `poppy.json`. The requirements on Personal Agents apply when it does.
+
 ### 4.2 Direct Sign-In
 
 Direct Sign-In is the OAuth 2.0 authorization code grant with PKCE ([RFC 6749](https://www.rfc-editor.org/rfc/rfc6749), [RFC 7636](https://www.rfc-editor.org/rfc/rfc7636)). The Personal Agent opens the Company's `authorization_endpoint` (3.2) in the User's browser, for example in a new tab, a popup, or a link sent to the User's phone. The User signs in however the Company allows, such as a password, a passkey, or an account with another provider, and approves some or all of the requested scopes, or declines. The Company sends the browser back to the Personal Agent's `redirect_uri` with a one-time `code`, which the Personal Agent exchanges at the `token_endpoint` for the tokens in 4.7.

@@ -509,6 +509,10 @@ server, or `invalid_session` at a resource (5.3). A Company can also accept a Pe
 signed-out Sessions but refuse it sign-in, or one sign-in type, with the OAuth
 `unauthorized_client` error from the grant's endpoint. The Personal Agent then continues signed out.
 
+Likewise, a Personal Agent decides which Companies it uses the protocol with. Implementing Poppy
+doesn't require using it with every Company that publishes `poppy.json`. The requirements on
+Personal Agents apply when it does.
+
 ### 4.2 Direct Sign-In {#direct-sign-in}
 
 Direct Sign-In is the OAuth 2.0 authorization code grant with PKCE ([RFC

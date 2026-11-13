@@ -28,6 +28,12 @@ A Personal Agent MUST refresh with a proof from the DPoP key it got the refresh 
 
 ### Minor changes
 
+#### Personal Agents choose their Companies
+
+[Spec 4.1](https://personalagentprotocol.org/docs/1.0/spec#agent-identity)
+
+Section 4.1 says that a Personal Agent decides which Companies it uses the protocol with, as a Company decides which Personal Agents it accepts. Implementing Poppy doesn't require using it with every Company that publishes `poppy.json`, and the requirements on Personal Agents apply when it does.
+
 #### Clearing context
 
 [Spec 8.4](https://personalagentprotocol.org/docs/1.0/spec#message-fields)
