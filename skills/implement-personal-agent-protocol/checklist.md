@@ -273,6 +273,10 @@ A company can offer personal agents less than its other OAuth clients get withou
 - [ ] **MUST**: The Company MUST reject it elsewhere.
 - [ ] **MUST**: It names the Company's issuer, not the Personal Agent: an MCP server that offers account access MUST include the Company's issuer in its `authorization_servers`.
 
+### Specification: [8.1 Conversation protocols](https://personalagentprotocol.org/docs/1.0/spec#conversation-protocols)
+
+- [ ] **MUST**: The Company MUST include a `description` in every entry, and MAY say the agent can help with anything.
+
 ### Specification: [8.2 Requests](https://personalagentprotocol.org/docs/1.0/spec#conversation-requests)
 
 - [ ] **MUST**: The Company MUST reject any other request, as the table shows:
@@ -360,7 +364,7 @@ Personal agents work faster and more reliably through a company agent or APIs th
 
 ### Recommended: [A conversation endpoint at another provider](https://personalagentprotocol.org/docs/1.0/guides#company-conversation-provider)
 
-- [ ] List the conversation endpoint in `agent.protocols` in the company's `poppy.json`.
+- [ ] List the conversation endpoint in `agent.protocols` in the company's `poppy.json`, with a `description` of what the provider's agent can help with for that company.
 - [ ] Use that endpoint URL as the service's resource identifier, including the tenant path so tokens for different companies have different audiences (RFC 8707 §3). Publish its protected resource metadata at the URL RFC 9728 §3.1 defines:
 - [ ] Configure the company's issuer to issue access tokens for that resource, with the scopes the conversation service uses. Publishing metadata alone doesn't configure the issuer or establish trust between the providers (RFC 8707 §2.2).
 - [ ] The personal agent discovers the resource and requests its access token from the company's issuer with `resource` set to the endpoint URL, at sign-in or refresh (4.5). The issuer can also list the resource in its `protected_resources` (3.2).

@@ -120,7 +120,8 @@ Content-Type: application/json
     "protocols": [
       {
         "type": "poppy",
-        "endpoint": "https://api.manzanitasupply.example/poppy/conversations"
+        "endpoint": "https://api.manzanitasupply.example/poppy/conversations",
+        "description": "Orders, returns, exchanges, and product questions"
       }
     ]
   },
@@ -657,7 +658,11 @@ Content-Type: application/json
   },
   "agent": {
     "protocols": [
-      { "type": "poppy", "endpoint": "https://api.laurelfiber.example/poppy/conversations" }
+      {
+        "type": "poppy",
+        "endpoint": "https://api.laurelfiber.example/poppy/conversations",
+        "description": "Anything about your plan, bills, service, and appointments"
+      }
     ]
   },
   "web": {

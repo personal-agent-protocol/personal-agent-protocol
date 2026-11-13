@@ -7,6 +7,17 @@ published version stays at its own URL, such as [/docs/0.1/spec](/docs/0.1/spec)
 
 In progress, at [/docs/spec](/docs/spec). This list grows until 1.0 is published.
 
+### Major changes {#v1-0-major}
+
+<Change title="Conversation protocol descriptions" breaking sections="3.1, 8.1, UCP 5, guides#company-conversation-provider">
+
+Each entry in `agent.protocols` has a required `description` that says what the agent at that
+endpoint can help with. The Personal Agent uses it to decide whether a conversation can serve the
+task at hand, and to choose between the entries, such as UCP Ask and a support agent from another
+provider, and the Company's APIs. It can say the agent can help with anything.
+
+</Change>
+
 ### Minor changes {#v1-0-minor}
 
 <Change title="Lookalike domains" sections="10.3" issue="73">

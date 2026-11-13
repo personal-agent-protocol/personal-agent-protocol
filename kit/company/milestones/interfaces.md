@@ -69,7 +69,8 @@ Patterns: `patterns/openapi.md`, `patterns/mcp.md`, `patterns/conversations.md`,
 
 ## Conversations
 
-- List the endpoint in `agent.protocols` with `type: "poppy"`
+- List the endpoint in `agent.protocols` with `type: "poppy"` and a `description` of what your agent
+  can help with. It's required, and it may say the agent can help with anything
   ([8.1](https://personalagentprotocol.org/docs/spec#conversation-protocols)).
 - Add `access: "signed_in"` if useful work requires account access from the start; otherwise omit
   it or use `"session"` ([3.2](https://personalagentprotocol.org/docs/spec#oauth-server)). Runtime

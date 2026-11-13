@@ -526,7 +526,7 @@ The two Outfitters storefronts share an issuer, so they are one company: a user 
 
 A company can use one provider for its website and OAuth issuer and another for its company agent. The conversation endpoint can be on the second provider's host ([4.5](https://personalagentprotocol.org/docs/1.0/spec#access-tokens)). For example, `example.com` serves `poppy.json`, its issuer is `https://auth.platform.example/shop-a`, and its conversation endpoint is `https://chat.provider.example/shops/shop-a/conversations`.
 
-- List the conversation endpoint in `agent.protocols` in the company's `poppy.json`.
+- List the conversation endpoint in `agent.protocols` in the company's `poppy.json`, with a `description` of what the provider's agent can help with for that company.
 - Use that endpoint URL as the service's resource identifier, including the tenant path so tokens for different companies have different audiences ([RFC 8707 §3](https://www.rfc-editor.org/rfc/rfc8707#section-3)). Publish its protected resource metadata at the URL [RFC 9728 §3.1](https://www.rfc-editor.org/rfc/rfc9728#section-3.1) defines:
 
 *GET https://chat.provider.example/.well-known/oauth-protected-resource/shops/shop-a/conversations*

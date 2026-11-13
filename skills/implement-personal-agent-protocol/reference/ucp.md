@@ -103,7 +103,11 @@ UCP's Ask capability (`dev.ucp.common.ask`) lets a Personal Agent ask a Company 
 ```
 "agent": {
   "protocols": [
-    { "type": "ucp", "endpoint": "https://example.com/.well-known/ucp" }
+    {
+      "type": "ucp",
+      "endpoint": "https://example.com/.well-known/ucp",
+      "description": "Questions about our products, policies, orders, and carts"
+    }
   ]
 }
 ```
@@ -111,7 +115,7 @@ UCP's Ask capability (`dev.ucp.common.ask`) lets a Personal Agent ask a Company 
 - A `ucp` entry's `endpoint` is the Company's UCP profile URL (2). The Personal Agent finds `dev.ucp.common.ask` among the profile's capabilities, and reaches it at the `dev.ucp.common` service's endpoint for a transport it supports.
 - A Company that lists a `ucp` entry MUST list this extension, and its UCP profile MUST offer `dev.ucp.common.ask`.
 - Requests follow UCP's Ask bindings and section 4 of this page, not [spec 8.2–8.13](https://personalagentprotocol.org/docs/1.0/spec#conversation-requests).
-- A Company MAY list a `poppy` entry too, for example a support agent run by another provider. Ask and a Company Agent are independent, and a Personal Agent uses whichever fits the task. This extension defines no relationship between them.
+- A Company MAY list a `poppy` entry too, for example a support agent run by another provider. Ask and a Company Agent are independent, and a Personal Agent uses whichever fits the task, going by each entry's `description` (spec 8.1). This extension defines no relationship between them.
 
 How the concepts map. The translation is small, and the two caveats below it are the whole of what doesn't carry over.
 
@@ -195,7 +199,13 @@ Kettle & Leaf sells tea at `kettleandleaf.example`.
     }
   },
   "agent": {
-    "protocols": [{ "type": "ucp", "endpoint": "https://kettleandleaf.example/.well-known/ucp" }]
+    "protocols": [
+      {
+        "type": "ucp",
+        "endpoint": "https://kettleandleaf.example/.well-known/ucp",
+        "description": "Questions about our teas, orders, and shipping"
+      }
+    ]
   },
   "web": {},
   "apis": [

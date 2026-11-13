@@ -236,7 +236,11 @@ Company can list in `agent.protocols` ([spec 8.1](/docs/spec#conversation-protoc
 ```json label="Excerpt from poppy.json"
 "agent": {
   "protocols": [
-    { "type": "ucp", "endpoint": "https://example.com/.well-known/ucp" }
+    {
+      "type": "ucp",
+      "endpoint": "https://example.com/.well-known/ucp",
+      "description": "Questions about our products, policies, orders, and carts"
+    }
   ]
 }
 ```
@@ -249,7 +253,8 @@ Company can list in `agent.protocols` ([spec 8.1](/docs/spec#conversation-protoc
 - Requests follow UCP's Ask bindings and section 4 of this page, not
   [spec 8.2–8.13](/docs/spec#conversation-requests).
 - A Company MAY list a `poppy` entry too, for example a support agent run by another provider. Ask
-  and a Company Agent are independent, and a Personal Agent uses whichever fits the task. This
+  and a Company Agent are independent, and a Personal Agent uses whichever fits the task, going by
+  each entry's `description` (spec 8.1). This
   extension defines no relationship between them.
 
 How the concepts map. The translation is small, and the two caveats below it are the whole of what
@@ -426,7 +431,13 @@ Kettle & Leaf sells tea at `kettleandleaf.example`.
     }
   },
   "agent": {
-    "protocols": [{ "type": "ucp", "endpoint": "https://kettleandleaf.example/.well-known/ucp" }]
+    "protocols": [
+      {
+        "type": "ucp",
+        "endpoint": "https://kettleandleaf.example/.well-known/ucp",
+        "description": "Questions about our teas, orders, and shipping"
+      }
+    ]
   },
   "web": {},
   "apis": [

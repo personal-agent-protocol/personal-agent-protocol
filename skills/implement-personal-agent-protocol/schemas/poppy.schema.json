@@ -82,7 +82,7 @@
                     "minItems": 1,
                     "items": {
                         "type": "object",
-                        "required": ["type", "endpoint"],
+                        "required": ["type", "endpoint", "description"],
                         "properties": {
                             "type": {
                                 "type": "string",
@@ -90,6 +90,11 @@
                             },
                             "endpoint": {
                                 "$ref": "#/$defs/https_url"
+                            },
+                            "description": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "What the agent at this endpoint can help with. It may say anything (spec 8.1)."
                             },
                             "access": {
                                 "type": "string",

@@ -6,6 +6,14 @@ What changed in each version of the specification, extensions, and guides, newes
 
 In progress, at [/docs/spec](https://personalagentprotocol.org/docs/1.0/spec). This list grows until 1.0 is published.
 
+### Major changes
+
+#### Conversation protocol descriptions
+
+Breaking · [Spec 3.1](https://personalagentprotocol.org/docs/1.0/spec#fields) · [Spec 8.1](https://personalagentprotocol.org/docs/1.0/spec#conversation-protocols) · [UCP 5](https://personalagentprotocol.org/docs/1.0/extensions/ucp#conversations) · [Guides: A conversation endpoint at another provider](https://personalagentprotocol.org/docs/1.0/guides#company-conversation-provider)
+
+Each entry in `agent.protocols` has a required `description` that says what the agent at that endpoint can help with. The Personal Agent uses it to decide whether a conversation can serve the task at hand, and to choose between the entries, such as UCP Ask and a support agent from another provider, and the Company's APIs. It can say the agent can help with anything.
+
 ### Minor changes
 
 #### Lookalike domains

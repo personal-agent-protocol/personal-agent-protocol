@@ -13,7 +13,11 @@ const poppy = {
     },
     agent: {
         protocols: [
-            { type: "poppy", endpoint: "https://api.alpine-retail.example/poppy/conversations" },
+            {
+                type: "poppy",
+                endpoint: "https://api.alpine-retail.example/poppy/conversations",
+                description: "Orders, returns, and product questions",
+            },
         ],
     },
 };
@@ -172,5 +176,14 @@ test("only AI-written messages say what they took into account", () => {
             author: { type: "agent" },
         }),
         [],
+    );
+});
+
+test("a conversation protocol without a description fails", () => {
+    const { description: _description, ...entry } = poppy.agent.protocols[0];
+    const errors = check("poppy.schema.json", { ...poppy, agent: { protocols: [entry] } });
+    assert.ok(
+        errors.some((e) => e.path === "/agent/protocols/0/description"),
+        JSON.stringify(errors),
     );
 });

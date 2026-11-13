@@ -1086,7 +1086,8 @@ The conversation endpoint can be on the second provider's host
 `https://auth.platform.example/shop-a`, and its conversation endpoint is
 `https://chat.provider.example/shops/shop-a/conversations`.
 
-- List the conversation endpoint in `agent.protocols` in the company's `poppy.json`.
+- List the conversation endpoint in `agent.protocols` in the company's `poppy.json`, with a
+  `description` of what the provider's agent can help with for that company.
 - Use that endpoint URL as the service's resource identifier, including the tenant path so tokens
   for different companies have different audiences ([RFC
   8707 §3](https://www.rfc-editor.org/rfc/rfc8707#section-3)). Publish its protected resource metadata

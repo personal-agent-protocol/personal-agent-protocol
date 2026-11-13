@@ -104,7 +104,8 @@ An example document:
     "protocols": [
       {
         "type": "poppy",
-        "endpoint": "https://api.example.com/poppy/conversations"
+        "endpoint": "https://api.example.com/poppy/conversations",
+        "description": "Anything about your orders, returns, account, and our products"
       }
     ]
   },
@@ -141,7 +142,7 @@ An example document:
 | `auth.disabled` | No | `true` if the Company offers Personal Agents no sign-in, even though it has an issuer (3.2). Defaults to `false`. |
 | `auth.scopes` | No | Scope descriptions, keyed by scope name, in the same form as the `scopes` of an OAuth 2.0 security scheme in OpenAPI. Recommended for scopes no OpenAPI description the Company lists describes, and used over an OpenAPI description of the same scope (4.7). |
 | `auth.scope_hints` | No | Hints about what each scope allows, keyed by scope name: `changes` and `personal_data` (4.7). They apply wherever the scope is described. |
-| `agent` | At least one of `agent`, `apis`, or `web` | The Company Agent. `protocols` lists its supported conversation protocols, each with a `type` and HTTPS `endpoint` (section 8). A `poppy` entry may include an `access` hint (3.2). |
+| `agent` | At least one of `agent`, `apis`, or `web` | The Company Agent. `protocols` lists its supported conversation protocols, each with a `type`, an HTTPS `endpoint`, and a `description` of what the agent there can help with (section 8). A `poppy` entry may include an `access` hint (3.2). |
 | `apis` | At least one of `agent`, `apis`, or `web` | A list of APIs. Each has a `type`, such as those in section 7, a `url`, and a short `description` that helps the Personal Agent pick the right one. |
 | `web` | At least one of `agent`, `apis`, or `web` | The Company's website. The optional `browser_session_endpoint` is where the Personal Agent's browser joins a Session (section 6). Without it, Personal Agents browse the site as ordinary signed-out visitors, unless `web.disabled` is set. |
 | `web.disabled` | No | `true` if the Company asks Personal Agents not to browse its website in a browser, and to use its Company Agent and APIs instead (section 6). Defaults to `false`. |
@@ -847,7 +848,11 @@ When the User wants to talk with the Company themselves, or the Company asks for
 
 ### 8.1 Conversation protocols
 
-A Company lists one or more conversation protocols in `agent.protocols`. Each entry has a `type` and an `endpoint`. The Personal Agent chooses a protocol it supports and uses that entry's endpoint for the conversation. It skips unfamiliar types. The currently defined protocol is:
+A Company lists one or more conversation protocols in `agent.protocols`. Each entry has a `type`, an `endpoint`, and a `description`. The Personal Agent chooses a protocol it supports and uses that entry's endpoint for the conversation. It skips unfamiliar types.
+
+An entry's `description` says, in plain language, what the agent at that endpoint can help with, so the Personal Agent can decide whether a conversation can serve the task at hand, and choose between the entries and the Company's APIs. Entries can reach different agents with different abilities, such as a UCP Ask endpoint for product questions and a support agent run by another provider. The Company MUST include a `description` in every entry, and MAY say the agent can help with anything.
+
+The currently defined protocol is:
 
 | Type | Protocol | Reference |
 | --- | --- | --- |

@@ -896,7 +896,15 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
             protocol_version: PROTOCOL_VERSION,
             organization: { name: "Shop", domain },
             auth: auth(which),
-            ...(flaws.noAgent ? {} : { agent: { protocols: [{ type: "poppy", endpoint: CONV }] } }),
+            ...(flaws.noAgent
+                ? {}
+                : {
+                      agent: {
+                          protocols: [
+                              { type: "poppy", endpoint: CONV, description: "Orders and returns" },
+                          ],
+                      },
+                  }),
             apis: [
                 { type: "openapi", url: `${ORIGIN}/openapi.json`, description: "Orders" },
                 { type: "mcp", url: MCP, description: "Search" },
