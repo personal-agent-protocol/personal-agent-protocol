@@ -1036,6 +1036,14 @@ personal agents can use, from least to most:
 4. **Signed-in browsing with your scopes.** Your website applies the same scopes as your APIs, so
    `poppy:browser-sign-in` adds nothing, and you can grant it without asking the user.
 
+If you offer OAuth and personal agents can browse your website, choose 3 or 4 and list a
+`browser_session_endpoint`. Without one, a user who signed in through the personal agent is signed
+out when it opens your website. Personal agents [don't type the user's password](#agent-browsing)
+into a website, so the user has to sign in a second time, in the personal agent's browser, or the
+task stops at the first page that needs the account. With the endpoint, the personal agent joins
+its browser to the session it already signed in, and the user signs in once
+([section 6](/docs/spec#web-browsing)).
+
 With a `browser_session_endpoint`, personal agents' browsing is in the same session as their API
 calls and conversations, signed in or out. The rest of this section is about that endpoint.
 

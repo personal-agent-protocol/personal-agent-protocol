@@ -110,6 +110,12 @@ The company guide says a good scope description answers what the scope unlocks, 
 
 The consent page advice now says to mark which scopes are new but still list them all, and to show the page in Device Sign-In and for `prompt=consent` even when the User approved every scope before, following sections 4.2, 4.3, and 10.8.
 
+#### Browser join with OAuth
+
+[Guides: Browser sessions](https://personalagentprotocol.org/docs/1.0/guides#company-browsing)
+
+The company guide advises a Company that offers OAuth and allows browsing to list a `browser_session_endpoint`, so a User who signed in through the Personal Agent doesn't have to sign in again on the website.
+
 ## Version 0.4
 
 Published November 10, 2026, as the 1.0 release candidate. It's frozen at [/docs/0.4/spec](https://personalagentprotocol.org/docs/0.4/spec). Major changes are design decisions. Minor changes fill gaps, make the text consistent, or follow an RFC. A change tagged "Breaking" can require an implementation that followed the 0.3 text to change, whether it's major or minor.
