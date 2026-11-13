@@ -132,9 +132,9 @@ An example document:
   },
   "auth": {
     "scopes": {
-      "orders:read": "See your orders, returns, and bookings",
-      "orders:write": "Exchange or return items, and change bookings",
-      "addresses": "See and change your saved shipping addresses",
+      "orders:read": "See your orders, returns, and bookings. Needed to track an order or find one to change",
+      "orders:write": "Exchange or return items, and change bookings. Needed for any change to an order",
+      "addresses": "See and change your saved shipping addresses. Not needed to enter an address at checkout",
       "poppy:browser-sign-in": "Use the website signed in, with the other access you approve"
     },
     "scope_hints": {
@@ -702,7 +702,10 @@ the Company's website (section 6).
 - The Company SHOULD describe each scope it offers Personal Agents, so the Personal Agent can choose the
   ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it
   lists (section 7), or otherwise in `auth.scopes`. When both describe a scope, the Personal Agent
-  uses the description in `auth.scopes`.
+  uses the description in `auth.scopes`. A description is most useful when it says what the scope
+  unlocks, which tasks need it, and whether a task can be completed without it, such as a scope
+  that only personalizes search results. The
+  [guides](/docs/guides#company-scope-descriptions) give examples.
 - A Company MAY give hints about any scope in `auth.scope_hints`, so a Personal Agent can tell how
   consequential a scope is before requesting it. Each entry is keyed by scope name and describes
   the most consequential of the actions that require the scope, in two fields:

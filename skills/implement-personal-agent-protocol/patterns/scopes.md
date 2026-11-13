@@ -24,7 +24,9 @@ permissions it grants:
   resources. Describe scopes in the OAuth security scheme of an OpenAPI description you list, or in `auth.scopes`, a map from
   scope name to description in the same form.
 - Write descriptions in words a User understands, specific enough for a language model to pick the
-  scopes a task needs. Say whether it only reads, whether a write scope also allows reading, which
+  scopes a task needs. Say what the scope unlocks, which tasks need it, and whether a task can be
+  completed without it, such as a scope that only personalizes search results or adds loyalty
+  discounts to a guest checkout. Say whether it only reads, whether a write scope also allows reading, which
   actions can't be undone, and what personal data it shows
   ([guides](https://personalagentprotocol.org/docs/1.0/guides#company-scope-descriptions)).
 - Add `auth.scope_hints` (MAY, 4.7): for each scope, `changes` (`none`, `reversible`, or

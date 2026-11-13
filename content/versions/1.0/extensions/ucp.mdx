@@ -179,7 +179,10 @@ Company's other APIs, and its conversations.
   rules.
 - The Personal Agent requests the scopes a task needs, from `config.scopes` for operations that
   require an account, and from the Company's other described scopes for ones that unlock more
-  without being required, such as member pricing.
+  without being required, such as member pricing. Many UCP scopes are of the second kind: catalog
+  search and checkout often work signed out. A Company says in each scope's description what the
+  scope adds and whether the operation works without it, so a Personal Agent knows when to request
+  it ([guides](/docs/guides#company-scope-descriptions)).
 
 **Through this extension, or independently.** A request made through this extension carries the
 Session header, and its account access comes only from this protocol's sign-in. Where this protocol
@@ -420,9 +423,9 @@ Kettle & Leaf sells tea at `kettleandleaf.example`.
   "organization": { "name": "Kettle & Leaf", "domain": "kettleandleaf.example" },
   "auth": {
     "scopes": {
-      "dev.ucp.shopping.catalog.search:read": "Search the catalog with your preferences",
-      "dev.ucp.shopping.checkout:manage": "Create, change, and complete checkouts, including payment",
-      "dev.ucp.shopping.order:read": "See your orders"
+      "dev.ucp.shopping.catalog.search:read": "Personalized search results, from your preferences and past orders. Not needed to search the catalog",
+      "dev.ucp.shopping.checkout:manage": "Check out signed in, with member pricing and your saved address and payment methods. Not needed to check out as a guest",
+      "dev.ucp.shopping.order:read": "See your orders. Needed to track an order or find one to return"
     },
     "scope_hints": {
       "dev.ucp.shopping.catalog.search:read": { "changes": "none", "personal_data": false },
@@ -600,8 +603,9 @@ platform profile URL. Then, for a User who asks whether the tea ships to Canada,
 The User picks a tea. The Personal Agent calls `search_catalog`, `create_cart`, and
 `create_checkout` with the cart's `id`, still signed out. The checkout comes back `incomplete`, with
 an `identity_optional` message: "Sign in for member pricing." The User has an account here and wants
-the discount, so the Personal Agent opens Direct Sign-In at the `authorization_endpoint` with
-`dev.ucp.shopping.checkout:manage`, the scope the Company accepts but never requires. The User signs
+the discount, which the scope's description had said checkout gives signed in. The Personal Agent
+opens Direct Sign-In at the `authorization_endpoint` with `dev.ucp.shopping.checkout:manage`, the
+scope the Company accepts but never requires. The User signs
 in on the Company's page, sees the Personal Agent's name and the one scope, and approves;
 `scope_hints` had already told the Personal Agent this scope is irreversible and touches personal
 data, so it asked the User first. The Personal Agent exchanges the code with its client assertion,

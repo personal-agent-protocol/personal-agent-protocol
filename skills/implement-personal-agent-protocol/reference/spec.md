@@ -89,9 +89,9 @@ An example document:
   },
   "auth": {
     "scopes": {
-      "orders:read": "See your orders, returns, and bookings",
-      "orders:write": "Exchange or return items, and change bookings",
-      "addresses": "See and change your saved shipping addresses",
+      "orders:read": "See your orders, returns, and bookings. Needed to track an order or find one to change",
+      "orders:write": "Exchange or return items, and change bookings. Needed for any change to an order",
+      "addresses": "See and change your saved shipping addresses. Not needed to enter an address at checkout",
       "poppy:browser-sign-in": "Use the website signed in, with the other access you approve"
     },
     "scope_hints": {
@@ -420,7 +420,7 @@ Scopes say what account access a sign-in grants. Each Company defines its own sc
 
 - `scopes_supported` in the OAuth server metadata, in the protected resource metadata of the domain the Personal Agent is working with, or in both, lists the scopes the Company supports (3.2). The Personal Agent uses the scopes in either list. It MAY also request scopes documented by the Company's APIs or sign-in extensions, even when absent from both. Either list MAY leave out scopes the Company offers only to its other clients, and the Company MAY limit the scopes it grants by client, as [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749#section-3.3) §3.3 allows.
 
-- The Company SHOULD describe each scope it offers Personal Agents, so the Personal Agent can choose the ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it lists (section 7), or otherwise in `auth.scopes`. When both describe a scope, the Personal Agent uses the description in `auth.scopes`.
+- The Company SHOULD describe each scope it offers Personal Agents, so the Personal Agent can choose the ones a task needs: in the scopes of an OAuth 2.0 security scheme in an OpenAPI description it lists (section 7), or otherwise in `auth.scopes`. When both describe a scope, the Personal Agent uses the description in `auth.scopes`. A description is most useful when it says what the scope unlocks, which tasks need it, and whether a task can be completed without it, such as a scope that only personalizes search results. The [guides](https://personalagentprotocol.org/docs/1.0/guides#company-scope-descriptions) give examples.
 
 - A Company MAY give hints about any scope in `auth.scope_hints`, so a Personal Agent can tell how consequential a scope is before requesting it. Each entry is keyed by scope name and describes the most consequential of the actions that require the scope, in two fields:
 

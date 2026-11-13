@@ -34,6 +34,12 @@ A Personal Agent MUST refresh with a proof from the DPoP key it got the refresh 
 
 Section 10.3 says that nothing in `poppy.json` confirms that the domain belongs to the company in `organization.name`, so a lookalike domain can pass every discovery check. The domain is the Company's identity, and choosing the right one for the User is up to the Personal Agent.
 
+#### What a scope description says
+
+[Spec 3](https://personalagentprotocol.org/docs/1.0/spec#discovery) · [Spec 4.7](https://personalagentprotocol.org/docs/1.0/spec#scopes) · [UCP 4](https://personalagentprotocol.org/docs/1.0/extensions/ucp#authorization) · [UCP 11](https://personalagentprotocol.org/docs/1.0/extensions/ucp#example)
+
+Section 4.7 says a scope description is most useful when it says what the scope unlocks, which tasks need it, and whether a task can be completed without it, and points to the guides for examples. The descriptions in the `poppy.json` examples in section 3 and UCP 11 now say this, including UCP scopes that improve catalog search and checkout without being required for them. UCP 4 says a Company describes what such a scope adds and whether the operation works without it. No field is added: descriptions stay plain language.
+
 ### Guides
 
 Advice that goes with the spec. Guides aren't requirements.
@@ -43,6 +49,12 @@ Advice that goes with the spec. Guides aren't requirements.
 [Guides: Finding a company](https://personalagentprotocol.org/docs/1.0/guides#agent-discovery) · [Issue #73](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/73)
 
 The guides say that the discovery checks prove which domain publishes a `poppy.json`, not that the domain belongs to the company in `organization.name`. They advise Personal Agents to help the User understand that the name isn't confirmed, and to show the domain with it when they aren't sure the domain is the one the User means.
+
+#### What a good scope description says
+
+[Guides: Describing scopes](https://personalagentprotocol.org/docs/1.0/guides#company-scope-descriptions)
+
+The company guide says a good scope description answers what the scope unlocks, when an agent should request it, and whether the task can be done without it, with good and bad examples. It explains scopes that aren't required but improve the result, such as personalized search or loyalty discounts at checkout, that whether a scope is required can differ between companies, and that a scope shouldn't be described only in the challenge for a failed call.
 
 ## Version 0.4
 

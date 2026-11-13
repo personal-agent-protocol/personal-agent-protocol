@@ -446,9 +446,14 @@ Personal agents work faster and more reliably through a company agent or APIs th
 
 ### Recommended: [Describing scopes](https://personalagentprotocol.org/docs/1.0/guides#company-scope-descriptions)
 
-Describe the scopes you offer personal agents, in the OAuth security scheme of an OpenAPI description you list or in `auth.scopes` (SHOULD, 4.7). Personal agents read them to choose scopes, and a language model often does the choosing:
+A description gives the personal agent context on what the scope is for and when to request it. A good one answers three questions:
 
-- [ ] Say what the scope lets the personal agent see or do, in words a user understands.
+- [ ] What does it unlock? What the personal agent can see or do with it, in words a user understands.
+- [ ] When should an agent request it? The tasks that need it, named the way a user would ask for them, such as tracking an order or starting a return.
+- [ ] Can the task be done without it? Some scopes aren't required for any call, and only make the result better. Catalog search might work signed out, and return personalized results with a scope. Checkout might work as a guest, and apply store credit and loyalty discounts when signed in. An insurer might give limited quotes signed out and full quotes signed in, and a brokerage delayed prices signed out and real-time prices signed in. Say what the scope adds and that the task works without it.
+
+Also:
+
 - [ ] Be specific enough for a model to match a task to the scopes it needs. "See your orders and returns" works better than "Read access".
 - [ ] Say whether the scope only reads, and whether a write scope also allows reading.
 - [ ] Say in words which actions can't be undone and what personal data the scope shows.
