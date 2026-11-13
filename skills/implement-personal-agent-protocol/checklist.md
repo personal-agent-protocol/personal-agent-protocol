@@ -134,9 +134,9 @@ Client assertions, delegations, Session JWTs, and DPoP proofs are JWTs. To sign 
 - [ ] Publish a new key in `jwks_uri` before signing with it, early enough for companies' caches to pick it up.
 - [ ] Keep an old public key published until every client assertion and delegation signed with it has expired.
 - [ ] Personal agents: rotate delegated keys as often as you like. Each Session JWT carries its own delegation, so companies don't depend on a delegated key lasting (5.2).
-- [ ] Personal agents: rotate DPoP keys as often as you like too, but use each one for one user ID only (MUST, 4.5). Send a proof with the new key when you refresh, and the new access token is bound to it.
+- [ ] Personal agents: don't rotate DPoP keys. Use each one for one user ID only (4.5), and refresh with the key you got the refresh token with (MUST, 4.4). To move to a new key, have the user sign in again, or use the replacement procedure of an extension the company requires.
 - [ ] Companies refetch `jwks_uri` when they see an unknown `kid`. The refetch happens before any signature is checked, so anyone can trigger it by naming a real personal agent and a made-up `kid`. Refetch each `jwks_uri` at most once per interval, such as 30 seconds, and count failed fetches too. Otherwise a stream of bad assertions can flood the personal agent's server.
-- [ ] Rotating signing keys doesn't affect refresh tokens. They are tied to the `client_id`, not a key (4.4).
+- [ ] Rotating the keys in `jwks_uri` doesn't affect refresh tokens. They are tied to the `client_id`, and to a DPoP key only if the company binds them to one (4.4).
 
 ### Recommended: [Fetching metadata safely](https://personalagentprotocol.org/docs/1.0/guides#both-fetching)
 
@@ -201,7 +201,7 @@ Verify Session headers generally (SHOULD, 5.3). Complete all checks before trust
 - [ ] If you keep a replay cache keyed by `jti`, hold entries for the acceptance window and share it across every server. Otherwise a JWT accepted by one server can be replayed at another (5.3).
 - [ ] Check `ath` against the access token, and that the token was issued to the JWT's `iss`. Reject an absent header when the request depends on Session claims (MUST, 5.3). Don't use an unverified `iss`, `sub`, or `sid` for attribution, rate limits by identity, cache keys, or state lookup.
 - [ ] Return `invalid_session` for a failed check, and keep access token errors in `WWW-Authenticate`, as OAuth does (section 7).
-- [ ] Binding access tokens with DPoP is your choice (4.5), and you can choose for each service. If you do, verify the proof as RFC 9449 describes, separately from the Session JWT. For a service that doesn't verify proofs, such as an MCP server built for ordinary MCP clients, have your authorization server issue Bearer tokens for its `resource`. If your authorization server can't issue DPoP-bound tokens, verifying the Session JWT and its `ath` binds the token to the personal agent's key. Endpoints that skip Session verification lose that extra protection.
+- [ ] Binding access tokens with DPoP is your choice (4.5), and you can choose for each service. If you do, verify the proof as RFC 9449 describes, separately from the Session JWT. For a service that doesn't verify proofs, such as an MCP server built for ordinary MCP clients, have your authorization server issue Bearer tokens for its `resource`. If your authorization server can't issue DPoP-bound tokens, verifying the Session JWT and its `ath` binds the token to the personal agent's key. Endpoints that skip Session verification lose that extra protection. Binding refresh tokens to the same key is your choice too (4.4, Token lifetimes).
 - [ ] At an MCP server, accept a token issued for its `resource` only at that server (MUST, section 7). Accept the Session header there too, if you want its calls tied to sessions. Signed-out calls that use no Session state can work without verification.
 - [ ] Pages on the host that serves your `poppy.json` can get the Session header too, from personal agents that fetch them without a browser, and never with an access token (5.2). Verify it before using it, for example to recognize the personal agent or to keep the request in its session. Treat the request as signed out, even when the session's browser is signed in. When the check fails, return `invalid_session` as at any endpoint (5.3), so the personal agent can find the mistake.
 - [ ] Serve personal agent conversations only from your conversation endpoint (8.2). If your website chat or other channels can open the same conversations, they may not check the Session header, and anyone with a copied token could read them there.
@@ -441,7 +441,8 @@ Personal agents work faster and more reliably through a company agent or APIs th
 - [ ] Give refresh tokens a lifetime that fits the account, such as 90 days, and expire ones that go unused sooner. Keep it long enough that users don't have to sign in again often.
 - [ ] Revoke a user's refresh tokens when they reset their password or you suspect the account is compromised.
 - [ ] Consider issuing a new refresh token on each refresh and revoking the grant when an old one is used again, as RFC 9700 §4.14.2 describes. If a refresh token is copied, the grant ends as soon as both copies have been used.
-- [ ] If a personal agent's signing key may have leaked, revoke every refresh token issued to its `client_id`. Its refresh tokens are tied to the `client_id`, not to a DPoP key (RFC 9449 §5).
+- [ ] Where account access has meaningful consequences, bind refresh tokens to the DPoP key they were issued with (4.4), so a copied refresh token is useless without the key.
+- [ ] If a personal agent's signing key may have leaked, revoke every refresh token issued to its `client_id` that isn't bound to a DPoP key (4.4).
 
 ### Recommended: [Describing scopes](https://personalagentprotocol.org/docs/1.0/guides#company-scope-descriptions)
 
@@ -471,7 +472,7 @@ The page where the user approves access, in direct and device sign-in (4.2, 4.3)
 - [ ] `redirect_uri` MUST exactly match an entry in the personal agent's `redirect_uris` (4.2).
 - [ ] Accept PKCE with `S256` only, and reject `plain`.
 - [ ] Return `iss` in every redirect, success or error (4.2). Personal agents reject a redirect without it.
-- [ ] For extra protection, support Pushed Authorization Requests (RFC 9126).
+- [ ] For extra protection, support Pushed Authorization Requests (RFC 9126), and require them where sign-in grants access with meaningful consequences, such as payments. Personal agents then have to use them (4.2). Give each `request_uri` a lifetime of a minute or two.
 
 ### Recommended: [Device sign-in](https://personalagentprotocol.org/docs/1.0/guides#company-device)
 

@@ -18,6 +18,31 @@ provider, and the Company's APIs. It can say the agent can help with anything.
 
 </Change>
 
+<Change title="Pushed Authorization Requests" breaking sections="3.2, 4.2, 4.8, guides#agent-direct-device, guides#company-consent">
+
+A Company MAY require Pushed Authorization Requests ([RFC
+9126](https://www.rfc-editor.org/rfc/rfc9126)) for Direct Sign-In, with
+`require_pushed_authorization_requests` in its issuer's metadata. A Personal Agent then MUST push the
+request with its client assertion and open the `authorization_endpoint` with only `client_id` and
+`request_uri`, and SHOULD use PAR whenever the Company offers it. It sends a DPoP proof with the
+pushed request, so the code is bound to the key. Because a `request_uri` expires quickly, a link the
+User opens later SHOULD go to the Personal Agent's own page, which pushes the request when it's
+opened. Before, a Personal Agent that followed the text couldn't sign in at a Company that required
+PAR, as FAPI 2.0 does.
+
+</Change>
+
+<Change title="Same DPoP key at refresh" breaking sections="4.4, 4.5, 4.8, 10.7, guides#both-key-rotation, guides#agent-tokens, guides#agent-native-apps, guides#company-session-header, guides#company-lifetimes">
+
+A Personal Agent MUST refresh with a proof from the DPoP key it got the refresh token with. It keeps
+the key unless the User signs in again, or an extension the Company requires defines how to replace
+it. The guides no longer suggest rotating DPoP keys at refresh. A
+Company MAY bind refresh tokens to that key and reject a refresh with any other key. Client
+assertions can be available to every User of a Personal Agent (10.7), so before, a copied refresh
+token could get access tokens bound to a new key.
+
+</Change>
+
 ### Minor changes {#v1-0-minor}
 
 <Change title="Lookalike domains" sections="10.3" issue="73">

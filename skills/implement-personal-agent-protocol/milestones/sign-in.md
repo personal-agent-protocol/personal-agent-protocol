@@ -86,6 +86,10 @@ second account.
   only if they just asked it to.
 - Every redirect, success or error, carries `iss`.
 - The code exchange takes the client assertion.
+- Pushed Authorization Requests (RFC 9126), if the design supports them: list
+  `pushed_authorization_request_endpoint`, and set `require_pushed_authorization_requests` to
+  `true` if Personal Agents must use them (4.2). Accept the pushed request only with the client
+  assertion, and give each `request_uri` a short lifetime.
 
 **Device Sign-In** ([4.3](https://personalagentprotocol.org/docs/1.0/spec#device-sign-in)).
 
@@ -123,10 +127,13 @@ second account.
 
 - The `refresh_token` grant with the client assertion. Accept a refresh token only at
   `token_endpoint` and `revocation_endpoint`, and only from the `client_id` it was issued to.
-- A refresh token isn't tied to a Session or a key. Any of the User's Sessions can use access tokens
-  from it.
-- `scope` can narrow, never widen. `resource` asks for a token for one service. Rotation is
-  optional.
+- A refresh token isn't tied to a Session. Any of the User's Sessions can use access tokens from it.
+- With DPoP, you may bind a refresh token to the key of the proof it was issued with. Then reject a
+  refresh whose proof is missing or from another key with `invalid_grant`. The Personal Agent keeps
+  that key unless the User signs in again, or an extension you require defines how to replace it
+  (4.4).
+- `scope` can narrow, never widen. `resource` asks for a token for one service. Refresh token
+  rotation is optional.
 - Expired or revoked: `invalid_grant`, and the Personal Agent continues signed out.
 
 **Signing out** ([4.6](https://personalagentprotocol.org/docs/1.0/spec#revocation)). RFC 7009 revocation
@@ -188,8 +195,8 @@ ask the User to approve it.
 - A refresh token accepted from any `client_id`, or at an API (4.4).
 - Using Session claims with an access token without verifying the header, `ath`, and that the token
   was issued to the Session JWT's `iss` (5.3).
-- Expecting a Session parameter, a DPoP key, or a User ID at the token endpoint. Sign-in doesn't
-  know the Session.
+- Expecting a Session parameter or a User ID at the token endpoint. Sign-in doesn't know the
+  Session.
 - Revoking the refresh token but letting its access tokens keep working for hours (5.5).
 - Scope checks only in the API layer, so the Company Agent or a live agent can do what the token
   doesn't allow (4.7).

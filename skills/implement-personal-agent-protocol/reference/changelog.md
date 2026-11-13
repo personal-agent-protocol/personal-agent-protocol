@@ -14,6 +14,18 @@ Breaking · [Spec 3.1](https://personalagentprotocol.org/docs/1.0/spec#fields) �
 
 Each entry in `agent.protocols` has a required `description` that says what the agent at that endpoint can help with. The Personal Agent uses it to decide whether a conversation can serve the task at hand, and to choose between the entries, such as UCP Ask and a support agent from another provider, and the Company's APIs. It can say the agent can help with anything.
 
+#### Pushed Authorization Requests
+
+Breaking · [Spec 3.2](https://personalagentprotocol.org/docs/1.0/spec#oauth-server) · [Spec 4.2](https://personalagentprotocol.org/docs/1.0/spec#direct-sign-in) · [Spec 4.8](https://personalagentprotocol.org/docs/1.0/spec#oauth-additions) · [Guides: Direct and device sign-in](https://personalagentprotocol.org/docs/1.0/guides#agent-direct-device) · [Guides: Consent pages](https://personalagentprotocol.org/docs/1.0/guides#company-consent)
+
+A Company MAY require Pushed Authorization Requests ([RFC 9126](https://www.rfc-editor.org/rfc/rfc9126)) for Direct Sign-In, with `require_pushed_authorization_requests` in its issuer's metadata. A Personal Agent then MUST push the request with its client assertion and open the `authorization_endpoint` with only `client_id` and `request_uri`, and SHOULD use PAR whenever the Company offers it. It sends a DPoP proof with the pushed request, so the code is bound to the key. Because a `request_uri` expires quickly, a link the User opens later SHOULD go to the Personal Agent's own page, which pushes the request when it's opened. Before, a Personal Agent that followed the text couldn't sign in at a Company that required PAR, as FAPI 2.0 does.
+
+#### Same DPoP key at refresh
+
+Breaking · [Spec 4.4](https://personalagentprotocol.org/docs/1.0/spec#refresh-tokens) · [Spec 4.5](https://personalagentprotocol.org/docs/1.0/spec#access-tokens) · [Spec 4.8](https://personalagentprotocol.org/docs/1.0/spec#oauth-additions) · [Spec 10.7](https://personalagentprotocol.org/docs/1.0/spec#delegated-key-security) · [Guides: Rotating keys](https://personalagentprotocol.org/docs/1.0/guides#both-key-rotation) · [Guides: Storing tokens](https://personalagentprotocol.org/docs/1.0/guides#agent-tokens) · [Guides: Native and distributed apps](https://personalagentprotocol.org/docs/1.0/guides#agent-native-apps) · [Guides: Verifying the Session header](https://personalagentprotocol.org/docs/1.0/guides#company-session-header) · [Guides: Token lifetimes and sign-out](https://personalagentprotocol.org/docs/1.0/guides#company-lifetimes)
+
+A Personal Agent MUST refresh with a proof from the DPoP key it got the refresh token with. It keeps the key unless the User signs in again, or an extension the Company requires defines how to replace it. The guides no longer suggest rotating DPoP keys at refresh. A Company MAY bind refresh tokens to that key and reject a refresh with any other key. Client assertions can be available to every User of a Personal Agent (10.7), so before, a copied refresh token could get access tokens bound to a new key.
+
 ### Minor changes
 
 #### Lookalike domains

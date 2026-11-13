@@ -314,6 +314,9 @@ The Personal Agent uses these fields of the metadata:
   `authorization_code`.
 - `device_authorization_endpoint` starts Device Sign-In (4.3). Required if `grant_types_supported`
   includes `urn:ietf:params:oauth:grant-type:device_code`.
+- `pushed_authorization_request_endpoint` accepts Pushed Authorization Requests, and
+  `require_pushed_authorization_requests` set to `true` says Direct Sign-In needs them ([RFC
+  9126](https://www.rfc-editor.org/rfc/rfc9126) §5). Optional (4.2).
 - `scopes_supported` lists the scopes the issuer supports, as RFC 8414 §2 defines. A Company that
   offers sign-in SHOULD list every scope a Personal Agent can request here, in `scopes_supported`
   of its protected resource metadata (above), or in both (4.7).
@@ -539,6 +542,21 @@ Poppy adds these rules to the grant:
   with. This stops a response from another Company's sign-in being swapped in.
 - The token request carries the Personal Agent's client assertion (4.1).
 
+**Pushed Authorization Requests.** A Company MAY require Pushed Authorization Requests (PAR, [RFC
+9126](https://www.rfc-editor.org/rfc/rfc9126)) by setting `require_pushed_authorization_requests` to
+`true` in its issuer's metadata (3.2). The Personal Agent then MUST send the authorization request's
+parameters to the `pushed_authorization_request_endpoint` with its client assertion, and open the
+`authorization_endpoint` with only `client_id` and the `request_uri` it gets back. A Personal Agent
+SHOULD use PAR whenever the metadata lists the endpoint. The Company then knows which Personal Agent
+asked before the User sees its page, and nothing in the browser can change the request. A Personal
+Agent that sends DPoP proofs (4.5) sends one with the pushed request too, so the Company can bind the
+code to the key ([RFC 9449](https://www.rfc-editor.org/rfc/rfc9449) §10.1).
+
+A `request_uri` expires quickly, after the `expires_in` the Company returns with it. When the
+Personal Agent sends the User a link to open later, such as on their phone, it SHOULD link to a page
+of its own that pushes the request when the User opens it and then redirects to the
+`authorization_endpoint`.
+
 Nothing in the redirect says who approved the sign-in. Opened on another device, such as from a link
 sent to the User's phone, Direct Sign-In is a cross-device flow like Device Sign-In: someone can
 start a sign-in, send the link to another person, and get tokens for that person's account if they
@@ -603,9 +621,22 @@ has the token fields in 4.7.
   response has one, and keeps the old one otherwise.
 - A refresh token isn't tied to a Session. Any of the User's Sessions can use access tokens from it
   (5.4).
-- A copied refresh token is useless without a client assertion from the Personal Agent. If the
-  Personal Agent signs blindly, its other Users can get client assertions too, so it protects
-  refresh tokens in other ways (10.7).
+- A copied refresh token is useless without a client assertion from the Personal Agent, and without
+  the DPoP key when the Company binds it to one (below). If the Personal Agent signs blindly, its
+  other Users can get client assertions too, so it protects refresh tokens in other ways (10.7).
+
+**DPoP keys at refresh.** A Personal Agent that sends a DPoP proof when it gets a refresh token
+(4.5) MUST send a proof from the same key with every refresh of that refresh token, and of the
+refresh tokens that replace it. It keeps the key unless the User signs in again, or an extension
+the Company requires (3.3) defines how to replace it, for example when the Personal Agent moves its
+keys to a new signer. A Company MAY bind a refresh token to the key of the DPoP proof in the request
+that issued it, along with the refresh tokens that replace it. It then rejects a refresh whose proof
+is missing or from another key with `invalid_grant`, and issues nothing bound to that key, except
+through such an extension's replacement procedure. [RFC
+9449](https://www.rfc-editor.org/rfc/rfc9449) §5 leaves a confidential client's refresh tokens
+unbound, because client authentication already limits who can use them. Here, client assertions
+can be available to every User of a Personal Agent (10.7), and without the binding, a copied
+refresh token could be used with any new DPoP key.
 
 ### 4.5 Access tokens {#access-tokens}
 
@@ -617,7 +648,8 @@ because a Personal Agent that doesn't can't sign in at a Company that requires i
 that supports it sends a DPoP proof with its token requests when the issuer's metadata lists
 `dpop_signing_alg_values_supported` ([RFC 9449](https://www.rfc-editor.org/rfc/rfc9449) §5.1), so
 the Company can bind the tokens. The Personal Agent MUST use each DPoP key for one User ID only,
-for the same reason as delegated keys (5.2). The Company decides for each token whether to bind it, and returns
+for the same reason as delegated keys (5.2), and keeps it for every refresh of the refresh tokens it
+got with it (4.4). The Company decides for each token whether to bind it, and returns
 `token_type` `Bearer` for one it doesn't bind, as RFC 9449 §5 allows, such as a token for a service
 that doesn't accept DPoP. A signed-in
 request also carries the Session header (5.2), whose `ath` covers the access token.
@@ -738,10 +770,11 @@ Poppy's rate limits, and section 3.3 describes `extension_required`.
   authenticated with `private_key_jwt` and an assertion addressed to the issuer, with its `jwks_uri`
   and `redirect_uris` on the `client_id`'s domain (4.1); `revocation_endpoint` and
   `grant_types_supported`, including `refresh_token`, in the issuer's metadata (3.2); `iss` in every
-  authorization response, and exact matching of `redirect_uri` as RFC 9700 requires (4.2); RFC
-  10027's best practices for Device Sign-In, and a check of the sign-in link's host (4.3); a
-  refresh token from every sign-in (4.4); and `scope` on every sign-in request, with at least one
-  scope granted and none beyond those requested (4.7).
+  authorization response, exact matching of `redirect_uri` as RFC 9700 requires, and PAR when the
+  Company requires it (4.2); RFC 10027's best practices for Device Sign-In, and a check of the
+  sign-in link's host (4.3); a refresh token from every sign-in, refreshed with the DPoP key it was
+  issued with (4.4); and `scope` on every sign-in request, with at least one scope granted and none
+  beyond those requested (4.7).
 - **Discovery and descriptions:** `poppy.json`, including `auth.disabled` to offer no sign-in and
   `web.disabled` to ask Personal Agents not to browse, supported versions, described scopes, and
   scope hints (section 3, 4.7).
@@ -2477,7 +2510,11 @@ The same goes for an access token: another User can make the Session JWT that ha
 (5.3).
 The same holds whenever Users' devices can get client assertions, blindly or not. A Personal Agent
 that signs blindly, or otherwise lets devices get client assertions, keeps refresh and access tokens on the User's device, protected as its other secrets are (10.2),
-and limits how many signatures each User can get.
+and limits how many signatures each User can get. A Company that binds refresh tokens and access
+tokens to DPoP keys (4.4, 4.5) narrows the gap: a token copied from one User is useless without that
+User's DPoP key, which the Personal Agent uses for that User only. That holds only while other Users
+can't get proofs signed with the key, so a Personal Agent whose servers hold DPoP keys signs with a
+User's key only for that User.
 
 ### 10.8 Sign-ins someone else started {#attacker-started-sign-in}
 
