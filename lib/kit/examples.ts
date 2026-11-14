@@ -65,7 +65,7 @@ const MEDIATED_SIGN_IN_EXAMPLES: Record<string, Target> = {
 const OPERATIONS_EXAMPLES: Record<string, Target> = {
     "support:1": excerpt("extensions", "poppy.schema.json#/properties/extensions"),
     "operation-object:1": "operation.schema.json",
-    "approval-required:1": {
+    "approval-required-apis:1": {
         type: "object",
         required: ["error", "operation"],
         properties: {
@@ -73,7 +73,7 @@ const OPERATIONS_EXAMPLES: Record<string, Target> = {
             operation: { $ref: "operation.schema.json" },
         },
     },
-    "approval-required:2": {
+    "approval-required-mcp:1": {
         type: "object",
         required: ["isError", "structuredContent"],
         properties: {
@@ -81,20 +81,20 @@ const OPERATIONS_EXAMPLES: Record<string, Target> = {
             structuredContent: excerpt("operation", "operation.schema.json"),
         },
     },
-    "approval-required:3": "event.schema.json",
+    "approval-required-conversations:1": "event.schema.json",
     // A website's answer to its own script's request, without the operation.
-    "approval-required:4": {
+    "approval-required-websites:1": {
         type: "object",
         required: ["error"],
         properties: { error: { const: "approval_required" } },
     },
     // The Personal Agent sends a website's reference to the extension's endpoint.
-    "approval-required:5": {
+    "approval-required-websites:2": {
         type: "object",
         required: ["ref"],
         properties: { ref: { type: "string", pattern: "^[A-Za-z0-9._-]{1,2048}$" } },
     },
-    "approval-required:6": {
+    "approval-required-websites:3": {
         type: "object",
         required: ["error", "operation"],
         properties: {
@@ -103,9 +103,9 @@ const OPERATIONS_EXAMPLES: Record<string, Target> = {
         },
     },
     // A request to the Company's own API, sent again with the approval in a header.
-    "sending-approval:1": null,
+    "sending-approval-apis:1": null,
     // An MCP tool call, whose schema is MCP's. Only the approval in _meta is the protocol's.
-    "sending-approval:2": {
+    "sending-approval-mcp:1": {
         type: "object",
         required: ["params"],
         properties: {
@@ -118,15 +118,15 @@ const OPERATIONS_EXAMPLES: Record<string, Target> = {
             },
         },
     },
-    "sending-approval:3": "message.schema.json",
+    "sending-approval-conversations:1": "message.schema.json",
     // The same request to the endpoint, sent again with the approval in a header.
-    "sending-approval:4": {
+    "sending-approval-websites:1": {
         type: "object",
         required: ["ref"],
         properties: { ref: { type: "string", pattern: "^[A-Za-z0-9._-]{1,2048}$" } },
     },
     // The state of an operation with a recorded approval, looked up at the endpoint.
-    "sending-approval:5": {
+    "sending-approval-websites:2": {
         type: "object",
         required: ["operation_id", "status"],
         properties: {
@@ -135,7 +135,7 @@ const OPERATIONS_EXAMPLES: Record<string, Target> = {
         },
     },
     // An API's refusal of an approval it declines.
-    "sending-approval:6": {
+    "declining-approval:1": {
         allOf: [{ $ref: "approval-declined.schema.json" }, { required: ["error"] }],
     },
 };

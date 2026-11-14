@@ -391,11 +391,20 @@ function codeBlock(pre: Element): Element {
     return element("CodeBlock", label === undefined ? { text } : { text, label }, []);
 }
 
-function transform(node: HastParent) {
+// Gives a heading with an id a button that copies its URL, unless it names a card.
+function addPermalink(heading: Element) {
+    const id = heading.properties.id;
+    if (typeof id === "string") {
+        heading.children.push(element("PermalinkButton", { id }, []));
+    }
+}
+
+function transform(node: HastParent, inCard = false) {
     for (const [i, child] of node.children.entries()) {
         if (child.type !== "element") {
             if ("children" in child) {
-                transform(child as unknown as HastParent);
+                const name = (child as { name?: string | null }).name;
+                transform(child as unknown as HastParent, inCard || CARDS.has(name ?? ""));
             }
             continue;
         }
@@ -406,6 +415,9 @@ function transform(node: HastParent) {
         if (child.tagName === "h2") {
             numberSection(child);
         }
+        if (!inCard && ["h2", "h3", "h4"].includes(child.tagName)) {
+            addPermalink(child);
+        }
         if (child.tagName === "table") {
             groupRows(child);
         }
@@ -413,7 +425,7 @@ function transform(node: HastParent) {
             child.properties.target = "_blank";
             child.properties.rel = ["noopener", "noreferrer"];
         }
-        transform(child);
+        transform(child, inCard);
     }
 }
 

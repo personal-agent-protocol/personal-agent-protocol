@@ -1823,8 +1823,13 @@ footer.site-footer .footer-github {
     margin: 0 0 28px;
 }
 
-.doc .change h4 {
+.doc h2,
+.doc h3,
+.doc h4 {
     position: relative;
+}
+
+.doc .change h4 {
     margin-bottom: 6px;
 }
 
@@ -1838,7 +1843,18 @@ footer.site-footer .footer-github {
     transition: opacity 0.15s;
 }
 
-.change h4:hover .permalink-btn,
+/* An h2's top padding sits above its text, so centre the button on the text. */
+.doc h2 > .permalink-btn {
+    top: calc(50% + 14px);
+}
+
+.doc .doc-head + h2 > .permalink-btn {
+    top: 50%;
+}
+
+.doc h2:hover > .permalink-btn,
+.doc h3:hover > .permalink-btn,
+.doc h4:hover > .permalink-btn,
 .permalink-btn:focus-visible {
     opacity: 1;
 }

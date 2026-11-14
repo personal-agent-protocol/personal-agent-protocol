@@ -96,8 +96,18 @@ const SECTIONS: Record<string, Record<string, Milestone>> = {
         support: "extensions",
         "operation-object": "extensions",
         "approval-required": "extensions",
+        "approval-required-apis": "extensions",
+        "approval-required-mcp": "extensions",
+        "approval-required-conversations": "extensions",
+        "approval-required-websites": "extensions",
         approval: "extensions",
         "sending-approval": "extensions",
+        "sending-approval-apis": "extensions",
+        "sending-approval-mcp": "extensions",
+        "sending-approval-conversations": "extensions",
+        "sending-approval-websites": "extensions",
+        "approval-checks": "extensions",
+        "declining-approval": "extensions",
         "at-most-once": "extensions",
         "approval-proof": "extensions",
         "website-security": "extensions",
@@ -287,16 +297,29 @@ export function requirements(page: DocsPage): Requirement[] {
     return out;
 }
 
-// Each section's heading text, by id.
+// Each section's heading text, by id. A heading whose text is on the page more than once, such
+// as "Websites" under two sections, is named after the section it's in too.
 function headings(page: DocsPage): Map<string, string> {
-    const out = new Map<string, string>();
+    const found: { id: string; text: string; section?: string }[] = [];
+    let section: string | undefined;
     for (const node of pageSource(page).tree.children) {
         const id = node.type === "heading" ? headingId(node) : undefined;
-        if (id) {
-            out.set(id, plain(textOf(node)));
+        if (node.type !== "heading" || !id) {
+            continue;
         }
+        const text = plain(textOf(node));
+        if (node.depth === 2) {
+            section = text;
+        }
+        found.push({ id, text, section: node.depth > 2 ? section : undefined });
     }
-    return out;
+    const repeated = (text: string) => found.filter((h) => h.text === text).length > 1;
+    return new Map(
+        found.map(({ id, text, section }) => [
+            id,
+            section && repeated(text) ? `${section}: ${text}` : text,
+        ]),
+    );
 }
 
 // Lists in the guides that say what something is, rather than what to do. They're shown without

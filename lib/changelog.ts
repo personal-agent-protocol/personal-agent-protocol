@@ -175,20 +175,12 @@ export function remarkChanges(file = "content/shared/changelog.mdx") {
                 {
                     type: "heading",
                     depth: 4,
-                    children: [
-                        {
-                            type: "mdxJsxTextElement",
-                            name: "PermalinkButton",
-                            attributes: [{ type: "mdxJsxAttribute", name: "id", value: id }],
-                            children: [],
-                        } as unknown as PhrasingContent,
-                        ...title
-                            .split("`")
-                            .map(
-                                (value, i): PhrasingContent =>
-                                    i % 2 ? { type: "inlineCode", value } : { type: "text", value },
-                            ),
-                    ],
+                    children: title
+                        .split("`")
+                        .map(
+                            (value, i): PhrasingContent =>
+                                i % 2 ? { type: "inlineCode", value } : { type: "text", value },
+                        ),
                     data: { hProperties: { id } },
                 },
                 ...(tags.length ? [row] : []),

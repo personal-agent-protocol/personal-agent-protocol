@@ -369,7 +369,7 @@ Personal agents work faster and more reliably through a company agent or APIs th
 - [ ] The personal agent discovers the resource and requests its access token from the company's issuer with `resource` set to the endpoint URL, at sign-in or refresh (4.5). The issuer can also list the resource in its `protected_resources` (3.2).
 - [ ] Arrange for the conversation provider to validate access tokens from that issuer. For JWT access tokens following RFC 9068, use the issuer's metadata and signing keys and check the issuer, audience, expiry, and other validation rules. Another option is authenticated token introspection (RFC 7662). Enforce scopes and verify the Session header separately, including that the token was issued to the same client (5.3).
 
-### Recommended: [Conversations](https://personalagentprotocol.org/docs/1.0/guides#company-conversations)
+### Recommended: [For companies: Conversations](https://personalagentprotocol.org/docs/1.0/guides#company-conversations)
 
 - [ ] Let your company agent do everything customers can do by phone, as fully as you can, so personal agents have no reason to call.
 - [ ] Put structured details in `data`, not JSON or other markup in `text` (8.4).
@@ -496,7 +496,7 @@ The page where the user approves access, in direct and device sign-in (4.2, 4.3)
 - [ ] Return `slow_down` to personal agents that poll faster than `interval`, and limit wrong `user_code` entries.
 - [ ] Keep `expires_in` short, such as 10 minutes.
 
-### Recommended: [Mediated sign-in](https://personalagentprotocol.org/docs/1.0/guides#company-mediated)
+### Recommended: [For companies: Mediated sign-in](https://personalagentprotocol.org/docs/1.0/guides#company-mediated)
 
 If you offer mediated sign-in, protect the credentials you accept (Mediated Sign-In 6):
 
@@ -539,7 +539,7 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
 - [ ] **MUST**: Whichever revision is approved, the Company MUST perform each operation at most once (7).
 - [ ] **SHOULD**: `expires_at` SHOULD leave the User long enough to read the terms and decide, unless the Company can't hold the terms that long, such as a price or a seat that can sell out.
 
-### Operations: [4. Asking for approval](https://personalagentprotocol.org/docs/1.0/extensions/operations#approval-required)
+### Operations: [4. Asking for approval: Websites](https://personalagentprotocol.org/docs/1.0/extensions/operations#approval-required-websites)
 
 - [ ] **SHOULD**: The Company's website SHOULD offer a way to make the original request again, such as a Continue button on the page that's waiting, so the Personal Agent can repeat the action once it's approved (6).
 - [ ] **SHOULD**: The Company's website SHOULD answer a page load or form submission with a page that says the action is waiting for approval in the User's personal agent.
@@ -548,14 +548,26 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
 ### Operations: [6. Sending the approval](https://personalagentprotocol.org/docs/1.0/extensions/operations#sending-approval)
 
 - [ ] **MUST NOT**: A Company MAY record `approver`, `approved_at`, `input_type`, and `reference`, and MUST NOT reject or decline an approval because an optional member is missing or because it doesn't recognize the `input_type`.
+
+### Operations: [6. Sending the approval: APIs](https://personalagentprotocol.org/docs/1.0/extensions/operations#sending-approval-apis)
+
 - [ ] **MUST**: Companies MUST ignore members of `Poppy-Approval` they don't recognize, so later versions can add members.
+
+### Operations: [6. Sending the approval: Websites](https://personalagentprotocol.org/docs/1.0/extensions/operations#sending-approval-websites)
+
 - [ ] **MUST NOT**: The Company MUST NOT accept an approval of a website's operation at an API, MCP server, or conversation, or an approval of another interface's operation at `endpoint`.
 - [ ] **MUST**: The Company MUST keep a recorded approval that isn't used up until the approved revision's `expires_at`, and MUST NOT apply it to requests from a Session that can't approve the operation.
+
+### Operations: [What the Company checks](https://personalagentprotocol.org/docs/1.0/extensions/operations#approval-checks)
+
 - [ ] **MUST**: After the Session header checks in spec 5.3 and the token checks in spec 7, the Company MUST make the following checks before performing the action, and respond as the first one that fails says, whatever order it makes them in internally:
     - [ ] The Session can approve the operation (3). If it can't, the Company handles the request as if it had no approval.
     - [ ] The operation hasn't been performed already. If it has, or is being performed, the Company responds as section 7 describes.
     - [ ] The `revision` is one the Company returned for this operation, it hasn't expired, and the request asks for exactly what it describes. The API request or tool call asks for the same action as the one that returned the operation, in a conversation, the operation is the conversation's, and at `endpoint`, the reference is the operation's. The Company compares what the requests mean, not their bytes, and MAY ignore differences it considers inconsequential, such as the order of JSON members. It MAY treat a revision it has replaced with a later one as failing this check.
 - [ ] **MUST NOT**: A Company MUST NOT answer an approval with the revision it names, so a Personal Agent never retries the same approval in a loop.
+
+### Operations: [Declining an approval](https://personalagentprotocol.org/docs/1.0/extensions/operations#declining-approval)
+
 - [ ] **MUST NOT**: The Company MUST NOT put anything in `reason` that the Session couldn't already see.
 - [ ] **MUST NOT**: The Company MUST NOT record a declined approval, so a website never finds it for a later request.
 
@@ -583,7 +595,7 @@ If you offer mediated sign-in, protect the credentials you accept (Mediated Sign
 
 - [ ] **MUST NOT**: It MUST NOT rely on `"user"` as a guarantee that the User took the step.
 
-### Recommended: [Operations](https://personalagentprotocol.org/docs/1.0/guides#company-operations)
+### Recommended: [For companies: Operations](https://personalagentprotocol.org/docs/1.0/guides#company-operations)
 
 When you offer the Operations extension:
 

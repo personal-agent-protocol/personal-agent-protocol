@@ -149,7 +149,7 @@ it (6).
 A Company that wants approval for an action refuses the request for it, performs nothing,
 and returns the operation. How depends on the interface the request came through.
 
-### APIs
+### APIs {#approval-required-apis}
 
 The API responds with HTTP 403 and a JSON body with `error` set to `approval_required` and the
 operation in `operation`, like `invalid_session` ([spec 7](/docs/spec#apis)). It isn't an
@@ -178,7 +178,7 @@ Content-Type: application/json
 }
 ```
 
-### MCP
+### MCP {#approval-required-mcp}
 
 The tool returns an error result, with `isError` set to `true`, the operation in `operation` in
 `structuredContent`, and text that says the action needs approval, such as the summary:
@@ -209,7 +209,7 @@ The tool returns an error result, with `isError` set to `true`, the operation in
 }
 ```
 
-### Conversations
+### Conversations {#approval-required-conversations}
 
 A Company message carries the operation in `extensions.operations.operation` ([spec
 8.4](/docs/spec#message-fields)), when the Company Agent would perform the action:
@@ -246,7 +246,7 @@ A Company message carries the operation in `extensions.operations.operation` ([s
 
 If the terms change during the conversation, the Company sends the new revision in a later message.
 
-### Websites
+### Websites {#approval-required-websites}
 
 When the request comes from a browser joined to a Session ([spec 6](/docs/spec#web-browsing)), and
 the website handles it as that Session, the website performs nothing and responds with HTTP 403 and
@@ -421,7 +421,7 @@ Company MAY record `approver`, `approved_at`, `input_type`, and `reference`, and
 decline an approval because an optional member is missing or because it doesn't recognize the `input_type`.
 Like the approval itself, they are the Personal Agent's statements (8.1).
 
-### APIs
+### APIs {#sending-approval-apis}
 
 The Personal Agent sends the same request again, with the same method, target URI ([RFC 9110,
 section 7.1](https://www.rfc-editor.org/rfc/rfc9110#section-7.1)), and content, and the approval in
@@ -452,7 +452,7 @@ An `Idempotency-Key` ([draft-ietf-httpapi-idempotency-key-header](https://datatr
 has its own, or none. The operation ID identifies its retries (7). Companies MUST ignore members
 of `Poppy-Approval` they don't recognize, so later versions can add members.
 
-### MCP
+### MCP {#sending-approval-mcp}
 
 The Personal Agent calls the same tool again, with the same arguments, and the approval as a JSON
 object in `_meta` under `personalagentprotocol.org/approval`:
@@ -478,7 +478,7 @@ object in `_meta` under `personalagentprotocol.org/approval`:
 }
 ```
 
-### Conversations
+### Conversations {#sending-approval-conversations}
 
 The Personal Agent sends a message with the approval as a JSON object in
 `extensions.operations.approval` ([spec 8.4](/docs/spec#message-fields)):
@@ -504,7 +504,7 @@ The Personal Agent sends a message with the approval as a JSON object in
 The message's `text` doesn't approve anything, whatever it says. Only the approval does. The Company
 Agent performs the action and says how it went in a later message.
 
-### Websites
+### Websites {#sending-approval-websites}
 
 The approval never passes through the browser, and an operation returned on a website is approved
 only at `endpoint`. The Company MUST NOT accept an approval of a website's operation at an API, MCP
@@ -550,7 +550,7 @@ Company answers this way for as long as it remembers the operation (7):
 { "operation_id": "exc_5Rt2", "status": "performed" }
 ```
 
-### What the Company checks
+### What the Company checks {#approval-checks}
 
 After the Session header checks in [spec 5.3](/docs/spec#session-verification) and the token checks
 in [spec 7](/docs/spec#apis), the Company MUST make the following checks before performing the
@@ -572,7 +572,7 @@ operations, or declines the approval (below). If check 3 fails, it performs noth
 operation with a revision for what the request asks, as in section 4. A Company MUST NOT answer an
 approval with the revision it names, so a Personal Agent never retries the same approval in a loop.
 
-### Declining an approval
+### Declining an approval {#declining-approval}
 
 Once the checks pass, a Company MAY decline the approval instead of performing the action, for its
 own reasons, such as `approver`, the account, or its own risk checks. It performs nothing and
