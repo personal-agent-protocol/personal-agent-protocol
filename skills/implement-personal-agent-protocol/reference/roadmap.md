@@ -1,6 +1,6 @@
 # Roadmap
 
-The areas we expect to work on before 1.0, what we want each to achieve, and where the discussion is. It describes direction, not dates or promises: topics change as people implement the protocol and [send feedback](https://personalagentprotocol.org/docs/path-to-1#feedback).
+The areas we expect to work on next, what we want each to achieve, and where the discussion is. It describes direction, not dates or promises: topics change as people implement the protocol and [send feedback](https://personalagentprotocol.org/docs/path-to-1#feedback).
 
 Each topic has a label on GitHub, and its link lists the topic's issues, open and closed. To join a discussion, comment on its issue. To raise something that isn't here, open a new one.
 

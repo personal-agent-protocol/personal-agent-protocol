@@ -1,14 +1,14 @@
 # Path to 1.0
 
-**Current status**, updated November 11, 2026
+**Current status**, updated November 14, 2026
 
-Build against the [1.0 draft](https://personalagentprotocol.org/docs/1.0/spec), the latest version. It's [version 0.4](https://personalagentprotocol.org/docs/0.4/spec) with fixes for problems found while implementing it, and the [changelog](https://personalagentprotocol.org/docs/changelog#v1-0) lists each fix. We're not adding new features until 1.0 is published.
+Version 1.0 is published. Build against [1.0](https://personalagentprotocol.org/docs/1.0/spec). It's [version 0.4](https://personalagentprotocol.org/docs/0.4/spec) with fixes for problems found while implementing it, and the [changelog](https://personalagentprotocol.org/docs/changelog#v1-0) lists each fix. Later 1.x versions add features without breaking 1.0 implementations ([3.4](https://personalagentprotocol.org/docs/1.0/spec#versions)).
 
 ## How we get there
 
 - **Anyone can implement it.** Build against it, as a personal agent or a company, and [send us feedback](#feedback) on what you run into.
 - **We're implementing it with design partners.** The spec's authors are working through implementations with several of the [design partners](#partners).
-- **The spec changes based on what we learn.** From the release candidate on, changes before 1.0 are fixes, made in a draft 1.0, not new features. A fix can still break compatibility with earlier versions.
+- **The spec changes based on what we learn.** From the release candidate on, changes before 1.0 were fixes, made in a draft 1.0, not new features. Some fixes broke compatibility with earlier versions.
 
 ## Providing feedback
 
@@ -24,7 +24,7 @@ Two tools can help you write it:
 
 ## Roadmap
 
-The [roadmap](https://personalagentprotocol.org/docs/roadmap) lists the areas we expect to work on before 1.0, including the ones the spec doesn't cover yet, such as payments, push notifications, and attachments.
+The [roadmap](https://personalagentprotocol.org/docs/roadmap) lists the areas we expect to work on next, including the ones the spec doesn't cover yet, such as payments, push notifications, and attachments.
 
 ## Design partners
 

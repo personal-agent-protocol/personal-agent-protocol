@@ -278,9 +278,9 @@ export function HomeContent() {
                     <div className="section-head">
                         <h2>Bring your company or personal agent onto Personal Agent Protocol</h2>
                         <p>
-                            Read the docs to see what an implementation involves. Version 0.4 is the
-                            1.0 release candidate, and we're working with design partners to get it
-                            there. The path to 1.0 covers how that works and how to give feedback.
+                            Read the docs to see what an implementation involves. Version 1.0 is
+                            published, and we're working with design partners on what comes next.
+                            The path to 1.0 covers how that works and how to give feedback.
                         </p>
                     </div>
                     <div className="hero-ctas">

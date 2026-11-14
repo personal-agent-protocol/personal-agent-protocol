@@ -2,9 +2,9 @@
 
 What changed in each version of the specification, extensions, and guides, newest first. Each published version stays at its own URL, such as [/docs/0.1/spec](https://personalagentprotocol.org/docs/0.1/spec).
 
-## Draft 1.0
+## Version 1.0
 
-In progress, at [/docs/spec](https://personalagentprotocol.org/docs/1.0/spec). This list grows until 1.0 is published.
+Published November 14, 2026. It's [0.4](https://personalagentprotocol.org/docs/0.4/spec) with the fixes implementers needed, and it's frozen at [/docs/1.0/spec](https://personalagentprotocol.org/docs/1.0/spec). Major changes are design decisions. Minor changes fill gaps, make the text consistent, or follow an RFC. A change tagged "Breaking" can require an implementation that followed the 0.4 text to change, whether it's major or minor.
 
 ### Major changes
 
