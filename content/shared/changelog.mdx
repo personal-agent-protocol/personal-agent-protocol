@@ -32,6 +32,16 @@ PAR, as FAPI 2.0 does.
 
 </Change>
 
+<Change title="Minor versions" sections="3.4">
+
+From 1.0, each side sends only what the other side's version defines. A Company doesn't send a
+field, value, or event from a minor version later than the request's `Poppy-Version`, and a
+Personal Agent doesn't send one from a version later than the chosen document's. So a 1.x version
+can add behavior that older Personal Agents would need to understand, and the Company offers it
+only to Personal Agents that declare that version.
+
+</Change>
+
 <Change title="PS384 required" breaking sections="4.1, 5.2, 10.7, guides#both-signing" issue="42">
 
 Companies must accept client assertions and delegations signed with `PS384`, as well as `ES256`.
@@ -141,6 +151,22 @@ add them without breaking 1.0 implementations:
 
 </Change>
 
+<Change title="What working means" breaking sections="8.7, guides#company-conversations">
+
+`working` now means only that the Company is still replying: a request it accepted but hasn't acted
+on, or a reply being written. It no longer covers work the Company started on its own. For work that
+finishes later, such as a refund that takes days, the Company says in a message that it's under
+way and adds another message when it's done.
+
+</Change>
+
+<Change title="Unknown sign-in errors in conversations" sections="8.11">
+
+Later versions may add `error` values to `authorization` events, such as one asking for a stronger
+sign-in. A Personal Agent that doesn't recognize `error` signs in again for the scopes in `scope`.
+
+</Change>
+
 <Change title="Lookalike domains" sections="10.3" issue="73">
 
 Section 10.3 says that nothing in `poppy.json` confirms that the domain belongs to the company in
@@ -157,6 +183,13 @@ examples. The descriptions in the `poppy.json` examples in section 3 and UCP 11 
 including UCP scopes that improve catalog search and checkout without being required for them. UCP
 4 says a Company describes what such a scope adds and whether the operation works without it. No
 field is added: descriptions stay plain language.
+
+</Change>
+
+<Change title="Mediated Sign-In retirement date" sections="Mediated Sign-In 1, guides#company-mediated">
+
+The protocol plans to retire the Mediated Sign-In extension on March 17, 2027. Earlier versions
+said the date would be set when 1.0 was published.
 
 </Change>
 

@@ -20,6 +20,12 @@ Breaking · [Spec 3.2](https://personalagentprotocol.org/docs/1.0/spec#oauth-ser
 
 A Company MAY require Pushed Authorization Requests ([RFC 9126](https://www.rfc-editor.org/rfc/rfc9126)) for Direct Sign-In, with `require_pushed_authorization_requests` in its issuer's metadata. A Personal Agent then MUST push the request with its client assertion and open the `authorization_endpoint` with only `client_id` and `request_uri`, and SHOULD use PAR whenever the Company offers it. It sends a DPoP proof with the pushed request, so the code is bound to the key. Because a `request_uri` expires quickly, a link the User opens later SHOULD go to the Personal Agent's own page, which pushes the request when it's opened. Before, a Personal Agent that followed the text couldn't sign in at a Company that required PAR, as FAPI 2.0 does.
 
+#### Minor versions
+
+[Spec 3.4](https://personalagentprotocol.org/docs/1.0/spec#versions)
+
+From 1.0, each side sends only what the other side's version defines. A Company doesn't send a field, value, or event from a minor version later than the request's `Poppy-Version`, and a Personal Agent doesn't send one from a version later than the chosen document's. So a 1.x version can add behavior that older Personal Agents would need to understand, and the Company offers it only to Personal Agents that declare that version.
+
 #### PS384 required
 
 Breaking · [Spec 4.1](https://personalagentprotocol.org/docs/1.0/spec#agent-identity) · [Spec 5.2](https://personalagentprotocol.org/docs/1.0/spec#session-header) · [Spec 10.7](https://personalagentprotocol.org/docs/1.0/spec#delegated-key-security) · [Guides: Signing and verifying JWTs](https://personalagentprotocol.org/docs/1.0/guides#both-signing) · [Issue #42](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/42)
@@ -88,6 +94,18 @@ Conversations say how to handle values a later version or an extension adds, so 
 - Personal Agents skip stream events with an SSE `event` name they don't recognize.
 - A Personal Agent handles an `error` code it doesn't recognize by the response's HTTP status.
 
+#### What working means
+
+Breaking · [Spec 8.7](https://personalagentprotocol.org/docs/1.0/spec#state) · [Guides: Conversations](https://personalagentprotocol.org/docs/1.0/guides#company-conversations)
+
+`working` now means only that the Company is still replying: a request it accepted but hasn't acted on, or a reply being written. It no longer covers work the Company started on its own. For work that finishes later, such as a refund that takes days, the Company says in a message that it's under way and adds another message when it's done.
+
+#### Unknown sign-in errors in conversations
+
+[Spec 8.11](https://personalagentprotocol.org/docs/1.0/spec#conversation-sign-in)
+
+Later versions may add `error` values to `authorization` events, such as one asking for a stronger sign-in. A Personal Agent that doesn't recognize `error` signs in again for the scopes in `scope`.
+
 #### Lookalike domains
 
 [Spec 10.3](https://personalagentprotocol.org/docs/1.0/spec#trust) · [Issue #73](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/73)
@@ -99,6 +117,12 @@ Section 10.3 says that nothing in `poppy.json` confirms that the domain belongs 
 [Spec 3](https://personalagentprotocol.org/docs/1.0/spec#discovery) · [Spec 4.7](https://personalagentprotocol.org/docs/1.0/spec#scopes) · [UCP 4](https://personalagentprotocol.org/docs/1.0/extensions/ucp#authorization) · [UCP 11](https://personalagentprotocol.org/docs/1.0/extensions/ucp#example)
 
 Section 4.7 says a scope description is most useful when it says what the scope unlocks, which tasks need it, and whether a task can be completed without it, and points to the guides for examples. The descriptions in the `poppy.json` examples in section 3 and UCP 11 now say this, including UCP scopes that improve catalog search and checkout without being required for them. UCP 4 says a Company describes what such a scope adds and whether the operation works without it. No field is added: descriptions stay plain language.
+
+#### Mediated Sign-In retirement date
+
+[Mediated Sign-In 1](https://personalagentprotocol.org/docs/1.0/extensions/mediated-sign-in#intro) · [Guides: Mediated sign-in](https://personalagentprotocol.org/docs/1.0/guides#company-mediated)
+
+The protocol plans to retire the Mediated Sign-In extension on March 17, 2027. Earlier versions said the date would be set when 1.0 was published.
 
 ### Guides
 

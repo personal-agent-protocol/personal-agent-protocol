@@ -291,6 +291,8 @@ Requests without the Session header, such as discovery and OAuth requests, don't
 { "error": "version_unsupported" }
 ```
 
+**Minor versions.** From 1.0, each side sends only what the other side's version defines. The Company MUST NOT send the Personal Agent a field, value, or event that only a minor version later than the request's `Poppy-Version` defines. The Personal Agent MUST NOT send the Company one that only a version later than the chosen document's `protocol_version` defines. A Company that adds a 1.1 feature therefore offers it only to Personal Agents that send `1.1` or later, and handles requests from 1.0 Personal Agents as 1.0 defines.
+
 A Company that plans to stop serving a version MAY say so in its responses to requests in that version, with the `Deprecation` ([RFC 9745](https://www.rfc-editor.org/rfc/rfc9745)) and `Sunset` ([RFC 8594](https://www.rfc-editor.org/rfc/rfc8594)) headers.
 
 From 1.0, the location of `poppy.json` and how it is fetched (section 3), `protocol_version`, `supported_versions`, `Poppy-Version`, and `version_unsupported` keep their meaning in every version, so a Personal Agent and a Company that implement different major versions can find one they share, or tell that there is none.
@@ -1187,12 +1189,14 @@ Every read reports the conversation's state in four fields, each independent of 
 
 | Field | Values | Meaning |
 | --- | --- | --- |
-| `working` | `true` or `false` | The Company has work in progress: a request it accepted but hasn't acted on (8.3), a reply being written, or work it started on its own. Read again until it's `false`. |
+| `working` | `true` or `false` | The Company is still replying: a request it accepted but hasn't acted on (8.3), or a reply being written. Read again until it's `false`. |
 | `handoff` | `none` or `pending` | `pending` while the Company is looking for a person to join (8.9). |
 | `responder` | `agent` or `human` | Who is handling the Company side: an automated Company Agent, or a live person at the Company. |
 | `closed` | `true` or `false` | The conversation takes no more messages (8.12). |
 
 For example, a conversation can be `working` with `handoff` `pending`, when the Company Agent keeps answering while the Company looks for a person. A Personal Agent that wants the Company's whole reply reads until `working` is `false`. Because `working` includes requests not yet acted on, it's `true` from the moment the Company accepts a request.
+
+`working` covers only replying. Work the Company will finish later, such as a refund that takes days, isn't `working`: the Company says in a message that the work is under way, and adds another message when it's done.
 
 A new conversation starts with `handoff` `none`, `responder` `agent`, and `closed` `false`.
 
@@ -1365,7 +1369,7 @@ Signed out, the Company Agent can answer general questions. When the Company Age
 }
 ```
 
-`error` is `insufficient_scope` whether or not the request had an access token, and `scope` names the scopes needed. The Personal Agent responds as it would to a request that needs the account (section 7), with a refresh token (4.4) or by signing in (5.4). It then continues the same conversation with the access token. The conversation stays open meanwhile.
+`error` is `insufficient_scope` whether or not the request had an access token, and `scope` names the scopes needed. Later versions may add other `error` values. A Personal Agent that doesn't recognize `error` signs in again (5.4) for the scopes in `scope`. The Personal Agent responds as it would to a request that needs the account (section 7), with a refresh token (4.4) or by signing in (5.4). It then continues the same conversation with the access token. The conversation stays open meanwhile.
 
 When a response carrying an `authorization` event has not yet sent its headers, the Company MAY also include the matching `WWW-Authenticate` challenge on the successful response, as [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110#section-11.6.1) §11.6.1 allows. The event remains sufficient, including in a stream whose headers have already been sent. The successful status means the message was accepted. The Personal Agent MUST handle the event and matching challenge as one authorization need, and MUST NOT resubmit an accepted message because it received the challenge.
 

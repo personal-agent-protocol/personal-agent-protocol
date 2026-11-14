@@ -51,6 +51,7 @@ are left out.
 - [ ] **MUST**: Every document a Company serves at the same time MUST have the same `organization.domain` and select the same issuer (3.2), so that a new version doesn't change the Company's identifier, and with it User IDs and refresh tokens.
 - [ ] **MUST**: An endpoint that verifies the Session header (5.3) MUST also check `Poppy-Version`.
 - [ ] **MUST NOT**: It rejects a request without it, or with a version that isn't compatible with one the Company serves, with `version_unsupported` (HTTP 400, JSON body), and MUST NOT handle the request under another version.
+- [ ] **MUST NOT**: The Company MUST NOT send the Personal Agent a field, value, or event that only a minor version later than the request's `Poppy-Version` defines.
 
 ### Specification: [4. OAuth](https://personalagentprotocol.org/docs/1.0/spec#oauth)
 
@@ -379,6 +380,7 @@ Personal agents work faster and more reliably through a company agent or APIs th
 - [ ] Keep what a message says in `text` and `data`, and use extension content to add to it, so a personal agent that ignores an extension still gets the message (8.4).
 - [ ] Write for whoever is on the other side (8.8). With a personal agent, skip greetings and small talk and keep text short. With the user, use plain sentences, a pace they can follow, and details in `text` rather than only in `data`. In a direct conversation, reply as you would to the customer on your own channels.
 - [ ] Report `working` as `true` from the moment you accept a request until you've acted on it and finished replying, so a personal agent that reads until `working` is `false` gets the whole reply (8.7).
+- [ ] For work that finishes later, such as a refund that takes days, say in a message that it's under way and send another message when it's done, instead of keeping `working` true (8.7).
 - [ ] Set `as_of_request` on each company agent message to the latest request the agent saw when it started the turn, and give the agent the `as_of_cursor` of each personal agent message, so it knows which of its messages a reply answers (8.4). Leave `as_of_request` off messages from people.
 - [ ] If your help desk can withdraw a request for a person, do so on a handoff cancel, so no one is assigned to a conversation that no longer needs them (8.9).
 - [ ] Keep a conversation's events for at least 30 days, so a personal agent that reconnects rarely hits `cursor_expired` (8.5).

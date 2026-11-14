@@ -48,7 +48,7 @@ Each topic has a label on GitHub, and its link lists the topic's issues, open an
 
 **Goal:** Remove the [Mediated Sign-In extension](https://personalagentprotocol.org/docs/1.0/extensions/mediated-sign-in), so Users sign in on the Company's own page and Personal Agents never handle a User's password or one-time code.
 
-**Where it stands:** Mediated Sign-In, where the Personal Agent signs in with the User's credentials, is transitional. The protocol plans to remove it on a date set when 1.0 is published, and Direct Sign-In is now the preferred sign-in type. Still open: whether Direct Sign-In should be the one required type, and what to say about agents typing a password into a Company's website, which happens outside the protocol.
+**Where it stands:** Mediated Sign-In, where the Personal Agent signs in with the User's credentials, is transitional. The protocol plans to remove it on March 17, 2027, and Direct Sign-In is now the preferred sign-in type. Still open: whether Direct Sign-In should be the one required type, and what to say about agents typing a password into a Company's website, which happens outside the protocol.
 
 **Issues:** [roadmap: mediated sign-in](https://github.com/personal-agent-protocol/personal-agent-protocol/issues?q=is%3Aissue%20label%3A%22roadmap%3A%20mediated%20sign-in%22)
 

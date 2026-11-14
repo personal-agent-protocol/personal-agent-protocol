@@ -467,7 +467,7 @@ The page where the user approves access, in direct and device sign-in ([4.2](htt
 
 ### Mediated sign-in
 
-The [Mediated Sign-In extension](https://personalagentprotocol.org/docs/1.0/extensions/mediated-sign-in) is transitional. Offer it only until you can add direct or device sign-in, and plan its removal: the protocol plans to retire it, on a date set when version 1.0 is published.
+The [Mediated Sign-In extension](https://personalagentprotocol.org/docs/1.0/extensions/mediated-sign-in) is transitional. Offer it only until you can add direct or device sign-in, and plan its removal: the protocol plans to retire it on March 17, 2027.
 
 If you offer mediated sign-in, protect the credentials you accept ([Mediated Sign-In 6](https://personalagentprotocol.org/docs/1.0/extensions/mediated-sign-in#security)):
 
@@ -593,6 +593,7 @@ Let a signed-out personal agent session do what a signed-out visitor can do on y
 - Keep what a message says in `text` and `data`, and use extension content to add to it, so a personal agent that ignores an extension still gets the message ([8.4](https://personalagentprotocol.org/docs/1.0/spec#message-fields)).
 - Write for whoever is on the other side ([8.8](https://personalagentprotocol.org/docs/1.0/spec#human-or-ai)). With a personal agent, skip greetings and small talk and keep text short. With the user, use plain sentences, a pace they can follow, and details in `text` rather than only in `data`. In a direct conversation, reply as you would to the customer on your own channels.
 - Report `working` as `true` from the moment you accept a request until you've acted on it and finished replying, so a personal agent that reads until `working` is `false` gets the whole reply ([8.7](https://personalagentprotocol.org/docs/1.0/spec#state)).
+- For work that finishes later, such as a refund that takes days, say in a message that it's under way and send another message when it's done, instead of keeping `working` true ([8.7](https://personalagentprotocol.org/docs/1.0/spec#state)).
 - Set `as_of_request` on each company agent message to the latest request the agent saw when it started the turn, and give the agent the `as_of_cursor` of each personal agent message, so it knows which of its messages a reply answers ([8.4](https://personalagentprotocol.org/docs/1.0/spec#message-fields)). Leave `as_of_request` off messages from people.
 - If your help desk can withdraw a request for a person, do so on a handoff cancel, so no one is assigned to a conversation that no longer needs them ([8.9](https://personalagentprotocol.org/docs/1.0/spec#handoff)).
 - Keep a conversation's events for at least 30 days, so a personal agent that reconnects rarely hits `cursor_expired` ([8.5](https://personalagentprotocol.org/docs/1.0/spec#reading-events)).

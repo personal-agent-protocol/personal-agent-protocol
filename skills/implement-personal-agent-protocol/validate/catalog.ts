@@ -893,7 +893,7 @@ export const CATALOG: CheckInfo[] = [
         "conversations.working-settles",
         "working becomes false once the Company has acted on every request",
         "spec#state",
-        "The Company has work in progress: a request it accepted but hasn't acted on (8.3), a reply being written, or work it started on its own.",
+        "The Company is still replying: a request it accepted but hasn't acted on (8.3), or a reply being written.",
         "SHOULD",
     ),
     interfaces(
