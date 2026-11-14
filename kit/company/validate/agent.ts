@@ -70,15 +70,15 @@ export function sessionJwt(
     });
 }
 
-// A request with the Session header, or with none when `session` is "none".
+// A request with the Session header, or with none when `session` is "none". Poppy-Version is sent
+// either way unless `version` is null, so a missing Session header is all that's wrong (spec 3.4).
 export async function sessionRequest(
     ctx: Context,
     options: {
         method?: string;
         url: string;
         session?: SessionOptions | "none";
-        // Poppy-Version, which goes with the Session header: this validator's version unless set,
-        // or none when null (spec 3.4).
+        // Poppy-Version: this validator's version unless set, or none when null (spec 3.4).
         version?: string | null;
         body?: unknown;
         headers?: Record<string, string>;
@@ -90,11 +90,10 @@ export async function sessionRequest(
     const method = (options.method ?? "GET").toUpperCase();
     const headers: Record<string, string> = { Accept: "application/json", ...options.headers };
     const session = options.session;
-    if (session !== "none") {
+    if (session !== "none")
         headers["Poppy-Session"] = await sessionJwt(ctx, method, options.url, session);
-        const version = options.version === undefined ? PROTOCOL_VERSION : options.version;
-        if (version !== null) headers["Poppy-Version"] = version;
-    }
+    const version = options.version === undefined ? PROTOCOL_VERSION : options.version;
+    if (version !== null) headers["Poppy-Version"] = version;
     let body: string | undefined;
     if (options.body !== undefined) {
         body = typeof options.body === "string" ? options.body : JSON.stringify(options.body);

@@ -56,10 +56,11 @@ consistently:
   client assertion has the company's issuer as its `aud`; a Session JWT has the Company's
   identifier (its issuer, or its HTTPS domain without one), never an endpoint URL
   ([4.1](/docs/spec#agent-identity), [5.2](/docs/spec#session-header)). Allow a small clock skew,
-  such as 30 seconds, and reject assertions that claim a long lifetime.
+  such as 30 seconds.
 - Make the `jti` of each client assertion, delegation, Session JWT, and DPoP proof at least 128
   random bits, and each Session ID too.
-- Personal agents: set a client assertion's `exp` at most five minutes after its `iat`.
+- A client assertion lasts at most five minutes, and a company may reject a longer one
+  ([4.1](/docs/spec#agent-identity)).
 - Companies: reject a reused client assertion `jti` from the same `client_id` until it expires, as
   [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523) §3 allows.
 

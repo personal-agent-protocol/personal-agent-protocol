@@ -497,9 +497,10 @@ delegations with, and to check where Direct Sign-In may return the User. This fo
   [draft-ietf-oauth-rfc7523bis](https://datatracker.ietf.org/doc/draft-ietf-oauth-rfc7523bis/).
   The endpoints in a Company's metadata aren't checked (3.2), so an `aud` set to an endpoint could
   name another Company's endpoint, and that Company would accept the assertion.
-- Client assertions follow RFC 7523 §3. The Personal Agent MUST make them short-lived, and MUST
-  include `iat` and a unique, unguessable `jti`. The Company MAY reject a reused `jti`, as RFC 7523
-  §3 allows.
+- Client assertions follow RFC 7523 §3. The Personal Agent MUST include `iat` and a unique,
+  unguessable `jti`, and MUST set `exp` at most 5 minutes after `iat`. A Company MAY reject a client
+  assertion that lasts longer than 5 minutes, and MUST NOT reject one for lasting 5 minutes or less. The
+  Company MAY reject a reused `jti`, as RFC 7523 §3 allows.
 - Companies MUST accept client assertions signed with `ES256` and with `PS384`. `PS384` lets a
   Personal Agent have its client assertions signed blindly (10.7).
 

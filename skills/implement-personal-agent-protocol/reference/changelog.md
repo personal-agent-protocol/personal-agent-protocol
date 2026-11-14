@@ -58,6 +58,12 @@ For `insufficient_scope` from a UCP operation, the Personal Agent requests every
 
 Section 4.1 says that a Personal Agent decides which Companies it uses the protocol with, as a Company decides which Personal Agents it accepts. Implementing Poppy doesn't require using it with every Company that publishes `poppy.json`, and the requirements on Personal Agents apply when it does.
 
+#### Client assertion lifetime
+
+Breaking · [Spec 4.1](https://personalagentprotocol.org/docs/1.0/spec#agent-identity) · [Guides: Signing and verifying JWTs](https://personalagentprotocol.org/docs/1.0/guides#both-signing) · [Issue #87](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/87)
+
+A Personal Agent sets a client assertion's `exp` at most 5 minutes after its `iat`. A Company MAY reject a longer one, and MUST NOT reject a shorter one for its lifetime. Before, the spec said only "short-lived" and the five minutes was a guide, so a Company couldn't bound how long it keeps assertion IDs to reject reuse. A Personal Agent with longer assertions, or a Company that refused five-minute ones, has to change.
+
 #### Clearing context
 
 [Spec 8.4](https://personalagentprotocol.org/docs/1.0/spec#message-fields)

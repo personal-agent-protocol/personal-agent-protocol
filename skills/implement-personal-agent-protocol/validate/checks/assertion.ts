@@ -10,11 +10,15 @@ export const ASSERTION_IDS = [
     "assertion.ps384",
     "assertion.signature",
     "assertion.expired",
+    "assertion.lifetime",
     "assertion.claims",
     "assertion.aud-array",
     "assertion.aud-endpoint",
     "assertion.jti-reuse",
 ];
+
+// The longest lifetime a client assertion may have (spec 4.1).
+const MAX_ASSERTION_LIFETIME = 5 * 60;
 
 const ASSERTION_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
 
@@ -188,6 +192,24 @@ export async function checkAssertions(ctx: Context, r: Recorder): Promise<void> 
             [ex],
             "The token endpoint accepted an expired client assertion. Reject one whose exp has passed (RFC 7523 §3).",
         );
+    }
+
+    if (r.wants("assertion.lifetime")) {
+        const now = nowSeconds();
+        const ex = await refresh(
+            ctx,
+            endpoint,
+            await clientAssertion(ctx, { iat: now, exp: now + MAX_ASSERTION_LIFETIME }),
+            "a client assertion whose exp is five minutes after its iat",
+        );
+        if (accepted(ex)) r.pass("assertion.lifetime");
+        else
+            r.fail("assertion.lifetime", {
+                exchange: ex,
+                expected:
+                    '400 {"error": "invalid_grant"}: the assertion accepted, the refresh token unknown',
+                cause: "The token endpoint refused a client assertion with a five-minute lifetime. A Company MAY reject a longer lifetime, but not one within the 5 minutes the Personal Agent is allowed (4.1).",
+            });
     }
 
     if (r.wants("assertion.claims")) {

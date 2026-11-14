@@ -97,6 +97,16 @@ does.
 
 </Change>
 
+<Change title="Client assertion lifetime" breaking sections="4.1, guides#both-signing" issue="87">
+
+A Personal Agent sets a client assertion's `exp` at most 5 minutes after its `iat`. A Company MAY
+reject a longer one, and MUST NOT reject a shorter one for its lifetime. Before, the spec said only
+"short-lived" and the five minutes was a guide, so a Company couldn't bound how long it keeps
+assertion IDs to reject reuse. A Personal Agent with longer assertions, or a Company that refused
+five-minute ones, has to change.
+
+</Change>
+
 <Change title="Clearing context" sections="8.4">
 
 A `context` field set to `null` clears it, as if the Personal Agent had never shared it. Before, a

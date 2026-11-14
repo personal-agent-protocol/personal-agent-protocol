@@ -438,6 +438,12 @@ export const CATALOG: CheckInfo[] = [
         "Client assertions follow RFC 7523 §3.",
     ),
     foundation(
+        "assertion.lifetime",
+        "The token endpoint accepts a client assertion that lasts five minutes",
+        "spec#agent-identity",
+        "A Company MAY reject a client assertion that lasts longer than 5 minutes, and MUST NOT reject one for lasting 5 minutes or less.",
+    ),
+    foundation(
         "assertion.claims",
         "The token endpoint refuses a client assertion without exp or sub",
         "spec#agent-identity",

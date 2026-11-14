@@ -59,6 +59,7 @@ are left out.
 ### Specification: [4.1 Agent identity](https://personalagentprotocol.org/docs/1.0/spec#agent-identity)
 
 - [ ] **MUST**: Companies MUST reject a client assertion with any other `aud`, compared character for character, including their token endpoint URL.
+- [ ] **MUST NOT**: A Company MAY reject a client assertion that lasts longer than 5 minutes, and MUST NOT reject one for lasting 5 minutes or less.
 - [ ] **MUST**: Companies MUST accept client assertions signed with `ES256` and with `PS384`.
 
 ### Specification: [5.2 The Session header](https://personalagentprotocol.org/docs/1.0/spec#session-header)
@@ -113,9 +114,9 @@ Client assertions, delegations, Session JWTs, and DPoP proofs are JWTs. To sign 
 - [ ] Personal agents: sign Session JWTs with ES256 (MUST, 5.2). Sign client assertions and delegations with ES256, or with PS384 if you sign them blindly (10.7). Companies: accept both in client assertions and delegations (4.1, 5.2). Use RSA keys of 2048 to 4096 bits, and accept any RSA key in that range.
 - [ ] Reject `alg: none` and symmetric algorithms such as HS256.
 - [ ] Verify client assertions and delegations only with keys from the personal agent's verified `jwks_uri` (4.1), and Session JWTs only with the key their verified delegation names in `cnf.jwk` (5.2). Ignore `jku`, `x5u`, and any other key embedded in a JWT. DPoP proofs for DPoP-bound access tokens are the one other exception: the public key in their `jwk` header is how they work.
-- [ ] Check `aud` and `iat`, and `exp` on client assertions and delegations. Session JWTs have no `exp`: accept them only within your `iat` window (5.3). A client assertion has the company's issuer as its `aud`; a Session JWT has the Company's identifier (its issuer, or its HTTPS domain without one), never an endpoint URL (4.1, 5.2). Allow a small clock skew, such as 30 seconds, and reject assertions that claim a long lifetime.
+- [ ] Check `aud` and `iat`, and `exp` on client assertions and delegations. Session JWTs have no `exp`: accept them only within your `iat` window (5.3). A client assertion has the company's issuer as its `aud`; a Session JWT has the Company's identifier (its issuer, or its HTTPS domain without one), never an endpoint URL (4.1, 5.2). Allow a small clock skew, such as 30 seconds.
 - [ ] Make the `jti` of each client assertion, delegation, Session JWT, and DPoP proof at least 128 random bits, and each Session ID too.
-- [ ] Personal agents: set a client assertion's `exp` at most five minutes after its `iat`.
+- [ ] A client assertion lasts at most five minutes, and a company may reject a longer one (4.1).
 - [ ] Companies: reject a reused client assertion `jti` from the same `client_id` until it expires, as RFC 7523 §3 allows.
 
 ### Recommended: [Operator signatures and bot defenses](https://personalagentprotocol.org/docs/1.0/guides#both-operator-signatures)

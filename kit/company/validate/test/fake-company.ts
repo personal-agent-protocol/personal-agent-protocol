@@ -117,6 +117,8 @@ export type Flaws = {
     rejectPs384Assertion?: boolean;
     acceptBadAssertionSignature?: boolean;
     acceptExpiredAssertion?: boolean;
+    // Refuses a client assertion that lasts longer than this many seconds.
+    maxAssertionLifetime?: number;
     acceptMissingAssertionClaims?: boolean;
     acceptAudArray?: boolean;
     // Answers an unknown sign_in_id with code_required.
@@ -495,13 +497,18 @@ export function fakeCompany(agentDir: string, flaws: Flaws = {}): FetchLike {
               ? await verifyPs384(assertion, key)
               : await verifyJwt(assertion, key);
         if (!verified) return false;
-        const { iss, sub, aud, exp, jti } = verified.payload;
+        const { iss, sub, aud, iat, exp, jti } = verified.payload;
         if (iss !== clientId()) return false;
         if (sub !== clientId() && !(sub === undefined && flaws.acceptMissingAssertionClaims))
             return false;
         if (typeof exp !== "number") {
             if (!flaws.acceptMissingAssertionClaims) return false;
         } else if (exp <= now() && !flaws.acceptExpiredAssertion) return false;
+        else if (
+            flaws.maxAssertionLifetime !== undefined &&
+            exp - Number(iat) > flaws.maxAssertionLifetime
+        )
+            return false;
         const audOk =
             aud === ORIGIN ||
             (aud === TOKEN && flaws.acceptEndpointAud) ||

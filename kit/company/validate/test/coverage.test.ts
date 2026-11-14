@@ -167,6 +167,7 @@ const SCENARIOS: Scenario[] = [
     { flaws: { rejectPs384Assertion: true }, fails: ["assertion.ps384"] },
     { flaws: { acceptBadAssertionSignature: true }, fails: ["assertion.signature"] },
     { flaws: { acceptExpiredAssertion: true }, fails: ["assertion.expired"] },
+    { flaws: { maxAssertionLifetime: 120 }, fails: ["assertion.lifetime"] },
     { flaws: { acceptMissingAssertionClaims: true }, fails: ["assertion.claims"] },
     { flaws: { acceptAudArray: true }, fails: ["assertion.aud-array"] },
     { flaws: { acceptEndpointAud: true }, fails: ["assertion.aud-endpoint"] },
