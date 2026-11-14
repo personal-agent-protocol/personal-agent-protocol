@@ -16,9 +16,10 @@ import { REPO_URL } from "./site";
 // `v0-2-dpop-at-mcp-servers`, with a button that copies its URL, then a row of tags, then the
 // text. A title can put code in backticks,
 // such as "Which domain `poppy.json` speaks for". The tags are "Breaking", a link to each section in
-// `sections`, and a link to the public issue. A section is a spec section number, such as "4.3", an
-// extension's name and section, such as "Operations 3.2", "Guides", or a guide heading by its id,
-// such as "guides#both-key-rotation". Each must exist in the entry's version.
+// `sections`, and a link to each public issue in `issue`, such as "89, 83". A section is a spec
+// section number, such as "4.3", an extension's name and section, such as "Operations 3.2",
+// "Guides", or a guide heading by its id, such as "guides#both-key-rotation". Each must exist in the
+// entry's version.
 
 type Target = { href: string; label: string };
 
@@ -161,9 +162,10 @@ export function remarkChanges(file = "content/shared/changelog.mdx") {
                 }
                 tags.push(tag("section", [link(target.href, target.label)]));
             }
-            const issue = attribute(node, "issue");
-            if (typeof issue === "string") {
-                tags.push(tag("issue", [link(`${REPO_URL}/issues/${issue}`, `Issue #${issue}`)]));
+            const issues = attribute(node, "issue");
+            for (const issue of typeof issues === "string" ? issues.split(",") : []) {
+                const n = issue.trim();
+                tags.push(tag("issue", [link(`${REPO_URL}/issues/${n}`, `Issue #${n}`)]));
             }
             // `changeTags` tells the Markdown version to separate the tags.
             const row = {

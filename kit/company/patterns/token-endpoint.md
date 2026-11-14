@@ -26,8 +26,12 @@ receive the Session header, and sign-in doesn't need to know the Session.
   supports them and the engineer wants them.
 - Keep refresh tokens as confidential-client refresh tokens, tied to the `client_id`, not to a
   Session or a key ([4.4](https://personalagentprotocol.org/docs/spec#refresh-tokens)).
-- For a service that accepts only its own tokens, such as an MCP server, issue a token with its
-  `resource` at sign-in or refresh, and return `invalid_target` for a `resource` you don't serve.
+- Personal Agents sign in once, without `resource`, so the User approves scopes, not services, and
+  doesn't sign in again for each service. Treat that sign-in as covering every resource you
+  offer them, and issue a token for any of them at refresh
+  ([4.5](https://personalagentprotocol.org/docs/spec#access-tokens)). Some servers grant only a
+  default audience to a sign-in without `resource`, and refuse other resources at refresh. Return
+  `invalid_target` for a `resource` you don't serve or don't offer Personal Agents.
 - Mediated Sign-In, if the design offers it, is an extension grant at this endpoint
   ([Mediated Sign-In](https://personalagentprotocol.org/docs/extensions/mediated-sign-in)). Check
   that the server can add a custom grant type, or put a small grant handler in front of it.

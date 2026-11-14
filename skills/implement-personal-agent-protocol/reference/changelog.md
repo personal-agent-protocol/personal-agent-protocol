@@ -64,6 +64,12 @@ Breaking · [Spec 4.1](https://personalagentprotocol.org/docs/1.0/spec#agent-ide
 
 A Personal Agent sets a client assertion's `exp` at most 5 minutes after its `iat`. A Company MAY reject a longer one, and MUST NOT reject a shorter one for its lifetime. Before, the spec said only "short-lived" and the five minutes was a guide, so a Company couldn't bound how long it keeps assertion IDs to reject reuse. A Personal Agent with longer assertions, or a Company that refused five-minute ones, has to change.
 
+#### One sign-in for every resource
+
+Breaking · [Spec 4.5](https://personalagentprotocol.org/docs/1.0/spec#access-tokens) · [Spec 4.7](https://personalagentprotocol.org/docs/1.0/spec#scopes) · [Spec 4.8](https://personalagentprotocol.org/docs/1.0/spec#oauth-additions) · [Spec 7](https://personalagentprotocol.org/docs/1.0/spec#apis) · [Guides: Storing tokens](https://personalagentprotocol.org/docs/1.0/guides#agent-tokens) · [Guides: Verifying the Session header](https://personalagentprotocol.org/docs/1.0/guides#company-session-header) · [Guides: A conversation endpoint at another provider](https://personalagentprotocol.org/docs/1.0/guides#company-conversation-provider) · [Issue #89](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/89) · [Issue #83](https://github.com/personal-agent-protocol/personal-agent-protocol/issues/83)
+
+The User signs in once for all of a Company's services and approves only scopes, because the services are too technical for a consent page and a sign-in for each would be tiresome. A sign-in without `resource` now covers every resource the Company offers Personal Agents, including ones it adds later, and each later token request names one `resource`, or none for the default token. A Company can still leave a service out and return `invalid_target`. Before, the text said to request a service's token "at sign-in or refresh", but RFC 8707 §2.2 limits a refresh to the resources the sign-in granted, so with some issuers a Personal Agent needed a second sign-in to get both an MCP server's token and the default token.
+
 #### Clearing context
 
 [Spec 8.4](https://personalagentprotocol.org/docs/1.0/spec#message-fields)

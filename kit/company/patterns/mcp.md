@@ -15,9 +15,10 @@ Validate the Company's access tokens and check their `resource` (audience) is th
 as MCP authorization already requires. Ignore the Session header.
 
 - Fits: an existing MCP server that already does MCP authorization.
-- Needs: the token endpoint issues tokens with `resource` set to the server's `url` (RFC 8707) at
-  sign-in or refresh ([4.5](https://personalagentprotocol.org/docs/spec#access-tokens)). Token
-  validation that can read the token's scopes and `resource`.
+- Needs: after a sign-in that named no `resource`, the token endpoint issues tokens with `resource`
+  set to the server's `url` (RFC 8707) in later token requests
+  ([4.5](https://personalagentprotocol.org/docs/spec#access-tokens)). Token validation that can
+  read the token's scopes and `resource`.
 - Trade-off: the server's calls don't join the Session's cart, conversations, or website. It can
   serve signed-out calls only when they need no Session identity or state.
 - Watch for: accepting tokens for any audience. Each token must work at only one MCP server.

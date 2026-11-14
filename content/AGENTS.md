@@ -78,7 +78,8 @@ An MCP server supports DPoP by listing…
   `guides#both-key-rotation`. The build fails when the version doesn't have one.
 - `issue` is the number of a public issue on
   [personal-agent-protocol](https://github.com/personal-agent-protocol/personal-agent-protocol),
-  when there is one. Don't link to pull requests or other private repositories.
+  when there is one, or several separated by commas, such as `issue="89, 83"`. Don't link to pull
+  requests or other private repositories.
 
 The text says what changed without repeating the tags. `lib/changelog.ts` turns the attributes into
 the heading and tags.

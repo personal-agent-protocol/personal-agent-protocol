@@ -679,12 +679,25 @@ for finding the issuer, and doesn't make any service need its own tokens.
   `url`, the URL in an OpenAPI description's `servers`, or the `endpoint`). It uses the metadata only
   if its `resource` is the URL it derived the metadata URL from, as RFC 9728 §3.3 requires, and
   otherwise treats it as absent. If the metadata exists and its `resource` isn't
-  `https://{organization.domain}`, the Personal Agent requests a token with
-  `resource` set to it ([RFC 8707](https://www.rfc-editor.org/rfc/rfc8707)), at sign-in or refresh,
-  and uses that token only there. Otherwise the default token works there, as it does at the other endpoints this
-  protocol defines.
-- The Company accepts a token issued for a `resource` only at that service, and returns
-  `invalid_target` for a `resource` it doesn't serve.
+  `https://{organization.domain}`, the Personal Agent requests a token with `resource` set to it
+  ([RFC 8707](https://www.rfc-editor.org/rfc/rfc8707)) and uses that token only there. Otherwise
+  the default token works there, as it does at the other endpoints this protocol defines.
+- The User signs in once for all of a Company's services, and approves scopes, which describe the
+  access, not the services that provide it. So a sign-in without `resource` grants every resource
+  the Company offers Personal Agents when each token is requested, including services it adds after
+  the sign-in. RFC 8707 §2 leaves this choice to the issuer. The Personal Agent SHOULD NOT include
+  `resource` in the request that starts sign-in: if it does, the Company MAY limit the grant to the
+  resources it names, as RFC 8707 §2.2 allows.
+- Each later token request, the one that completes sign-in or a refresh (4.4), names one `resource`
+  to get a token for that service, or none to get the default token. After a sign-in that named
+  resources, only one that named `https://{organization.domain}` can get the default token.
+- After a sign-in without `resource`, the Company MUST issue a token for any resource it offers
+  Personal Agents, at refresh too. The token MAY have fewer scopes than the refresh token, such as
+  only the ones its service uses, and the response's `scope` says which (4.7). The Company MAY
+  leave a service out, for every Personal Agent or by `client_id`, as it can limit scopes (4.7). It
+  returns `invalid_target` for a `resource` it doesn't serve or doesn't offer the Personal Agent,
+  which then doesn't use that service signed in.
+- The Company accepts a token issued for a `resource` only at that service.
 - A service that gets a token not issued for it returns `invalid_token` with `resource_metadata` in
   its challenge (RFC 9728 §5.1), so a Personal Agent with stale metadata learns about it.
 
@@ -755,9 +768,10 @@ the Company's website (section 6).
 - If a task needs more access than the refresh token allows, the User signs in again, and the Personal
   Agent requests every scope it still needs, including previously granted scopes it wants to keep,
   following [RFC 6749 §3.3](https://www.rfc-editor.org/rfc/rfc6749#section-3.3). It does not request
-  only the missing scopes. The new refresh token replaces the old one, which the
-  Personal Agent SHOULD revoke (4.6). Revoking a replaced refresh token isn't sign-out (5.5). A
-  pending or failed sign-in leaves existing tokens unchanged.
+  only the missing scopes. Like the first, the new sign-in leaves out `resource` (4.5). The new
+  refresh token replaces the old one, which the Personal Agent SHOULD revoke (4.6). Revoking a
+  replaced refresh token isn't sign-out (5.5). A pending or failed sign-in leaves existing tokens
+  unchanged.
 
 Sign-in returns an access token (4.5) and a refresh token. Refresh (4.4) returns an access token
 and MAY return a replacement refresh token, as RFC 6749 §6 describes.
@@ -792,6 +806,8 @@ Poppy's rate limits, and section 3.3 describes `extension_required`.
   sign-in link's host (4.3); a refresh token from every sign-in, refreshed with the DPoP key it was
   issued with (4.4); and `scope` on every sign-in request, with at least one scope granted and none
   beyond those requested (4.7).
+- **A choice RFC 8707 leaves open:** a sign-in without `resource` covers every resource the Company
+  offers Personal Agents (4.5).
 - **Discovery and descriptions:** `poppy.json`, including `auth.disabled` to offer no sign-in and
   `web.disabled` to ask Personal Agents not to browse, supported versions, described scopes, and
   scope hints (section 3, 4.7).
@@ -1395,11 +1411,12 @@ instead of an initialization handshake or `Mcp-Session-Id`; earlier supported ve
 own lifecycle. Both carry the Poppy Session header as above.
 
 - **Signed in.** The Personal Agent uses the token as its `token_type` names (4.5). A Company
-  whose MCP server doesn't accept DPoP returns Bearer tokens for it. The Personal Agent MUST request a token with `resource` set to the MCP server's
-  `url` from `poppy.json`, as MCP authorization requires (4.5). The `resource` in the server's
-  protected resource metadata MUST equal that `url`. Each such token works only at the
-  MCP server whose `url` equals its `resource`, including when other endpoints share its host. The
-  Company MUST reject it elsewhere.
+  whose MCP server doesn't accept DPoP returns Bearer tokens for it. The Personal Agent MUST request
+  a token with `resource` set to the MCP server's `url` from `poppy.json`, as MCP authorization
+  requires for token requests (4.5). Unlike an ordinary MCP client, it leaves the server out of
+  sign-in (4.5). The `resource` in the server's protected resource metadata MUST equal that `url`.
+  Each such token works only at the MCP server whose `url` equals its `resource`, including when
+  other endpoints share its host. The Company MUST reject it elsewhere.
 - **Signed out.** An MCP server that accepts the Session header can take signed-out calls with the
   Session header only, if it allows them.
 - **Without Session verification.** An MCP server that ignores the Session header can identify

@@ -55,10 +55,11 @@ Send `Cache-Control: no-store`.
   and a DPoP proof, each signed with its own key.
 - Resources must be able to tell which `client_id` a token was issued to, for the Session header
   check ([5.3](https://personalagentprotocol.org/docs/1.0/spec#session-verification)).
-- A service that accepts only its own tokens publishes protected resource metadata. Issue a token
-  for its `resource` (RFC 8707) at sign-in or refresh, accept it only there, and return
-  `invalid_target` for a `resource` you don't serve. A service that gets a token not issued for it
-  returns `invalid_token` with `resource_metadata`.
+- A service that accepts only its own tokens publishes protected resource metadata. A sign-in,
+  which names no `resource`, covers every resource you offer Personal Agents. Issue a token for its
+  `resource` (RFC 8707) when a later token request names it, accept it only there, and return
+  `invalid_target` for a `resource` you don't serve or don't offer. A service that gets a token not
+  issued for it returns `invalid_token` with `resource_metadata`.
 - Require a verified Session header wherever handling the request depends on Session claims (5.3).
   An endpoint using OAuth alone still validates the token, audience, scopes, and required DPoP.
 
@@ -233,7 +234,8 @@ test needs signed requests, without printing or copying the private key.
 - Use one access token in two Sessions of the same User. If the Company refuses account changes,
   send a second account's token in a Session that used the first, and see `session_ended`.
 - Refresh with a narrower `scope`, and from a different `client_id` (refused). If a service accepts
-  only its own tokens, refresh with its `resource` and check that the token works only there.
+  only its own tokens, sign in without `resource`, refresh with its `resource`, and check that the
+  token works only there and that a refresh without `resource` still gets the default token.
 - Revoke the refresh token, then see the access token refused for account actions, the refresh
   token refused with `invalid_grant`, and the Session continue signed out.
 - Disconnect from account settings and see the same.

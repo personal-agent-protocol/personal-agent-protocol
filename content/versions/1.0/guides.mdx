@@ -347,8 +347,11 @@ service providers that process it for you.
 - Before the first signed-in call to a service, fetch its protected resource metadata. If it has
   some and its `resource` isn't `https://{organization.domain}`, request a token for that
   `resource` and use that token only there
-  ([4.5](/docs/spec#access-tokens)). Cache the metadata by its HTTP caching headers, and fetch it
-  again when the service answers `invalid_token` with `resource_metadata`.
+  ([4.5](/docs/spec#access-tokens)). Name it in the token request, not at sign-in. One sign-in
+  without `resource` covers every resource the company offers you, so the user doesn't sign in
+  again for each service, and a sign-in that names resources may cover only those. Cache the
+  metadata by its HTTP caching headers, and fetch it again when the service answers `invalid_token`
+  with `resource_metadata`.
 - At an MCP server, always use a token whose `resource` is the server's `url` (MUST,
   [section 7](/docs/spec#apis)), with the scheme `token_type` names. Send the Session header there
   too: the server may ignore it, but you can't tell in advance.
@@ -781,8 +784,11 @@ DPoP proof. To verify reliably:
   refresh tokens to the same key is your choice too ([4.4](/docs/spec#refresh-tokens),
   [Token lifetimes](#company-lifetimes)).
 - At an MCP server, accept a token issued for its `resource` only at that server (MUST,
-  [section 7](/docs/spec#apis)). Accept the Session header there too, if you want its calls tied to
-  sessions. Signed-out calls that use no Session state can work without verification.
+  [section 7](/docs/spec#apis)). Personal agents sign in once, without `resource`, and the user
+  approves scopes, not services. Configure your authorization server to treat that sign-in as
+  covering the server's `resource` and your others, and to issue a token for any of them at refresh
+  ([4.5](/docs/spec#access-tokens)). Accept the Session header there too, if you want its calls tied
+  to sessions. Signed-out calls that use no Session state can work without verification.
 - Pages on the host that serves your `poppy.json` can get the Session header too, from personal
   agents that fetch them without a browser, and never with an access token
   ([5.2](/docs/spec#session-header)). Verify it before using it, for example to recognize the
@@ -1160,10 +1166,10 @@ The conversation endpoint can be on the second provider's host
 - Configure the company's issuer to issue access tokens for that resource, with the scopes the
   conversation service uses. Publishing metadata alone doesn't configure the issuer or establish
   trust between the providers ([RFC 8707 §2.2](https://www.rfc-editor.org/rfc/rfc8707#section-2.2)).
-- The personal agent discovers the resource and requests its access token from the company's
-  issuer with `resource` set to the endpoint URL, at sign-in or refresh
-  ([4.5](/docs/spec#access-tokens)). The issuer can also list the resource in its
-  `protected_resources` ([3.2](/docs/spec#oauth-server)).
+- The personal agent signs in without `resource`, discovers the resource, and requests its access
+  token from the company's issuer with `resource` set to the endpoint URL
+  ([4.5](/docs/spec#access-tokens)). Configure the issuer to issue that token at refresh. The
+  issuer can also list the resource in its `protected_resources` ([3.2](/docs/spec#oauth-server)).
 - Arrange for the conversation provider to validate access tokens from that issuer. For JWT access
   tokens following [RFC 9068](https://www.rfc-editor.org/rfc/rfc9068#section-4), use the issuer's
   metadata and signing keys and check the issuer, audience, expiry, and other validation rules.

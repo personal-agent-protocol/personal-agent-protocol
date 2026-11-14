@@ -202,7 +202,7 @@ Verify Session headers generally (SHOULD, 5.3). Complete all checks before trust
 - [ ] Check `ath` against the access token, and that the token was issued to the JWT's `iss`. Reject an absent header when the request depends on Session claims (MUST, 5.3). Don't use an unverified `iss`, `sub`, or `sid` for attribution, rate limits by identity, cache keys, or state lookup.
 - [ ] Return `invalid_session` for a failed check, and keep access token errors in `WWW-Authenticate`, as OAuth does (section 7).
 - [ ] Binding access tokens with DPoP is your choice (4.5), and you can choose for each service. If you do, verify the proof as RFC 9449 describes, separately from the Session JWT. For a service that doesn't verify proofs, such as an MCP server built for ordinary MCP clients, have your authorization server issue Bearer tokens for its `resource`. If your authorization server can't issue DPoP-bound tokens, verifying the Session JWT and its `ath` binds the token to the personal agent's key. Endpoints that skip Session verification lose that extra protection. Binding refresh tokens to the same key is your choice too (4.4, Token lifetimes).
-- [ ] At an MCP server, accept a token issued for its `resource` only at that server (MUST, section 7). Accept the Session header there too, if you want its calls tied to sessions. Signed-out calls that use no Session state can work without verification.
+- [ ] At an MCP server, accept a token issued for its `resource` only at that server (MUST, section 7). Personal agents sign in once, without `resource`, and the user approves scopes, not services. Configure your authorization server to treat that sign-in as covering the server's `resource` and your others, and to issue a token for any of them at refresh (4.5). Accept the Session header there too, if you want its calls tied to sessions. Signed-out calls that use no Session state can work without verification.
 - [ ] Pages on the host that serves your `poppy.json` can get the Session header too, from personal agents that fetch them without a browser, and never with an access token (5.2). Verify it before using it, for example to recognize the personal agent or to keep the request in its session. Treat the request as signed out, even when the session's browser is signed in. When the check fails, return `invalid_session` as at any endpoint (5.3), so the personal agent can find the mistake.
 - [ ] Serve personal agent conversations only from your conversation endpoint (8.2). If your website chat or other channels can open the same conversations, they may not check the Session header, and anyone with a copied token could read them there.
 
@@ -367,7 +367,7 @@ Personal agents work faster and more reliably through a company agent or APIs th
 - [ ] List the conversation endpoint in `agent.protocols` in the company's `poppy.json`, with a `description` of what the provider's agent can help with for that company.
 - [ ] Use that endpoint URL as the service's resource identifier, including the tenant path so tokens for different companies have different audiences (RFC 8707 §3). Publish its protected resource metadata at the URL RFC 9728 §3.1 defines:
 - [ ] Configure the company's issuer to issue access tokens for that resource, with the scopes the conversation service uses. Publishing metadata alone doesn't configure the issuer or establish trust between the providers (RFC 8707 §2.2).
-- [ ] The personal agent discovers the resource and requests its access token from the company's issuer with `resource` set to the endpoint URL, at sign-in or refresh (4.5). The issuer can also list the resource in its `protected_resources` (3.2).
+- [ ] The personal agent signs in without `resource`, discovers the resource, and requests its access token from the company's issuer with `resource` set to the endpoint URL (4.5). Configure the issuer to issue that token at refresh. The issuer can also list the resource in its `protected_resources` (3.2).
 - [ ] Arrange for the conversation provider to validate access tokens from that issuer. For JWT access tokens following RFC 9068, use the issuer's metadata and signing keys and check the issuer, audience, expiry, and other validation rules. Another option is authenticated token introspection (RFC 7662). Enforce scopes and verify the Session header separately, including that the token was issued to the same client (5.3).
 
 ### Recommended: [For companies: Conversations](https://personalagentprotocol.org/docs/1.0/guides#company-conversations)
@@ -417,6 +417,10 @@ Personal agents work faster and more reliably through a company agent or APIs th
 - [ ] **MUST**: Companies that offer Device Sign-In and Personal Agents that use it MUST follow the best practices in RFC 10027 (BCP 247) §2.
 - [ ] **MUST NOT**: Opening the link MUST NOT approve the request by itself.
 - [ ] **SHOULD**: The Company SHOULD show its consent page for every request, even when the account already granted every requested scope to the `client_id` (10.8).
+
+### Specification: [4.5 Access tokens](https://personalagentprotocol.org/docs/1.0/spec#access-tokens)
+
+- [ ] **MUST**: After a sign-in without `resource`, the Company MUST issue a token for any resource it offers Personal Agents, at refresh too.
 
 ### Specification: [4.7 Scopes and token responses](https://personalagentprotocol.org/docs/1.0/spec#scopes)
 

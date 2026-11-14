@@ -107,6 +107,19 @@ five-minute ones, has to change.
 
 </Change>
 
+<Change title="One sign-in for every resource" breaking sections="4.5, 4.7, 4.8, 7, guides#agent-tokens, guides#company-session-header, guides#company-conversation-provider" issue="89, 83">
+
+The User signs in once for all of a Company's services and approves only scopes, because the
+services are too technical for a consent page and a sign-in for each would be tiresome. A sign-in
+without `resource` now covers every resource the Company offers Personal Agents, including ones it
+adds later, and each later token request names one `resource`, or none for the default token. A
+Company can still leave a service out and return `invalid_target`. Before, the text said to request
+a service's token "at sign-in or refresh", but RFC 8707 §2.2 limits a refresh to the resources the
+sign-in granted, so with some issuers a Personal Agent needed a second sign-in to get both an MCP
+server's token and the default token.
+
+</Change>
+
 <Change title="Clearing context" sections="8.4">
 
 A `context` field set to `null` clears it, as if the Personal Agent had never shared it. Before, a
