@@ -98,6 +98,8 @@ function publish(date = today()) {
                 .replace(`This draft is \`${draft.id}\``, `This version is \`${draft.id}\``),
         'drop "draft" from the version number',
     );
+    // The edit can change a table row's width, so format before hashing.
+    format(spec);
     const hash = (slug: string) =>
         createHash("sha256")
             .update(readFileSync(join(root, `content/versions/${draft.id}/${slug}.mdx`)))
@@ -191,7 +193,12 @@ function startDraft(id: string | undefined) {
             ),
         "add a section for the draft",
     );
-    format(VERSIONS_FILE, CHANGELOG, CATALOG);
+    format(
+        VERSIONS_FILE,
+        CHANGELOG,
+        CATALOG,
+        ...pages.map((page) => join(root, `content/versions/${id}/${page}.mdx`)),
+    );
     run("docs:sync");
     run("kit");
     console.log(`Started draft ${id}, in content/versions/${id}/.`);

@@ -40,7 +40,7 @@ Write plain Markdown. On top of it:
 - Write links between docs pages without a version, such as `/docs/spec#sessions`. The build
   points them at the page's own version, and on a shared page at the latest version. A link can
   name a version on purpose, such as `/docs/0.1/spec` in the changelog. A published version can
-  link only to its own pages and the shared pages.
+  link only to its own pages, the shared pages, and other published versions.
 
 `outlineLabels` in `docs.ts` gives an outline label that differs from its heading.
 

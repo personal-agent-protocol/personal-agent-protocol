@@ -69,9 +69,10 @@ export function docsOutline(): OutlinePage[] {
 }
 
 // Problems with links between docs pages: a link to a page that doesn't exist, to a heading id
-// that page doesn't have, or from a published version to a page of another version. Links are
-// checked as resolveDocsLink points them. A published version can link to the shared pages, such as
-// the introduction, and the latest version and shared pages can link to any version.
+// that page doesn't have, or from a published version to a draft. Links are checked as
+// resolveDocsLink points them. A published version can link to its own pages, the shared pages, such
+// as the introduction, and other published versions, which are frozen too. The latest version and
+// shared pages can link to any version.
 export function linkProblems(): string[] {
     const problems: string[] = [];
     for (const page of ALL_DOCS_PAGES) {
@@ -88,7 +89,9 @@ export function linkProblems(): string[] {
                 (!version ||
                     version === LATEST ||
                     versionOf(target.href) === version ||
-                    isShared(target.href));
+                    isShared(target.href) ||
+                    // Only published pages have a hash.
+                    Boolean(target.sha256));
             if (!allowed) {
                 problems.push(`content/${page.file}: no docs page ${href} in this version`);
             } else if (id && !headingIds(target).has(id)) {
