@@ -2,16 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
-import { counterpart, VERSIONS } from "../content/docs";
+import { counterpart, OLDER_VERSIONS, VERSIONS, type DocsVersion } from "../content/docs";
 import { sectionIds, type OutlinePage } from "../lib/docs-outline";
 import { useDocsVersion } from "./docs-version";
 
 // The docs version: a button showing the current page's version, such as "Draft 0.2" or "Version 0.1", or
-// on a page that isn't versioned, the version last opened. It opens a list of every version.
-// Picking one goes to the same page in that version, at the same section when it has one, or to
-// the version's first page. `outline` is the outline of every docs page. `inline` opens the list
-// in place, pushing what's below it down, and leaves out the changelog link, as in the outline menu
-// on phones, which scrolls and links every docs page.
+// on a page that isn't versioned, the version last opened. It opens a list of the versions that
+// aren't archived, and the current one, then a link to the archived versions page. Picking one goes
+// to the same page in that version, at the same section when it has one, or to the version's first
+// page. `outline` is the outline of every docs page. `inline` opens the list in place, pushing what's
+// below it down, as in the outline menu on phones.
 export function VersionMenu({
     current,
     outline,
@@ -58,6 +58,24 @@ export function VersionMenu({
         return hash && sectionIds(outline, href).includes(hash) ? `${href}#${hash}` : href;
     }
 
+    const item = (v: DocsVersion) => (
+        <li key={v.id}>
+            <a
+                href={hrefIn(v.id)}
+                aria-current={v === version ? "page" : undefined}
+                data-cta={`version_${v.id}`}
+            >
+                <span className="version-label">
+                    {v.label}
+                    {v === version ? <Check size={14} aria-hidden="true" /> : null}
+                </span>
+                <span className="version-note">
+                    {v.published ? `Published ${v.published}` : "Latest, in progress"}
+                </span>
+            </a>
+        </li>
+    );
+
     const list = (
         <nav
             className={`version-list${inline ? " version-list-inline" : ""}`}
@@ -65,29 +83,15 @@ export function VersionMenu({
             aria-label="Docs versions"
         >
             <ul>
-                {VERSIONS.map((v) => (
-                    <li key={v.id}>
-                        <a
-                            href={hrefIn(v.id)}
-                            aria-current={v === version ? "page" : undefined}
-                            data-cta={`version_${v.id}`}
-                        >
-                            <span className="version-label">
-                                {v.label}
-                                {v === version ? <Check size={14} aria-hidden="true" /> : null}
-                            </span>
-                            <span className="version-note">
-                                {v.published ? `Published ${v.published}` : "Latest, in progress"}
-                            </span>
-                        </a>
-                    </li>
-                ))}
+                {VERSIONS.filter((v) => !OLDER_VERSIONS.includes(v) || v === version).map(item)}
             </ul>
-            {inline ? null : (
-                <a className="version-changes" href="/docs/changelog" data-cta="version_changelog">
-                    Changelog
-                </a>
-            )}
+            <a
+                className="version-archive-link"
+                href="/docs/changelog/archive"
+                data-cta="version_archive"
+            >
+                Archived versions
+            </a>
         </nav>
     );
     return (

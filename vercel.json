@@ -147,6 +147,26 @@
             "permanent": false
         },
         {
+            "source": "/docs/path-to-1",
+            "destination": "/docs/introduction",
+            "permanent": true
+        },
+        {
+            "source": "/docs/path-to-1.md",
+            "destination": "/docs/introduction.md",
+            "permanent": true
+        },
+        {
+            "source": "/docs/roadmap",
+            "destination": "/docs/introduction#open-topics",
+            "permanent": true
+        },
+        {
+            "source": "/docs/roadmap.md",
+            "destination": "/docs/introduction.md",
+            "permanent": true
+        },
+        {
             "source": "/docs/extensions/controller-hints",
             "destination": "/docs/0.4/extensions/controller-hints",
             "permanent": false
@@ -198,12 +218,12 @@
         },
         {
             "source": "/docs/open-topics",
-            "destination": "/docs/path-to-1#open-topics",
+            "destination": "/docs/introduction#open-topics",
             "permanent": true
         },
         {
             "source": "/docs/open-topics.md",
-            "destination": "/docs/path-to-1.md",
+            "destination": "/docs/introduction.md",
             "permanent": true
         },
         {

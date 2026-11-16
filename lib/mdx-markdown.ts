@@ -9,7 +9,7 @@ import { NEW_ISSUE_URL, SITE_URL } from "./site";
 // or are dropped, heading ids are dropped, and each paragraph is one line.
 
 // Components with no Markdown form.
-const DROP = new Set(["PronounceButton", "CommentingButton", "PermalinkButton"]);
+const DROP = new Set(["PronounceButton", "PermalinkButton", "ViewVersion"]);
 
 type Jsx = {
     type: "mdxJsxFlowElement" | "mdxJsxTextElement";

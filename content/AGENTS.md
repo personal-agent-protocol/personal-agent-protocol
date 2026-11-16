@@ -10,8 +10,10 @@ Each page is one MDX file, in one place:
 - `versions/<version>/<slug>.mdx`: the pages that are part of the protocol, the specification,
   extensions, and guides. Each version has its own copy, served at `/docs/<version>/<slug>`, such
   as `versions/0.2/extensions/operations.mdx` at `/docs/0.2/extensions/operations`.
-- `shared/<slug>.mdx`: the introduction, Path to 1.0, and the changelog. They have one copy, which
-  describes the latest version, served at `/docs/<slug>`.
+- `shared/<slug>.mdx`: the introduction, which has the roadmap, the changelog, which starts with
+  the current status, and `changelog/archive`, which has the changelog of the versions in
+  `OLDER_VERSIONS` in `docs.ts`. The version menu leaves those versions out and links to the
+  archive. They have one copy, which describes the latest version, served at `/docs/<slug>`.
 - `versions/versions.json`: the versions, newest first. Only the first can be a draft, which lists
   its pages. A published version also has the date it was published and each page's SHA-256.
 - `docs.ts`: the tabs and pages in site order, with each page's title, description, and outline
@@ -108,8 +110,10 @@ Both run `pnpm docs:sync` and `pnpm kit`. Review and commit what they change.
 
 `pnpm docs:sync` writes the files that follow from `docs.ts` and `versions.json`: each page's `.md`
 route under `app/docs/`, and the docs redirects and `noindex` headers in `vercel.json`. Don't edit
-those by hand. Run it after adding, removing, or moving a page. The build fails when they're out of
-date.
+those by hand. Run it after adding, removing, or moving a page. When a shared page moves or is
+merged into another, add its old slug to `MOVED_PAGES` in `docs.ts`, so its old URL redirects and
+links to it, including from frozen versions, still pass the build's link check. The build fails
+when they're out of date.
 
 ## Checks
 

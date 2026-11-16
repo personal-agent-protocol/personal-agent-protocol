@@ -1,6 +1,13 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
-import { ALL_DOCS_PAGES, docsHref, LATEST, VERSIONED_SLUGS, VERSIONS } from "../content/docs";
+import {
+    ALL_DOCS_PAGES,
+    docsHref,
+    LATEST,
+    MOVED_PAGES,
+    VERSIONED_SLUGS,
+    VERSIONS,
+} from "../content/docs";
 
 // The files that follow from the list of docs pages and versions: each page's .md route, and the
 // docs redirects and headers in vercel.json. `pnpm docs:sync` writes them, and the build fails when
@@ -32,8 +39,18 @@ type Header = { source: string; headers: { key: string; value: string }[] };
 type VercelConfig = { redirects: Redirect[]; headers: Header[] };
 
 // The docs redirects: a URL without a version goes to the latest version that has the page, and a
-// version's URL alone goes to its first page. Not permanent, since the latest version changes.
+// version's URL alone goes to its first page. Not permanent, since the latest version changes. A
+// shared page that moved goes to its new page, at its heading when it has one, permanently. Without
+// a heading, the browser keeps the link's #id.
 function docsRedirects(): Redirect[] {
+    const moved = Object.entries(MOVED_PAGES).flatMap(([from, to]) => [
+        {
+            source: `/docs/${from}`,
+            destination: `/docs/${to.slug}${to.id ? `#${to.id}` : ""}`,
+            permanent: true,
+        },
+        { source: `/docs/${from}.md`, destination: `/docs/${to.slug}.md`, permanent: true },
+    ]);
     const pages = VERSIONED_SLUGS.flatMap((slug) => {
         const href = docsHref(slug);
         return href
@@ -50,6 +67,7 @@ function docsRedirects(): Redirect[] {
             permanent: false,
         },
         ...pages,
+        ...moved,
     ];
 }
 
@@ -65,7 +83,7 @@ function isDocsRedirect(r: Redirect): boolean {
     const path = r.source.replace(/\.md$/, "");
     return (
         /^\/docs\/(\d|:version)/.test(r.source) ||
-        VERSIONED_SLUGS.some((s) => path === `/docs/${s}`)
+        [...VERSIONED_SLUGS, ...Object.keys(MOVED_PAGES)].some((s) => path === `/docs/${s}`)
     );
 }
 

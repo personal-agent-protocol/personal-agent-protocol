@@ -27,7 +27,6 @@ import {
     type Thread,
 } from "../lib/feedback-format";
 import { downloadBlob } from "./docs-download";
-import { reportCommentingEnabled, SET_COMMENTING_EVENT } from "./feedback-actions";
 
 // Private review comments on any page. Hidden by default: the first Cmd+. (Ctrl+. off a Mac) turns
 // them on and shows the switch in the bottom-right corner, which stays from then on. The switch or
@@ -325,10 +324,6 @@ export function Comments({ outline }: { outline: OutlinePage[] }) {
         const frame = requestAnimationFrame(() => requestAnimationFrame(() => setAnimate(true)));
         return () => cancelAnimationFrame(frame);
     }, []);
-
-    useEffect(() => {
-        reportCommentingEnabled(revealed);
-    }, [revealed]);
 
     // Hides the bar on every page until comments are turned on again. Comments are kept.
     function hideBar() {
@@ -890,16 +885,6 @@ export function Comments({ outline }: { outline: OutlinePage[] }) {
         downloadBlob(new Blob([text], { type: "application/json" }), fileName);
         setNote({ ok: true, text: `Saved ${fileName}. Others can import it from this menu.` });
     }
-
-    // The button on the Path to 1.0 page enables or disables site commenting.
-    useEffect(() => {
-        const set = (e: Event) =>
-            (e as CustomEvent<boolean>).detail === true ? turnOn(true) : hideBar();
-        window.addEventListener(SET_COMMENTING_EVENT, set);
-        return () => {
-            window.removeEventListener(SET_COMMENTING_EVENT, set);
-        };
-    });
 
     // Imports a file, then shows the result in the "…" menu.
     async function importAndShow(file: File | undefined) {

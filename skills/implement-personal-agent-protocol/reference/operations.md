@@ -488,7 +488,7 @@ The Company can't see the Personal Agent's interface, so it relies on the Person
 
 A Company chooses which actions it returns operations for (1). For an action where it wants to see the User approve, it doesn't return operations, and has the User confirm on its own website or in its app, signed in, the way Direct Sign-In works. This extension doesn't define that step, which differs from operations on a website (4): those are approved by the Personal Agent. A Company can also decline approvals it won't act on, such as agent approvals for an action (6). Accepting only `user` approvals still relies on the Personal Agent's statement, and doesn't show that the User approved.
 
-Signed user approvals are on the [roadmap](https://personalagentprotocol.org/docs/roadmap#signed-approvals). A later version or extension can add a signature over the operation's terms, made on the User's device with a key the User registered with the Company, so the Company can verify the User's approval itself. It would be another member of a user approval, which Companies that don't support it ignore.
+Signed user approvals are on the [roadmap](https://personalagentprotocol.org/docs/introduction#signed-approvals). A later version or extension can add a signature over the operation's terms, made on the User's device with a key the User registered with the Company, so the Company can verify the User's approval itself. It would be another member of a user approval, which Companies that don't support it ignore.
 
 ### 8.2 Operations on websites
 

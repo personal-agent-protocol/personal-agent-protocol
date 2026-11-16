@@ -37,7 +37,7 @@ has been published for four days.
 ## Pages
 
 - `/`: the overview, with interactive walkthroughs
-- `/docs/introduction`, `/docs/path-to-1`, `/docs/changelog`: the pages with one copy
+- `/docs/introduction`, `/docs/changelog`: the pages with one copy
 - `/docs/<version>/spec`, `/docs/<version>/extensions`, `/docs/<version>/guides`, and in 0.1 and
   0.2, `/docs/<version>/extensions/operations`: each version of the protocol's pages, such as
   `/docs/0.2/spec` for draft 0.2 and `/docs/0.1/spec` for version 0.1, which is frozen. Without a
@@ -84,9 +84,9 @@ hosts, a small script on the home page sends old `/?page=spec` links to the late
 
 ## Feedback and contributions
 
-The specification is a draft. To send feedback, see
-[How to give feedback](https://personalagentprotocol.org/docs/path-to-1#feedback) on the Path to
-1.0 page. To change this repository, see [CONTRIBUTING.md](CONTRIBUTING.md). Contributions are
+To send feedback on the specification, see
+[Providing feedback](https://personalagentprotocol.org/docs/introduction#feedback) in the
+introduction. To change this repository, see [CONTRIBUTING.md](CONTRIBUTING.md). Contributions are
 accepted under the [contribution terms](https://personalagentprotocol.org/license/contributions).
 
 ## License

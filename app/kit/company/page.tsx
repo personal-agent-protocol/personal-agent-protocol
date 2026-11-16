@@ -16,7 +16,7 @@ import {
 } from "../../../lib/site";
 
 // The Company implementation kit's page, laid out like a docs page. Not in the docs tabs or the
-// sitemap: the Path to 1.0 page and llms.txt link to it.
+// sitemap: the introduction and llms.txt link to it.
 
 const title = "Personal Agent Protocol: Company implementation kit";
 const description =
@@ -346,7 +346,7 @@ export default function Page() {
                 <p>
                     If a check looks wrong, use the &ldquo;Disagree?&rdquo; link in its output. It
                     opens an issue with the check and its requirement filled in. See also{" "}
-                    <a href="/docs/path-to-1#feedback">how to give feedback</a> and the{" "}
+                    <a href="/docs/introduction#feedback">how to give feedback</a> and the{" "}
                     <a href={docsHref("guides")}>implementation guides</a>.
                 </p>
             </article>

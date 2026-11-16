@@ -1,14 +1,12 @@
 # Contributing
 
-Personal Agent Protocol is a draft. Feedback on the specification and fixes to the site are
-welcome.
+Feedback on the specification and fixes to the site are welcome.
 
 ## Feedback on the specification
 
-[How to give feedback](https://personalagentprotocol.org/docs/path-to-1#feedback) on the Path to
-1.0 page lists what the authors most want feedback on and how to send it. You can leave inline
-comments on the site and export them, or download the agent kit and have an AI agent write a
-review.
+[Providing feedback](https://personalagentprotocol.org/docs/introduction#feedback) in the
+introduction says how to send it. You can also download the agent kit and have an AI agent write
+a review.
 
 ## Security
 

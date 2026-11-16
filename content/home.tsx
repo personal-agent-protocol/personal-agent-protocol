@@ -280,12 +280,16 @@ export function HomeContent() {
                         <p>
                             Read the docs to see what an implementation involves. Version 1.0 is
                             published, and we're working with design partners on what comes next.
-                            The path to 1.0 covers how that works and how to give feedback.
+                            The roadmap covers what's next and how to give feedback.
                         </p>
                     </div>
                     <div className="hero-ctas">
-                        <ButtonLink variant="secondary" href="/docs/path-to-1" data-cta="roadmap">
-                            Path to 1.0
+                        <ButtonLink
+                            variant="secondary"
+                            href="/docs/introduction#open-topics"
+                            data-cta="roadmap"
+                        >
+                            Roadmap
                         </ButtonLink>
                         <ButtonLink variant="primary" href="/docs/introduction" data-cta="docs">
                             Read the docs

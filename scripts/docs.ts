@@ -114,8 +114,8 @@ function publish(date = today()) {
         CHANGELOG,
         (text) =>
             text.replace(
-                `## Draft ${draft.id} {#${anchor(draft.id)}}`,
-                `## Version ${draft.id} {#${anchor(draft.id)}}`,
+                `## Draft ${draft.id} <ViewVersion id="${draft.id}" /> {#${anchor(draft.id)}}`,
+                `## Version ${draft.id} <ViewVersion id="${draft.id}" /> {#${anchor(draft.id)}}`,
             ),
         `rename the "Draft ${draft.id}" section`,
     );
@@ -188,8 +188,8 @@ function startDraft(id: string | undefined) {
         CHANGELOG,
         (text) =>
             text.replace(
-                /^## /m,
-                `## Draft ${id} {#${anchor(id)}}\n\nIn progress, at [/docs/spec](/docs/spec). This list grows until ${id} is published.\n\n## `,
+                /^## Version /m,
+                `## Draft ${id} <ViewVersion id="${id}" /> {#${anchor(id)}}\n\nIn progress. This list grows until ${id} is published.\n\n## Version `,
             ),
         "add a section for the draft",
     );

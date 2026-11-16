@@ -272,7 +272,8 @@ code {
     color: var(--ink-3);
 }
 
-.version-list .version-changes {
+/* Below the versions. */
+.version-list .version-archive-link {
     margin-top: 4px;
     padding-top: 8px;
     border-top: 1px solid var(--line);
@@ -1614,14 +1615,6 @@ footer.site-footer .footer-github {
     break-inside: avoid;
 }
 
-/* Buttons under a paragraph in the docs. */
-.doc .doc-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: -4px 0 20px;
-}
-
 .doc pre {
     background: var(--bg-soft);
     color: var(--ink);
@@ -1831,6 +1824,58 @@ footer.site-footer .footer-github {
 
 .doc .change h4 {
     margin-bottom: 6px;
+}
+
+/* A heading whose text shows when it's clicked (components/collapsible.tsx). */
+.doc .collapsible-head h3 {
+    cursor: pointer;
+    margin: 0;
+    padding: 12px 0;
+}
+
+.doc .collapsible {
+    border-bottom: 1px solid var(--line);
+}
+
+/* The next section's own rule ends the last one. */
+.doc .collapsible:not(:has(+ .collapsible)) {
+    border-bottom: none;
+}
+
+.doc .collapsible.open > .collapsible-body {
+    padding-bottom: 8px;
+}
+
+.collapse-toggle {
+    display: inline-flex;
+    vertical-align: middle;
+    margin-left: 6px;
+    padding: 2px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--ink-3);
+    cursor: pointer;
+}
+
+.collapse-toggle svg {
+    transition: transform 0.15s;
+}
+
+.collapsible.open .collapse-toggle svg {
+    transform: rotate(90deg);
+}
+
+/* A button at the right end of a heading, such as View on the archived versions page. */
+.doc h2:has(> .heading-action) {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.doc h2 > .heading-action {
+    margin-left: auto;
+    text-decoration: none;
 }
 
 /* Sits in the margin to the left of the title, and shows while the title is hovered. */

@@ -15,13 +15,14 @@ import {
 } from "../lib/mdx";
 import { NEW_ISSUE_URL } from "../lib/site";
 import { CodeBlock } from "./code-block";
+import { Collapsible } from "./collapsible";
 import { CopyMarkdownButton } from "./copy-markdown-button";
 import { DocsNav } from "./docs-nav";
-import { CommentingButton } from "./feedback-actions";
 import { PermalinkButton } from "./permalink-button";
 import { PronounceButton } from "./pronounce-button";
 import { SpecTable } from "./spec-table";
 import { VersionMenu } from "./version-menu";
+import { ViewVersion } from "./view-version";
 import { Demo, DemoGallery } from "./demo-gallery";
 import { Video, VideoGallery } from "./video-gallery";
 
@@ -109,7 +110,7 @@ const COMPONENTS: MDXComponents = {
     Callout,
     Change,
     CodeBlock,
-    CommentingButton,
+    Collapsible,
     Demo,
     DemoGallery,
     IssueLink,
@@ -118,6 +119,7 @@ const COMPONENTS: MDXComponents = {
     PronounceButton,
     Tag,
     Video,
+    ViewVersion,
     VideoGallery,
 };
 

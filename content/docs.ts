@@ -58,38 +58,31 @@ const TABS: TabInfo[] = [
                 navTitle: "Introduction",
                 title: "Personal Agent Protocol: Introduction",
                 description:
-                    "What Personal Agent Protocol is, why it exists, who it is for, and what it covers.",
+                    "What Personal Agent Protocol is, why it exists, what it may cover next, how to give feedback, and the design partners implementing it.",
                 outlineDepth: 2,
                 outlineLabels: { what: "What is it?" },
             },
         ],
     },
     {
-        title: "Path to 1.0",
+        title: "Changelog",
         pages: [
-            {
-                slug: "path-to-1",
-                navTitle: "Path to 1.0",
-                title: "Personal Agent Protocol: Path to 1.0",
-                description:
-                    "Where Personal Agent Protocol stands, how it gets to 1.0, how to give feedback, and the design partners implementing it.",
-                outlineDepth: 2,
-            },
-            {
-                slug: "roadmap",
-                navTitle: "Roadmap",
-                title: "Personal Agent Protocol: Roadmap",
-                description:
-                    "The areas Personal Agent Protocol expects to work on before 1.0, what each should achieve, and where each stands.",
-                outlineDepth: 2,
-            },
             {
                 slug: "changelog",
                 navTitle: "Changelog",
                 title: "Personal Agent Protocol: Changelog",
                 description:
-                    "What changed in each draft of the Personal Agent Protocol specification, extensions, and guides, and which changes affect existing implementations.",
+                    "Which version of Personal Agent Protocol to build against, what changed in each version of the specification, extensions, and guides, and which changes affect existing implementations.",
                 outlineDepth: 3,
+            },
+            {
+                slug: "changelog/archive",
+                navTitle: "Archived versions",
+                title: "Personal Agent Protocol: Archived versions",
+                description:
+                    "What changed in versions 0.1 and 0.2 of the Personal Agent Protocol specification, extensions, and guides, and which changes affected existing implementations.",
+                outlineDepth: 2,
+                kit: false,
             },
         ],
     },
@@ -213,6 +206,17 @@ const TABS: TabInfo[] = [
     },
 ];
 
+// Shared pages that moved, by their old slug: the new page's slug, and the heading a link without
+// an id goes to. The old page's heading ids moved with it, so links such as /docs/path-to-1#feedback
+// still work. `pnpm docs:sync` writes their redirects, and links to them in content files, such as
+// in frozen versions, point at the new page.
+export const MOVED_PAGES: Record<string, { slug: string; id?: string }> = {
+    // Path to 1.0 and the roadmap, until 1.0 was published. The roadmap, feedback, and partners are
+    // now on the introduction.
+    "path-to-1": { slug: "introduction" },
+    roadmap: { slug: "introduction", id: "open-topics" },
+};
+
 export type DocsVersion = {
     // The version number, such as "0.2".
     id: string;
@@ -299,6 +303,10 @@ export const VERSIONS: DocsVersion[] = VERSION_ENTRIES.map(docsVersion);
 
 export const LATEST = VERSIONS[0];
 
+// The versions the version menu leaves out. Their changes are on the archived versions page, which
+// the menu links to.
+export const OLDER_VERSIONS = VERSIONS.filter((v) => ["0.1", "0.2"].includes(v.id));
+
 // The tabs that aren't versioned.
 export const SHARED_TABS: DocsTab[] = TABS.filter((tab) => !tab.versioned).map(sharedTab);
 
@@ -383,8 +391,10 @@ export function resolveDocsLink(url: string, version: DocsVersion = LATEST): str
     if (!match || /^\d+\.\d+(\/|$)/.test(match[1])) {
         return url;
     }
-    const href = docsHref(match[1], version);
-    return href ? href + (match[2] ?? "") : url;
+    const moved = MOVED_PAGES[match[1]];
+    const href = docsHref(moved?.slug ?? match[1], version);
+    const rest = match[2] ?? (moved?.id ? `#${moved.id}` : "");
+    return href ? href + rest : url;
 }
 
 // The spec in the latest version.
