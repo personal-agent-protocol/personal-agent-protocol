@@ -119,7 +119,17 @@ function publish(date = today()) {
             ),
         `rename the "Draft ${draft.id}" section`,
     );
-    format(VERSIONS_FILE, CHANGELOG);
+    // The kit follows the latest published version, which this now is.
+    edit(
+        CATALOG,
+        (text) =>
+            text.replace(
+                /(export const PROTOCOL_VERSION = ")[^"]*"/,
+                (_, start: string) => `${start}${draft.id}"`,
+            ),
+        "change PROTOCOL_VERSION",
+    );
+    format(VERSIONS_FILE, CHANGELOG, CATALOG);
     run("docs:sync");
     run("kit");
     console.log(
@@ -176,15 +186,6 @@ function startDraft(id: string | undefined) {
         );
     }
     edit(
-        CATALOG,
-        (text) =>
-            text.replace(
-                /(export const PROTOCOL_VERSION = ")[^"]*"/,
-                (_, start: string) => `${start}${id}"`,
-            ),
-        "change PROTOCOL_VERSION",
-    );
-    edit(
         CHANGELOG,
         (text) =>
             text.replace(
@@ -196,7 +197,6 @@ function startDraft(id: string | undefined) {
     format(
         VERSIONS_FILE,
         CHANGELOG,
-        CATALOG,
         ...pages.map((page) => join(root, `content/versions/${id}/${page}.mdx`)),
     );
     run("docs:sync");

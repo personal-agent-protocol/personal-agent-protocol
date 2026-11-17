@@ -70,7 +70,7 @@ export function VersionMenu({
                     {v === version ? <Check size={14} aria-hidden="true" /> : null}
                 </span>
                 <span className="version-note">
-                    {v.published ? `Published ${v.published}` : "Latest, in progress"}
+                    {v.published ? `Published ${v.published}` : "Draft, in progress"}
                 </span>
             </a>
         </li>

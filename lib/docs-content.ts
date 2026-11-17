@@ -6,6 +6,7 @@ import {
     ALL_DOCS_PAGES,
     isShared,
     LATEST,
+    NEWEST,
     resolveDocsLink,
     tabFor,
     versionOf,
@@ -30,7 +31,7 @@ export function docsPage(href: string): DocsPage {
 
 const parsed = new Map<string, { source: string; tree: Root }>();
 
-// Points a link on a page at the page's version, or for a shared page, the latest version.
+// Points a link on a page at the page's version, or for a shared page, the latest published version.
 export function linkResolver(page: DocsPage): (url: string) => string {
     const version = versionOf(page.href) ?? LATEST;
     return (url) => resolveDocsLink(url, version);
@@ -63,7 +64,7 @@ function pageOutline(page: DocsPage): OutlinePage {
     return { title: page.navTitle, href: page.href, sections };
 }
 
-// The outline of every docs page, in site order, latest version first.
+// The outline of every docs page, in site order, latest published version first.
 export function docsOutline(): OutlinePage[] {
     return ALL_DOCS_PAGES.map(pageOutline);
 }
@@ -71,7 +72,7 @@ export function docsOutline(): OutlinePage[] {
 // Problems with links between docs pages: a link to a page that doesn't exist, to a heading id
 // that page doesn't have, or from a published version to a draft. Links are checked as
 // resolveDocsLink points them. A published version can link to its own pages, the shared pages, such
-// as the introduction, and other published versions, which are frozen too. The latest version and
+// as the introduction, and other published versions, which are frozen too. The newest version and
 // shared pages can link to any version.
 export function linkProblems(): string[] {
     const problems: string[] = [];
@@ -87,7 +88,7 @@ export function linkProblems(): string[] {
             const allowed =
                 target &&
                 (!version ||
-                    version === LATEST ||
+                    version === NEWEST ||
                     versionOf(target.href) === version ||
                     isShared(target.href) ||
                     // Only published pages have a hash.

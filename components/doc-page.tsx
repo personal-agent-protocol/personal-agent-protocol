@@ -82,7 +82,8 @@ function IssueLink({
     );
 }
 
-// On a page of an earlier version, says so and links to the same page in the latest.
+// On a page of the draft or an earlier version, says so and links to the same page in the latest
+// published version.
 function VersionBanner({ href }: { href: string }) {
     const version = versionOf(href);
     if (!version || version === LATEST) {
@@ -90,9 +91,10 @@ function VersionBanner({ href }: { href: string }) {
     }
     return (
         <p className="version-banner" role="note">
-            You're reading version {version.id}, published {version.published}. The latest is{" "}
-            {LATEST.label.toLowerCase()}
-            {LATEST.draft ? ", which is still in progress" : ""}.{" "}
+            {version.draft
+                ? `You're reading draft ${version.id}, which is still in progress.`
+                : `You're reading version ${version.id}, published ${version.published}.`}{" "}
+            The latest published version is {LATEST.id}.{" "}
             <a href={counterpart(href, LATEST)} data-cta="version_banner_latest">
                 See this page in {LATEST.label.toLowerCase()}
             </a>{" "}

@@ -301,7 +301,12 @@ export const VERSION_ENTRIES = VERSION_LIST as VersionEntry[];
 // Every version of the docs, latest first.
 export const VERSIONS: DocsVersion[] = VERSION_ENTRIES.map(docsVersion);
 
-export const LATEST = VERSIONS[0];
+// The newest version: the draft when there is one.
+export const NEWEST = VERSIONS[0];
+
+// The latest published version, which readers see by default: a URL without a version goes to it,
+// shared pages link to it, the kit follows it, and only it is indexed. The draft, when there's no published version.
+export const LATEST = VERSIONS.find((v) => !v.draft) ?? NEWEST;
 
 // The versions the version menu leaves out. Their changes are on the archived versions page, which
 // the menu links to.
@@ -316,7 +321,8 @@ export const VERSIONED_SLUGS = TABS.filter((tab) => tab.versioned).flatMap((tab)
 );
 
 // The tab row on a docs page: the shared tabs, and the versioned ones from `version`, the version
-// the page shows, in site order. A tab `version` doesn't have comes from the latest version.
+// the page shows, in site order. A tab `version` doesn't have comes from the latest published
+// version.
 export function docsTabsFor(version: DocsVersion): DocsTab[] {
     return TABS.flatMap((info) => {
         const tab = info.versioned
@@ -327,13 +333,13 @@ export function docsTabsFor(version: DocsVersion): DocsTab[] {
     });
 }
 
-// The docs pages of the latest version and the shared pages, in site order.
+// The docs pages of the latest published version and the shared pages, in site order.
 export const DOCS_PAGES = docsTabsFor(LATEST).flatMap((tab) => tab.pages);
 
-// Every docs page: the latest ones, then those of earlier versions.
+// Every docs page: the latest published ones, then those of the other versions, newest first.
 export const ALL_DOCS_PAGES = [
     ...DOCS_PAGES,
-    ...VERSIONS.slice(1).flatMap((v) => v.tabs.flatMap((tab) => tab.pages)),
+    ...VERSIONS.filter((v) => v !== LATEST).flatMap((v) => v.tabs.flatMap((tab) => tab.pages)),
 ];
 
 function clean(href: string): string {
@@ -369,7 +375,7 @@ export function counterpart(href: string, to: DocsVersion): string {
 }
 
 // The URL of a page by slug: a shared page's one URL, or a versioned page in `version`, or in the
-// latest version that has it when `version` doesn't. Undefined for a page that doesn't exist.
+// newest version that has it when `version` doesn't. `version` is the latest published one by default. Undefined for a page that doesn't exist.
 export function docsHref(slug: string, version: DocsVersion = LATEST): string | undefined {
     if (SHARED_TABS.some((tab) => tab.pages.some((p) => p.slug === slug))) {
         return `/docs/${slug}`;
@@ -384,7 +390,7 @@ export function docsHref(slug: string, version: DocsVersion = LATEST): string | 
 }
 
 // A link to the docs as written in a content file, pointed at a page's version: /docs/spec#x on a
-// page of 0.1 becomes /docs/0.1/spec#x, and on a shared page, the latest version's. A link that
+// page of 0.1 becomes /docs/0.1/spec#x, and on a shared page, the latest published version's. A link that
 // names its version, such as /docs/0.1/spec, or that isn't to a docs page, stays as written.
 export function resolveDocsLink(url: string, version: DocsVersion = LATEST): string {
     const match = /^\/docs\/([^#?]+?)\/?([#?].*)?$/.exec(url);
@@ -397,5 +403,5 @@ export function resolveDocsLink(url: string, version: DocsVersion = LATEST): str
     return href ? href + rest : url;
 }
 
-// The spec in the latest version.
+// The spec in the latest published version.
 export const SPEC_HREF = docsHref("spec")!;

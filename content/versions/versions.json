@@ -1,5 +1,19 @@
 [
     {
+        "id": "1.1",
+        "pages": [
+            "spec",
+            "extensions",
+            "extensions/browser-control",
+            "extensions/disclosures",
+            "extensions/links",
+            "extensions/mediated-sign-in",
+            "extensions/operations",
+            "extensions/ucp",
+            "guides"
+        ]
+    },
+    {
         "id": "1.0",
         "published": "2026-11-14",
         "pages": {

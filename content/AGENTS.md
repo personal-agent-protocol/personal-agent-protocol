@@ -13,18 +13,20 @@ Each page is one MDX file, in one place:
 - `shared/<slug>.mdx`: the introduction, which has the roadmap, the changelog, which starts with
   the current status, and `changelog/archive`, which has the changelog of the versions in
   `OLDER_VERSIONS` in `docs.ts`. The version menu leaves those versions out and links to the
-  archive. They have one copy, which describes the latest version, served at `/docs/<slug>`.
+  archive. They have one copy, which describes the latest published version, served at `/docs/<slug>`.
 - `versions/versions.json`: the versions, newest first. Only the first can be a draft, which lists
   its pages. A published version also has the date it was published and each page's SHA-256.
 - `docs.ts`: the tabs and pages in site order, with each page's title, description, and outline
   settings. A tab marked `versioned` has a copy in each version that lists its pages.
 
-A URL without a version, such as `/docs/spec`, redirects to the latest version. Only the latest
-version and the shared pages are indexed.
+A URL without a version, such as `/docs/spec`, redirects to the latest published version, not the
+draft. Only the latest published version and the shared pages are indexed.
 
 ## Editing pages
 
-Change the draft, the first version in `versions.json`. A published version is frozen: the build
+Change the draft, the first version in `versions.json`. The kit follows the latest published
+version, so the draft doesn't change it. A validator check for a requirement the draft adds or
+changes can only be updated when the draft is published. A published version is frozen: the build
 fails if its files change. When there's no draft, start one with `pnpm docs:draft <version>`.
 
 Write plain Markdown. On top of it:
@@ -40,8 +42,9 @@ Write plain Markdown. On top of it:
   ` ```http label="Request: Personal Agent → Company" `.
 - Links to other sites open in a new tab.
 - Write links between docs pages without a version, such as `/docs/spec#sessions`. The build
-  points them at the page's own version, and on a shared page at the latest version. A link can
-  name a version on purpose, such as `/docs/0.1/spec` in the changelog. A published version can
+  points them at the page's own version, and on a shared page at the latest published version. A link can
+  name a version on purpose, such as `/docs/0.1/spec` in the changelog, or `/docs/1.1/spec#x` for a
+  section only the draft has. A published version can
   link only to its own pages, the shared pages, and other published versions.
 
 `outlineLabels` in `docs.ts` gives an outline label that differs from its heading.
@@ -90,18 +93,20 @@ the heading and tags.
 
 The folder name is the version. The spec states it too ("This is draft version 0.2.", "This draft
 is `0.2`", and `protocol_version` in its examples), and the build fails when they don't match the
-folder. The home page walkthroughs, the kit, and the site read it from `versions.json`, except
+folder. The home page walkthroughs, the kit, and the site read the latest published version from
+`versions.json`, never the draft, except
 `PROTOCOL_VERSION` in `kit/company/validate/catalog.ts`, which the build checks against the latest
-version and `pnpm docs:draft` changes.
+published version and `pnpm docs:publish` changes.
 
 ## Publishing
 
 - `pnpm docs:publish [YYYY-MM-DD]` publishes the draft, on today's date by default. It records the
   date and each page's SHA-256 in `versions.json`, which freezes them, and renames the draft's
-  changelog section. Then write the date in that section's first paragraph. The published version
-  is now the latest. There's no draft until you start one.
+  changelog section, and sets `PROTOCOL_VERSION` in `catalog.ts` to it, so the kit follows it.
+  Then write the date in that section's first paragraph. The published version is now the
+  latest. There's no draft until you start one.
 - `pnpm docs:draft <version>`, such as `pnpm docs:draft 0.3`, starts a draft as a copy of the
-  latest published version. It changes the version in the new spec and in `catalog.ts`, and adds a
+  latest published version. It changes the version in the new spec and adds a
   section for it to the changelog.
 
 Both run `pnpm docs:sync` and `pnpm kit`. Review and commit what they change.

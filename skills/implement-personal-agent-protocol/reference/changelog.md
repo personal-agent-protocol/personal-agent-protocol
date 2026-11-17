@@ -6,6 +6,10 @@ What changed in each version of the specification, extensions, and guides, newes
 
 Version 1.0 is published. Build against [1.0](https://personalagentprotocol.org/docs/1.0/spec). Later 1.x versions add features without breaking 1.0 implementations ([3.4](https://personalagentprotocol.org/docs/1.0/spec#versions)). What we expect to work on next is on the [roadmap](https://personalagentprotocol.org/docs/introduction#open-topics).
 
+## Draft 1.1
+
+In progress. This list grows until 1.1 is published.
+
 ## Version 1.0
 
 Published November 14, 2026. It's [0.4](https://personalagentprotocol.org/docs/0.4/spec) with the fixes implementers needed. Major changes are design decisions. Minor changes fill gaps, make the text consistent, or follow an RFC. A change tagged "Breaking" can require an implementation that followed the 0.4 text to change, whether it's major or minor.

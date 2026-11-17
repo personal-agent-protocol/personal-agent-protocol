@@ -75,12 +75,12 @@ function checkCatalog(): string[] {
     return problems;
 }
 
-// The validator checks the latest version, which the kit follows.
+// The validator checks the latest published version, which the kit follows.
 function checkVersion(): string[] {
     return PROTOCOL_VERSION === LATEST.id
         ? []
         : [
-              `catalog.ts: PROTOCOL_VERSION is ${PROTOCOL_VERSION}, but the latest version is ${LATEST.id}.`,
+              `catalog.ts: PROTOCOL_VERSION is ${PROTOCOL_VERSION}, but the latest published version is ${LATEST.id}.`,
           ];
 }
 

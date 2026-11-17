@@ -41,7 +41,7 @@ function referenceFiles(): KitFile[] {
 }
 
 // Links to the docs in the kit's sources, such as /docs/spec#fields, point at the version the kit
-// follows, the latest, as links in the docs do.
+// follows, the latest published one, as links on shared pages do.
 function pinDocsLinks(text: string): string {
     const site = SITE_URL.replace(/[.]/g, "\\.");
     return text.replace(

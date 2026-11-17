@@ -27,7 +27,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     const href = await hrefOf(props);
     const page = docsPage(href);
     const version = versionOf(href);
-    // Only the latest version and the shared pages are indexed. Earlier versions stay at their URLs
+    // Only the latest published version and the shared pages are indexed. Other versions stay at their URLs
     // for links and citations.
     const indexed = !version || version === LATEST;
     const title = version ? `${page.title} (${version.label.toLowerCase()})` : page.title;

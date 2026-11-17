@@ -38,7 +38,7 @@ type Redirect = { source: string; destination: string; permanent: boolean };
 type Header = { source: string; headers: { key: string; value: string }[] };
 type VercelConfig = { redirects: Redirect[]; headers: Header[] };
 
-// The docs redirects: a URL without a version goes to the latest version that has the page, and a
+// The docs redirects: a URL without a version goes to the latest published version that has the page, and a
 // version's URL alone goes to its first page. Not permanent, since the latest version changes. A
 // shared page that moved goes to its new page, at its heading when it has one, permanently. Without
 // a heading, the browser keeps the link's #id.
@@ -71,9 +71,9 @@ function docsRedirects(): Redirect[] {
     ];
 }
 
-// Only the latest version is indexed. Pages also say so in a robots meta tag, but .md files can't.
+// Only the latest published version is indexed. Pages also say so in a robots meta tag, but .md files can't.
 function docsHeaders(): Header[] {
-    return VERSIONS.slice(1).map((v) => ({
+    return VERSIONS.filter((v) => v !== LATEST).map((v) => ({
         source: `/docs/${v.id}/(.*)`,
         headers: [{ key: "X-Robots-Tag", value: "noindex" }],
     }));

@@ -259,6 +259,15 @@
     ],
     "headers": [
         {
+            "source": "/docs/1.1/(.*)",
+            "headers": [
+                {
+                    "key": "X-Robots-Tag",
+                    "value": "noindex"
+                }
+            ]
+        },
+        {
             "source": "/docs/0.4/(.*)",
             "headers": [
                 {

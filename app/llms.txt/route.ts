@@ -1,4 +1,4 @@
-import { DOCS_PAGES, LATEST, VERSIONS } from "../../content/docs";
+import { DOCS_PAGES, LATEST, NEWEST, VERSIONS } from "../../content/docs";
 import { SITE_NAME, SITE_URL } from "../../lib/site";
 
 export const dynamic = "force-static";
@@ -15,9 +15,17 @@ export function GET() {
 
 ${DOCS_PAGES.map((page) => `- [${page.navTitle}](${SITE_URL}${page.href}.md): ${page.description}`).join("\n")}
 
-## Earlier versions
+${
+    NEWEST.draft && NEWEST !== LATEST
+        ? `## Draft
 
-${VERSIONS.slice(1)
+- [${NEWEST.label} specification](${SITE_URL}${NEWEST.base}/spec.md): In progress, and not yet ready to build against.
+
+`
+        : ""
+}## Earlier versions
+
+${VERSIONS.filter((v) => v.published && v !== LATEST)
     .map(
         (v) =>
             `- [${v.label} specification](${SITE_URL}${v.base}/spec.md): Published ${v.published}. Frozen, and replaced by ${LATEST.label.toLowerCase()}.`,
