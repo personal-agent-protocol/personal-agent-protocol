@@ -92,7 +92,7 @@ function VersionBanner({ href }: { href: string }) {
     return (
         <p className="version-banner" role="note">
             {version.draft
-                ? `You're reading draft ${version.id}, which is still in progress.`
+                ? `You're reading draft ${version.id}. Anything in it can change until it's published, so don't implement it yet.`
                 : `You're reading version ${version.id}, published ${version.published}.`}{" "}
             The latest published version is {LATEST.id}.{" "}
             <a href={counterpart(href, LATEST)} data-cta="version_banner_latest">

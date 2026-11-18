@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { docsProblems } from "../lib/docs-checks";
+import { docsProblems, draftNotice } from "../lib/docs-checks";
 import { extraPlumbing, plumbingFiles } from "../lib/docs-plumbing";
 import type { VersionEntry } from "../content/docs";
 
@@ -90,10 +90,12 @@ function publish(date = today()) {
     }
     // A published spec doesn't call itself a draft.
     const spec = join(root, `content/versions/${draft.id}/spec.mdx`);
+    const previous = entries.find((entry) => entry.published);
     edit(
         spec,
         (text) =>
             text
+                .replace(`\n\n${draftNotice(draft.id, previous?.id ?? "")}\n`, "\n")
                 .replace(`This is draft version ${draft.id}.`, `This is version ${draft.id}.`)
                 .replace(`This draft is \`${draft.id}\``, `This version is \`${draft.id}\``),
         'drop "draft" from the version number',
@@ -163,8 +165,9 @@ function startDraft(id: string | undefined) {
         (text) =>
             text
                 .replace(
-                    new RegExp(`This is (?:draft )?version ${old}\\.`),
-                    `This is draft version ${id}.`,
+                    new RegExp(`This is (?:draft )?version ${old}\\.(.*(?:\\n.+)*)`),
+                    (_, rest: string) =>
+                        `This is draft version ${id}.${rest}\n\n${draftNotice(id, latest.id)}`,
                 )
                 .replace(new RegExp(`("protocol_version": ")${old}"`, "g"), `$1${id}"`)
                 .replace(new RegExp(`^(Poppy-Version: )${old}$`, "gm"), `$1${id}`)
@@ -190,7 +193,7 @@ function startDraft(id: string | undefined) {
         (text) =>
             text.replace(
                 /^## Version /m,
-                `## Draft ${id} <ViewVersion id="${id}" /> {#${anchor(id)}}\n\nIn progress. This list grows until ${id} is published.\n\n## Version `,
+                `## Draft ${id} <ViewVersion id="${id}" /> {#${anchor(id)}}\n\nIn progress. This list grows, and anything in it can change, until ${id} is published.\n\n## Version `,
             ),
         "add a section for the draft",
     );

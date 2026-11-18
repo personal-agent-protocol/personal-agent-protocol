@@ -101,13 +101,15 @@ published version and `pnpm docs:publish` changes.
 ## Publishing
 
 - `pnpm docs:publish [YYYY-MM-DD]` publishes the draft, on today's date by default. It records the
-  date and each page's SHA-256 in `versions.json`, which freezes them, and renames the draft's
-  changelog section, and sets `PROTOCOL_VERSION` in `catalog.ts` to it, so the kit follows it.
-  Then write the date in that section's first paragraph. The published version is now the
+  date and each page's SHA-256 in `versions.json`, which freezes them, removes the draft notice
+  from the spec, renames the draft's changelog section, and sets `PROTOCOL_VERSION` in
+  `catalog.ts` to it, so the kit follows it. Then write the date in that section's first paragraph. The published version is now the
   latest. There's no draft until you start one.
 - `pnpm docs:draft <version>`, such as `pnpm docs:draft 0.3`, starts a draft as a copy of the
-  latest published version. It changes the version in the new spec and adds a
-  section for it to the changelog.
+  latest published version. It changes the version in the new spec, adds the draft notice after
+  it, and adds a section for it to the changelog. The draft notice is the paragraph that tells
+  readers not to implement the draft (`draftNotice` in `lib/docs-checks.ts`), and the build fails
+  when a draft's spec doesn't have it.
 
 Both run `pnpm docs:sync` and `pnpm kit`. Review and commit what they change.
 

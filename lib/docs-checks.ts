@@ -1,6 +1,7 @@
 import { readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import {
+    LATEST,
     SHARED_TABS,
     VERSION_ENTRIES,
     VERSIONED_SLUGS,
@@ -106,7 +107,14 @@ const VERSION_MENTIONS = [
     /^Poppy-Version: (\d+\.\d+)$/gm,
 ];
 
-// Each version's spec states that version's number.
+// The paragraph a draft's spec has after its version number, so people and agents reading the
+// spec, including its .md route, don't build against it. pnpm docs:draft adds it and pnpm
+// docs:publish removes it.
+export function draftNotice(id: string, latest: string): string {
+    return `Until ${id} is published, anything in this draft can change. Don't implement it: build against [${latest}](/docs/${latest}/spec), the latest published version.`;
+}
+
+// Each version's spec states that version's number, and a draft's spec has the draft notice.
 function specVersionProblems(version: DocsVersion): string[] {
     const spec = version.tabs.flatMap((tab) => tab.pages).find((p) => p.slug === "spec");
     if (!spec) {
@@ -121,9 +129,14 @@ function specVersionProblems(version: DocsVersion): string[] {
             `content/${spec.file}: it needs "This is ${version.draft ? "draft " : ""}version ${version.id}."`,
         ];
     }
-    return found
+    const problems = found
         .filter((id) => id !== version.id)
         .map((id) => `content/${spec.file}: it says version ${id}, but it's in ${version.id}.`);
+    const notice = draftNotice(version.id, LATEST.id);
+    if (version.draft && version !== LATEST && !markdown.includes(notice)) {
+        problems.push(`content/${spec.file}: a draft's spec needs this paragraph: ${notice}`);
+    }
+    return problems;
 }
 
 export function docsProblems(): string[] {
