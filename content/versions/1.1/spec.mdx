@@ -880,10 +880,27 @@ or name, even with a keyed hash. User IDs are pairwise subject identifiers, as i
 Core](https://openid.net/specs/openid-connect-core-1_0.html#SubjectIDTypes) §8, except that the
 Personal Agent assigns them, one for each pair of User and Company.
 
+**Replacing a User ID.** A User ID is stable, but not permanent. A Personal Agent MAY replace a
+User's ID at a Company when the User asks, such as by clearing their data for the Company. It MAY
+also replace an ID on its own once 28 days have passed since it last used a Session with it, but
+MUST NOT while it holds a refresh token for the User at the Company, however long the ID has gone
+unused. Apart from anonymous browsing (below) and a change of the Company's identifier (3.2), it
+MUST NOT replace User IDs in other cases, so a Company can count its Users and limit each one (5.6).
+
+The Personal Agent replaces an ID between tasks, when no Session uses it. If it holds a refresh
+token for the User at the Company, it MUST first sign out (5.5), because the account would link the
+old ID and the new one. It MUST NOT send the Company anything it used or received under the old ID,
+so nothing it sends links the two, and MUST discard the old ID's identifiers and keys: the User's
+Agent IDs, `sid`s, DPoP keys (4.5), delegated keys (5.2), its browser's cookies and other site data
+for the Company (section 6), and the IDs the Company gave it, such as `conversation_id`s. It starts
+again with new ones. Carts, conversations, and other state from the old ID don't carry over, as when
+the Company's identifier changes (3.2). The Company sees a new User, and MUST NOT expect a User or
+account to keep one User ID.
+
 A Personal Agent MAY instead give a User a new User ID for each anonymous browsing session, like a
-private browser window. The Company sees a new User each time. The Personal Agent uses the ID for
-nothing else, discards it when the browsing session ends, and MUST NOT send an access token in a Session
-that uses it (5.4).
+private browser window. The Company sees a new User for each anonymous browsing session. The
+Personal Agent uses the ID for nothing else, discards it when the browsing session ends, and MUST
+NOT send an access token in a Session that uses it (5.4).
 
 A Personal Agent that acts for a User through several agents, such as a travel agent and a shopping
 agent, MAY say which one a Session is for with an Agent ID. The Agent ID follows the same rules as

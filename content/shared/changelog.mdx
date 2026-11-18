@@ -14,6 +14,22 @@ In progress. This list grows, and anything in it can change, until 1.1 is publis
 
 ### Major changes {#v1-1-major}
 
+<Change title="Replacing a User ID" sections="5.1, guides#both-rate-limits, guides#agent-user-ids, guides#company-sessions">
+
+A User ID is stable, but not permanent. A Personal Agent may replace a User's ID at a Company when
+the User asks, such as by clearing their data for the Company, and on its own 28 days after it last
+used a Session with the ID if it holds no refresh token for the User there. Otherwise it replaces
+IDs only for anonymous browsing and when the Company's identifier changes. It replaces an ID between
+tasks, signs out first if it holds a refresh token, sends nothing from the old ID under the new one,
+and discards the old ID's identifiers and keys, such as Agent IDs, `sid`s, DPoP and delegated keys,
+cookies, and IDs the Company gave it. State from the old ID doesn't carry over, and the Company sees
+a new User. Companies must not expect a User or account to keep one User ID. The guides suggest
+that Personal Agents let Users clear their data at each Company, as browsers do for each site. They
+also suggest how Personal Agents age out IDs, and replace one User's ID when they derive IDs with a
+keyed hash, and how Companies limit new User IDs by `client_id`.
+
+</Change>
+
 <Change title="Operator signatures at the authorization server" sections="5.3, 11, guides#both-operator-signatures, guides#company-verified-agents">
 
 A Personal Agent SHOULD now also sign its requests to the pushed authorization request, token,

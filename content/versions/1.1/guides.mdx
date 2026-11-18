@@ -163,9 +163,16 @@ Personal agents change the shape of web traffic: one user's request can turn int
 calls, at any hour. Existing HTTP patterns handle most of this.
 
 - Companies: limit by `client_id`, by user, and by session, so one busy personal agent or user
-  doesn't crowd out others. Count a request against a `client_id` only after its Session JWT or client
-  assertion's signature checks pass. Otherwise anyone can name a personal agent and use up its
-  limit, so its real users are refused. Limit unverified requests by network instead.
+  doesn't crowd out others. A user ID can change: a personal agent replaces it when the user asks,
+  or after it goes unused for 28 days, each anonymous browsing session gets a new one, and every ID
+  changes when your identifier does. You can't tell any of these apart from a new user
+  ([5.1](/docs/spec#user-ids)), so also limit how many new user IDs you accept from each
+  `client_id`, and give a user ID you haven't seen before the limits of a first-time visitor. A
+  `client_id` that sends many more new user IDs than its usual traffic suggests may not be following
+  5.1, and you can refuse it ([4.1](/docs/spec#agent-identity)). Count a request against a
+  `client_id` only after its Session JWT or client assertion's signature checks pass. Otherwise
+  anyone can name a personal agent and use up its limit, so its real users are refused. Limit
+  unverified requests by network instead.
 - Companies: also send the `RateLimit` and `RateLimit-Policy` headers ([IETF
   draft](https://datatracker.ietf.org/doc/draft-ietf-httpapi-ratelimit-headers/)), so personal
   agents can slow down before they hit a limit.
@@ -253,8 +260,10 @@ to make one:
 - **Store a random ID** for each user and company the first time they're needed. This is the
   simplest choice.
 - **Derive one with a keyed hash**, such as HMAC-SHA256 of your internal user ID and the company's
-  identifier (its issuer, or its HTTPS domain without one), with a secret key. Changing the key changes every ID, so the company sees all your
-  users as new.
+  identifier (its issuer, or its HTTPS domain without one), with a secret key. Don't change the
+  key: that replaces every ID at once, which isn't allowed ([5.1](/docs/spec#user-ids)). To replace
+  one user's ID at a company, include a counter for that user and company in what you hash, and
+  increase it.
 
 The ID MUST NOT contain or be derived from personal information, such as an email address, phone
 number, or name ([5.1](/docs/spec#user-ids)). This includes hashes of it, keyed or not. If
@@ -274,9 +283,36 @@ Tell your users, such as in your privacy notice, that each company recognizes th
 through their user ID, even when they're signed out, and that signing in lets the company link those
 earlier visits to their account.
 
+You MAY replace a user's ID at a company when the user asks, and on your own once you haven't used
+it for 28 days and hold no refresh token for them there ([5.1](/docs/spec#user-ids)). Either way,
+the company sees a new user:
+
+- Let users clear their data at a company, as browsers let them delete the cookies and site data
+  of one site. List the companies the user has visited through you, with a control for each, and
+  one that clears them all. Say what it does: they're signed out, open carts and conversations end,
+  and the company sees them as a new user next time, though other signals, such as their IP
+  address, can still link them.
+- When a user clears a company, sign out of their account there first, if you hold a refresh token
+  for it (MUST, [5.1](/docs/spec#user-ids)). Then discard (MUST) the old ID's agent IDs, `sid`s, DPoP
+  keys, delegated keys, your browser's cookies and site data, and IDs the company gave you, such as
+  conversation and operation IDs, and start again with new ones. Never send the company anything
+  from the old ID (MUST NOT, [5.1](/docs/spec#user-ids)), including responses you cached that it
+  varied by session or user.
+- Let the user choose whether to keep their own records of what they did at the company, such as
+  order numbers they need for a return. Keeping them is fine as long as you don't send them to the
+  company under the new ID.
+- If you age out IDs on your own, never do it for a user you hold a refresh token for at the
+  company, however long it's gone unused (MUST NOT, [5.1](/docs/spec#user-ids)). A signed-in user
+  keeps their ID until they clear the company. After they sign out, the 28 days apply. Use one rule
+  for every user, so the change doesn't single anyone out. For example, forget a company 28 days
+  after the user last used it, or 400 days after, as browsers expire cookies. Never replace an ID
+  that's still in use: it would look to the company like many users, and its per-user limits would
+  stop working ([5.1](/docs/spec#user-ids)).
+- Replace an ID between tasks, never in the middle of one. Its carts and conversations end with it.
+
 You MAY offer anonymous browsing, like a private browser window, with a new user ID for each
-anonymous browsing session ([5.1](/docs/spec#user-ids)). The company sees a new user each
-time, and nothing in the protocol links that browsing to the user's regular ID, their account, or
+anonymous browsing session ([5.1](/docs/spec#user-ids)). The company sees a new user for each
+one, and nothing in the protocol links that browsing to the user's regular ID, their account, or
 their other anonymous sessions. Other signals, such as IP addresses, still can.
 
 - Create a random ID for each anonymous browsing session. Its sessions have their own `sid`, and
@@ -856,6 +892,8 @@ When keeping session state:
   ([5.5](/docs/spec#ending-sessions)). Choose a retention period that fits your session lifetimes.
 - Use separate sessions for separate accounts. If your policy refuses a second account in a
   session, answer with `session_ended` ([5.4](/docs/spec#sign-in)).
+- Don't expect a user to keep one user ID. A replaced ID looks like a new user, and a session never
+  changes its user ID ([5.1](/docs/spec#user-ids)).
 - Don't expect a user's delegated key to stay the same (MUST NOT,
   [5.2](/docs/spec#delegated-keys)). You can reject a delegated key that signs for a second user ID
   while a delegation for it lasts, which limits a leaked key to one user
