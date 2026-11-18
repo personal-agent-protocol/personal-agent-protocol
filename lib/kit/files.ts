@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
-import { DOCS_PAGES, LATEST, resolveDocsLink } from "../../content/docs";
+import { DOCS_PAGES, LATEST, NEWEST, resolveDocsLink } from "../../content/docs";
 import { pageMarkdown } from "../docs-content";
 import { REPO_URL, SITE_NAME, SITE_URL } from "../site";
 import { checklistMarkdown } from "./checklist";
@@ -32,11 +32,22 @@ function filesUnder(dir: string): string[] {
         });
 }
 
+// The kit follows the latest published version, so it leaves out the draft's changelog section,
+// which describes changes that the version it follows doesn't have.
+function withoutDraft(markdown: string): string {
+    if (!NEWEST.draft) return markdown;
+    const heading = `## Draft ${NEWEST.id}\n`;
+    const start = markdown.indexOf(heading);
+    if (start === -1) return markdown;
+    const end = markdown.indexOf("\n## ", start + heading.length);
+    return markdown.slice(0, start) + (end === -1 ? "" : markdown.slice(end + 1));
+}
+
 // The docs as Markdown, with links to the site made absolute, since the files are read offline.
 function referenceFiles(): KitFile[] {
     return DOCS_PAGES.filter((page) => page.kit !== false).map((page) => ({
         path: `reference/${pageName(page)}.md`,
-        content: pageMarkdown(page.href).replace(/\]\(\//g, `](${SITE_URL}/`),
+        content: withoutDraft(pageMarkdown(page.href)).replace(/\]\(\//g, `](${SITE_URL}/`),
     }));
 }
 
