@@ -77,6 +77,10 @@ algorithms, and header form; current products do not all implement the same revi
 - Build the request body, any DPoP proof, and Session JWT first, then the operator signature. Cover
   `poppy-session` and `authorization` when present, as the spec requires. Include method, authority,
   path, query, and a verified content digest when the verifier relies on those components.
+- Sign requests to the company's pushed authorization request, token, device authorization, and
+  revocation endpoints too, so a company can recognize you before sign-in. They carry no Session
+  header, so cover `content-digest`, which binds the signature to the client assertion in the body
+  ([5.3](/docs/spec#operator-signatures)).
 - Keep operator keys separate from delegated Session keys. Publishing every User's delegated key in
   an operator directory is not equivalent to verifying a delegation, and exposes a new key mapping.
 - For a centralized agent, signing can happen where requests already pass. For on-device agents,
@@ -742,6 +746,34 @@ Your identifier stays the issuer, so nothing changes for users when you turn sig
   draft](https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/) §8 defines,
   so other clients, such as MCP clients, can tell. Personal agents don't need it: a company that
   offers sign-in already reads their metadata documents ([4.1](/docs/spec#agent-identity)).
+
+### Accepting personal agents your bot defenses verify {#company-verified-agents}
+
+An allowlist of `client_id` values works for the personal agents you already know, but leaves out
+new and smaller ones. Bot-management services already verify agent operators by their Web Bot Auth
+keys. You can use that verification as one way to accept a personal agent
+([5.3](/docs/spec#operator-signatures)):
+
+- Verify the operator signature where the request arrives. Your authorization server may run on
+  another host or at another vendor than your website. Put it behind an edge that verifies the
+  signatures, or verify them in the server. Pass an edge's result on only in a way a client can't
+  forge.
+- Decide which `client_id` values a verified operator speaks for, such as those on the host of its
+  key directory. A verified signature proves control of the operator key, not of a `client_id`, so
+  this link is your policy. Don't link a whole host that others can publish on, such as a hosting
+  provider's shared domain, unless the verified operator controls every client there.
+- Still verify the client assertion against the `client_id`'s `jwks_uri`
+  ([4.1](/docs/spec#agent-identity)). The operator signature doesn't replace it.
+- Require Pushed Authorization Requests ([4.2](/docs/spec#direct-sign-in)), so you can decide
+  before the user sees your sign-in page. The user's browser opens your authorization endpoint, so
+  that request has no operator signature. Without PAR, the first request the personal agent sends
+  you is the token request, after the user has approved. Device sign-in starts with the personal
+  agent's own request, so you can decide there.
+- Refuse a personal agent with `invalid_client`, or with `unauthorized_client` to keep its
+  signed-out sessions ([4.1](/docs/spec#agent-identity)). Keep allowlists and blocklists alongside,
+  and rate-limit new `client_id` values ([Verifying personal agents](#company-agents)).
+- Your resources can apply the same policy to signed-out sessions, since personal agents sign those
+  requests too.
 
 ### Verifying the Session header {#company-session-header}
 

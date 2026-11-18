@@ -10,6 +10,14 @@ Version 1.0 is published. Build against [1.0](https://personalagentprotocol.org/
 
 In progress. This list grows until 1.1 is published.
 
+### Major changes
+
+#### Operator signatures at the authorization server
+
+[Spec 5.3](https://personalagentprotocol.org/docs/1.1/spec#session-verification) · [Spec 11](https://personalagentprotocol.org/docs/1.1/spec#references) · [Guides: Operator signatures and bot defenses](https://personalagentprotocol.org/docs/1.1/guides#both-operator-signatures) · [Guides: Accepting personal agents your bot defenses verify](https://personalagentprotocol.org/docs/1.1/guides#company-verified-agents)
+
+A Personal Agent SHOULD now also sign its requests to the pushed authorization request, token, device authorization, and revocation endpoints with its Web Bot Auth operator signature, covering `content-digest` because those requests carry no Session header. A Company MAY use a verified operator signature when it decides which Personal Agents it accepts, alongside its allowlists, and still verifies the client assertion. A new guide describes how, including requiring Pushed Authorization Requests so the Company can decide before the User sees its sign-in page.
+
 ### Minor changes
 
 #### `offline_access`

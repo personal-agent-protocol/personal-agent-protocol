@@ -1123,20 +1123,28 @@ The guides explain what a replay can and can't do.
 
 #### Operator signatures {#operator-signatures}
 
-A Personal Agent SHOULD also sign requests carrying the Session header with an HTTP Message Signature
-([RFC 9421](https://www.rfc-editor.org/rfc/rfc9421)), using
+A Personal Agent SHOULD also sign requests carrying the Session header, and its requests to the
+Company's pushed authorization request, token, device authorization, and revocation endpoints (3.2),
+with an HTTP Message Signature ([RFC 9421](https://www.rfc-editor.org/rfc/rfc9421)), using
 [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/),
 so traffic-management infrastructure can authenticate the operator before the request reaches the
-Company's application. This signature provides compatibility support, not a replacement for the
-Session header or authorization. Its absence does not make a Session JWT invalid.
+Company's application or authorization server. This signature provides compatibility support, not
+a replacement for the Session header or authorization. Its absence does not make a Session JWT
+invalid.
 
 The Personal Agent's operator signature MUST cover `poppy-session`, and `authorization` when
-present, so it binds to the Session JWT and access token. Operator keys and delegated Session keys
-have different roles. Verifying an operator signature authenticates its key source, not an arbitrary
-`client_id` named in the request. Before trusting any Session claim, the Company MUST verify the
-Session JWT independently (5.3). The Company decides whether to accept the client and request.
-A shared origin alone does not establish that two
-client metadata URLs name the same client.
+present, so it binds to the Session JWT and access token. A request to one of those OAuth
+endpoints carries neither, so its operator signature MUST cover `content-digest` ([RFC
+9530](https://www.rfc-editor.org/rfc/rfc9530)), which binds it to the client assertion in the body.
+Operator keys and delegated Session keys have different roles. Verifying an operator signature
+authenticates its key source, not an arbitrary `client_id` named in the request. Before trusting any Session claim, the Company MUST verify the
+Session JWT independently (5.3). The Company decides whether to accept the client and request. A
+shared origin alone does not establish that two client metadata URLs name the same client.
+
+A Company MAY use a verified operator signature when it decides which Personal Agents it accepts
+(4.1), such as by accepting the `client_id` values that it has linked to an operator a verification
+service it trusts has verified. That link is the Company's policy: the signature doesn't establish
+it. The Company still verifies the client assertion, or the Session JWT, of each request.
 
 An edge that verifies delegated Session JWTs can authenticate the client without this extra
 signature. Company acceptance, Session ownership, and account authorization still apply. The
@@ -2647,5 +2655,5 @@ This version uses these standards and versions:
 | Extension content                        | [JSON Schema 2020-12](https://json-schema.org/draft/2020-12)                                                                                                                                                                                                                                                                                                                                                                                       |
 | APIs                                     | [OpenAPI Specification 3.1](https://spec.openapis.org/oas/v3.1.1.html), [Model Context Protocol 2025-06-18](https://modelcontextprotocol.io/specification/2025-06-18), [Model Context Protocol 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28), [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728), [draft-ietf-httpapi-idempotency-key-header](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/) |
 | HTTP and formats                         | [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110), [RFC 6585](https://www.rfc-editor.org/rfc/rfc6585), [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339), [RFC 4648](https://www.rfc-editor.org/rfc/rfc4648), [RFC 5646](https://www.rfc-editor.org/rfc/rfc5646), [RFC 9651](https://www.rfc-editor.org/rfc/rfc9651), [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745), [RFC 8594](https://www.rfc-editor.org/rfc/rfc8594)                     |
-| Operator signatures                      | [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421), [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/)                                                                                                                                                                                                                                                                                                       |
+| Operator signatures                      | [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421), [RFC 9530](https://www.rfc-editor.org/rfc/rfc9530), [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/)                                                                                                                                                                                                                                                   |
 | Streaming                                | [Server-sent events (HTML Living Standard)](https://html.spec.whatwg.org/multipage/server-sent-events.html)                                                                                                                                                                                                                                                                                                                                        |

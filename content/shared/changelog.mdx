@@ -12,6 +12,19 @@ breaking 1.0 implementations ([3.4](/docs/spec#versions)). What we expect to wor
 
 In progress. This list grows until 1.1 is published.
 
+### Major changes {#v1-1-major}
+
+<Change title="Operator signatures at the authorization server" sections="5.3, 11, guides#both-operator-signatures, guides#company-verified-agents">
+
+A Personal Agent SHOULD now also sign its requests to the pushed authorization request, token,
+device authorization, and revocation endpoints with its Web Bot Auth operator signature, covering
+`content-digest` because those requests carry no Session header. A Company MAY use a verified
+operator signature when it decides which Personal Agents it accepts, alongside its allowlists,
+and still verifies the client assertion. A new guide describes how, including requiring
+Pushed Authorization Requests so the Company can decide before the User sees its sign-in page.
+
+</Change>
+
 ### Minor changes {#v1-1-minor}
 
 <Change title="`offline_access`" sections="4.4, 4.7, 4.8, 11">
