@@ -646,6 +646,21 @@ has the token fields in 4.7.
   the DPoP key when the Company binds it to one (below). If the Personal Agent signs blindly, its
   other Users can get client assertions too, so it protects refresh tokens in other ways (10.7).
 
+**`offline_access`.** Some authorization servers issue a refresh token only when the request
+includes the `offline_access` scope, which [OpenID Connect
+Core](https://openid.net/specs/openid-connect-core-1_0.html#OfflineAccess) §11 defines. A Company
+whose issuer does MUST list `offline_access` in `scopes_supported` in the issuer's metadata (3.2).
+When the issuer's metadata lists it, the Personal Agent MUST include it in every sign-in request,
+and in `scope` when it asks for fewer scopes at refresh. It asks for a refresh token, not account
+access, so it isn't one of the scopes a sign-in grants (4.7):
+
+- A sign-in that grants only `offline_access` is a decline. The Personal Agent ignores it when it
+  compares the granted scopes with the ones it requested.
+- The Company needn't describe it in `auth.scopes` or give it hints.
+- Resources SHOULD NOT list it in their protected resource metadata, and MUST NOT name it in a
+  challenge (section 7) or an `authorization` event (8.11). A refresh token isn't something a
+  resource requires.
+
 **DPoP keys at refresh.** A Personal Agent that sends a DPoP proof when it gets a refresh token
 (4.5) MUST send a proof from the same key with every refresh of that refresh token, and of the
 refresh tokens that replace it. It keeps the key unless the User signs in again, or an extension
@@ -786,7 +801,7 @@ The User may have approved fewer scopes than
 requested, so the Personal Agent checks `scope` before continuing. As [RFC
 6749](https://www.rfc-editor.org/rfc/rfc6749) §5.1 describes, the response leaves `scope` out only
 when the Company granted exactly the scopes requested. A Poppy sign-in grants at least one
-scope: if the User approves none, it ends as a decline.
+scope, not counting `offline_access` (4.4): if the User approves none, it ends as a decline.
 
 ```json label="Response: Company → Personal Agent"
 {
@@ -810,9 +825,9 @@ Poppy's rate limits, and section 3.3 describes `extension_required`.
   `grant_types_supported`, including `refresh_token`, in the issuer's metadata (3.2); `iss` in every
   authorization response, exact matching of `redirect_uri` as RFC 9700 requires, and PAR when the
   Company requires it (4.2); RFC 10027's best practices for Device Sign-In, and a check of the
-  sign-in link's host (4.3); a refresh token from every sign-in, refreshed with the DPoP key it was
-  issued with (4.4); and `scope` on every sign-in request, with at least one scope granted and none
-  beyond those requested (4.7).
+  sign-in link's host (4.3); a refresh token from every sign-in, with `offline_access` requested
+  when the issuer lists it, refreshed with the DPoP key it was issued with (4.4); and `scope` on
+  every sign-in request, with at least one scope granted and none beyond those requested (4.7).
 - **A choice RFC 8707 leaves open:** a sign-in without `resource` covers every resource the Company
   offers Personal Agents (4.5).
 - **Discovery and descriptions:** `poppy.json`, including `auth.disabled` to offer no sign-in and
@@ -2624,7 +2639,7 @@ This version uses these standards and versions:
 | Skills                                   | [Agent Skills format](https://agentskills.io/specification), [Agent Skills discovery proposal, pinned revision](https://github.com/jonathanhefner/agentskills/blob/ab2ff8db3d5c9597985b06f94ea3caf1996ce82e/docs/well-known-uri.mdx), [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986)                                                                                                                                                           |
 | OAuth                                    | [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749), [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750), [RFC 7009](https://www.rfc-editor.org/rfc/rfc7009), [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414), [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728)                                                                                                                                                                                 |
 | Sign-in                                  | [RFC 7636](https://www.rfc-editor.org/rfc/rfc7636), [RFC 8252](https://www.rfc-editor.org/rfc/rfc8252), [RFC 8628](https://www.rfc-editor.org/rfc/rfc8628), [RFC 9207](https://www.rfc-editor.org/rfc/rfc9207)                                                                                                                                                                                                                                     |
-| User IDs and `prompt`                    | [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html)                                                                                                                                                                                                                                                                                                                                                                   |
+| User IDs, `prompt`, and `offline_access` | [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html)                                                                                                                                                                                                                                                                                                                                                                   |
 | Agent identity and client authentication | [OAuth Client ID Metadata Document](https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/), [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523), [draft-ietf-oauth-rfc7523bis](https://datatracker.ietf.org/doc/draft-ietf-oauth-rfc7523bis/), [RFC 7638](https://www.rfc-editor.org/rfc/rfc7638), [RFC 7800](https://www.rfc-editor.org/rfc/rfc7800), [RFC 9474](https://www.rfc-editor.org/rfc/rfc9474)                  |
 | Token binding and audience               | [RFC 9449](https://www.rfc-editor.org/rfc/rfc9449), [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707), [RFC 8725](https://www.rfc-editor.org/rfc/rfc8725)                                                                                                                                                                                                                                                                                         |
 | Web browsing                             | [RFC 9111](https://www.rfc-editor.org/rfc/rfc9111), [RFC 6265bis](https://datatracker.ietf.org/doc/draft-ietf-httpbis-rfc6265bis/)                                                                                                                                                                                                                                                                                                                 |

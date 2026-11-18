@@ -10,6 +10,14 @@ Version 1.0 is published. Build against [1.0](https://personalagentprotocol.org/
 
 In progress. This list grows until 1.1 is published.
 
+### Minor changes
+
+#### `offline_access`
+
+[Spec 4.4](https://personalagentprotocol.org/docs/1.1/spec#refresh-tokens) · [Spec 4.7](https://personalagentprotocol.org/docs/1.1/spec#scopes) · [Spec 4.8](https://personalagentprotocol.org/docs/1.1/spec#oauth-additions) · [Spec 11](https://personalagentprotocol.org/docs/1.1/spec#references)
+
+Some authorization servers issue a refresh token only when the request includes the `offline_access` scope. A Company whose issuer does now MUST list it in the issuer's `scopes_supported`, and when the issuer lists it, the Personal Agent MUST include it in every sign-in request, and in `scope` when it asks for fewer scopes at refresh. It doesn't count as a granted scope, so a sign-in that grants only `offline_access` is a decline. Resources SHOULD NOT list it in their protected resource metadata and MUST NOT name it in a challenge or `authorization` event, as the [MCP authorization draft](https://modelcontextprotocol.io/specification/draft/basic/authorization#refresh-tokens) asks of MCP servers.
+
 ## Version 1.0
 
 Published November 14, 2026. It's [0.4](https://personalagentprotocol.org/docs/0.4/spec) with the fixes implementers needed. Major changes are design decisions. Minor changes fill gaps, make the text consistent, or follow an RFC. A change tagged "Breaking" can require an implementation that followed the 0.4 text to change, whether it's major or minor.
