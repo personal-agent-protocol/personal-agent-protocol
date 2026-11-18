@@ -41,6 +41,17 @@ Pushed Authorization Requests so the Company can decide before the User sees its
 
 </Change>
 
+<Change title="Listed tasks in feedback" sections="9, 9.3, guides#agent-excluded-tasks, guides#company-excluded-tasks">
+
+A Company can list up to 50 tasks it already knows can't be done in `feedback.tasks` in its tasks
+response, each with an `id` and a `task` phrase. When the User's task matches one, the Personal
+Agent SHOULD report it as `{"task_ids": [...]}` instead of in free text, and MAY report several in
+one report. The Company responds with 202 and ignores IDs it doesn't list. A report has either
+`task_ids` or `task` and `description`, and one with both or neither is `invalid_request`. A Company
+MUST NOT list a task both here and in `excluded_tasks`.
+
+</Change>
+
 ### Minor changes {#v1-1-minor}
 
 <Change title="`offline_access`" sections="4.4, 4.7, 4.8, 11">

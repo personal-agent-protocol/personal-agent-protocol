@@ -615,6 +615,9 @@ When a company offers the [Mediated Sign-In extension](/docs/extensions/mediated
   company's APIs may also have feedback operations meant for other clients.
 - When a company answers your feedback report with an alternative, try it before you tell the user
   the task can't be done ([9.3](/docs/spec#feedback)).
+- When the task matches one in `feedback.tasks`, report its ID instead of describing it. You can
+  gather the IDs from a Session into one report, but send it before the Session ends
+  ([9.3](/docs/spec#feedback)).
 - When you skip a company's skill index, or a skill in it, because you don't recognize its
   `$schema` or `type`, say so to the user if it matters for the task, so they know the company's
   guidance wasn't used ([9.4](/docs/spec#agent-context)).
@@ -1359,6 +1362,10 @@ accepting the message, or depend on OAuth libraries reading a challenge from a s
   in the same variant across Sessions, or by Session ID to vary it from one Session to the next.
 - If different Sessions can get different versions of a skill, give each version its own URL. A
   personal agent rejects a file whose digest doesn't match the index it got.
+- List the gaps you already know about, up to 50, in `feedback.tasks`, each with an ID that stays
+  the same as long as the gap does. Reports by ID need no reading, so you can count them per task
+  and see which gaps to close first ([9.3](/docs/spec#feedback)). Remove a task once it works, and
+  don't list one you also list as excluded.
 - When a feedback report asks for a task you do offer, answer with an alternative that says how, so
   the personal agent can finish the task ([9.3](/docs/spec#feedback)).
 - Take feedback from personal agents at the `feedback.endpoint` in your tasks response

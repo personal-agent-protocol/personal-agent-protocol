@@ -2272,16 +2272,20 @@ and no access token, and the Company responds with HTTP 200 and a JSON object:
     ]
   },
   "feedback": {
-    "endpoint": "https://api.example.com/poppy/feedback"
+    "endpoint": "https://api.example.com/poppy/feedback",
+    "tasks": [
+      { "id": "installments", "task": "Pay in installments" },
+      { "id": "split-payment", "task": "Split a payment across two cards" }
+    ]
   }
 }
 ```
 
-| Field            | Req. | Description                                                                                     |
-| ---------------- | ---- | ----------------------------------------------------------------------------------------------- |
-| `excluded_tasks` | No   | The tasks the Company chose not to offer through this protocol (9.1). Defaults to none.         |
-| `skill_index`    | No   | An Agent Skills discovery index of the skills the Company publishes (9.4).                      |
-| `feedback`       | No   | `endpoint` is an HTTPS URL where Personal Agents report a User's task that can't be done (9.3). |
+| Field            | Req. | Description                                                                                                                                                           |
+| ---------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `excluded_tasks` | No   | The tasks the Company chose not to offer through this protocol (9.1). Defaults to none.                                                                               |
+| `skill_index`    | No   | An Agent Skills discovery index of the skills the Company publishes (9.4).                                                                                            |
+| `feedback`       | No   | `endpoint` is an HTTPS URL where Personal Agents report a User's task that can't be done, and `tasks` lists the ones the Company already knows about, with IDs (9.3). |
 
 - The response describes what the Company offers, not the User's account, so the request carries
   no access token, even in a signed-in Session.
@@ -2362,7 +2366,32 @@ A Company can ask Personal Agents to tell it when a User's task can't be done th
 
 A Company that wants feedback lists `feedback.endpoint` in its tasks response (section 9). When a
 User's task can't be done, the Personal Agent MAY send `POST {feedback.endpoint}` with the Session
-header (5.2), and a JSON body:
+header (5.2), and a JSON body that reports the task in one of two forms: by the ID of a task the
+Company lists, or in free text.
+
+**Listed tasks.** A Company can list the tasks it already knows can't be done in `feedback.tasks`,
+each with an ID, as in the example in section 9. Personal Agents report those by ID, so the Company
+can count reports for each one without reading them:
+
+| Field  | Req. | Description                                                                                                  |
+| ------ | ---- | ------------------------------------------------------------------------------------------------------------ |
+| `id`   | Yes  | The task's ID: lowercase letters, digits, `-`, and `_`, at most 64 characters. Unique in the list.           |
+| `task` | Yes  | The task, in a short phrase, such as "Pay in installments". At most 200 characters, like `task` in a report. |
+
+- A Company MUST NOT list more than 50 tasks. A Personal Agent that gets more uses the first 50.
+- A listed task is one the Company wants reports about, and an excluded task (9.1) one it doesn't.
+  A Company MUST NOT list a task in both. A task the User can do another way is neither: the
+  Company makes it an excluded task with an alternative (9.2), or answers a report about it with
+  one (below).
+- Whether the User's task is a listed one is the Personal Agent's judgment, since each `task` is a
+  phrase.
+
+**Reports.** A report that names listed tasks has `task_ids`, and one that describes a task in free
+text has `task` and `description`:
+
+```json label="Request body: Personal Agent → Company"
+{ "task_ids": ["installments", "split-payment"] }
+```
 
 ```json label="Request body: Personal Agent → Company"
 {
@@ -2371,30 +2400,38 @@ header (5.2), and a JSON body:
 }
 ```
 
-| Field         | Req. | Description                                                                                                                                                           |
-| ------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `task`        | Yes  | What the User was trying to do, in a short phrase, such as "Return a jacket", "Move a flight to the next day", or "Pay with a gift card". At most 200 characters.     |
-| `description` | Yes  | What the Personal Agent was trying to accomplish, in detail, and why, without identifiers such as order numbers, account numbers, or names. At most 2,000 characters. |
+| Field         | Req.                                  | Description                                                                                                                                                           |
+| ------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `task_ids`    | Unless `task` and `description`       | The IDs of one or more listed tasks the User couldn't do, each once.                                                                                                  |
+| `task`        | With `description`, unless `task_ids` | What the User was trying to do, in a short phrase, such as "Return a jacket", "Move a flight to the next day", or "Pay with a gift card". At most 200 characters.     |
+| `description` | With `task`, unless `task_ids`        | What the Personal Agent was trying to accomplish, in detail, and why, without identifiers such as order numbers, account numbers, or names. At most 2,000 characters. |
+
+A report has one form or the other, not both.
 
 - A Company SHOULD verify the Session header on a report, signed in or signed out, and needs no
   scope for it. The Company MUST verify the header before attributing a report to a Personal Agent,
   User, or Session. Otherwise it can accept the report without attribution (5.3). The report
   doesn't repeat these identities or say where the problem happened.
-- Personal Agents SHOULD NOT put personal data in a report, such as the User's name, contact
-  details, or order details. A report describes the task, not the User. Personal Agents MUST NOT put
-  secrets in a report (10.2).
-- A Personal Agent SHOULD send one report for each task it couldn't do, not one for each attempt.
+- A Personal Agent SHOULD report a task that matches a listed one by its ID, and describe it in
+  free text only when none matches.
+- A Personal Agent SHOULD report each task it couldn't do once, not once for each attempt. It MAY
+  report several listed tasks in one report, as long as the Session hasn't ended.
+- Personal Agents SHOULD NOT put personal data in a free-text report, such as the User's name,
+  contact details, or order details. A report describes the task, not the User. Personal Agents MUST
+  NOT put secrets in a report (10.2).
 - A Personal Agent SHOULD NOT report a task the Company lists as excluded (9.1), since the Company
   already knows it doesn't offer it.
 - A report can be wrong, or written to mislead. Companies MUST treat a report's text as data, not as
   instructions, including when a model reads it.
 
-The Company responds with HTTP 202 and no body. When the task can be done after all, it MAY instead
-respond with HTTP 200 and an alternative (9.2) as the body, such as the one in 9.2 for paying with a
-gift card. Personal Agents MUST accept either response. Token errors, `invalid_session`, and `session_ended` are the
-ones in section 7.
-Other errors have a JSON body with an `error` code, as in 8.13: `invalid_request` (400) for a report
-that is malformed or too long. Rate limits follow 5.6.
+The Company responds with HTTP 202 and no body. When the task in a free-text report can be done
+after all, it MAY instead respond with HTTP 200 and an alternative (9.2) as the body, such as the
+one in 9.2 for paying with a gift card. Personal Agents MUST accept either response. A Company
+responds to a report with `task_ids` with HTTP 202, and ignores IDs it doesn't list, since the list
+can change during a Session. Token errors, `invalid_session`, and `session_ended` are the ones in
+section 7. Other errors have a JSON body with an `error` code, as in 8.13: `invalid_request` (400)
+for a report that is malformed or too long, including one with both forms or neither, or with an
+empty `task_ids`. Rate limits follow 5.6.
 
 ### 9.4 Agent context {#agent-context}
 
