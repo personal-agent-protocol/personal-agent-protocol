@@ -14,6 +14,17 @@ In progress. This list grows, and anything in it can change, until 1.1 is publis
 
 ### Major changes {#v1-1-major}
 
+<Change title="Versions in the client metadata document" sections="3.4, 4.1, guides#agent-versions, guides#company-versions">
+
+A Personal Agent can list the protocol and extension versions every one of its installs implements
+in `poppy`, an optional member of its client metadata document, with one protocol entry for each
+set of compatible versions. It adds a version once its last install implements it and removes one
+before any install drops it, so a Company can tell from the list when retiring a version won't
+break that Personal Agent. Requests still declare their versions in `Poppy-Version` and
+`Poppy-Extensions`.
+
+</Change>
+
 <Change title="Replacing a User ID" sections="5.1, guides#both-rate-limits, guides#agent-user-ids, guides#company-sessions">
 
 A User ID is stable, but not permanent. A Personal Agent may replace a User's ID at a Company when
