@@ -598,6 +598,9 @@ When a company offers the [Mediated Sign-In extension](/docs/extensions/mediated
 - Don't phone a company that publishes a `poppy.json`. Use the interfaces it lists instead.
 - Skip API types and conversation protocols you don't recognize ([section 7](/docs/spec#apis),
   [8.1](/docs/spec#conversation-protocols)).
+- When you ask the user before calling an API or starting a conversation, and the entry has a
+  `tos_uri`, link it in your own words, such as "Example Company's agent terms", and show its
+  domain ([3.1](/docs/spec#fields)). Linking it doesn't mean the user agreed to the terms.
 
 ### Task coverage {#agent-excluded-tasks}
 
@@ -991,6 +994,12 @@ operations ([7](/docs/spec#apis)). Write them for that reader:
 - Say clearly what each operation does and when to use it, in terms of the user's task.
 - Keep them small. The whole description takes room in the model's context, so leave out what
   personal agents don't need, such as long examples or operations only your own apps call.
+
+If an API or your company agent comes with its own terms of service, put their URL in `tos_uri` on
+its entry ([3.1](/docs/spec#fields)), the same URL as the API's `info.termsOfService` or
+`resource_tos_uri` if it has one. Personal agents link it in their own words, so publish only the
+URL. A personal agent showing the link isn't the user accepting the terms: if you need acceptance,
+get it at sign-in or in an operation's `terms`.
 
 ### Consent pages {#company-consent}
 

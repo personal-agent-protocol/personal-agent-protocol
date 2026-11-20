@@ -54,6 +54,17 @@ MUST NOT list a task both here and in `excluded_tasks`.
 
 ### Minor changes {#v1-1-minor}
 
+<Change title="Terms of service links" sections="3.1, 7, 8.1, guides#agent-interfaces, guides#company-api-descriptions">
+
+An entry in `apis` or `agent.protocols` can link its terms of service in an optional `tos_uri`,
+such as a provider's AI terms or an API's usage terms. Linking it informs the User and isn't
+acceptance. When an API also publishes `info.termsOfService` or `resource_tos_uri`, `tos_uri`
+should be the same URL. A Personal Agent doesn't have to ask the User first, and when it does, it
+should link the terms in its own words. The field is only a URL, because a sentence from the
+Company couldn't be translated for each User or trusted as the Personal Agent's own words.
+
+</Change>
+
 <Change title="`offline_access`" sections="4.4, 4.7, 4.8, 11">
 
 Some authorization servers issue a refresh token only when the request includes the
