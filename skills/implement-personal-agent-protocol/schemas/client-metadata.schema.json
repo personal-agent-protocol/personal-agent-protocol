@@ -22,7 +22,24 @@
                 "anyOf": [{ "$ref": "#/$defs/https_url" }, { "$ref": "#/$defs/loopback_url" }]
             }
         },
-        "token_endpoint_auth_method": { "const": "private_key_jwt" }
+        "token_endpoint_auth_method": { "const": "private_key_jwt" },
+        "poppy": {
+            "description": "Optional. The protocol and extension versions every install of the Personal Agent implements: one protocol entry per set of compatible versions. Each request still declares its versions in Poppy-Version and Poppy-Extensions.",
+            "type": "object",
+            "properties": {
+                "protocol_versions": {
+                    "type": "array",
+                    "items": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+$" }
+                },
+                "extensions": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": { "type": "string", "pattern": "^[0-9]+$" }
+                    }
+                }
+            }
+        }
     },
     "$defs": {
         "https_url": { "type": "string", "pattern": "^https://[^\\s/?#]+", "format": "uri" },

@@ -410,7 +410,8 @@ the protocol version it implements, compatible with the chosen one, in `Poppy-Ve
 chosen document, with the version it uses as a String in the `v` parameter. Without
 `Poppy-Extensions`, or when it fails to parse (RFC 9651 §4.2), the request declares no extensions.
 The Personal Agent MUST send the same values on every request in a Session, and starts a new Session
-to change them.
+to change them. It can also list the versions every install implements in its client metadata
+document (4.1).
 
 ```http label="Request headers: Personal Agent → Company"
 Poppy-Session: eyJ0eXAiOiJwb3BweS1zZXNzaW9uK2p3dCIs…
@@ -486,7 +487,11 @@ delegations with, and to check where Direct Sign-In may return the User. This fo
   "logo_uri": "https://agent.example/logo.png",
   "jwks_uri": "https://agent.example/jwks.json",
   "redirect_uris": ["https://agent.example/oauth/callback"],
-  "token_endpoint_auth_method": "private_key_jwt"
+  "token_endpoint_auth_method": "private_key_jwt",
+  "poppy": {
+    "protocol_versions": ["1.1", "0.4"],
+    "extensions": { "operations": ["3"], "links": ["1"] }
+  }
 }
 ```
 
@@ -497,6 +502,17 @@ delegations with, and to check where Direct Sign-In may return the User. This fo
 - `redirect_uris` lists where Direct Sign-In may send the User back to (4.2). Each entry MUST be an
   HTTPS URL on the same domain as `client_id`, or a loopback redirect URI for an app on the User's
   computer, as [RFC 8252](https://www.rfc-editor.org/rfc/rfc8252) §7.3 defines.
+- `poppy` is optional. It lists the protocol and extension versions that every install of the
+  Personal Agent implements, so a Company can see which versions to build for and when it can
+  retire one. `protocol_versions` has one entry for each set of compatible versions (3.4): from
+  1.0, a major version with the lowest minor version every install implements, such as `1.1`, and
+  before 1.0, the version itself, such as `0.4`. `extensions` lists the extensions every install
+  implements, keyed by name, each with its major versions as Strings. A Personal Agent MUST NOT
+  list a version that any of its installs doesn't implement: it adds a version once its last
+  install implements it, and removes one before any install stops implementing it. Each request
+  still declares the versions it uses in `Poppy-Version` and `Poppy-Extensions` (3.4). The document
+  is the same for every Company, so it can list versions later than the one the Personal Agent uses
+  with a given Company.
 - The Personal Agent authenticates at the token endpoint with a client assertion signed by a key
   from `jwks_uri` (`private_key_jwt`, [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523)). Its
   Session JWTs are signed with delegated keys instead (5.2).
