@@ -150,7 +150,8 @@ An example document:
       {
         "type": "poppy",
         "endpoint": "https://api.example.com/poppy/conversations",
-        "description": "Anything about your orders, returns, account, and our products"
+        "description": "Anything about your orders, returns, account, and our products",
+        "tos_uri": "https://example.com/legal/agent-terms"
       }
     ]
   },
@@ -169,7 +170,8 @@ An example document:
     {
       "type": "mcp",
       "url": "https://mcp.example.com/mcp",
-      "description": "Product search and sizing"
+      "description": "Product search and sizing",
+      "tos_uri": "https://example.com/legal/catalog-terms"
     }
   ]
 }
@@ -187,13 +189,32 @@ An example document:
 | `auth.disabled`      | No                                                                                   | `true` if the Company offers Personal Agents no sign-in, even though it has an issuer (3.2). Defaults to `false`.                                                                                                                                                                                                                                                                                                                              |
 | `auth.scopes`        | No                                                                                   | Scope descriptions, keyed by scope name, in the same form as the `scopes` of an OAuth 2.0 security scheme in OpenAPI. Recommended for scopes no OpenAPI description the Company lists describes, and used over an OpenAPI description of the same scope (4.7).                                                                                                                                                                                 |
 | `auth.scope_hints`   | No                                                                                   | Hints about what each scope allows, keyed by scope name: `changes` and `personal_data` (4.7). They apply wherever the scope is described.                                                                                                                                                                                                                                                                                                      |
-| `agent`              | At least one of `agent`, `apis`, or `web`                                            | The Company Agent. `protocols` lists its supported conversation protocols, each with a `type`, an HTTPS `endpoint`, and a `description` of what the agent there can help with (section 8). A `poppy` entry may include an `access` hint (3.2).                                                                                                                                                                                                 |
-| `apis`               | At least one of `agent`, `apis`, or `web`                                            | A list of APIs. Each has a `type`, such as those in section 7, a `url`, and a short `description` that helps the Personal Agent pick the right one.                                                                                                                                                                                                                                                                                            |
+| `agent`              | At least one of `agent`, `apis`, or `web`                                            | The Company Agent. `protocols` lists its supported conversation protocols, each with a `type`, an HTTPS `endpoint`, a `description` of what the agent there can help with (section 8), and an optional `tos_uri`. A `poppy` entry may include an `access` hint (3.2).                                                                                                                                                                          |
+| `apis`               | At least one of `agent`, `apis`, or `web`                                            | A list of APIs. Each has a `type`, such as those in section 7, a `url`, a short `description` that helps the Personal Agent pick the right one, and an optional `tos_uri`.                                                                                                                                                                                                                                                                     |
 | `web`                | At least one of `agent`, `apis`, or `web`                                            | The Company's website. The optional `browser_session_endpoint` is where the Personal Agent's browser joins a Session (section 6). Without it, Personal Agents browse the site as ordinary signed-out visitors, unless `web.disabled` is set.                                                                                                                                                                                                   |
 | `web.disabled`       | No                                                                                   | `true` if the Company asks Personal Agents not to browse its website in a browser, and to use its Company Agent and APIs instead (section 6). Defaults to `false`.                                                                                                                                                                                                                                                                             |
 | `web.unscoped`       | No                                                                                   | `true` if the website doesn't apply the Company's other scopes, so `poppy:browser-sign-in` gives the account's full access there (section 6). Defaults to `false`.                                                                                                                                                                                                                                                                             |
 | `tasks`              | No                                                                                   | `endpoint` is an HTTPS URL where Personal Agents get, for a Session, the tasks the Company chose not to offer through this protocol, the skills it publishes, and where to send feedback (section 9).                                                                                                                                                                                                                                          |
 | `extensions`         | No                                                                                   | The extensions the Company supports, keyed by name, with an entry for each version (3.3).                                                                                                                                                                                                                                                                                                                                                      |
+
+**Terms of service.** An entry in `apis` or `agent.protocols` MAY include `tos_uri`, the HTTPS URL
+of a human-readable terms of service document for that API, or for talking with that agent. The name
+follows OAuth client metadata ([RFC 7591](https://www.rfc-editor.org/rfc/rfc7591#section-2) §2),
+and the meaning follows `resource_tos_uri` ([RFC 9728](https://www.rfc-editor.org/rfc/rfc9728#section-2)
+§2), which only points to the document. Terms of service belong to an entry rather than to
+`organization`, because entries can reach services and agents that other providers run under their
+own terms.
+
+- Linking `tos_uri` informs the User. It isn't evidence that the User accepted the terms. A Company
+  that needs acceptance gets it through sign-in (4.2) or an operation's `terms`
+  ([Operations extension](/docs/extensions/operations#operation-object)).
+- When an API also publishes terms of service itself, in its OpenAPI description's
+  `info.termsOfService` or its protected resource metadata's `resource_tos_uri`, `tos_uri` SHOULD be
+  the same URL. If they differ, the Personal Agent uses `tos_uri`.
+- A Personal Agent doesn't have to ask the User before calling an API or starting a conversation.
+  When it does ask, it SHOULD link the entry's terms of service, in its own words and in the User's
+  language. The field is only a URL: `poppy.json` is the same for every User, and text from the
+  Company isn't fit to stand as the Personal Agent's own words (10.1).
 
 ### 3.2 OAuth server {#oauth-server}
 
@@ -1448,8 +1469,9 @@ A Company can list APIs in its `poppy.json` (section 3). This version defines th
 | `openapi` | An OpenAPI 3.0 or 3.1 description of the API.                                                          | [OpenAPI Specification 3.1](https://spec.openapis.org/oas/v3.1.1.html)                        |
 | `mcp`     | A remote MCP server endpoint, using the Streamable HTTP transport and MCP version 2025-06-18 or later. | [Model Context Protocol 2025-06-18](https://modelcontextprotocol.io/specification/2025-06-18) |
 
-Personal Agents SHOULD skip API types they don't recognize, so later versions can add types. The
-protocol leaves each API's schema to that API. Every listed API MUST accept the Session header (5.2)
+Personal Agents SHOULD skip API types they don't recognize, so later versions can add types. An
+entry can link the API's terms of service in `tos_uri` (3.1). The protocol leaves each API's schema
+to that API. Every listed API MUST accept the Session header (5.2)
 and, when the Company offers account access, its access tokens (4.5), and enforce their scopes.
 Session verification follows 5.3: an API that uses no Session claims can rely on OAuth alone for
 account access or serve signed-out requests without verifying Sessions.
@@ -1537,6 +1559,7 @@ the Personal Agent can decide whether a conversation can serve the task at hand,
 the entries and the Company's APIs. Entries can reach different agents with different abilities,
 such as a UCP Ask endpoint for product questions and a support agent run by another provider. The
 Company MUST include a `description` in every entry, and MAY say the agent can help with anything.
+An entry can link the terms of service for talking with its agent in `tos_uri` (3.1).
 
 The currently defined protocol is:
 
